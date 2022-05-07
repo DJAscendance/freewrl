@@ -7028,6 +7028,7 @@ const int OFFSETS_LayoutLayer[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_LinePickSensor[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_LinePickSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_LinePickSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LinePickSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_objectType, (int) offsetof (struct X3D_LinePickSensor, objectType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8314,6 +8315,7 @@ const int OFFSETS_PositionInterpolator2D[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PrimitivePickSensor[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_PrimitivePickSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_PrimitivePickSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PrimitivePickSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_objectType, (int) offsetof (struct X3D_PrimitivePickSensor, objectType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9531,6 +9533,7 @@ const int OFFSETS_VolumeEmitter[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_VolumePickSensor[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_VolumePickSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_VolumePickSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_VolumePickSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_objectType, (int) offsetof (struct X3D_VolumePickSensor, objectType),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -13464,6 +13467,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_LinePickSensor : {
 			struct X3D_LinePickSensor * tmp2;
 			tmp2 = (struct X3D_LinePickSensor *) tmp;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = FALSE;
 			tmp2->metadata = NULL;
 			tmp2->objectType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*3);tmp2->objectType.p[0] = newASCIIString("ALL");tmp2->objectType.p[1] = newASCIIString("NONE");tmp2->objectType.p[2] = newASCIIString("TERRAIN");tmp2->objectType.n=3; ;
@@ -15095,6 +15099,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PrimitivePickSensor : {
 			struct X3D_PrimitivePickSensor * tmp2;
 			tmp2 = (struct X3D_PrimitivePickSensor *) tmp;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = FALSE;
 			tmp2->metadata = NULL;
 			tmp2->objectType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*3);tmp2->objectType.p[0] = newASCIIString("ALL");tmp2->objectType.p[1] = newASCIIString("NONE");tmp2->objectType.p[2] = newASCIIString("TERRAIN");tmp2->objectType.n=3; ;
@@ -16573,6 +16578,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_VolumePickSensor : {
 			struct X3D_VolumePickSensor * tmp2;
 			tmp2 = (struct X3D_VolumePickSensor *) tmp;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = FALSE;
 			tmp2->metadata = NULL;
 			tmp2->objectType.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*3);tmp2->objectType.p[0] = newASCIIString("ALL");tmp2->objectType.p[1] = newASCIIString("NONE");tmp2->objectType.p[2] = newASCIIString("TERRAIN");tmp2->objectType.n=3; ;
@@ -19535,6 +19541,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_LinePickSensor *tmp;
 			tmp = (struct X3D_LinePickSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -21077,6 +21084,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_PrimitivePickSensor *tmp;
 			tmp = (struct X3D_PrimitivePickSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -22604,6 +22612,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_VolumePickSensor *tmp;
 			tmp = (struct X3D_VolumePickSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 

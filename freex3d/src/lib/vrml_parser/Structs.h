@@ -7986,6 +7986,7 @@ struct X3D_LinePickSensor {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Uni_String *description;
 	int enabled;
 	struct X3D_Node *metadata;
 	struct Multi_String objectType;
@@ -11032,6 +11033,7 @@ struct X3D_PrimitivePickSensor {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Uni_String *description;
 	int enabled;
 	struct X3D_Node *metadata;
 	struct Multi_String objectType;
@@ -13449,6 +13451,7 @@ struct X3D_VolumePickSensor {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Uni_String *description;
 	int enabled;
 	struct X3D_Node *metadata;
 	struct Multi_String objectType;

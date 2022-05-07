@@ -2058,6 +2058,7 @@ END_NODE(LayoutLayer)
 
 /* LinePickSensor node */
 BEGIN_NODE(LinePickSensor)
+EXPOSED_FIELD(LinePickSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(LinePickSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(LinePickSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(LinePickSensor,objectType,mfstring,objectType,FIELDTYPE_MFString,UNCA_NONE)
@@ -3248,6 +3249,7 @@ END_NODE(PositionInterpolator2D)
 
 /* PrimitivePickSensor node */
 BEGIN_NODE(PrimitivePickSensor)
+EXPOSED_FIELD(PrimitivePickSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(PrimitivePickSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(PrimitivePickSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(PrimitivePickSensor,objectType,mfstring,objectType,FIELDTYPE_MFString,UNCA_NONE)
@@ -4301,6 +4303,7 @@ END_NODE(VolumeEmitter)
 
 /* VolumePickSensor node */
 BEGIN_NODE(VolumePickSensor)
+EXPOSED_FIELD(VolumePickSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(VolumePickSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(VolumePickSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(VolumePickSensor,objectType,mfstring,objectType,FIELDTYPE_MFString,UNCA_NONE)
