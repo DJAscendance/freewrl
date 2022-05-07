@@ -3323,6 +3323,7 @@ struct X3D_AudioBufferSourceNode {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	int enabled;
 	struct Multi_Node connect;
 	void * _self;
 	void * _context;
@@ -3354,6 +3355,7 @@ struct X3D_AudioClip {
 	void * _self;
 	void * _context;
 	struct Uni_String *description;
+	int enabled;
 	int loop;
 	struct X3D_Node *metadata;
 	double pauseTime;
@@ -9460,6 +9462,7 @@ struct X3D_MovieTexture {
 	void * _self;
 	void * _context;
 	struct Uni_String *description;
+	int enabled;
 	int loop;
 	struct X3D_Node *metadata;
 	double pauseTime;
