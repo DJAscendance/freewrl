@@ -1143,6 +1143,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
+	"stop1ConstantForceMix",
 	"stop1ErrorCorrection",
 	"stop2Bounce",
 	"stop2ErrorCorrection",
@@ -1941,6 +1942,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"startTime",
 	"stiffness",
 	"stop1Bounce",
+	"stop1ConstantForceMix",
 	"stop1ErrorCorrection",
 	"stop2Bounce",
 	"stop2ErrorCorrection",
@@ -5625,6 +5627,9 @@ const int OFFSETS_DoubleAxisHingeJoint[] = {
 	(int) FIELDNAMES_stopBounce1, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stopBounce1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_stopConstantForceMix1, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stopConstantForceMix1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_FORCE,
 	(int) FIELDNAMES_stopErrorCorrection1, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stopErrorCorrection1),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_stop1Bounce, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stop1Bounce),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_stop1ConstantForceMix, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stop1ConstantForceMix),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_FORCE,
+	(int) FIELDNAMES_stop1ErrorCorrection, (int) offsetof (struct X3D_DoubleAxisHingeJoint, stop1ErrorCorrection),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_suspensionErrorCorrection, (int) offsetof (struct X3D_DoubleAxisHingeJoint, suspensionErrorCorrection),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_suspensionForce, (int) offsetof (struct X3D_DoubleAxisHingeJoint, suspensionForce),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_FORCE,
 	(int) FIELDNAMES_body1AnchorPoint, (int) offsetof (struct X3D_DoubleAxisHingeJoint, body1AnchorPoint),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
@@ -11723,8 +11728,8 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_DoubleAxisHingeJoint * tmp2;
 			tmp2 = (struct X3D_DoubleAxisHingeJoint *) tmp;
 			tmp2->anchorPoint.c[0] = 0.0f;tmp2->anchorPoint.c[1] = 0.0f;tmp2->anchorPoint.c[2] = 0.0f;
-			tmp2->axis1.c[0] = 0.0f;tmp2->axis1.c[1] = 0.0f;tmp2->axis1.c[2] = 0.0f;
-			tmp2->axis2.c[0] = 0.0f;tmp2->axis2.c[1] = 0.0f;tmp2->axis2.c[2] = 0.0f;
+			tmp2->axis1.c[0] = 1.0f;tmp2->axis1.c[1] = 0.0f;tmp2->axis1.c[2] = 0.0f;
+			tmp2->axis2.c[0] = 0.0f;tmp2->axis2.c[1] = 1.0f;tmp2->axis2.c[2] = 0.0f;
 			tmp2->body1 = NULL;
 			tmp2->body2 = NULL;
 			tmp2->desiredAngularVelocity1 = 0.0f;
@@ -11738,6 +11743,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->stopBounce1 = 0.0f;
 			tmp2->stopConstantForceMix1 = 0.001f;
 			tmp2->stopErrorCorrection1 = 0.8f;
+			tmp2->stop1Bounce = 0.0f;
+			tmp2->stop1ConstantForceMix = 0.001f;
+			tmp2->stop1ErrorCorrection = 0.8f;
 			tmp2->suspensionErrorCorrection = 0.8f;
 			tmp2->suspensionForce = 0.0f;
 			tmp2->body1AnchorPoint.c[0] = 0.0f;tmp2->body1AnchorPoint.c[1] = 0.0f;tmp2->body1AnchorPoint.c[2] = 0.0f;
@@ -17815,6 +17823,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," stopBounce1 (SFFloat) \t%4.3f\n",tmp->stopBounce1);
 			spacer fprintf (fp," stopConstantForceMix1 (SFFloat) \t%4.3f\n",tmp->stopConstantForceMix1);
 			spacer fprintf (fp," stopErrorCorrection1 (SFFloat) \t%4.3f\n",tmp->stopErrorCorrection1);
+			spacer fprintf (fp," stop1Bounce (SFFloat) \t%4.3f\n",tmp->stop1Bounce);
+			spacer fprintf (fp," stop1ConstantForceMix (SFFloat) \t%4.3f\n",tmp->stop1ConstantForceMix);
+			spacer fprintf (fp," stop1ErrorCorrection (SFFloat) \t%4.3f\n",tmp->stop1ErrorCorrection);
 			spacer fprintf (fp," suspensionErrorCorrection (SFFloat) \t%4.3f\n",tmp->suspensionErrorCorrection);
 			spacer fprintf (fp," suspensionForce (SFFloat) \t%4.3f\n",tmp->suspensionForce);
 		    if(allFields) {

@@ -1430,8 +1430,14 @@ void rbp_run_physics(){
 									veccopy3f(jnt->__old_axis2.c,jnt->axis2.c);
 								}
 								jnt->_forceout = forceout_from_names(jnt->forceOutput.n,jnt->forceOutput.p);
-								dJointSetHinge2Param (jnt->_joint,dParamBounce1,jnt->stopBounce1);
-								dJointSetHinge2Param (jnt->_joint,dParamStopERP1,jnt->stopErrorCorrection1);
+								if (X3D_PROTO(jnt->_executionContext)->__specversion >= 400) {
+									dJointSetHinge2Param(jnt->_joint, dParamBounce1, jnt->stop1Bounce);
+									dJointSetHinge2Param(jnt->_joint, dParamStopERP1, jnt->stop1ErrorCorrection);
+								}
+								else {
+									dJointSetHinge2Param(jnt->_joint, dParamBounce1, jnt->stopBounce1);
+									dJointSetHinge2Param(jnt->_joint, dParamStopERP1, jnt->stopErrorCorrection1);
+								}
 								dJointSetHinge2Param (jnt->_joint,dParamSuspensionERP,jnt->suspensionErrorCorrection);
 								dJointSetHinge2Param (jnt->_joint,dParamSuspensionCFM,jnt->suspensionForce);
 

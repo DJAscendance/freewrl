@@ -4410,8 +4410,8 @@ our %Nodes = (
 
 	"DoubleAxisHingeJoint" => new VRML::NodeType("DoubleAxisHingeJoint", [
 		anchorPoint => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		axis1 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		axis2 => ["SFVec3f", [0,0,0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		axis1 => ["SFVec3f", [1,0,0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		axis2 => ["SFVec3f", [0,1,0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		body1 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		body2 => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		desiredAngularVelocity1 => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLERATE"],#ff
@@ -4422,9 +4422,14 @@ our %Nodes = (
 		maxTorque2 => ["SFFloat", 0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_TORQUE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		minAngle1 => ["SFFloat", "-PIF+", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
+		#v3.3-- names for stop
 		stopBounce1 => ["SFFloat", 0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		stopConstantForceMix1 => ["SFFloat", .001, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_FORCE"],#ff
 		stopErrorCorrection1 => ["SFFloat", .8, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		#v4 names for stop
+		stop1Bounce => ["SFFloat", 0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stop1ConstantForceMix => ["SFFloat", .001, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_FORCE"],#ff
+		stop1ErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		suspensionErrorCorrection => ["SFFloat", .8, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		suspensionForce => ["SFFloat", 0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_FORCE"],#ff
 		body1AnchorPoint => ["SFVec3f",[0,0,0],"outputOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
