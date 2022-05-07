@@ -304,6 +304,7 @@ EXPOSED_FIELD(BoundaryEnhancementVolumeStyle,metadata,sfnode,metadata,FIELDTYPE_
 EXPOSED_FIELD(BoundaryEnhancementVolumeStyle,boundaryOpacity,sffloat,boundaryOpacity,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(BoundaryEnhancementVolumeStyle,opacityFactor,sffloat,opacityFactor,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(BoundaryEnhancementVolumeStyle,retainedOpacity,sffloat,retainedOpacity,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(BoundaryEnhancementVolumeStyle,surfaceNormals,sfnode,surfaceNormals,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(BoundaryEnhancementVolumeStyle)
 
 /* BoundedPhysicsModel node */

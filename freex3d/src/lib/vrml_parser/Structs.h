@@ -3813,6 +3813,7 @@ struct X3D_BoundaryEnhancementVolumeStyle {
 	float boundaryOpacity;
 	float opacityFactor;
 	float retainedOpacity;
+	struct X3D_Node *surfaceNormals;
 };
 extern struct X3D_Virt virt_BoundaryEnhancementVolumeStyle;
 /***********************/

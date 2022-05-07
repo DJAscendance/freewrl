@@ -4999,6 +4999,7 @@ const int OFFSETS_BoundaryEnhancementVolumeStyle[] = {
 	(int) FIELDNAMES_boundaryOpacity, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, boundaryOpacity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_opacityFactor, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, opacityFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_retainedOpacity, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, retainedOpacity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_surfaceNormals, (int) offsetof (struct X3D_BoundaryEnhancementVolumeStyle, surfaceNormals),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_BoundedPhysicsModel[] = {
@@ -10946,6 +10947,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->boundaryOpacity = 0.9f;
 			tmp2->opacityFactor = 2.0f;
 			tmp2->retainedOpacity = 0.2f;
+			tmp2->surfaceNormals = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17088,6 +17090,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," boundaryOpacity (SFFloat) \t%4.3f\n",tmp->boundaryOpacity);
 			spacer fprintf (fp," opacityFactor (SFFloat) \t%4.3f\n",tmp->opacityFactor);
 			spacer fprintf (fp," retainedOpacity (SFFloat) \t%4.3f\n",tmp->retainedOpacity);
+			spacer fprintf (fp," surfaceNormals (SFNode):\n"); dump_scene(fp,level+1,tmp->surfaceNormals); 
 		    break;
 		}
 		case NODE_BoundedPhysicsModel : {
