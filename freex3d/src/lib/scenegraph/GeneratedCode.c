@@ -5186,6 +5186,7 @@ const int OFFSETS_Collision[] = {
 	(int) FIELDNAMES_removeChildren, (int) offsetof (struct X3D_Collision, removeChildren),  (int) FIELDTYPE_MFNode, (int) KW_inputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sibAffectors, (int) offsetof (struct X3D_Collision, __sibAffectors),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_Collision, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_Collision, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_Collision, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_collide, (int) offsetof (struct X3D_Collision, collide),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxCenter, (int) offsetof (struct X3D_Collision, bboxCenter),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
@@ -11161,6 +11162,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->removeChildren.n=0; tmp2->removeChildren.p=0;
 			tmp2->__sibAffectors.n=0; tmp2->__sibAffectors.p=0;
 			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->collide = TRUE;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
@@ -17296,6 +17298,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," children (MFNode):\n");
 			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," collide (SFBool) \t%d\n",tmp->collide);
 			spacer fprintf (fp," visible (SFBool) \t%d\n",tmp->visible);

@@ -4272,6 +4272,7 @@ struct X3D_Collision {
 	struct Multi_Node removeChildren;
 	struct Multi_Node __sibAffectors;
 	struct Multi_Node children;
+	struct Uni_String *description;
 	int enabled;
 	int collide;
 	struct SFVec3f bboxCenter;
