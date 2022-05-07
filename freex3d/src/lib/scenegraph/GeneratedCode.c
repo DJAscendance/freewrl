@@ -6921,6 +6921,7 @@ const int OFFSETS_IsoSurfaceVolumeData[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_KeySensor[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_KeySensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_KeySensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_actionKeyPress, (int) offsetof (struct X3D_KeySensor, actionKeyPress),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_actionKeyRelease, (int) offsetof (struct X3D_KeySensor, actionKeyRelease),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8378,6 +8379,7 @@ const int OFFSETS_Proto[] = {
 const int OFFSETS_ProximitySensor[] = {
 	(int) FIELDNAMES_center, (int) offsetof (struct X3D_ProximitySensor, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_ProximitySensor, size),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_ProximitySensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_ProximitySensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_ProximitySensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_position_changed, (int) offsetof (struct X3D_ProximitySensor, position_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8903,6 +8905,7 @@ const int OFFSETS_StaticGroup[] = {
 
 const int OFFSETS_StringSensor[] = {
 	(int) FIELDNAMES_deletionAllowed, (int) offsetof (struct X3D_StringSensor, deletionAllowed),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_StringSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_StringSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_enteredText, (int) offsetof (struct X3D_StringSensor, enteredText),  (int) FIELDTYPE_SFString, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_finalText, (int) offsetof (struct X3D_StringSensor, finalText),  (int) FIELDTYPE_SFString, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9237,6 +9240,7 @@ const int OFFSETS_Transform[] = {
 const int OFFSETS_TransformSensor[] = {
 	(int) FIELDNAMES_center, (int) offsetof (struct X3D_TransformSensor, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_TransformSensor, size),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_TransformSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_TransformSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_TransformSensor, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_position_changed, (int) offsetof (struct X3D_TransformSensor, position_changed),  (int) FIELDTYPE_SFVec3f, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9474,6 +9478,7 @@ const int OFFSETS_Viewport[] = {
 
 const int OFFSETS_VisibilitySensor[] = {
 	(int) FIELDNAMES_center, (int) offsetof (struct X3D_VisibilitySensor, center),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_VisibilitySensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_VisibilitySensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_VisibilitySensor, size),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_enterTime, (int) offsetof (struct X3D_VisibilitySensor, enterTime),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -13299,6 +13304,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_KeySensor : {
 			struct X3D_KeySensor * tmp2;
 			tmp2 = (struct X3D_KeySensor *) tmp;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->actionKeyPress = 0;
 			tmp2->actionKeyRelease = 0;
@@ -15157,6 +15163,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_ProximitySensor *) tmp;
 			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
 			tmp2->size.c[0] = 0.0f;tmp2->size.c[1] = 0.0f;tmp2->size.c[2] = 0.0f;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->isActive = FALSE;
 			tmp2->position_changed.c[0] = 0.0f;tmp2->position_changed.c[1] = 0.0f;tmp2->position_changed.c[2] = 0.0f;
@@ -15775,6 +15782,7 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_StringSensor * tmp2;
 			tmp2 = (struct X3D_StringSensor *) tmp;
 			tmp2->deletionAllowed = TRUE;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->enteredText = newASCIIString("");
 			tmp2->finalText = newASCIIString("");
@@ -16216,6 +16224,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TransformSensor *) tmp;
 			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
 			tmp2->size.c[0] = 0.0f;tmp2->size.c[1] = 0.0f;tmp2->size.c[2] = 0.0f;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->isActive = FALSE;
 			tmp2->position_changed.c[0] = 0.0f;tmp2->position_changed.c[1] = 0.0f;tmp2->position_changed.c[2] = 0.0f;
@@ -16491,6 +16500,7 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_VisibilitySensor * tmp2;
 			tmp2 = (struct X3D_VisibilitySensor *) tmp;
 			tmp2->center.c[0] = 0.0f;tmp2->center.c[1] = 0.0f;tmp2->center.c[2] = 0.0f;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->size.c[0] = 0.0f;tmp2->size.c[1] = 0.0f;tmp2->size.c[2] = 0.0f;
 			tmp2->enterTime = -1;
@@ -19365,6 +19375,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_KeySensor *tmp;
 			tmp = (struct X3D_KeySensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -21111,6 +21122,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," size (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->size.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -21757,6 +21769,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_StringSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
 			spacer fprintf (fp," deletionAllowed (SFBool) \t%d\n",tmp->deletionAllowed);
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -22203,6 +22216,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," size (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->size.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," targetObject (SFNode):\n"); dump_scene(fp,level+1,tmp->targetObject); 
 		    if(allFields) {
@@ -22511,6 +22525,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," center (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->center.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," size (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->size.c[i]); }

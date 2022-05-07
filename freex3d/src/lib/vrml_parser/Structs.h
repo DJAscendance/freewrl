@@ -7767,6 +7767,7 @@ struct X3D_KeySensor {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Uni_String *description;
 	int enabled;
 	int actionKeyPress;
 	int actionKeyRelease;
@@ -11160,6 +11161,7 @@ struct X3D_ProximitySensor {
  	/*** node specific data: *****/
 	struct SFVec3f center;
 	struct SFVec3f size;
+	struct Uni_String *description;
 	int enabled;
 	int isActive;
 	struct SFVec3f position_changed;
@@ -12181,6 +12183,7 @@ struct X3D_StringSensor {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	int deletionAllowed;
+	struct Uni_String *description;
 	int enabled;
 	struct Uni_String *enteredText;
 	struct Uni_String *finalText;
@@ -12915,6 +12918,7 @@ struct X3D_TransformSensor {
  	/*** node specific data: *****/
 	struct SFVec3f center;
 	struct SFVec3f size;
+	struct Uni_String *description;
 	int enabled;
 	int isActive;
 	struct SFVec3f position_changed;
@@ -13344,6 +13348,7 @@ struct X3D_VisibilitySensor {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct SFVec3f center;
+	struct Uni_String *description;
 	int enabled;
 	struct SFVec3f size;
 	double enterTime;
