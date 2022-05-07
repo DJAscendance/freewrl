@@ -15722,8 +15722,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->shadows = FALSE;
 			tmp2->shadowIntensity = 1.0f;
 			tmp2->attenuation.c[0] = 1.0f;tmp2->attenuation.c[1] = 0.0f;tmp2->attenuation.c[2] = 0.0f;
-			tmp2->beamWidth = 1.570796f;
-			tmp2->cutOffAngle = 0.785398f;
+			tmp2->beamWidth = 0.589048622548086f;
+			tmp2->cutOffAngle = 1.57079632679f;
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = -1.0f;
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 0.0f;
 			tmp2->radius = 100.0f;
