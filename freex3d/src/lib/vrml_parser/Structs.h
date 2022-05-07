@@ -6421,6 +6421,7 @@ struct X3D_GeoProximitySensor {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
+	struct Uni_String *description;
 	int enabled;
 	struct SFVec3d geoCenter;
 	struct SFVec3d center;

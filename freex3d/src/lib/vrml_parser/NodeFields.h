@@ -1380,6 +1380,7 @@ END_NODE(GeoPositionInterpolator)
 
 /* GeoProximitySensor node */
 BEGIN_NODE(GeoProximitySensor)
+EXPOSED_FIELD(GeoProximitySensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(GeoProximitySensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(GeoProximitySensor,geoCenter,sfvec3d,geoCenter,FIELDTYPE_SFVec3d,UNCA_GEO)
 EXPOSED_FIELD(GeoProximitySensor,center,sfvec3d,center,FIELDTYPE_SFVec3d,UNCA_GEO)

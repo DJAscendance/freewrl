@@ -2414,6 +2414,7 @@ our %Nodes = (
 
 
 	"GeoProximitySensor" => new VRML::NodeType("ProximitySensor", [
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff # see note top of file
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D33)","UNCA_NONE"],#ff
 		geoCenter => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D32)","UNCA_GEO"],#ff
 		center => ["SFVec3d", [0, 0, 0], "inputOutput", "(SPEC_X3D33)","UNCA_GEO"],#ff
@@ -4263,7 +4264,7 @@ our %Nodes = (
                 metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		family => ["MFString", ["SERIF"], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		horizontal => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		justify => ["MFString", ["BEGIN"], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		justify => ["MFString", ["BEGIN","BEGIN"], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		language => ["SFString", "", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		leftToRight => ["SFBool", "TRUE", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		pointSize => ["SFFloat", 12.0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file

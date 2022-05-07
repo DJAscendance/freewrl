@@ -6215,6 +6215,7 @@ const int OFFSETS_GeoPositionInterpolator[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoProximitySensor[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeoProximitySensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_GeoProximitySensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geoCenter, (int) offsetof (struct X3D_GeoProximitySensor, geoCenter),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D32), (int) UNCA_GEO,
 	(int) FIELDNAMES_center, (int) offsetof (struct X3D_GeoProximitySensor, center),  (int) FIELDTYPE_SFVec3d, (int) KW_inputOutput, (int) (SPEC_X3D33), (int) UNCA_GEO,
@@ -12465,6 +12466,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_GeoProximitySensor : {
 			struct X3D_GeoProximitySensor * tmp2;
 			tmp2 = (struct X3D_GeoProximitySensor *) tmp;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->geoCenter.c[0] = 0;tmp2->geoCenter.c[1] = 0;tmp2->geoCenter.c[2] = 0;;
 			tmp2->center.c[0] = 0;tmp2->center.c[1] = 0;tmp2->center.c[2] = 0;;
@@ -15388,7 +15390,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->family.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->family.p[0] = newASCIIString("SERIF");tmp2->family.n=1; ;
 			tmp2->horizontal = TRUE;
-			tmp2->justify.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->justify.p[0] = newASCIIString("BEGIN");tmp2->justify.n=1; ;
+			tmp2->justify.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->justify.p[0] = newASCIIString("BEGIN");tmp2->justify.p[1] = newASCIIString("BEGIN");tmp2->justify.n=2; ;
 			tmp2->language = newASCIIString("");
 			tmp2->leftToRight = TRUE;
 			tmp2->pointSize = 12.0f;
@@ -18537,6 +18539,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_GeoProximitySensor *tmp;
 			tmp = (struct X3D_GeoProximitySensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," geoCenter (SFVec3d): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->geoCenter.c[i]); }
