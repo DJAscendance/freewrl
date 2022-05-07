@@ -5211,6 +5211,9 @@ const int OFFSETS_CollisionCollection[] = {
 	(int) FIELDNAMES_softnessConstantForceMix, (int) offsetof (struct X3D_CollisionCollection, softnessConstantForceMix),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_FORCE,
 	(int) FIELDNAMES_softnessErrorCorrection, (int) offsetof (struct X3D_CollisionCollection, softnessErrorCorrection),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_surfaceSpeed, (int) offsetof (struct X3D_CollisionCollection, surfaceSpeed),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
+	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_CollisionCollection, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
+	(int) FIELDNAMES_visible, (int) offsetof (struct X3D_CollisionCollection, visible),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bboxDisplay, (int) offsetof (struct X3D_CollisionCollection, bboxDisplay),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__class, (int) offsetof (struct X3D_CollisionCollection, _class),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__csensor, (int) offsetof (struct X3D_CollisionCollection, _csensor),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__appliedParametersMask, (int) offsetof (struct X3D_CollisionCollection, _appliedParametersMask),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -5218,6 +5221,7 @@ const int OFFSETS_CollisionCollection[] = {
 
 const int OFFSETS_CollisionSensor[] = {
 	(int) FIELDNAMES_collider, (int) offsetof (struct X3D_CollisionSensor, collider),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_CollisionSensor, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_CollisionSensor, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_CollisionSensor, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intersections, (int) offsetof (struct X3D_CollisionSensor, intersections),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -11191,6 +11195,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->softnessConstantForceMix = 0.0001f;
 			tmp2->softnessErrorCorrection = 0.8f;
 			tmp2->surfaceSpeed.c[0] = 0.0f;tmp2->surfaceSpeed.c[1] = 0.0f;;
+			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
+			tmp2->visible = TRUE;
+			tmp2->bboxDisplay = FALSE;
 			tmp2->_class = 0;
 			tmp2->_csensor = 0;
 			tmp2->_appliedParametersMask = 0;
@@ -11201,6 +11208,7 @@ void *createNewX3DNode0 (int nt) {
 			struct X3D_CollisionSensor * tmp2;
 			tmp2 = (struct X3D_CollisionSensor *) tmp;
 			tmp2->collider = NULL;
+			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
 			tmp2->intersections.n=0; tmp2->intersections.p=0;
@@ -17338,6 +17346,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," surfaceSpeed (SFVec2f): \t");
 			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->surfaceSpeed.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," visible (SFBool) \t%d\n",tmp->visible);
+			spacer fprintf (fp," bboxDisplay (SFBool) \t%d\n",tmp->bboxDisplay);
 		    break;
 		}
 		case NODE_CollisionSensor : {
@@ -17345,6 +17355,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			tmp = (struct X3D_CollisionSensor *) node;
 			UNUSED(tmp); // compiler warning mitigation
 			spacer fprintf (fp," collider (SFNode):\n"); dump_scene(fp,level+1,tmp->collider); 
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 

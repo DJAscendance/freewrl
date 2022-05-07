@@ -4357,6 +4357,9 @@ our %Nodes = (
 		softnessConstantForceMix => ["SFFloat", 0.0001, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_FORCE"],#ff # see note top of file
 		softnessErrorCorrection => ["SFFloat", 0.8, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file
 		surfaceSpeed => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
+		bboxSize => ["SFVec3f", [-1,-1,-1], "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
+		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bboxDisplay => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_class => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_csensor => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_appliedParametersMask => ["SFInt32", 0, "initializeOnly", 0,0],#ff
@@ -4364,6 +4367,7 @@ our %Nodes = (
 
 	"CollisionSensor" => new VRML::NodeType("CollsionSensor", [
 		collider => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		intersections => ["MFNode", [], "outputOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

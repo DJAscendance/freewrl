@@ -501,11 +501,15 @@ EXPOSED_FIELD(CollisionCollection,slipFactors,sfvec2f,slipFactors,FIELDTYPE_SFVe
 EXPOSED_FIELD(CollisionCollection,softnessConstantForceMix,sffloat,softnessConstantForceMix,FIELDTYPE_SFFloat,UNCA_FORCE)
 EXPOSED_FIELD(CollisionCollection,softnessErrorCorrection,sffloat,softnessErrorCorrection,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(CollisionCollection,surfaceSpeed,sfvec2f,surfaceSpeed,FIELDTYPE_SFVec2f,UNCA_SPEED)
+FIELD(CollisionCollection,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
+EXPOSED_FIELD(CollisionCollection,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(CollisionCollection,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(CollisionCollection)
 
 /* CollisionSensor node */
 BEGIN_NODE(CollisionSensor)
 EXPOSED_FIELD(CollisionSensor,collider,sfnode,collider,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(CollisionSensor,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(CollisionSensor,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(CollisionSensor,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(CollisionSensor,intersections,mfnode,intersections,FIELDTYPE_MFNode)

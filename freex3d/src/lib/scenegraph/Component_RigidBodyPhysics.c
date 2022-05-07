@@ -988,19 +988,19 @@ void rbp_run_physics(){
 							mask |= dContactBounce;
 						}else if(!strcmp(ap,"USER_FRICTION")){
 							mask |= dContactFDir1;
-						}else if(!strcmp(ap,"FRICTION_COEFFICIENT-2")){
+						}else if(!strcmp(ap,"FRICTION_COEFFICIENT-2") || !strcmp(ap, "FRICTION_COEFFICIENT_2")){
 							mask |= dContactMu2;
 						}else if(!strcmp(ap,"ERROR_REDUCTION")){
 							mask |= dContactSoftERP;
 						}else if(!strcmp(ap,"CONSTANT_FORCE")){
 							mask |= dContactSoftCFM;
-						}else if(!strcmp(ap,"SPEED-1")){
+						}else if(!strcmp(ap,"SPEED-1") || !strcmp(ap, "SPEED_1")){
 							mask |= dContactMotion1;
-						}else if(!strcmp(ap,"SPEED-2")){
+						}else if(!strcmp(ap,"SPEED-2") || !strcmp(ap, "SPEED_2")){
 							mask |= dContactMotion2;
-						}else if(!strcmp(ap,"SLIP-1")){
+						}else if(!strcmp(ap,"SLIP-1") || !strcmp(ap, "SLIP_1")){
 							mask |= dContactSlip1;
-						}else if(!strcmp(ap,"SLIP-2")){
+						}else if(!strcmp(ap,"SLIP-2") || !strcmp(ap, "SLIP_2")){
 							mask |= dContactSlip2;
 						}
 					}

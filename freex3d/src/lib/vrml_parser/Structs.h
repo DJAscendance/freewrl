@@ -4313,6 +4313,9 @@ struct X3D_CollisionCollection {
 	float softnessConstantForceMix;
 	float softnessErrorCorrection;
 	struct SFVec2f surfaceSpeed;
+	struct SFVec3f bboxSize;
+	int visible;
+	int bboxDisplay;
 	void * _class;
 	void * _csensor;
 	int _appliedParametersMask;
@@ -4336,6 +4339,7 @@ struct X3D_CollisionSensor {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *collider;
+	struct Uni_String *description;
 	int enabled;
 	struct X3D_Node *metadata;
 	struct Multi_Node intersections;
