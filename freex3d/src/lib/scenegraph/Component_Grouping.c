@@ -175,14 +175,14 @@ void compile_Transform (struct X3D_Transform *node) {
 			node->__do_rotation ||
 			node->__do_scaleO);
 
-	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	MARK_NODE_COMPILED
 }
 
 
 /* we compile the Group so that children are not continuously sorted */
 void compile_Group(struct X3D_Group *node) {
-	//REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
+	REINITIALIZE_SORTED_NODES_FIELD(node->children,node->_sortedChildren);
 	/*
 	{
 		int i;
