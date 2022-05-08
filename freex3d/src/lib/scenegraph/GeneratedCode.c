@@ -15435,7 +15435,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->family.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->family.p[0] = newASCIIString("SERIF");tmp2->family.n=1; ;
 			tmp2->horizontal = TRUE;
-			tmp2->justify.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*2);tmp2->justify.p[0] = newASCIIString("BEGIN");tmp2->justify.p[1] = newASCIIString("BEGIN");tmp2->justify.n=2; ;
+			tmp2->justify.p = MALLOC (struct Uni_String **, sizeof(struct Uni_String)*1);tmp2->justify.p[0] = newASCIIString("BEGIN");tmp2->justify.n=1; ;
 			tmp2->language = newASCIIString("");
 			tmp2->leftToRight = TRUE;
 			tmp2->pointSize = 12.0f;
