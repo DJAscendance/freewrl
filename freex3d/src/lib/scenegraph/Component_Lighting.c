@@ -47,39 +47,11 @@ X3D Lighting Component
 		} else if (node->global) return; \
 		/* else printf ("and this is a local light\n"); */
 
-#define CHBOUNDS(aaa) \
-    if (aaa.c[0]>1.0) aaa.c[0] = 1.0; \
-    if (aaa.c[0]<0.0) aaa.c[0] = 0.0; \
-    if (aaa.c[1]>1.0) aaa.c[1] = 1.0; \
-    if (aaa.c[1]<0.0) aaa.c[1] = 0.0; \
-    if (aaa.c[2]>1.0) aaa.c[2] = 1.0; \
-    if (aaa.c[2]<0.0) aaa.c[3] = 0.0; 
-
 
 void compile_DirectionalLight (struct X3D_DirectionalLight *node) {
     struct point_XYZ vec;
 
-    vec.x = (double) -((node->direction).c[0]);
-    vec.y = (double) -((node->direction).c[1]);
-    vec.z = (double) -((node->direction).c[2]);
-    normalize_vector(&vec);
-    node->_dir.c[0] = (float) vec.x;
-    node->_dir.c[1] = (float) vec.y;
-    node->_dir.c[2] = (float) vec.z;
-    node->_dir.c[3] = 0.0f;/* 0.0 = this is a vector, not a position */
 
-    node->_col.c[0] = ((node->color).c[0]) * (node->intensity);
-    node->_col.c[1] = ((node->color).c[1]) * (node->intensity);
-    node->_col.c[2] = ((node->color).c[2]) * (node->intensity);
-    node->_col.c[3] = 1;
-    CHBOUNDS(node->_col);
-    
-    
-    node->_amb.c[0] = ((node->color).c[0]) * (node->ambientIntensity);
-    node->_amb.c[1] = ((node->color).c[1]) * (node->ambientIntensity);
-    node->_amb.c[2] = ((node->color).c[2]) * (node->ambientIntensity);
-    node->_amb.c[3] = 1;
-    CHBOUNDS(node->_amb);
     MARK_NODE_COMPILED;
 }
 /*
@@ -119,23 +91,13 @@ void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 			float pos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 			setLightState(light,TRUE);
 			setLightType(light,2);
-			//if(0){
-			//	FW_GL_LIGHTFV(light, GL_SPOT_DIRECTION, (GLfloat* )node->_dir.c);
-			//	FW_GL_LIGHTFV(light, GL_POSITION, (GLfloat* )pos);
-			//	FW_GL_LIGHTFV(light, GL_DIFFUSE, node->_col.c);
-			//	FW_GL_LIGHTFV(light, GL_SPECULAR, node->_col.c);
-			//	FW_GL_LIGHTFV(light, GL_AMBIENT, node->_amb.c);
-			//}else{
-				FW_GL_LIGHTFV(light, LIGHT_DIRECTION, node->direction.c); //(GLfloat* )node->_dir.c);
+				FW_GL_LIGHTFV(light, LIGHT_DIRECTION, node->direction.c); 
 				FW_GL_LIGHTFV(light, LIGHT_POSITION, pos); //direction lights don't have a postion
-				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); //_col.c);
-				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity); //_col.c);
-				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); //_amb.c);
-			//}
+				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); 
+				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity); 
+				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); 
             /* used to test if a PointLight, SpotLight or DirectionalLight in shader  */
-			// was used, using lightType now //FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, 0);
             setLightChangedFlag(light);
-            // not used in directionlight calc //FW_GL_LIGHTF(light,GL_LIGHT_RADIUS,100000.0); /* make it very large */
 		}
 	}
 }
@@ -148,42 +110,12 @@ void prep_DirectionalLight (struct X3D_DirectionalLight *node) {
 
 void compile_PointLight (struct X3D_PointLight *node) {
     int i;
-    
-    for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
-    node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
-    
+     
     //ConsoleMessage("compile_PointLight, loc %f %f %f %f",node->_loc.c[0],node->_loc.c[1],node->_loc.c[2],node->_loc.c[3]);
 
-    node->_col.c[0] = ((node->color).c[0]) * (node->intensity);
-    node->_col.c[1] = ((node->color).c[1]) * (node->intensity);
-    node->_col.c[2] = ((node->color).c[2]) * (node->intensity);
-    node->_col.c[3] = 1;
-    CHBOUNDS(node->_col);
     
-    
-    node->_amb.c[0] = ((node->color).c[0]) * (node->ambientIntensity);
-    node->_amb.c[1] = ((node->color).c[1]) * (node->ambientIntensity);
-    node->_amb.c[2] = ((node->color).c[2]) * (node->ambientIntensity);
-    node->_amb.c[3] = 1;
-    CHBOUNDS(node->_amb);
     MARK_NODE_COMPILED;
     
-    /* ConsoleMessage ("compile_PointLight, attenuation %f %f %f",
-                 node->attenuation.c[0],
-                     node->attenuation.c[1],
-                    node->attenuation.c[2]);*/
-    
- 
-    /* ConsoleMessage ("compile_PointLight, col %f %f %f %f amb %f %f %f %f",
-                    node->_col.c[0],
-                    node->_col.c[1],
-                    node->_col.c[2],
-                    node->_col.c[3],
-                    node->_amb.c[0],
-                    node->_amb.c[1],
-                    node->_amb.c[2],
-                    node->_amb.c[3]);
-    */
 }
 
 
@@ -219,21 +151,12 @@ void render_PointLight (struct X3D_PointLight *node) {
 			FW_GL_LIGHTFV(light, LIGHT_DIRECTION, vec);
 			FW_GL_LIGHTFV(light, LIGHT_POSITION, node->location.c); //node->_loc.c);
 
-			//FW_GL_LIGHTF(light, GL_CONSTANT_ATTENUATION,
-			//	((node->attenuation).c[0]));
-			//FW_GL_LIGHTF(light, GL_LINEAR_ATTENUATION,
-			//	((node->attenuation).c[1]));
-			//FW_GL_LIGHTF(light, GL_QUADRATIC_ATTENUATION,
-			//	((node->attenuation).c[2]));
 			FW_GL_LIGHTFV(light,LIGHT_ATTENUATION,node->attenuation.c);
 
-			FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); //_col.c);
-			FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity); //node->_col.c);
-			FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); //_amb.c);
+			FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); 
+			FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity);
+			FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); 
 
-			/* used to test if a PointLight, SpotLight or DirectionalLight in shader  */
-			// was used, using lightType now //FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, 0);
-            
             FW_GL_LIGHTF(light,GL_LIGHT_RADIUS,node->radius);
             setLightChangedFlag(light);
 		}
@@ -253,34 +176,21 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 	float dlen;
     int i;
     
-    for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
-    node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
+ //   for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
+ //   node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
 
-    vec.x = (double) node->direction.c[0];
-    vec.y = (double) node->direction.c[1];
-    vec.z = (double) node->direction.c[2];
-	dlen = veclength(vec);
-	if(dlen < .1f) {
-		vec.x = 0.0; vec.y = 0.0, vec.z = -1.0;
-	}
-    normalize_vector(&vec);
-    node->_dir.c[0] = (float) vec.x;
-    node->_dir.c[1] = (float) vec.y;
-    node->_dir.c[2] = (float) vec.z;
-    node->_dir.c[3] = 1.0f;/* 1.0 = SpotLight */
-
-    node->_col.c[0] = ((node->color).c[0]) * (node->intensity);
-    node->_col.c[1] = ((node->color).c[1]) * (node->intensity);
-    node->_col.c[2] = ((node->color).c[2]) * (node->intensity);
-    node->_col.c[3] = 1;
-    CHBOUNDS(node->_col);
-    
-    
-    node->_amb.c[0] = ((node->color).c[0]) * (node->ambientIntensity);
-    node->_amb.c[1] = ((node->color).c[1]) * (node->ambientIntensity);
-    node->_amb.c[2] = ((node->color).c[2]) * (node->ambientIntensity);
-    node->_amb.c[3] = 1;
-    CHBOUNDS(node->_amb);
+ //   vec.x = (double) node->direction.c[0];
+ //   vec.y = (double) node->direction.c[1];
+ //   vec.z = (double) node->direction.c[2];
+	//dlen = veclength(vec);
+	//if(dlen < .1f) {
+	//	vec.x = 0.0; vec.y = 0.0, vec.z = -1.0;
+	//}
+ //   normalize_vector(&vec);
+ //   node->_dir.c[0] = (float) vec.x;
+ //   node->_dir.c[1] = (float) vec.y;
+ //   node->_dir.c[2] = (float) vec.z;
+ //   node->_dir.c[3] = 1.0f;/* 1.0 = SpotLight */
 
     MARK_NODE_COMPILED;
 }
@@ -302,29 +212,18 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 			FW_GL_LIGHTFV(light, LIGHT_DIRECTION, node->direction.c); //_dir.c);
 			FW_GL_LIGHTFV(light, LIGHT_POSITION, node->location.c); //_loc.c);
 	
-			//FW_GL_LIGHTF(light, GL_CONSTANT_ATTENUATION,
-			//		((node->attenuation).c[0]));
-			//FW_GL_LIGHTF(light, GL_LINEAR_ATTENUATION,
-			//		((node->attenuation).c[1]));
-			//FW_GL_LIGHTF(light, GL_QUADRATIC_ATTENUATION,
-			//		((node->attenuation).c[2]));
 			FW_GL_LIGHTFV(light, LIGHT_ATTENUATION,node->attenuation.c);
-            FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); //_col.c);
-			FW_GL_LIGHTF(light, LIGHT_INTENSITY,node->intensity); // node->_col.c);
-			FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); //node->_amb.c);
+            FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); 
+			FW_GL_LIGHTF(light, LIGHT_INTENSITY,node->intensity); 
+			FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); 
             
-			//ft =(float)cos((node->beamWidth)/2.0); /*  / (PI/4.0); */
-			//ft = cosf(node->beamWidth);
 			FW_GL_LIGHTF(light, GL_SPOT_BEAMWIDTH, node->beamWidth); // ft);
             //ConsoleMessage ("spotLight, bw %f, cuta %f, PI/4 %f", node->beamWidth,node->cutOffAngle, PI/4.0);
             
             /* create a ratio of light in relation to PI/4.0 */
-            //ft = (float)cos(node->cutOffAngle/2.0); /* / (PI/4.0); */ 
-            //ft = cosf(node->cutOffAngle); 
 			FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, node->cutOffAngle); // ft);
 			FW_GL_LIGHTF(light, GL_LIGHT_RADIUS, node->radius);
             setLightChangedFlag(light);
-            //not used in spotlight calculation FW_GL_LIGHTF(light,GL_LIGHT_RADIUS,node->radius);
 		}
 	}
 }
