@@ -319,9 +319,10 @@ void render_SpotLight(struct X3D_SpotLight *node) {
             //ConsoleMessage ("spotLight, bw %f, cuta %f, PI/4 %f", node->beamWidth,node->cutOffAngle, PI/4.0);
             
             /* create a ratio of light in relation to PI/4.0 */
-            //ft = (float)cos(node->cutOffAngle/2.0); /* / (PI/4.0); */ 
-            ft = cosf(node->cutOffAngle); 
+            ft = (float)cos(node->cutOffAngle/2.0); /* / (PI/4.0); */ 
+            //ft = cosf(node->cutOffAngle); 
 			FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, ft);
+			FW_GL_LIGHTF(light, GL_LIGHT_RADIUS, node->radius);
             setLightChangedFlag(light);
             //not used in spotlight calculation FW_GL_LIGHTF(light,GL_LIGHT_RADIUS,node->radius);
 		}
@@ -393,8 +394,8 @@ void sib_fin_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 			setLightChangedFlag(numberOfLights()-1);
 			refreshLightUniforms();
 		}
-		restoreLightState2(lastlight);
 		popLocalLight();
+		restoreLightState2(lastlight);
 	}
 }
 void sib_fin_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){

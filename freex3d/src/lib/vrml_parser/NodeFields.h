@@ -3721,11 +3721,11 @@ EXPOSED_FIELD(SpotLight,color,sfcolor,color,FIELDTYPE_SFColor,UNCA_NONE)
 EXPOSED_FIELD(SpotLight,shadows,sfbool,shadows,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(SpotLight,shadowIntensity,sffloat,shadowIntensity,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(SpotLight,attenuation,sfvec3f,attenuation,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(SpotLight,location,sfvec3f,location,FIELDTYPE_SFVec3f,UNCA_LENGTH)
+EXPOSED_FIELD(SpotLight,radius,sffloat,radius,FIELDTYPE_SFFloat,UNCA_LENGTH)
 EXPOSED_FIELD(SpotLight,beamWidth,sffloat,beamWidth,FIELDTYPE_SFFloat,UNCA_ANGLE)
 EXPOSED_FIELD(SpotLight,cutOffAngle,sffloat,cutOffAngle,FIELDTYPE_SFFloat,UNCA_ANGLE)
 EXPOSED_FIELD(SpotLight,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
-EXPOSED_FIELD(SpotLight,location,sfvec3f,location,FIELDTYPE_SFVec3f,UNCA_LENGTH)
-EXPOSED_FIELD(SpotLight,radius,sffloat,radius,FIELDTYPE_SFFloat,UNCA_LENGTH)
 END_NODE(SpotLight)
 
 /* SquadOrientationInterpolator node */

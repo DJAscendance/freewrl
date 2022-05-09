@@ -12122,15 +12122,15 @@ struct X3D_SpotLight {
 	int shadows;
 	float shadowIntensity;
 	struct SFVec3f attenuation;
-	float beamWidth;
-	float cutOffAngle;
-	struct SFVec3f direction;
 	struct SFVec3f location;
 	float radius;
-	struct SFVec4f _dir;
 	struct SFVec4f _loc;
 	struct SFVec4f _col;
 	struct SFVec4f _amb;
+	float beamWidth;
+	float cutOffAngle;
+	struct SFVec3f direction;
+	struct SFVec4f _dir;
 };
 extern struct X3D_Virt virt_SpotLight;
 /***********************/

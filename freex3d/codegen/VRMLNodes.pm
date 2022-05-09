@@ -1354,17 +1354,16 @@ our %Nodes = (
 		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# this class
 		attenuation => ["SFVec3f", [1, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		# pre v4 specs say beamwidth=PI/4 = 0.78539816339 (we had 1.570796), v4 specs beamwidth= PI*3/16= 0.5890486225480862
+		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		radius => ["SFFloat", 100.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff		# pre v4 specs say beamwidth=PI/4 = 0.78539816339 (we had 1.570796), v4 specs beamwidth= PI*3/16= 0.5890486225480862
+		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_col =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_amb =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		beamWidth => ["SFFloat", 0.5890486225480862, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		# specs say PI/2 = 1.57079632679 (we had 0.785398)
 		cutOffAngle => ["SFFloat", 1.57079632679, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_ANGLE"],#ff
 		direction => ["SFVec3f", [0, 0, -1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		radius => ["SFFloat", 100.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_col =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_amb =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 	],"X3DLightNode"),
 
 	"EnvironmentLight" => new VRML::NodeType("EnvironmentLight", [

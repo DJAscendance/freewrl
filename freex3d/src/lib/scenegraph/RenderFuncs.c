@@ -772,14 +772,15 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 			//GLUNIFORM1F (me->lightConstAtten[j], p->light_constAtten[i]);
 			//GLUNIFORM1F (me->lightLinAtten[j], p->light_linAtten[i]);
 			//GLUNIFORM1F(me->lightQuadAtten[j], p->light_quadAtten[i]);
+			GLUNIFORM1F(me->lightRadius[j], p->light_radius[i]);
 		}
 		if(p->lightType[i]==1 ){ //spot
 			GLUNIFORM1F(me->lightSpotCutoffAngle[j], p->light_spotCutoffAngle[i]);
 			GLUNIFORM1F(me->lightSpotBeamWidth[j], p->light_spotBeamWidth[i]);
 		}
-		if(p->lightType[i]==0){ //point
-			GLUNIFORM1F(me->lightRadius[j],p->light_radius[i]);
-		}
+		//if(p->lightType[i]==0){ //point
+		//	GLUNIFORM1F(me->lightRadius[j],p->light_radius[i]);
+		//}
 		GLUNIFORM3FV(me->lightDirection[j],1, p->light_direction[i]);
 		GLUNIFORM3FV(me->lightLocation[j],1,p->light_location[i]);
 		GLUNIFORM1F(me->lightAmbientIntensity[j],p->light_ambientIntensity[i]);
