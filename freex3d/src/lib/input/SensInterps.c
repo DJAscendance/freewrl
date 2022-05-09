@@ -1001,6 +1001,12 @@ void do_AudioTick(void *ptr) {
 	/* can we possibly have started yet? */
 	if (!node) return;
 
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, enabled));
+	}
+	if (!node->enabled) return;
+
 	if(node->__inittime == 0.0)
 		node->__inittime = TickTime();
 
@@ -1085,6 +1091,13 @@ void do_MovieTextureTick( void *ptr) {
 
 	/* can we possibly have started yet? */
 	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_MovieTexture, enabled));
+	}
+	if (!node->enabled) return;
+
 
 	if(node->__init_time == 0.0)
 		node->__init_time = TickTime();

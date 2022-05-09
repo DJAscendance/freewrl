@@ -4813,6 +4813,7 @@ const int OFFSETS_AudioClip[] = {
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_AudioClip, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_AudioClip, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioClip, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_AudioClip, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioClip, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioClip, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_AudioClip, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -7571,6 +7572,7 @@ const int OFFSETS_MovieTexture[] = {
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_MovieTexture, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_MovieTexture, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_MovieTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_MovieTexture, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_MovieTexture, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_MovieTexture, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_MovieTexture, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -10694,6 +10696,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isActive = FALSE;
 			tmp2->isPaused = FALSE;
 			tmp2->_parentResource = getInputResource();
+			tmp2->__oldEnabled = TRUE;
 			tmp2->__loadstatus = 0;
 			tmp2->__loadResource = 0;
 			tmp2->__sourceNumber = -1;
@@ -14192,6 +14195,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isActive = FALSE;
 			tmp2->isPaused = FALSE;
 			tmp2->_parentResource = getInputResource();
+			tmp2->__oldEnabled = TRUE;
 			tmp2->__loadstatus = 0;
 			tmp2->__loadResource = 0;
 			tmp2->__sourceNumber = -1;
@@ -16819,6 +16823,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," stopTime (SFTime) \t%4.3f\n",tmp->stopTime);
 			spacer fprintf (fp," url (MFString): \n");
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+		    if(allFields) {
+			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
+		    }
 		    break;
 		}
 		case NODE_AudioContext : {
@@ -20221,6 +20228,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," stopTime (SFTime) \t%4.3f\n",tmp->stopTime);
 			spacer fprintf (fp," url (MFString): \n");
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+		    if(allFields) {
+			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
+		    }
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
 			spacer fprintf (fp," refresh (SFTime) \t%4.3f\n",tmp->refresh);

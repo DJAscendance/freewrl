@@ -3371,6 +3371,7 @@ struct X3D_AudioClip {
 	int isActive;
 	int isPaused;
 	void * _parentResource;
+	int __oldEnabled;
 	int __loadstatus;
 	void * __loadResource;
 	int __sourceNumber;
@@ -9489,6 +9490,7 @@ struct X3D_MovieTexture {
 	int isActive;
 	int isPaused;
 	void * _parentResource;
+	int __oldEnabled;
 	int __loadstatus;
 	void * __loadResource;
 	int __sourceNumber;

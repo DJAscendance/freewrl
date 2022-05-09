@@ -1055,6 +1055,7 @@ our %Nodes = (
 		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		# internal sequence number, openal buffer number
@@ -1418,6 +1419,7 @@ our %Nodes = (
 		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		isPaused => ["SFBool","FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		# internal sequence number
