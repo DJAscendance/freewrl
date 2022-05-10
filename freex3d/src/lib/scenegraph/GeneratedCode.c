@@ -12833,7 +12833,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;tmp2->translation.c[2] = 0.0f;
 			tmp2->displacers.n=0; tmp2->displacers.p=0;
 			tmp2->limitOrientation.c[0] = 0;tmp2->limitOrientation.c[1] = 0;tmp2->limitOrientation.c[2] = 1;tmp2->limitOrientation.c[3] = 0;;
-			tmp2->llimit.n=0; tmp2->llimit.p=0;
+			tmp2->llimit.p = MALLOC (float *, sizeof(float)*3);
+			tmp2->llimit.p[0] = 0.0f;
+			tmp2->llimit.p[1] = 0.0f;
+			tmp2->llimit.p[2] = 0.0f;
+			tmp2->llimit.n=3;;
 			tmp2->name = newASCIIString("");
 			tmp2->skinCoordIndex.n=0; tmp2->skinCoordIndex.p=0;
 			tmp2->skinCoordWeight.n=0; tmp2->skinCoordWeight.p=0;
@@ -12842,7 +12846,11 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->stiffness.p[1] = 0.0f;
 			tmp2->stiffness.p[2] = 0.0f;
 			tmp2->stiffness.n=3;;
-			tmp2->ulimit.n=0; tmp2->ulimit.p=0;
+			tmp2->ulimit.p = MALLOC (float *, sizeof(float)*3);
+			tmp2->ulimit.p[0] = 0.0f;
+			tmp2->ulimit.p[1] = 0.0f;
+			tmp2->ulimit.p[2] = 0.0f;
+			tmp2->ulimit.n=3;;
 			tmp2->bboxCenter.c[0] = 0.0f;tmp2->bboxCenter.c[1] = 0.0f;tmp2->bboxCenter.c[2] = 0.0f;
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->visible = TRUE;
