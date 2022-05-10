@@ -1753,6 +1753,7 @@ int getWindex();
 int render_foundSelectedViewpoint();
 void extent6f_draw(float *extent);
 static int draw_extents = TRUE;
+int is_vp_new_way();
 
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
@@ -1822,7 +1823,7 @@ void render_node(struct X3D_Node *node) {
 	if (p->renderstate.render_vp == VF_Viewpoint) { 
 		//if(tg->Bindable.activeLayer == 0)  //no Layerset nodes
 		//if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint && virt->children == NULL) { 
-		if (0) {
+		if (!is_vp_new_way()) {
 			//mystery renderflags not propagated up chain with new way
 			// and we're planning do breadth searches when boundvp != selectedvp (including unreachable LOD children)
 			// so we'll try without this

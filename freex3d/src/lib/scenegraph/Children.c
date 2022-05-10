@@ -98,6 +98,7 @@ void normalChildren(struct Multi_Node ch) {
 /* used to tell the rendering pass that, there is/used to be nodes
  * of interest down the branch. Eg, Transparent nodes - no sense going
  * through it all when rendering only for nodes. */
+int is_vp_new_way();
 
 /* void update_renderFlag (struct X3D_Node *p, int flag) { */
 //void  update_renderFlagB (struct X3D_Node *p, int flag, char *fi, int li) {
@@ -171,9 +172,9 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 
 				case NODE_LOD:
 					/* works for both X3D and VRML syntax; compare with the "_selected" field */
-					//if (is_vp_new_way() || p == X3D_LODNODE(me)->_selected) {
+					if (is_vp_new_way() || p == X3D_LODNODE(me)->_selected) {
 						update_renderFlagB(me,flag, __LINE__);
-					//}
+					}
 					break;
 
 				case NODE_GeoLOD:
@@ -219,7 +220,7 @@ int  update_renderFlagC(struct X3D_Node* p, int flag, int setaction) {
 		p->_renderFlags = p->_renderFlags & (0xFFFF ^ flag); //unconditionally unset flag
 
 
-	if (p->_parentVector == NULL || vectorSize(p->_parentVector)==0 ) {
+	if (p->_parentVector == NULL || vectorSize(p->_parentVector) == 0) {
 		//ConsoleMessage ("update_renderFlag, %p->parentVector NULL  refcount %d (%s) from %s:%d\n",p,p->referenceCount,stringNodeType(p->_nodeType),fi,li);
 		if (p == rootNode()) iret = 1;
 		return iret;
@@ -251,40 +252,40 @@ int  update_renderFlagC(struct X3D_Node* p, int flag, int setaction) {
 				// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
 				switch (me->_nodeType) {
 
-					case NODE_Switch:
-						if (is_Switchchild_inrange(X3D_SWITCH(me), p)) {
-							/* printf ("switch, this is the chosen node\n"); */
-							iret = update_renderFlagC(me, flag, setaction);
-						}
-						break;
-
-					case NODE_LOD:
-						/* works for both X3D and VRML syntax; compare with the "_selected" field */
-						{
-							iret = update_renderFlagC(me, flag, setaction);
-							if (iret && setaction) {
-								X3D_LODNODE(me)->_selected = p; //vp_new_way proposed by Don: user selecting a VP under an unchosen LOD child would set that child as selected
-								X3D_LODNODE(me)->_lastMethod = 1; //tells proximity_LOD to skip distance tests till viewpoint finishes slerping
-								//printf("updateRenderflagsC setting LOD_selected = %p\n", p);
-							}
-						}
-						break;
-
-					case NODE_GeoLOD:
-						if (is_GeoLODchild_inrange(X3D_GEOLOD(me), p)) {
-							/* printf ("switch, this is the chosen node\n"); */
-							iret = update_renderFlagC(me, flag, setaction);
-						}
-						break;
-
-						//case NODE_CADLayer:
-						//	if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
-						//		update_renderFlagC(me,flag, setaction);
-						//	}
-						//	break;
-
-					default:
+				case NODE_Switch:
+					if (is_Switchchild_inrange(X3D_SWITCH(me), p)) {
+						/* printf ("switch, this is the chosen node\n"); */
 						iret = update_renderFlagC(me, flag, setaction);
+					}
+					break;
+
+				case NODE_LOD:
+					/* works for both X3D and VRML syntax; compare with the "_selected" field */
+					if (is_vp_new_way() || p == X3D_LODNODE(me)->_selected) {
+						iret = update_renderFlagC(me, flag, setaction);
+						if (iret && setaction) {
+							X3D_LODNODE(me)->_selected = p; //vp_new_way proposed by Don: user selecting a VP under an unchosen LOD child would set that child as selected
+							X3D_LODNODE(me)->_lastMethod = 1; //tells proximity_LOD to skip distance tests till viewpoint finishes slerping
+							//printf("updateRenderflagsC setting LOD_selected = %p\n", p);
+						}
+					}
+					break;
+
+				case NODE_GeoLOD:
+					if (is_GeoLODchild_inrange(X3D_GEOLOD(me), p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						iret = update_renderFlagC(me, flag, setaction);
+					}
+					break;
+
+					//case NODE_CADLayer:
+					//	if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
+					//		update_renderFlagC(me,flag, setaction);
+					//	}
+					//	break;
+
+				default:
+					iret = update_renderFlagC(me, flag, setaction);
 				}
 			}
 			depth--;
