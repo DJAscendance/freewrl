@@ -1123,6 +1123,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	/* copy the material stuff in preparation for copying all to the shader */
 	initialize_front_and_back_material_params();
 
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
 	if(TRUE){ //node->isActive){
@@ -1471,6 +1473,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			glUniform1i(scap->flipuv, 0);
 			//glUniform1i(scap->textureCount,1);
 		}
+		float estart6[6], eout6[6];
+		extent6f_copy(estart6, peek_group_extent());
 		for(i=0;i<vectorSize(_particles);i++){
 			particle pp = vector_get(particle,_particles,i);
 			//update particle-specific uniforms
@@ -1488,6 +1492,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			}
 			//draw
 			reallyDrawOnce();
+			extent6f_translate3f(eout6, estart6, pp.position);
+			union_group_extent(eout6);
 		}
 		clearDraw();
 		//cleanup after draw, like child_shape
@@ -1549,4 +1555,6 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	} //enabled
 	} //VF_Blend
 	// once = 1;
+	fin_BBox((struct X3D_Node*)node, (struct BBoxFields*)&node->bboxCenter, FALSE);
+
 }
