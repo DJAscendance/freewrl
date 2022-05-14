@@ -442,6 +442,8 @@ void sm_JSCreateScriptContext(int num) {
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
+	JS_SetContextPrivate(_context, ScriptControl->script->ShaderScriptNode->_executionContext); //Q. will it be helpful in any X3DScene (aka vrml context) functions?
+
 	#ifdef DEBUG
 	unsigned int opts = JS_GetOptions(_context);
 	printf("options %x\n",opts);
