@@ -446,6 +446,7 @@ void sm_JSCreateScriptContext(int num) {
 	//JS_SetErrorReporter(_context, reportError);
 
 	JSContext *cx = _context;
+	JS_SetContextPrivate(cx, ScriptControl->script->ShaderScriptNode->_executionContext); //Q. will it be helpful in any X3DScene (aka vrml context) functions?
 	static int once = 0;
 	if (!once) {
 		js_run_version = (long)JS_GetVersion(cx);

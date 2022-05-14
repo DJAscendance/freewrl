@@ -1769,33 +1769,58 @@ SFNodeConstr(JSContext *cx, uintN argc, jsval *vp) {
 				/* cannot be an initializer, must parse the string */
 				/* myNode = new SFNode('Group{...}'); */
 				/* try compiling this X3D code... */
-				struct X3D_Group *myGroup = (struct X3D_Group *) createNewX3DNode(NODE_Group);
-				resource_item_t *res = resource_create_from_string(cString);
-				res->whereToPlaceData = myGroup;
-				res->ectx = myGroup;
-				res->media_type = resm_vrml;
-				res->parsed_request = strdup("From the EAI bootcamp of life ");
-				res->offsetFromWhereToPlaceData = (int) offsetof (struct X3D_Group, children);
-				#ifdef JSVRMLCLASSESVERBOSE
-				printf ("SFNodeConstr, sending resource to parser\n");
-				#endif
-				//send_resource_to_parser(res);
-				#ifdef JSVRMLCLASSESVERBOSE
-				printf ("SFNodeConstr, waiting on resource\n");
-				#endif
-				//resource_wait(res);
+				resource_item_t* res = resource_create_from_string(cString);
+				//where put any script defined DEF names? 
+				// 1= throw-away Proto context 2) Script node parent x3d context (inline, scene, protobody)
+				// they both tested working May 13, 2022 but with unknown side effects
+				int defname_context_method = 2; 
+				if (defname_context_method == 1) {
+					struct X3D_Proto* myProto = (struct X3D_Proto*)createNewX3DNode(NODE_Proto);
+					res->whereToPlaceData = myProto;
+					res->ectx = myProto;
+					res->offsetFromWhereToPlaceData = (int)offsetof(struct X3D_Proto, __children);
+					res->media_type = resm_vrml;
+					res->parsed_request = strdup("From the EAI bootcamp of life ");
+					parser_process_res_VRML_X3D(res);
+					newHandle = X3D_NODE(myProto->__children.p[0]);
 
-				#ifdef JSVRMLCLASSESVERBOSE
-				printf ("SFNodeConstr we have created %d nodes\n",myGroup->children.n);
-				#endif
+				}
+				else if(defname_context_method == 2) {
+					struct X3D_Group* myGroup = (struct X3D_Group*)createNewX3DNode(NODE_Group);
+					res->whereToPlaceData = myGroup;
+					res->ectx = JS_GetContextPrivate(cx); //executionContext the script is in, stored using JS_SetContextPrivate 
+					res->offsetFromWhereToPlaceData = (int)offsetof(struct X3D_Group, children);
+					res->media_type = resm_vrml;
+					res->parsed_request = strdup("From the EAI bootcamp of life ");
+					parser_process_res_VRML_X3D(res);
+					newHandle = X3D_NODE(myGroup->children.p[0]);
 
-				/* we MUST create 1 node here; if not, there is an error */
-				//if ((myGroup->children.n) != 1) {
-				//	ConsoleMessage ("SFNativeNew - created %d nodes, expected 1 only\n",myGroup->children.n);
-				//	return JS_FALSE;
-				//}
-				parser_process_res_VRML_X3D(res);
-				newHandle = X3D_NODE(myGroup->children.p[0]);
+				}
+				//res->media_type = resm_vrml;
+				//res->parsed_request = strdup("From the EAI bootcamp of life ");
+				//#ifdef JSVRMLCLASSESVERBOSE
+				//printf ("SFNodeConstr, sending resource to parser\n");
+				//#endif
+				////send_resource_to_parser(res);
+				//#ifdef JSVRMLCLASSESVERBOSE
+				//printf ("SFNodeConstr, waiting on resource\n");
+				//#endif
+				////resource_wait(res);
+
+				//#ifdef JSVRMLCLASSESVERBOSE
+				//printf ("SFNodeConstr we have created %d nodes\n",myGroup->children.n);
+				//#endif
+
+				///* we MUST create 1 node here; if not, there is an error */
+				////if ((myGroup->children.n) != 1) {
+				////	ConsoleMessage ("SFNativeNew - created %d nodes, expected 1 only\n",myGroup->children.n);
+				////	return JS_FALSE;
+				////}
+				//parser_process_res_VRML_X3D(res);
+				//if(defname_context_method == 1)
+				//	newHandle = X3D_NODE(myProto->__children.p[0]);
+				//else if(defname_context_method == 2)
+				//	newHandle = X3D_NODE(myGroup->children.p[0]);
 			}
 			
 			cString = STRDUP("node created in SFNodeConstr");

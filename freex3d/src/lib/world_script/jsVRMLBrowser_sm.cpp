@@ -1637,9 +1637,71 @@ VrmlBrowserSetDescription(JSContext *context, uintN argc, jsval *vp) {
 	return JS_TRUE;
 }
 
+//new May 2022 based on jsVRML_SFClasses_sm.cpp SFNodeConstr handling of js new SfNode('Shape{}');
 
 JSBool
-VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
+VrmlBrowserCreateVrmlFromString(JSContext* context, uintN argc, jsval* vp) {
+	//JSObject* obj = JS_THIS_OBJECT(context, vp);
+	JSObject* obj = JS_NewObject(context, &MFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S", * _c_args = "SFString vrmlSyntax";
+	JSString* js_c;
+
+	char* _c;
+
+	/* for the return of the nodes */
+	struct X3D_Group* retGroup;
+	struct Multi_Node* newHandle = NULL;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+
+#ifdef JSVERBOSE
+		printf("VrmlBrowserCreateVrmlFromString: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+
+		{
+			resource_item_t* res = resource_create_from_string(_c);
+			struct X3D_Group* myGroup = (struct X3D_Group*)createNewX3DNode(NODE_Group);
+			res->whereToPlaceData = myGroup;
+			res->ectx = JS_GetContextPrivate(context); //executionContext the script is in, stored using JS_SetContextPrivate 
+			res->offsetFromWhereToPlaceData = (int)offsetof(struct X3D_Group, children);
+			res->media_type = resm_vrml;
+			res->parsed_request = strdup("From the EAI bootcamp of life ");
+			parser_process_res_VRML_X3D(res);
+			newHandle = &(myGroup->children);
+
+			AnyNative* lhs;
+			if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_MFNode, NULL, NULL)) == NULL) {
+				printf("AnyNativeNew failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			if (!JS_SetPrivateFw(context, obj, lhs)) {
+				printf("JS_SetPrivate failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			//lhs->valueChanged = NULL; 
+			lhs->v->mfnode = *newHandle;
+		}
+
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for createVrmlFromString(%s).\n", _c_args);
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+
+JSBool
+VrmlBrowserCreateVrmlFromString_OLD_HIDE(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
 	jsval _my_rval;
@@ -1728,7 +1790,66 @@ VrmlBrowserCreateVrmlFromString(JSContext *context, uintN argc, jsval *vp) {
 }
 
 JSBool
-VrmlBrowserCreateX3DFromString(JSContext *context, uintN argc, jsval *vp) {
+VrmlBrowserCreateX3DFromString(JSContext* context, uintN argc, jsval* vp) {
+	//JSObject* obj = JS_THIS_OBJECT(context, vp);
+	JSObject* obj = JS_NewObject(context, &MFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+
+		jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S", * _c_args = "SFString x3dSyntax";
+	JSString* js_c;
+
+	char* _c;
+
+	/* for the return of the nodes */
+	struct X3D_Group* retGroup;
+	struct Multi_Node* newHandle = NULL;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+
+#ifdef JSVERBOSE
+		printf("VrmlBrowserCreateVrmlFromString: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+
+		{
+			resource_item_t* res = resource_create_from_string(_c);
+			struct X3D_Group* myGroup = (struct X3D_Group*)createNewX3DNode(NODE_Group);
+			res->whereToPlaceData = myGroup;
+			res->ectx = JS_GetContextPrivate(context); //executionContext the script is in, stored using JS_SetContextPrivate 
+			res->offsetFromWhereToPlaceData = (int)offsetof(struct X3D_Group, children);
+			res->media_type = resm_x3d;
+			res->parsed_request = strdup("From the EAI bootcamp of life ");
+			parser_process_res_VRML_X3D(res);
+			newHandle = &(myGroup->children);
+
+			AnyNative* lhs;
+			if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_MFNode, NULL, NULL)) == NULL) {
+				printf("AnyNativeNew failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			if (!JS_SetPrivateFw(context, obj, lhs)) {
+				printf("JS_SetPrivate failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			//lhs->valueChanged = NULL; 
+			lhs->v->mfnode = *newHandle;
+		}
+
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for createX3dFromString(%s).\n", _c_args);
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+JSBool
+VrmlBrowserCreateX3DFromString_OLD_HIDE(JSContext *context, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(context,vp);
         jsval *argv = JS_ARGV(context,vp);
 	jsval _my_rval;
