@@ -1183,7 +1183,7 @@ int SFNode_Iterator(int index, FWType fwt, FWPointer *pointer, const char **name
 		case FIELDTYPE_SFString: ctype = 'S'; break;
 		default: ctype = 'W'; break;
 	}
-	if(ihave){
+	if(ihave > -1){
 		(*jndex) = index;
 		(*lastProp) = index;
 		(*type) = ctype;
