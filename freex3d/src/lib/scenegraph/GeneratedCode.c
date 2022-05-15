@@ -8689,6 +8689,7 @@ const int OFFSETS_Shape[] = {
 	(int) FIELDNAMES_bboxSize, (int) offsetof (struct X3D_Shape, bboxSize),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_BLENGTH,
 	(int) FIELDNAMES_visible, (int) offsetof (struct X3D_Shape, visible),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxDisplay, (int) offsetof (struct X3D_Shape, bboxDisplay),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_castShadow, (int) offsetof (struct X3D_Shape, castShadow),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__shaderflags_base, (int) offsetof (struct X3D_Shape, _shaderflags_base),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__shaderflags_effects, (int) offsetof (struct X3D_Shape, _shaderflags_effects),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__shaderflags_usershaders, (int) offsetof (struct X3D_Shape, _shaderflags_usershaders),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -15548,6 +15549,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->bboxSize.c[0] = -1.0f;tmp2->bboxSize.c[1] = -1.0f;tmp2->bboxSize.c[2] = -1.0f;
 			tmp2->visible = TRUE;
 			tmp2->bboxDisplay = FALSE;
+			tmp2->castShadow = TRUE;
 			tmp2->_shaderflags_base = 0;
 			tmp2->_shaderflags_effects = 0;
 			tmp2->_shaderflags_usershaders = 0;
@@ -21537,6 +21539,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," visible (SFBool) \t%d\n",tmp->visible);
 			spacer fprintf (fp," bboxDisplay (SFBool) \t%d\n",tmp->bboxDisplay);
+			spacer fprintf (fp," castShadow (SFBool) \t%d\n",tmp->castShadow);
 		    break;
 		}
 		case NODE_SignalPdu : {

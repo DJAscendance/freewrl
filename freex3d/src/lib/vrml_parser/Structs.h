@@ -11743,6 +11743,7 @@ struct X3D_Shape {
 	struct SFVec3f bboxSize;
 	int visible;
 	int bboxDisplay;
+	int castShadow;
 	int _shaderflags_base;
 	int _shaderflags_effects;
 	int _shaderflags_usershaders;

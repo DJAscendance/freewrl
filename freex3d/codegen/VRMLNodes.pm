@@ -756,6 +756,7 @@ our %Nodes = (
 		bboxSize => ["SFVec3f", [-1, -1, -1], "initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_BLENGTH"],#ff
 		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		bboxDisplay => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		castShadow => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_shaderflags_base =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_effects =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_usershaders =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders

@@ -3557,6 +3557,7 @@ FIELD(Shape,bboxCenter,sfvec3f,bboxCenter,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 FIELD(Shape,bboxSize,sfvec3f,bboxSize,FIELDTYPE_SFVec3f,UNCA_BLENGTH)
 EXPOSED_FIELD(Shape,visible,sfbool,visible,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(Shape,bboxDisplay,sfbool,bboxDisplay,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(Shape,castShadow,sfbool,castShadow,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(Shape)
 
 /* SignalPdu node */
