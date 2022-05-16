@@ -1582,7 +1582,7 @@ void render_Background(struct X3D_Background *node){
 	if(!node->isBound) return;
 	{
 		//we need the model matrix - between root node and background - to capture any scene authored background tilts
-		double viewi[16], mat[16];
+		double viewi[16], mat[16], bmat[16];
 		bindablestack *bstack;
 		ttglobal tg = gglobal();
 
@@ -1590,7 +1590,9 @@ void render_Background(struct X3D_Background *node){
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
 		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		matmultiplyAFFINE(bmat, mat, viewi);
+		matrixAFFINE2RotationMatrix(bstack->backgroundmatrix, bmat);
 	}
 
 }
@@ -1599,7 +1601,7 @@ void render_TextureBackground(struct X3D_TextureBackground *node){
 	if(!node->isBound) return;
 	{
 		//we need the model matrix - between root node and background - to capture any scene authored background tilts
-		double viewi[16], mat[16];
+		double viewi[16], mat[16], bmat[16];
 		bindablestack *bstack;
 		ttglobal tg = gglobal();
 
@@ -1607,7 +1609,9 @@ void render_TextureBackground(struct X3D_TextureBackground *node){
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
 		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		matmultiplyAFFINE(bmat, mat, viewi);
+		matrixAFFINE2RotationMatrix(bstack->backgroundmatrix, bmat);
 	}
 }
 void render_Background_OLD (struct X3D_Background *node) {

@@ -1552,7 +1552,7 @@ void generate_GeneratedCubeMapTextures(){
 				FW_GL_LOAD_IDENTITY();
 				fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
 				fw_glRotated(sideangle[j].angle,sideangle[j].x,sideangle[j].y,sideangle[j].z);
-
+				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 
 				clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
