@@ -69,6 +69,9 @@ struct X3D_InternalRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 };
 
+struct X3D_LightRep {
+	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
+};
 
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep

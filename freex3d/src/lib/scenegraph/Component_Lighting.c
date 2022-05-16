@@ -39,6 +39,7 @@ X3D Lighting Component
 #include "RenderFuncs.h"
 //#include "../opengl/OpenGL_Utils.h"
 #include "LinearAlgebra.h"
+#include "Polyrep.h"
 
 #define RETURN_IF_LIGHT_STATE_NOT_US \
 		if (renderstate()->render_light== VF_globalLight) { \
@@ -170,12 +171,23 @@ void prep_PointLight (struct X3D_PointLight *node) {
 	/* this will be a global light here... */
 	render_PointLight(node);
 }
-
+void* set_LightRep(void* _lightrep)
+{
+	struct X3D_LightRep* lightrep = NULL;
+	if (!_lightrep) {
+		_lightrep = MALLOC(struct X3D_LightRep*, sizeof(struct X3D_LightRep));
+		memset(_lightrep, 0, sizeof(struct X3D_LightRep));
+	}
+	lightrep = (struct X3D_LightRep*)_lightrep;
+	lightrep->itype = 5; 
+	return lightrep;
+}
 void compile_SpotLight (struct X3D_SpotLight *node) {
     struct point_XYZ vec;
 	float dlen;
     int i;
-    
+	node->_intern = set_LightRep(node->_intern);
+
  //   for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
  //   node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
 
