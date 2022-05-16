@@ -972,7 +972,8 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 				/* we use the generic TextureProperties - especially the GenerateMipMaps flag... */
 				thistp->generateMipMaps = GL_FALSE; /* default settings, put here to ensure that */
 								/* future changes to the spec do no harm */
-
+				thistp->textureCompression = newASCIIString("FASTEST");
+				thistp->borderWidth = 0;
 				thistex->textureProperties = X3D_NODE(thistp);
 				ADD_PARENT(X3D_NODE(thistp), X3D_NODE(thistex));
 
@@ -1689,8 +1690,8 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			}
 
 			switch (findFieldInTEXTURECOMPRESSIONKEYWORDS(tpNode->textureCompression->strptr)) {
-				case TC_DEFAULT: compression = GL_FASTEST; break;
-				case TC_FASTEST: compression = GL_NONE; break; /* DEFAULT */
+				case TC_DEFAULT: compression = GL_NONE; break;
+				case TC_FASTEST: compression = GL_FASTEST; break; /* DEFAULT */
 				case TC_HIGH: compression = GL_FASTEST; break;
 				case TC_LOW: compression = GL_NONE; break;
 				case TC_MEDIUM: compression = GL_NICEST; break;
@@ -1884,10 +1885,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 #ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
 			FW_GL_TEXPARAMETERF(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,anisotropicDegree);
 #endif
-
+			iformat = GL_RGBA;
 			if (compression != GL_NONE) {
-				FW_GL_TEXPARAMETERI(GL_TEXTURE_2D, GL_TEXTURE_INTERNAL_FORMAT, GL_COMPRESSED_RGBA);
-				glHint(GL_TEXTURE_COMPRESSION_HINT, compression);
+				iformat = GL_COMPRESSED_RGBA;
+				//FW_GL_TEXPARAMETERI(GL_TEXTURE_2D, GL_TEXTURE_INTERNAL_FORMAT, GL_COMPRESSED_RGBA);
+				//glHint(GL_TEXTURE_COMPRESSION_HINT, compression);
 			}
 			npot = rdr_caps->av_npot_texture;
 			x = me->x;
@@ -1902,7 +1904,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			//#if defined (GL_BGRA)
 			//iformat = GL_RGBA; format = GL_BGRA;
 			//#else
-			iformat = GL_RGBA; format = GL_RGBA;
+			format = GL_RGBA;
 			//#endif
 
 			/* do the image. */
