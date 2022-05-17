@@ -1414,6 +1414,19 @@ void child_Shape (struct X3D_Shape *node) {
 	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other) || (renderstate()->render_depth)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
+		if (renderstate()->render_depth) {
+			if (node->castShadow) {
+				s_shader_capabilities_t* scap;
+				shaderflagsstruct shader_requirements;
+				memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+				shader_requirements.depth = TRUE;
+				scap = getMyShaders(shader_requirements);
+				enableGlobalShader(scap);
+			}
+			else {
+				return; //do nothing
+			}
+		}
 		render_node(tmpNG);
 		return;
 	}

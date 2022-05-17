@@ -1235,7 +1235,10 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 			if(me->whichOne.volume == rq_cap0.volume && me->whichOne.effects == rq_cap0.effects){
 				return me->myCapabilities;
 			}
-		}else{
+		}
+		else if (rq_cap0.depth) {
+			if (me->whichOne.depth == rq_cap0.depth) return me->myCapabilities;
+		}else {
 			if (me->whichOne.base == rq_cap0.base && me->whichOne.effects == rq_cap0.effects && me->whichOne.usershaders == rq_cap0.usershaders) {
 				//printf("getMyShaders chosen shader caps base %d effects %d user %d\n",me->whichOne.base,me->whichOne.effects,me->whichOne.usershaders);
 				return me->myCapabilities;
@@ -2582,16 +2585,19 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 //see Composite_Shading.c for CastlePlugs details.
 int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne); 
 int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **fragmentSource, shaderflagsstruct whichOne);
-static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker], 
+int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne);
+static int getSpecificShaderSource (const GLchar *vertexSource[vertexEndMarker], const GLchar *fragmentSource[fragmentEndMarker],
 	shaderflagsstruct whichOne) {
 	int iret, userDefined, usingCastlePlugs = 1;
 	userDefined = whichOne.usershaders ? TRUE : FALSE;
 
 	if(usingCastlePlugs && !userDefined) { // && !DESIRE(whichOne,SHADINGSTYLE_PHONG)) {
 		//new Aug 2016 castle plugs
-		if(whichOne.volume)
+		if (whichOne.depth)
+			iret = getSpecificShaderSourceDepth(vertexSource, fragmentSource, whichOne);
+		else if (whichOne.volume)
 			iret = getSpecificShaderSourceVolume(vertexSource, fragmentSource, whichOne);
-		else
+		else 
 			iret = getSpecificShaderSourceCastlePlugs(vertexSource, fragmentSource, whichOne);
 	}else{
 		iret = getSpecificShaderSourceOriginal(vertexSource, fragmentSource, whichOne);

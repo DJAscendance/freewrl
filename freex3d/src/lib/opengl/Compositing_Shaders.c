@@ -4685,3 +4685,25 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 
 }
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END MIT, VOLUME RENDERING
+
+char* vertexDepth = "#version 330 core \n\
+layout(location = 0) in vec3 aPos; \n\
+\n\
+uniform mat4 lightSpaceMatrix; \n\
+uniform mat4 model; \n\
+\n\
+void main() \n\
+{ \n\
+	gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0); \n\
+}  ";
+char* fragDepth = "#version 330 core \n\
+ \n\
+void main() \n\
+{ \n\
+	// gl_FragDepth = gl_FragCoord.z; \n\
+}  ";
+int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
+	*vertexSource = strdup(vertexDepth);
+	*fragmentSource = strdup(fragDepth);
+	return TRUE;
+}

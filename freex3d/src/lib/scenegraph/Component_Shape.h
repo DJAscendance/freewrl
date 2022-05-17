@@ -64,6 +64,7 @@ int base;
 int effects;
 int usershaders; 
 int volume;
+int depth;
 } shaderflagsstruct;
 
 shaderflagsstruct getShaderFlags();
