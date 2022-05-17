@@ -1411,7 +1411,7 @@ void child_Shape (struct X3D_Shape *node) {
 
 	if(!(node->geometry)) { return; }
 
-	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other)) {
+	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other) || (renderstate()->render_depth)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
 		render_node(tmpNG);

@@ -2219,6 +2219,7 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
 	rs->render_background = rwhat & VF_Background;
+	rs->render_depth = rwhat & VF_Depth;
 
 	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
 
