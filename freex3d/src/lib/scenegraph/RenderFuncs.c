@@ -98,6 +98,9 @@ typedef struct pRenderFuncs{
 	float light_intensity[MAX_LIGHT_STACK];
 	float light_direction[MAX_LIGHT_STACK][3];
     float light_radius[MAX_LIGHT_STACK];
+	int light_shadows[MAX_LIGHT_STACK];
+	float light_shadowIntensity[MAX_LIGHT_STACK];
+	int light_depthmap[MAX_LIGHT_STACK];
 	GLint lightType[MAX_LIGHT_STACK]; //0=point 1=spot 2=directional
 	/* Rearrange to take advantage of headlight when off */
 	int nextFreeLight;// = 0;
@@ -677,8 +680,23 @@ void fwglLightf (int light, int pname, GLfloat param) {
         case GL_LIGHT_RADIUS:
             p->light_radius[light] = param;
             break;
+		case LIGHT_SHADOWINTENSITY:
+			p->light_shadowIntensity[light] = param;
+			break;
 
 		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
+	}
+}
+void fwglLighti(int light, int pname, GLint param) {
+	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
+	switch (pname) {
+	case LIGHT_SHADOWS:
+		p->light_shadows[light] = param;
+	case LIGHT_DEPTHMAP:
+		p->light_depthmap[light] = param;
+		break;
+
+	default: {printf("help, unknown fwgllighti param %d\n", pname); }
 	}
 }
 

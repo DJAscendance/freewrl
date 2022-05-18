@@ -2866,7 +2866,10 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		//float linearAttenuation;   // K1
 		//float quadraticAttenuation;// K2
 		float lightRadius;
-		int lightType;
+		bool shadows; \n\
+		float shadowIntensity; \n\
+		int depthmap; \n\
+		//int lightType;
 		};
 
 
@@ -3013,6 +3016,14 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 			strcpy(&uniformName[18],"lightRadius");
 			me->lightRadius[i] = GET_UNIFORM(myProg,uniformName);
 			//ConsoleMessage ("light Uniform test for %d is %s, %d",i,uniformName,me->lightQuadAtten[i]);
+
+			strcpy(&uniformName[18], "shadows");
+			me->shadows[i] = GET_UNIFORM(myProg, uniformName);
+			strcpy(&uniformName[18], "shadowIntensity");
+			me->shadowIntensity[i] = GET_UNIFORM(myProg, uniformName);
+			strcpy(&uniformName[18], "depthmap");
+			me->depthmap[i] = GET_UNIFORM(myProg, uniformName);
+
 
 			//strcpy(&uniformName[18],"lightType");
 			//me->lightType[i] = GET_UNIFORM(myProg,uniformName);

@@ -158,6 +158,10 @@ void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); 
 				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity); 
 				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); 
+				FW_GL_LIGHTI(light, LIGHT_SHADOWS, node->shadows);
+				FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
+				FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
+
             /* used to test if a PointLight, SpotLight or DirectionalLight in shader  */
             setLightChangedFlag(light);
 		}
@@ -224,8 +228,10 @@ void render_PointLight (struct X3D_PointLight *node) {
 			FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c); 
 			FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity);
 			FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity); 
-
             FW_GL_LIGHTF(light,GL_LIGHT_RADIUS,node->radius);
+			FW_GL_LIGHTI(light,LIGHT_SHADOWS,node->shadows);
+			FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
+			FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
             setLightChangedFlag(light);
 		}
 	}
@@ -291,6 +297,10 @@ void render_SpotLight(struct X3D_SpotLight *node) {
             /* create a ratio of light in relation to PI/4.0 */
 			FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, node->cutOffAngle); // ft);
 			FW_GL_LIGHTF(light, GL_LIGHT_RADIUS, node->radius);
+			FW_GL_LIGHTI(light, LIGHT_SHADOWS, node->shadows);
+			FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
+			FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
+
             setLightChangedFlag(light);
 		}
 	}

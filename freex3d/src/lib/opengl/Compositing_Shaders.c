@@ -604,6 +604,9 @@ struct fw_LightSourceParameters { \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\
   float lightRadius; \n\
+  bool shadows; \n\
+  float shadowIntensity; \n\
+  int depthmap; \n\
 }; \n\
 \n\
 uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;\n\
@@ -1032,6 +1035,9 @@ struct fw_LightSourceParameters { \n\
 	float spotCutoff; \n\
 	vec3 Attenuations; \n\
 	float lightRadius; \n\
+    bool shadows; \n\
+    float shadowIntensity; \n\
+    int depthmap; \n\
 }; \n\
 \n\
 uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;\n\
@@ -4245,6 +4251,9 @@ struct fw_LightSourceParameters { \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\
   float lightRadius; \n\
+  bool shadows; \n\
+  float shadowIntensity; \n\
+  int depthmap; \n\
 }; \n\
 \n\
 uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;\n\

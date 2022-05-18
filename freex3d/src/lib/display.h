@@ -413,6 +413,9 @@ typedef struct s_shader_capabilities{
 	GLint lightSpotBeamWidth[MAX_LIGHTS];
 	//GLint lightRadius;
 	GLint lightRadius[MAX_LIGHTS];
+	GLint shadows[MAX_LIGHTS];
+	GLint shadowIntensity[MAX_LIGHTS];
+	GLint depthmap[MAX_LIGHTS];
 
 	GLint ModelViewMatrix;
 	GLint ProjectionMatrix;
@@ -851,6 +854,7 @@ void resetGeometry();
 	#define FW_GL_BLENDFUNC(aaa,bbb) glBlendFunc(aaa,bbb);
 	#define FW_GL_LIGHTFV(aaa,bbb,ccc) fwglLightfv(aaa,bbb,ccc);
 	#define FW_GL_LIGHTF(aaa,bbb,ccc) fwglLightf(aaa,bbb,ccc);
+	#define FW_GL_LIGHTI(aaa,bbb,ccc) fwglLighti(aaa,bbb,ccc);
 	#define FW_GL_CLEAR(zzz) glClear(zzz); 
 	#define FW_GL_DEPTHFUNC(zzz) glDepthFunc(zzz); 
 	#define FW_GL_SHADEMODEL(aaa) glShadeModel(aaa);  
