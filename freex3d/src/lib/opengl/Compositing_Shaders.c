@@ -4686,21 +4686,24 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 }
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< END MIT, VOLUME RENDERING
 
+// depth map rendering
+// https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping 
+// Phase I generate depth map
 char* vertexDepth = "#version 330 core \n\
-layout(location = 0) in vec3 aPos; \n\
+layout(location = 0) in vec3 fw_Vertex; \n\
 \n\
-uniform mat4 lightSpaceMatrix; \n\
-uniform mat4 model; \n\
+uniform mat4 fw_ProjectionMatrix; \n\
+uniform mat4 fw_ModelViewMatrix; \n\
 \n\
 void main() \n\
 { \n\
-	gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0); \n\
+	gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(fw_Vertex, 1.0); \n\
 }  ";
 char* fragDepth = "#version 330 core \n\
  \n\
 void main() \n\
 { \n\
-	// gl_FragDepth = gl_FragCoord.z; \n\
+	gl_FragDepth = gl_FragCoord.z; \n\
 }  ";
 int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
 	*vertexSource = strdup(vertexDepth);

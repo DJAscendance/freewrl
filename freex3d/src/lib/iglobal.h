@@ -262,6 +262,9 @@ typedef struct iiglobal //InstanceGlobal
 	struct tComponent_CubeMapTexturing{
 		void *prv;
 	}Component_CubeMapTexturing;
+	struct tComponent_Lighting {
+		void* prv;
+	}Component_Lighting;
 	struct tComponent_EnvironSensor{
 		void *prv;
 	}Component_EnvironSensor;

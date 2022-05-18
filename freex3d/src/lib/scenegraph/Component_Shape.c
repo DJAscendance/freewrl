@@ -1414,6 +1414,7 @@ void child_Shape (struct X3D_Shape *node) {
 	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other) || (renderstate()->render_depth)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
+		PRINT_GL_ERROR_IF_ANY("child_shape depth start"); 
 		if (renderstate()->render_depth) {
 			if (node->castShadow) {
 				s_shader_capabilities_t* scap;
@@ -1427,7 +1428,9 @@ void child_Shape (struct X3D_Shape *node) {
 				return; //do nothing
 			}
 		}
+		PRINT_GL_ERROR_IF_ANY("child_shape depth before render");
 		render_node(tmpNG);
+		PRINT_GL_ERROR_IF_ANY("child_shape depth end");
 		return;
 	}
 	p = (ppComponent_Shape)tg->Component_Shape.prv;

@@ -5730,6 +5730,7 @@ void setup_pickray(int x, int y){
 	setup_pickray0();
 }
 void generate_GeneratedCubeMapTextures();
+void generate_GlobalShadowMaps();
 /* Render the scene */
 int get_n_depth_slices();
 void get_depth_slice(int islice, double *znear, double *zfar);
@@ -5751,6 +5752,7 @@ static void render()
 	push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
 
 	generate_GeneratedCubeMapTextures();
+	generate_GlobalShadowMaps();
 	setup_projection();
 	set_viewmatrix();
 	setup_picking();

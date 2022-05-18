@@ -1858,6 +1858,7 @@ void render_node(struct X3D_Node *node) {
 	if(virt->prep) {
 		//transform types will pushmatrix and multiply in their translation.rotation,scale here (and popmatrix in virt->fin)
 		DEBUG_RENDER("rs 2\n");
+		PRINT_GL_ERROR_IF_ANY("prep start"); PRINT_NODE(node, virt);
 		profile_start("prep");
 		if(justGeom)
 			profile_start("prepgeom");
@@ -1869,7 +1870,7 @@ void render_node(struct X3D_Node *node) {
 		//	push_ray(); //upd_ray(); 
 		//	pushed_ray = TRUE;
 		//}
-		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
+		PRINT_GL_ERROR_IF_ANY("prep end"); PRINT_NODE(node,virt);
 	}
 	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 

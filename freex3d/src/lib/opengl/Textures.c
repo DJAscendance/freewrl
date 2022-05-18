@@ -1763,13 +1763,18 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		unsigned char *dest = me->texdata;
 		uint32 *sp;
 
-		int cx;
+		int cx, itype;
 
 
 		//#if defined (GL_BGRA)
 		//iformat = GL_RGBA; format = GL_BGRA;
 		//#else
-		iformat = GL_RGBA; format = GL_RGBA;
+		iformat = GL_RGBA; format = GL_RGBA; itype = GL_UNSIGNED_BYTE;
+		if (me->idepthbuffer) {
+			iformat = GL_DEPTH_COMPONENT;
+			format = GL_DEPTH_COMPONENT;
+			itype = GL_FLOAT;
+		}
 		//#endif
 
 
@@ -1804,7 +1809,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			//printf("__flipping__\n"); //are we in here on every frame? yes, for generatedcubemaptexture, no for other cubemaps
 		}
 		generateMipMaps = 0;
-		myTexImage2D(generateMipMaps, getAppearanceProperties()->cubeFace, 0, iformat,  rx, ry, 0, format, GL_UNSIGNED_BYTE, dest);
+		myTexImage2D(generateMipMaps, getAppearanceProperties()->cubeFace, 0, iformat,  rx, ry, 0, format, itype, dest);
 
 		/* last thing to do at the end of the setup for the 6th face */
 		if (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) {
