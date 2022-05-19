@@ -80,6 +80,9 @@ struct projector_tuple {
     struct Uni_String *des;
 	GLDOUBLE TenLinearGexMat[16];
 	int backCull;
+	int shadows;
+	float shadowIntensity;
+	int depthmap;
 	int global;
 	int type; //0=perspective, 1=ortho/parallel
 	GLuint texture;
@@ -226,17 +229,20 @@ void resend_textureprojector_matrix()
 		float TenLinearGexMatCam0f[16];
 		struct projector_tuple *ptuple;
 		GLint texture;
-		if(me->projTexGenMatCam[i] > -1){
+		if(me->ptmGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
-			GLUNIFORMMATRIX4FV (me->projTexGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
+			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
 			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
 			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
 			// X HOWEVER freewrl Feb 2020 isn't reliably discriminating solid=true/false for different geometry types
 			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
-			GLUNIFORM1I(me->pbackCull[i],ptuple->backCull);
+			GLUNIFORM1I(me->ptmbackCull[i],ptuple->backCull);
+			GLUNIFORM1I(me->ptmshadows[i], ptuple->shadows);
+			GLUNIFORM1F(me->ptmshadowIntensity[i], ptuple->shadowIntensity);
+			GLUNIFORM1I(me->ptmdepthmap[i], ptuple->depthmap);
 			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 
 			int ntdesc = 0; //number of texture descriptors in this projector
@@ -276,7 +282,7 @@ void resend_textureprojector_matrix()
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 	}
-	GLUNIFORM1I(me->pCount,pcount);
+	GLUNIFORM1I(me->ptmCount,pcount);
 
 }
 
@@ -395,6 +401,9 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 			ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
 			ptuple.backCull = node->backCull == TRUE? 1 : 0;
+			ptuple.shadows = node->shadows == TRUE ? 1 : 0;
+			ptuple.shadowIntensity = node->shadowIntensity;
+			ptuple.depthmap = -1; //haven't generated yet
 			//printf("peye = %lf %lf %lf\n",ptuple.peye[0],ptuple.peye[1],ptuple.peye[2]);
 			ptuple.global = node->global;
 			ptuple.type = 0; //0=perspective 1=ortho/parallel
@@ -551,6 +560,9 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
 			ptuple.backCull = node->backCull == TRUE? 1 : 0;
+			ptuple.shadows = node->shadows == TRUE ? 1 : 0;
+			ptuple.shadowIntensity = node->shadowIntensity;
+			ptuple.depthmap = -1; //don't have it yet
 			ptuple.global = node->global;
 			ptuple.type = 1; //0=perspective, 1=ortho
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];

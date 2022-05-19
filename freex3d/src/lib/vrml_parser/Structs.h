@@ -12553,6 +12553,8 @@ struct X3D_TextureProjectorParallel {
 	int on;
 	struct X3D_Node *texture;
 	int backCull;
+	int shadows;
+	float shadowIntensity;
 	struct SFVec4f _dir;
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;
@@ -12588,6 +12590,8 @@ struct X3D_TextureProjectorPerspective {
 	int on;
 	struct X3D_Node *texture;
 	int backCull;
+	int shadows;
+	float shadowIntensity;
 	struct SFVec4f _dir;
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;

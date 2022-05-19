@@ -413,9 +413,9 @@ typedef struct s_shader_capabilities{
 	GLint lightSpotBeamWidth[MAX_LIGHTS];
 	//GLint lightRadius;
 	GLint lightRadius[MAX_LIGHTS];
-	GLint shadows[MAX_LIGHTS];
-	GLint shadowIntensity[MAX_LIGHTS];
-	GLint depthmap[MAX_LIGHTS];
+	GLint lightshadows[MAX_LIGHTS];
+	GLint lightshadowIntensity[MAX_LIGHTS];
+	GLint lightdepthmap[MAX_LIGHTS];
 
 	GLint ModelViewMatrix;
 	GLint ProjectionMatrix;
@@ -456,10 +456,13 @@ typedef struct s_shader_capabilities{
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
 
 	/* PTM Projective Texture */
-	GLint projTexGenMatCam[16];
-	GLint pbackCull[16];
-	GLint ntdesc[16];
-	GLint pCount;
+	GLint ptmCount;
+	GLint ptmGenMatCam[8];
+	GLint ptmbackCull[8];
+	GLint ptmshadows[8];
+	GLint ptmshadowIntensity[8];
+	GLint ptmdepthmap[8];
+	GLint ntdesc[8];
 	GLint tunits[16];
 	GLint modes[16];
 	GLint sources[16];

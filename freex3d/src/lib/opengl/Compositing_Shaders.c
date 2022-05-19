@@ -690,14 +690,14 @@ uniform float u_pointFogCoord; \n\
 uniform vec4 u_pointCPV; \n\
 #endif //POINTP \n\
 #ifdef PROJTEX \n\
-uniform mat4 projTexGenMatCam[8]; \n\
-uniform int pCount; \n\
+uniform mat4 ptmGenMatCam[8]; \n\
+uniform int ptmCount; \n\
 varying vec4 projTexCoord[8]; \n\
 varying vec4 projTexNorm[8]; \n\
 void vertProjCalTexCoord(void) { \n\
-	for(int i=0;i<pCount;i++){ \n\
-		projTexCoord[i] = projTexGenMatCam[i] * castle_vertex_eye; \n\
-		projTexNorm[i] = projTexGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+	for(int i=0;i<ptmCount;i++){ \n\
+		projTexCoord[i] = ptmGenMatCam[i] * castle_vertex_eye; \n\
+		projTexNorm[i] = ptmGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
 	} \n\
 } \n\
 #endif //PROJTEX \n\
@@ -1299,9 +1299,12 @@ uniform sampler2D textureUnit[16]; \n\
 //#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
-uniform int pbackCull[8]; \n\
+uniform int ptmbackCull[8]; \n\
+uniform int ptmshadows[8]; \n\
+uniform float ptmshadowIntensity[8]; \n\
+uniform int ptmdepthmap[8]; \n\
 uniform int ntdesc[8]; \n\
-uniform int pCount; \n\
+uniform int ptmCount; \n\
 varying vec4 projTexCoord[8]; \n\
 varying vec4 projTexNorm[8]; \n\
 //per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
@@ -1311,7 +1314,7 @@ uniform int sources[16]; \n\
 uniform int funcs[16]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	int k=0; \n\
-	for(int i=0;i<pCount;i++) { \n\
+	for(int i=0;i<ptmCount;i++) { \n\
         //is point on + side of projector ? \n\
 		if( projTexCoord[i].z > 0.0 ){ \n\
 			vec4 pp = projTexCoord[i]; \n\
@@ -1321,7 +1324,7 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 			if(inside){ \n\
 				bool facingProjector = true; \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
-				//if(pbackCull[i] == 1){ \n\
+				if(ptmbackCull[i] == 1) \n\
                 { \n\
 					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
 					//if(!gl_FrontFacing) pn = -pn; \n\

@@ -805,6 +805,9 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 		GLUNIFORM3FV(me->lightColor[j],1,p->light_color[i]);
 		GLUNIFORM1F(me->lightIntensity[j],p->light_intensity[i]);
 		GLUNIFORM1I(me->lightType[j],p->lightType[i]);
+		GLUNIFORM1I(me->lightshadows[j], p->light_shadows[i]);
+		GLUNIFORM1F(me->lightshadowIntensity[j], p->light_shadowIntensity[i]);
+		GLUNIFORM1I(me->lightdepthmap[j], p->light_depthmap[i]);
     }
 	GLUNIFORM1I(me->lightcount,lightcount);
 	//printf("lightcount %d\n",lightcount);
