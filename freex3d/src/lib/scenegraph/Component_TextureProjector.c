@@ -42,6 +42,7 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Frustum.h"
 #include "../opengl/Material.h"
+#include "Renderfuncs.h"
 #include "Component_Shape.h"
 #include "LinearAlgebra.h"
 #include "Vector.h"
@@ -76,20 +77,6 @@ struct projective_Texdata {
 	GLDOUBLE TenLinearGexMat[16];
 };
 
-struct projector_tuple {
-	GLDOUBLE TenLinearGexMat[16];
-	struct X3D_Node* ptm_node;
-	//struct Uni_String* des;
-	//int backCull;
-	//int shadows;
-	//float shadowIntensity;
-	int depthmap;
-	//int global;
-	int type; //0=perspective, 1=ortho/parallel
-	GLuint texture;
-	struct X3D_Node * textureNode;
-};
-
 typedef struct pComponent_TextureProjector{
 	struct Vector *projector_stack; //activeProjectiveTextureTable;
 	//textureTableIndexStruct_s* loadThisProjectiveTexture;
@@ -114,7 +101,7 @@ void Component_TextureProjector_init(struct tComponent_TextureProjector *t){
 	{
 		ppComponent_TextureProjector p = (ppComponent_TextureProjector)t->prv;
 		//p->activeProjectiveTextureTable = NULL;
-		p->projector_stack = newStack(struct projector_tuple);
+		p->projector_stack = newStack(usehit);
 
 		//t->data = &p->data;
 		/* current index into loadparams that texture thread is working on */
@@ -132,6 +119,34 @@ void Component_TextureProjector_clear(struct tComponent_TextureProjector *t){
 	}
 }
 
+struct X3D_ProjectorRep {
+	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep
+	//light section
+	struct X3D_Node* depthTexture;
+	int size;
+	int idepthtexture;
+	//projector section
+	struct X3D_Node* texture;
+	int itexture;
+};
+
+void* set_ProjectorRep(void* _projectorrep)
+{
+	struct X3D_ProjectorRep* projectorrep = NULL;
+	if (!_projectorrep) {
+		_projectorrep = MALLOC(struct X3D_ProjectorRep*, sizeof(struct X3D_ProjectorRep));
+		memset(_projectorrep, 0, sizeof(struct X3D_ProjectorRep));
+	}
+	projectorrep = (struct X3D_ProjectorRep*)_projectorrep;
+	projectorrep->itype = 6;
+	projectorrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
+	return projectorrep;
+}
+
+
+void generate_depthmap_2D(usehit uhit) {
+
+}
 
 void projectorTable_clear(){
 	//called once per frame, before the search for global=true projectors
@@ -141,7 +156,7 @@ void projectorTable_clear(){
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	clearStack(p->projector_stack);
 }
-void projectorTable_push(struct projector_tuple *ptuple ){
+void projectorTable_push(usehit *ptuple ){
 	//called when we find a global=true, on=true projector, and
 	//called in sib_prep for a global=false, on=false projector
 	ppComponent_TextureProjector p;
@@ -149,7 +164,7 @@ void projectorTable_push(struct projector_tuple *ptuple ){
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	//we need a deep copy because the ptm node can't hold it
 	// because it can be DEF/USED with different transform each use
-	stack_push(struct projector_tuple,p->projector_stack,*ptuple);
+	stack_push(usehit,p->projector_stack,*ptuple);
 
 }
 void projectorTable_pop(){
@@ -159,7 +174,7 @@ void projectorTable_pop(){
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	if(p->projector_stack->n < 1)
 		printf("ouch from projectorTable_opo()\n");
-	stack_pop(struct projector_tuple,p->projector_stack);
+	stack_pop(usehit,p->projector_stack);
 
 }
 void clear_bound_textures(){
@@ -228,13 +243,14 @@ void resend_textureprojector_matrix()
 	for(int i=0;i<tcount;i++)
 	{
 		float TenLinearGexMatCam0f[16];
-		struct projector_tuple *ptuple;
+		usehit *ptuple;
 		GLint texture;
 		if(me->ptmGenMatCam[i] > -1){
-			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
-			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
+			ptuple = vector_get_ptr(usehit, p->projector_stack, i);
+			double2float(TenLinearGexMatCam0f, ptuple->mvm,16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
-			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->ptm_node;
+			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
+			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
 			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
@@ -244,7 +260,7 @@ void resend_textureprojector_matrix()
 			GLUNIFORM1I(me->ptmbackCull[i],ptm->backCull);
 			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
-			GLUNIFORM1I(me->ptmdepthmap[i], ptuple->depthmap);
+			GLUNIFORM1I(me->ptmdepthmap[i], projrep->idepthtexture);
 			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 
 			int ntdesc = 0; //number of texture descriptors in this projector
@@ -258,9 +274,9 @@ void resend_textureprojector_matrix()
 			int toffset = 4;
 			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
-			render_node(ptuple->textureNode);
+			render_node(projrep->texture);
 
-			ntdesc = getTextureDescriptors(ptuple->textureNode,textures, modes,sources, funcs, width, height);
+			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height);
 			GLUNIFORM1I(me->ntdesc[i],ntdesc);
 			for(int j=0;j<ntdesc;j++,kdesc++){
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
@@ -290,7 +306,7 @@ void resend_textureprojector_matrix()
 
 void compile_TextureProjector (struct X3D_TextureProjector *node) { 
 
-
+	node->_intern = set_ProjectorRep(node->_intern);
 	/* LookAt Matrix Complete */
 	float dir[3], up[3], cross1[3],cross2[3];
 	veccopy3f(node->_loc.c,node->location.c);
@@ -399,20 +415,14 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 		}
 		{
 			GLuint texture;
-			struct projector_tuple ptuple;
-			ptuple.ptm_node = X3D_NODE(node);
-			//ptuple.des = node->description;
-			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			//ptuple.backCull = node->backCull == TRUE? 1 : 0;
-			//ptuple.shadows = node->shadows == TRUE ? 1 : 0;
-			//ptuple.shadowIntensity = node->shadowIntensity;
-			ptuple.depthmap = -1; //haven't generated yet
-			//printf("peye = %lf %lf %lf\n",ptuple.peye[0],ptuple.peye[1],ptuple.peye[2]);
-			//ptuple.global = node->global;
-			ptuple.type = 0; //0=perspective 1=ortho/parallel
+			usehit ptuple;
+			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
+			ptuple.node = X3D_NODE(node);
+			memcpy(ptuple.mvm, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
+			projrep->idepthtexture = -1; 
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
-			ptuple.texture = texture;
-			ptuple.textureNode = tmpN;
+			projrep->itexture = texture;
+			projrep->texture = tmpN;
 			projectorTable_push(&ptuple);
 		}
 
@@ -456,6 +466,7 @@ void fin_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
 }
 
 void compile_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) { 
+	node->_intern = set_ProjectorRep(node->_intern);
 
 	/* LookAt Matrix Complete */
 	float dir[3], up[3], cross1[3],cross2[3];
@@ -558,20 +569,15 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
 		}
 		{
+			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
 			GLuint texture;
-			struct projector_tuple ptuple;
-			ptuple.ptm_node = X3D_NODE(node);
-			//ptuple.des = node->description;
-			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			//ptuple.backCull = node->backCull == TRUE? 1 : 0;
-			//ptuple.shadows = node->shadows == TRUE ? 1 : 0;
-			//ptuple.shadowIntensity = node->shadowIntensity;
-			ptuple.depthmap = -1; //don't have it yet
-			//ptuple.global = node->global;
-			ptuple.type = 1; //0=perspective, 1=ortho
+			usehit ptuple;
+			ptuple.node = X3D_NODE(node);
+			memcpy(ptuple.mvm, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
+			projrep->idepthtexture = -1;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
-			ptuple.texture = texture;
-			ptuple.textureNode = tmpN;
+			projrep->itexture = texture;
+			projrep->texture = tmpN;
 			projectorTable_push(&ptuple);
 		}
 

@@ -82,9 +82,8 @@ void Component_Lighting_clear(struct tComponent_Lighting* t) {
 struct X3D_LightRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
 	struct X3D_Node* depthTexture;
-	//int textureTableIndex;
-	//struct Multi_Node subTextures;
 	int size;
+	int idepthtexture;
 };
 
 void* set_LightRep(void* _lightrep)
@@ -601,8 +600,7 @@ void render_bound_background();
 
 // called from MainLoop.c
 #include "../x3d_parser/Bindable.h"
-
-void generate_GlobalShadowMaps() {
+void generate_depthmap_cube(usehit uhit) {
 	//call from mainloop once per frame:
 	//foreach cubemaptexture location in cubgen list
 	//  foreach 6 sides
@@ -611,18 +609,158 @@ void generate_GlobalShadowMaps() {
 	//  convert fbo to regular cubemap texture
 	//clear cubegen list
 	double savebackmat[16];
-	Stack* genshadow_stack;
-	ttglobal tg = gglobal();
-	ppComponent_Lighting p = (ppComponent_Lighting)tg->Component_Lighting.prv;
-	static int iframe = 0;
+
+	int isize;
+	double modelviewmatrix[16];
+	textureTableIndexStruct_s* tti;
+	float vp[4] = { 0.0f,1.0f,0.0f,1.0f }; //arbitrary
+	struct X3D_PointLight* node;
+	struct X3D_LightRep* lightrep;
 	bindablestack* bstack;
+	ttglobal tg = gglobal();
 	bstack = getActiveBindableStacks(tg);
 
 	//set_viewmatrix();
 	//this function tampers with the normal background matrix, which has already been prepped for the mainloop rendering
 	//so save it, and restore after gencubemap loop of 6
 	memcpy(savebackmat, bstack->backgroundmatrix, 16 * sizeof(double));
-	iframe++;
+
+	node = (struct X3D_PointLight*)uhit.node;
+	lightrep = (struct X3D_LightRep*)node->_intern;
+	struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)lightrep->depthTexture;
+	memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
+
+	//compile_generatedcubemap - creates framebufferobject fbo
+	tti = getTableIndex(cubetex->__textureTableIndex);
+	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before cube 6 loop");
+
+	isize = tti->x; //set in compile_
+	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+	//GLuint attachments [1] = {GL_COLOR_ATTACHMENT0};
+	//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
+	//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
+	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
+	glViewport(0, 0, isize, isize); //viewport we want 
+
+	//create fbo or fbo tiles collection for generatedcubemap
+	//method: we draw each face to a single framebuffer texture, 
+	// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
+	// we skip the steps of creating and reading back PixelTexture->image.p into texdata
+	for (int j = 0; j < cubetex->__subTextures.n; j++) {  //should be 6
+		textureTableIndexStruct_s* ttip;
+		struct X3D_PixelTexture* nodep;
+		GLuint pixelType;
+		int bytesPerPixel;
+
+		nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
+		ttip = getTableIndex(nodep->__textureTableIndex);
+		//we won't directly generate cubemap textures here, but looks interesting as possible 
+		//  shotcut to skip readpixels below
+		// glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
+		// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
+
+		//glClearColor(1.0f, 0.0f, 0.0f, 1.0f); //red, for diagnostics during debugging
+		//FW_GL_CLEAR(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
+		//glClear(GL_DEPTH_BUFFER_BIT);
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
+
+		//set viewpoint matrix for side
+		//setup_projection(); 
+		FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_LOAD_IDENTITY();
+		//fw_gluPerspective(90.0, 1.0, .1,10000.0);
+		fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 10000.0);
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
+
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_LOAD_IDENTITY();
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
+
+		fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
+		fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
+
+		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+
+		//render_bound_background();
+
+		///*  turn light #0 off only if it is not a headlight.*/
+		//if (!fwl_get_headlight()) {
+		//	setLightState(HEADLIGHT_LIGHT, FALSE);
+		//	setLightType(HEADLIGHT_LIGHT, 2); // DirectionalLight
+		//}
+
+		///*  Other lights*/
+		//PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
+
+		//render_hier(rootNode(), VF_globalLight);
+		//PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
+		//render_hier(rootNode(), VF_Other);
+
+		/*  4. Nodes (not the blended ones)*/
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
+
+		profile_start("hier_geom");
+		render_hier(rootNode(), VF_Geom | VF_Depth);
+		profile_end("hier_geom");
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
+
+
+		///*  5. Blended Nodes*/
+		//if (tg->RenderFuncs.have_transparency) {
+		//	/*  render the blended nodes*/
+		//	render_hier(rootNode(), VF_Geom | VF_Blend | VF_Cube);
+		//	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
+		//}
+
+		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
+		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
+		pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
+		bytesPerPixel = sizeof(float); // 4;
+		if (!ttip->texdata || ttip->x != isize) {
+			FREE_IF_NZ(ttip->texdata);
+			ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
+		}
+
+		/* grab the data */
+		//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+		//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+
+		//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
+		FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
+
+		ttip->x = isize;
+		ttip->y = isize;
+		ttip->z = 1;
+		ttip->hasAlpha = 0; // 1;
+		ttip->channels = 0; // 4;
+		ttip->idepthbuffer = 1;
+		ttip->status = TEX_NEEDSBINDING;
+		if (0) {
+			//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
+			//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
+			static int iframe = 0;
+			iframe++;
+			if (iframe == 50) {
+				char namebuf[100];
+				sprintf(namebuf, "%s%d.web3dit", "cubemapface_", j);
+				saveImage_web3dit(ttip, namebuf);
+			}
+		}
+	}
+	popnset_viewport();
+	popnset_framebuffer();
+	//compile_generatedcubemaptexture // convert to opengl
+	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
+}
+
+void generate_GlobalShadowMaps() {
+	Stack* genshadow_stack;
+	ttglobal tg = gglobal();
+	ppComponent_Lighting p = (ppComponent_Lighting)tg->Component_Lighting.prv;
 	genshadow_stack = p->genshadow_stack;
 	if (vectorSize(genshadow_stack)) {
 		int i, j, n;
@@ -630,149 +768,25 @@ void generate_GlobalShadowMaps() {
 		n = vectorSize(genshadow_stack);
 		for (i = 0; i < n; i++) {
 			usehit uhit;
-			int isize;
-			double modelviewmatrix[16];
-			textureTableIndexStruct_s* tti;
-			float vp[4] = { 0.0f,1.0f,0.0f,1.0f }; //arbitrary
-			struct X3D_PointLight* node;
-			struct X3D_LightRep* lightrep;
 
 			uhit = vector_get(usehit, genshadow_stack, i);
-			node = (struct X3D_PointLight*)uhit.node;
-			lightrep = (struct X3D_LightRep*)node->_intern;
-			struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)lightrep->depthTexture;
-			memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
-
-			//compile_generatedcubemap - creates framebufferobject fbo
-			tti = getTableIndex(cubetex->__textureTableIndex);
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before cube 6 loop");
-
-			isize = tti->x; //set in compile_
-			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-			//GLuint attachments [1] = {GL_COLOR_ATTACHMENT0};
-			//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
-			//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
-			pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
-			glViewport(0, 0, isize, isize); //viewport we want 
-
-			//create fbo or fbo tiles collection for generatedcubemap
-			//method: we draw each face to a single framebuffer texture, 
-			// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
-			// we skip the steps of creating and reading back PixelTexture->image.p into texdata
-			for (j = 0; j < cubetex->__subTextures.n; j++) {  //should be 6
-				textureTableIndexStruct_s* ttip;
-				struct X3D_PixelTexture* nodep;
-				GLuint pixelType;
-				int bytesPerPixel;
-
-				nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
-				ttip = getTableIndex(nodep->__textureTableIndex);
-				//we won't directly generate cubemap textures here, but looks interesting as possible 
-				//  shotcut to skip readpixels below
-				// glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
-				// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
-
-				//glClearColor(1.0f, 0.0f, 0.0f, 1.0f); //red, for diagnostics during debugging
-				//FW_GL_CLEAR(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
-				//glClear(GL_DEPTH_BUFFER_BIT);
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
-
-				//set viewpoint matrix for side
-				//setup_projection(); 
-				FW_GL_MATRIX_MODE(GL_PROJECTION);
-				FW_GL_LOAD_IDENTITY();
-				//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-				fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 10000.0);
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
-
-				FW_GL_MATRIX_MODE(GL_MODELVIEW);
-				FW_GL_LOAD_IDENTITY();
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
-
-				fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
-				fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
-				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
-
-				clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
-
-				//render_bound_background();
-
-				///*  turn light #0 off only if it is not a headlight.*/
-				//if (!fwl_get_headlight()) {
-				//	setLightState(HEADLIGHT_LIGHT, FALSE);
-				//	setLightType(HEADLIGHT_LIGHT, 2); // DirectionalLight
-				//}
-
-				///*  Other lights*/
-				//PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
-
-				//render_hier(rootNode(), VF_globalLight);
-				//PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
-				//render_hier(rootNode(), VF_Other);
-
-				/*  4. Nodes (not the blended ones)*/
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
-
-				profile_start("hier_geom");
-				render_hier(rootNode(), VF_Geom | VF_Depth);
-				profile_end("hier_geom");
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
-
-
-				///*  5. Blended Nodes*/
-				//if (tg->RenderFuncs.have_transparency) {
-				//	/*  render the blended nodes*/
-				//	render_hier(rootNode(), VF_Geom | VF_Blend | VF_Cube);
-				//	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-				//}
-
-				//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-				//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-				pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-				bytesPerPixel = sizeof(float); // 4;
-				if (!ttip->texdata || ttip->x != isize) {
-					FREE_IF_NZ(ttip->texdata);
-					ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
-				}
-
-				/* grab the data */
-				//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-				//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-
-				//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-				FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
-
-				ttip->x = isize;
-				ttip->y = isize;
-				ttip->z = 1;
-				ttip->hasAlpha = 0; // 1;
-				ttip->channels = 0; // 4;
-				ttip->idepthbuffer = 1;
-				ttip->status = TEX_NEEDSBINDING;
-				if (0) {
-					//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
-					//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
-					if (iframe == 50) {
-						char namebuf[100];
-						sprintf(namebuf, "%s%d.web3dit", "cubemapface_", j);
-						saveImage_web3dit(ttip, namebuf);
-					}
-				}
+			switch (uhit.node->_nodeType) {
+				case NODE_PointLight:
+					generate_depthmap_cube(uhit);
+					break;
+				case NODE_DirectionalLight:
+				case NODE_SpotLight:
+				case NODE_TextureProjector:
+				case NODE_TextureProjectorParallel:
+					generate_depthmap_2D(uhit);
+				default:
+					break;
 			}
-			popnset_viewport();
-			popnset_framebuffer();
-			//compile_generatedcubemaptexture // convert to opengl
 		}
-		PRINT_GL_ERROR_IF_ANY("generate_GlobalShadowMaps END");
-
-		//clear cubegen list
-		genshadow_stack->n = 0;
-		memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
-
 	}
+	genshadow_stack->n = 0;
+	PRINT_GL_ERROR_IF_ANY("generate_GlobalShadowMaps END");
+
 }
 #else //SHADOWMAPS
 void generate_GlobalShadowMaps() {} //stub
