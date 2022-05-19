@@ -1312,7 +1312,8 @@ uniform int funcs[16]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	int k=0; \n\
 	for(int i=0;i<pCount;i++) { \n\
-		if( projTexCoord[i].q > 0.0 ){ \n\
+        //is point on + side of projector ? \n\
+		if( projTexCoord[i].z > 0.0 ){ \n\
 			vec4 pp = projTexCoord[i]; \n\
 			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
 			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
@@ -1320,13 +1321,14 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 			if(inside){ \n\
 				bool facingProjector = true; \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
-				if(pbackCull[i] == 1){ \n\
+				//if(pbackCull[i] == 1){ \n\
+                { \n\
 					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
 					//if(!gl_FrontFacing) pn = -pn; \n\
-					vec3 nvec = normalize(pptex.xyz-pn); \n\
+					vec3 nvec = normalize(pn - pptex.xyz); \n\
 					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
 					float dotval = dot(nvec,peye); \n\
-					facingProjector = (dotval > 0.0); \n\
+					facingProjector = (dotval < 0.0); \n\
 				} \n\
 				if(facingProjector){ \n\
 					//parallel/ortho \n\
