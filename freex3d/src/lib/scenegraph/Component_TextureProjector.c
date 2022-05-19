@@ -72,11 +72,6 @@ const GLDOUBLE bias[16] = { 0.5, 0.0, 0.0, 0.0,
 0.5, 0.5, 0.5, 1.0 };
 
 
-struct projective_Texdata {
-    struct Uni_String *des;
-	GLDOUBLE TenLinearGexMat[16];
-};
-
 typedef struct pComponent_TextureProjector{
 	struct Vector *projector_stack; //activeProjectiveTextureTable;
 	//textureTableIndexStruct_s* loadThisProjectiveTexture;
@@ -84,7 +79,6 @@ typedef struct pComponent_TextureProjector{
 	/* current index into loadparams that texture thread is working on */
 	int currentlyWorkingOn;// = -1;
 	int textureInProcess;// = -1;
-	struct projective_Texdata data[4];
 }* ppComponent_TextureProjector;
 
 void *Component_TextureProjector_constructor(){
@@ -103,7 +97,6 @@ void Component_TextureProjector_init(struct tComponent_TextureProjector *t){
 		//p->activeProjectiveTextureTable = NULL;
 		p->projector_stack = newStack(usehit);
 
-		//t->data = &p->data;
 		/* current index into loadparams that texture thread is working on */
 		p->currentlyWorkingOn = -1;
 
@@ -205,11 +198,9 @@ void resend_textureprojector_matrix()
 	//called from render_shape to refresh uniform before shade draw
 	int pcount,tcount;
 	s_shader_capabilities_t *me;
-	struct projective_Texdata *data;
 	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
-	data = p->data;
 
     me = getAppearanceProperties()->currentShaderProperties;
 
@@ -335,19 +326,15 @@ void printmatrix2(GLDOUBLE* mat,char* description );
 void render_TextureProjector (struct X3D_TextureProjector *node) {
 	int i,j = 0;
 	int flag = 0;
-	static int datacount = 0;
 	float degree = node->fieldOfView* 180.0/3.141596;
 	GLDOUBLE cViewMat[16];
 	GLDOUBLE invcViewMat[16];
 	GLDOUBLE ViewMat[16];
 	GLDOUBLE ProjMat[16];
 	GLint tex1;
-	struct projective_Texdata *data;
 	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
-	data = p->data;
-	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 	
 	RETURN_IF_RENDER_STATE_NOT_US
 	COMPILE_IF_REQUIRED;
@@ -494,19 +481,15 @@ void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GL
 void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
 	int i,j = 0;
 	int flag = 0;
-	static int datacount = 0;
 	//float degree = node->fieldOfView* 180/3.14;
 	GLDOUBLE cViewMat[16];
 	GLDOUBLE invcViewMat[16];
 	GLDOUBLE ViewMat[16];
 	GLDOUBLE orthoMat[16];
 	GLint tex1;
-	struct projective_Texdata *data;
 	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
-	data = p->data;
-	//data = (struct projective_Texdata*)tg->Component_PTM.data;
 	
 	RETURN_IF_RENDER_STATE_NOT_US
 	COMPILE_IF_REQUIRED;
