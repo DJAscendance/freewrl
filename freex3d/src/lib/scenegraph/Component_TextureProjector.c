@@ -77,13 +77,14 @@ struct projective_Texdata {
 };
 
 struct projector_tuple {
-    struct Uni_String *des;
 	GLDOUBLE TenLinearGexMat[16];
-	int backCull;
-	int shadows;
-	float shadowIntensity;
+	struct X3D_Node* ptm_node;
+	//struct Uni_String* des;
+	//int backCull;
+	//int shadows;
+	//float shadowIntensity;
 	int depthmap;
-	int global;
+	//int global;
 	int type; //0=perspective, 1=ortho/parallel
 	GLuint texture;
 	struct X3D_Node * textureNode;
@@ -233,15 +234,16 @@ void resend_textureprojector_matrix()
 			ptuple = vector_get_ptr(struct projector_tuple, p->projector_stack, i);
 			double2float(TenLinearGexMatCam0f, ptuple->TenLinearGexMat,16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
+			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->ptm_node;
 			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
 			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
 			// X HOWEVER freewrl Feb 2020 isn't reliably discriminating solid=true/false for different geometry types
 			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
-			GLUNIFORM1I(me->ptmbackCull[i],ptuple->backCull);
-			GLUNIFORM1I(me->ptmshadows[i], ptuple->shadows);
-			GLUNIFORM1F(me->ptmshadowIntensity[i], ptuple->shadowIntensity);
+			GLUNIFORM1I(me->ptmbackCull[i],ptm->backCull);
+			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
+			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
 			GLUNIFORM1I(me->ptmdepthmap[i], ptuple->depthmap);
 			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 
@@ -286,7 +288,7 @@ void resend_textureprojector_matrix()
 
 }
 
-void compile_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) { 
+void compile_TextureProjector (struct X3D_TextureProjector *node) { 
 
 
 	/* LookAt Matrix Complete */
@@ -314,7 +316,7 @@ void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 				GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE *matrix);
 void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE *matrix);
 void printmatrix2(GLDOUBLE* mat,char* description );
-void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
+void render_TextureProjector (struct X3D_TextureProjector *node) {
 	int i,j = 0;
 	int flag = 0;
 	static int datacount = 0;
@@ -386,7 +388,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 						aspectRatio = (float)ixyz[0]/(float)ixyz[1];
 						if(!APPROX(node->aspectRatio,aspectRatio)){
 							node->aspectRatio = aspectRatio;
-							MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_TextureProjectorPerspective, aspectRatio));
+							MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_TextureProjector, aspectRatio));
 							//printf("aspectRatio= %f\n",node->aspectRatio);
 						}
 					}
@@ -398,14 +400,15 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
 		{
 			GLuint texture;
 			struct projector_tuple ptuple;
-			ptuple.des = node->description;
+			ptuple.ptm_node = X3D_NODE(node);
+			//ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			ptuple.backCull = node->backCull == TRUE? 1 : 0;
-			ptuple.shadows = node->shadows == TRUE ? 1 : 0;
-			ptuple.shadowIntensity = node->shadowIntensity;
+			//ptuple.backCull = node->backCull == TRUE? 1 : 0;
+			//ptuple.shadows = node->shadows == TRUE ? 1 : 0;
+			//ptuple.shadowIntensity = node->shadowIntensity;
 			ptuple.depthmap = -1; //haven't generated yet
 			//printf("peye = %lf %lf %lf\n",ptuple.peye[0],ptuple.peye[1],ptuple.peye[2]);
-			ptuple.global = node->global;
+			//ptuple.global = node->global;
 			ptuple.type = 0; //0=perspective 1=ortho/parallel
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			ptuple.texture = texture;
@@ -417,7 +420,7 @@ void render_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective 
  }
 
 
-void fin_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) 
+void fin_TextureProjector (struct X3D_TextureProjector *node) 
 {
 	RETURN_IF_RENDER_STATE_NOT_US
 	if(node->on)
@@ -425,15 +428,15 @@ void fin_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *no
 			projectorTable_pop(); //just pop local projectors that we pushed above - globals are cleared once per frame
 }
 
-void prep_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *node) {
+void prep_TextureProjector(struct X3D_TextureProjector *node) {
 
 
 	if (!renderstate()->render_light) return;
 	/* this will be a global textureprojector here... */
-	render_TextureProjectorPerspective(node);
+	render_TextureProjector(node);
 
 }
-void child_TextureProjectorPerspective (struct X3D_TextureProjectorPerspective *node) {
+void child_TextureProjector (struct X3D_TextureProjector *node) {
 }
 
 
@@ -557,13 +560,14 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		{
 			GLuint texture;
 			struct projector_tuple ptuple;
-			ptuple.des = node->description;
+			ptuple.ptm_node = X3D_NODE(node);
+			//ptuple.des = node->description;
 			memcpy(ptuple.TenLinearGexMat, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			ptuple.backCull = node->backCull == TRUE? 1 : 0;
-			ptuple.shadows = node->shadows == TRUE ? 1 : 0;
-			ptuple.shadowIntensity = node->shadowIntensity;
+			//ptuple.backCull = node->backCull == TRUE? 1 : 0;
+			//ptuple.shadows = node->shadows == TRUE ? 1 : 0;
+			//ptuple.shadowIntensity = node->shadowIntensity;
 			ptuple.depthmap = -1; //don't have it yet
-			ptuple.global = node->global;
+			//ptuple.global = node->global;
 			ptuple.type = 1; //0=perspective, 1=ortho
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			ptuple.texture = texture;
@@ -585,25 +589,25 @@ void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
 
 
 
-void render_TextureProjector(struct X3D_Node *sibAffector){
+void render_TextureProjectors(struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_TextureProjectorParallel:
 			render_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
 			break;
-		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjector:
 		default:
-			render_TextureProjectorPerspective((struct X3D_TextureProjectorPerspective*)sibAffector);
+			render_TextureProjector((struct X3D_TextureProjector*)sibAffector);
 			break;
 	}
 }
-void fin_TextureProjector(struct X3D_Node *sibAffector){
+void fin_TextureProjectors(struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_TextureProjectorParallel:
 			fin_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
 			break;
-		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjector:
 		default:
-			fin_TextureProjectorPerspective((struct X3D_TextureProjectorPerspective*)sibAffector);
+			fin_TextureProjector((struct X3D_TextureProjector*)sibAffector);
 			break;
 	}
 }
@@ -615,14 +619,14 @@ void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffe
 		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
 		pushShaderFlags(shaderflags);
 
-		render_TextureProjector(sibAffector);
+		render_TextureProjectors(sibAffector);
 	}
 
 }
 
 void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	if (renderstate()->render_light != VF_globalLight) {
-		fin_TextureProjector(sibAffector);
+		fin_TextureProjectors(sibAffector);
 		popShaderFlags();
 	}
 }

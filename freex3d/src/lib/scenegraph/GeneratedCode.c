@@ -2875,8 +2875,8 @@ const char *NODES[] = {
 	"TextureCoordinate3D",
 	"TextureCoordinate4D",
 	"TextureCoordinateGenerator",
+	"TextureProjector",
 	"TextureProjectorParallel",
-	"TextureProjectorPerspective",
 	"TextureProperties",
 	"TextureTransform",
 	"TextureTransform3D",
@@ -4240,17 +4240,17 @@ struct X3D_Virt virt_TextureCoordinate4D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 
 struct X3D_Virt virt_TextureCoordinateGenerator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_TextureProjector(struct X3D_TextureProjector *);
+void child_TextureProjector(struct X3D_TextureProjector *);
+void fin_TextureProjector(struct X3D_TextureProjector *);
+void compile_TextureProjector(struct X3D_TextureProjector *);
+struct X3D_Virt virt_TextureProjector = { (void *)prep_TextureProjector,NULL,(void *)child_TextureProjector,(void *)fin_TextureProjector,NULL,NULL,NULL,NULL,NULL,(void *)compile_TextureProjector};
+
 void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *);
 void child_TextureProjectorParallel(struct X3D_TextureProjectorParallel *);
 void fin_TextureProjectorParallel(struct X3D_TextureProjectorParallel *);
 void compile_TextureProjectorParallel(struct X3D_TextureProjectorParallel *);
 struct X3D_Virt virt_TextureProjectorParallel = { (void *)prep_TextureProjectorParallel,NULL,(void *)child_TextureProjectorParallel,(void *)fin_TextureProjectorParallel,NULL,NULL,NULL,NULL,NULL,(void *)compile_TextureProjectorParallel};
-
-void prep_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *);
-void child_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *);
-void fin_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *);
-void compile_TextureProjectorPerspective(struct X3D_TextureProjectorPerspective *);
-struct X3D_Virt virt_TextureProjectorPerspective = { (void *)prep_TextureProjectorPerspective,NULL,(void *)child_TextureProjectorPerspective,(void *)fin_TextureProjectorPerspective,NULL,NULL,NULL,NULL,NULL,(void *)compile_TextureProjectorPerspective};
 
 struct X3D_Virt virt_TextureProperties = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4661,8 +4661,8 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_TextureCoordinate3D,
 	 &virt_TextureCoordinate4D,
 	 &virt_TextureCoordinateGenerator,
+	 &virt_TextureProjector,
 	 &virt_TextureProjectorParallel,
-	 &virt_TextureProjectorPerspective,
 	 &virt_TextureProperties,
 	 &virt_TextureTransform,
 	 &virt_TextureTransform3D,
@@ -9069,13 +9069,32 @@ const int OFFSETS_TextureCoordinateGenerator[] = {
 	(int) FIELDNAMES_parameter, (int) offsetof (struct X3D_TextureCoordinateGenerator, parameter),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_TextureProjector[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureProjector, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_TextureProjector, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_location, (int) offsetof (struct X3D_TextureProjector, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_TextureProjector, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_TextureProjector, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_nearDistance, (int) offsetof (struct X3D_TextureProjector, nearDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_farDistance, (int) offsetof (struct X3D_TextureProjector, farDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_global, (int) offsetof (struct X3D_TextureProjector, global),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_on, (int) offsetof (struct X3D_TextureProjector, on),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_texture, (int) offsetof (struct X3D_TextureProjector, texture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_backCull, (int) offsetof (struct X3D_TextureProjector, backCull),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_TextureProjector, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_TextureProjector, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_TextureProjector, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__loc, (int) offsetof (struct X3D_TextureProjector, _loc),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjector, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_upVector, (int) offsetof (struct X3D_TextureProjector, upVector),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjector, fieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_TextureProjectorParallel[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureProjectorParallel, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_TextureProjectorParallel, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_location, (int) offsetof (struct X3D_TextureProjectorParallel, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_TextureProjectorParallel, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_upVector, (int) offsetof (struct X3D_TextureProjectorParallel, upVector),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjectorParallel, fieldOfView),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_TextureProjectorParallel, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_nearDistance, (int) offsetof (struct X3D_TextureProjectorParallel, nearDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_farDistance, (int) offsetof (struct X3D_TextureProjectorParallel, farDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
@@ -9088,27 +9107,8 @@ const int OFFSETS_TextureProjectorParallel[] = {
 	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_TextureProjectorParallel, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__loc, (int) offsetof (struct X3D_TextureProjectorParallel, _loc),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjectorParallel, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	-1, -1, -1, -1, -1, -1};
-
-const int OFFSETS_TextureProjectorPerspective[] = {
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureProjectorPerspective, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_description, (int) offsetof (struct X3D_TextureProjectorPerspective, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_location, (int) offsetof (struct X3D_TextureProjectorPerspective, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_TextureProjectorPerspective, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_upVector, (int) offsetof (struct X3D_TextureProjectorPerspective, upVector),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjectorPerspective, fieldOfView),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_TextureProjectorPerspective, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_nearDistance, (int) offsetof (struct X3D_TextureProjectorPerspective, nearDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_farDistance, (int) offsetof (struct X3D_TextureProjectorPerspective, farDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_global, (int) offsetof (struct X3D_TextureProjectorPerspective, global),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_on, (int) offsetof (struct X3D_TextureProjectorPerspective, on),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_texture, (int) offsetof (struct X3D_TextureProjectorPerspective, texture),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_backCull, (int) offsetof (struct X3D_TextureProjectorPerspective, backCull),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_shadows, (int) offsetof (struct X3D_TextureProjectorPerspective, shadows),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_shadowIntensity, (int) offsetof (struct X3D_TextureProjectorPerspective, shadowIntensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__dir, (int) offsetof (struct X3D_TextureProjectorPerspective, _dir),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__loc, (int) offsetof (struct X3D_TextureProjectorPerspective, _loc),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjectorPerspective, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_upVector, (int) offsetof (struct X3D_TextureProjectorParallel, upVector),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjectorParallel, fieldOfView),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureProperties[] = {
@@ -9896,8 +9896,8 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_TextureCoordinate3D,
 	OFFSETS_TextureCoordinate4D,
 	OFFSETS_TextureCoordinateGenerator,
+	OFFSETS_TextureProjector,
 	OFFSETS_TextureProjectorParallel,
-	OFFSETS_TextureProjectorPerspective,
 	OFFSETS_TextureProperties,
 	OFFSETS_TextureTransform,
 	OFFSETS_TextureTransform3D,
@@ -10503,8 +10503,8 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TextureCoordinate3D : {tmp = MALLOC (struct X3D_TextureCoordinate3D *, size = sizeof (struct X3D_TextureCoordinate3D)); break;}
 		case NODE_TextureCoordinate4D : {tmp = MALLOC (struct X3D_TextureCoordinate4D *, size = sizeof (struct X3D_TextureCoordinate4D)); break;}
 		case NODE_TextureCoordinateGenerator : {tmp = MALLOC (struct X3D_TextureCoordinateGenerator *, size = sizeof (struct X3D_TextureCoordinateGenerator)); break;}
+		case NODE_TextureProjector : {tmp = MALLOC (struct X3D_TextureProjector *, size = sizeof (struct X3D_TextureProjector)); break;}
 		case NODE_TextureProjectorParallel : {tmp = MALLOC (struct X3D_TextureProjectorParallel *, size = sizeof (struct X3D_TextureProjectorParallel)); break;}
-		case NODE_TextureProjectorPerspective : {tmp = MALLOC (struct X3D_TextureProjectorPerspective *, size = sizeof (struct X3D_TextureProjectorPerspective)); break;}
 		case NODE_TextureProperties : {tmp = MALLOC (struct X3D_TextureProperties *, size = sizeof (struct X3D_TextureProperties)); break;}
 		case NODE_TextureTransform : {tmp = MALLOC (struct X3D_TextureTransform *, size = sizeof (struct X3D_TextureTransform)); break;}
 		case NODE_TextureTransform3D : {tmp = MALLOC (struct X3D_TextureTransform3D *, size = sizeof (struct X3D_TextureTransform3D)); break;}
@@ -16036,6 +16036,30 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
+		case NODE_TextureProjector : {
+			struct X3D_TextureProjector * tmp2;
+			tmp2 = (struct X3D_TextureProjector *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 1.0f;
+			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
+			tmp2->aspectRatio = 1.0f;
+			tmp2->nearDistance = 1.0f;
+			tmp2->farDistance = 10.0f;
+			tmp2->global = FALSE;
+			tmp2->on = FALSE;
+			tmp2->texture = NULL;
+			tmp2->backCull = TRUE;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
+			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
+			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
+			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
+			tmp2->upVector.c[0] = 0.0f;tmp2->upVector.c[1] = 1.0f;tmp2->upVector.c[2] = 0.0f;
+			tmp2->fieldOfView = 45.0f;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
 		case NODE_TextureProjectorParallel : {
 			struct X3D_TextureProjectorParallel * tmp2;
 			tmp2 = (struct X3D_TextureProjectorParallel *) tmp;
@@ -16043,6 +16067,18 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->description = newASCIIString("");
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 1.0f;
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
+			tmp2->aspectRatio = 1.0f;
+			tmp2->nearDistance = 1.0f;
+			tmp2->farDistance = 10.0f;
+			tmp2->global = FALSE;
+			tmp2->on = FALSE;
+			tmp2->texture = NULL;
+			tmp2->backCull = TRUE;
+			tmp2->shadows = FALSE;
+			tmp2->shadowIntensity = 1.0f;
+			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
+			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
+			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
 			tmp2->upVector.c[0] = 0.0f;tmp2->upVector.c[1] = 1.0f;tmp2->upVector.c[2] = 0.0f;
 			tmp2->fieldOfView.p = MALLOC (float *, sizeof(float)*4);
 			tmp2->fieldOfView.p[0] = -1.0f;
@@ -16050,42 +16086,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->fieldOfView.p[2] = 1.0f;
 			tmp2->fieldOfView.p[3] = 1.0f;
 			tmp2->fieldOfView.n=4;;
-			tmp2->aspectRatio = 1.0f;
-			tmp2->nearDistance = 1.0f;
-			tmp2->farDistance = 10.0f;
-			tmp2->global = FALSE;
-			tmp2->on = FALSE;
-			tmp2->texture = NULL;
-			tmp2->backCull = TRUE;
-			tmp2->shadows = FALSE;
-			tmp2->shadowIntensity = 1.0f;
-			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
-			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
-			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
-			tmp2->_defaultContainer = 0;
-		break;
-		}
-		case NODE_TextureProjectorPerspective : {
-			struct X3D_TextureProjectorPerspective * tmp2;
-			tmp2 = (struct X3D_TextureProjectorPerspective *) tmp;
-			tmp2->metadata = NULL;
-			tmp2->description = newASCIIString("");
-			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 1.0f;
-			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
-			tmp2->upVector.c[0] = 0.0f;tmp2->upVector.c[1] = 1.0f;tmp2->upVector.c[2] = 0.0f;
-			tmp2->fieldOfView = 45.0f;
-			tmp2->aspectRatio = 1.0f;
-			tmp2->nearDistance = 1.0f;
-			tmp2->farDistance = 10.0f;
-			tmp2->global = FALSE;
-			tmp2->on = FALSE;
-			tmp2->texture = NULL;
-			tmp2->backCull = TRUE;
-			tmp2->shadows = FALSE;
-			tmp2->shadowIntensity = 1.0f;
-			tmp2->_dir.c[0] = 0;tmp2->_dir.c[1] = 0;tmp2->_dir.c[2] = 0;tmp2->_dir.c[3] = 0;;
-			tmp2->_loc.c[0] = 0;tmp2->_loc.c[1] = 0;tmp2->_loc.c[2] = 0;tmp2->_loc.c[3] = 0;;
-			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -22017,6 +22017,35 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->parameter.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->parameter.p[i]); }
 		    break;
 		}
+		case NODE_TextureProjector : {
+			struct X3D_TextureProjector *tmp;
+			tmp = (struct X3D_TextureProjector *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," location (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," direction (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," aspectRatio (SFFloat) \t%4.3f\n",tmp->aspectRatio);
+			spacer fprintf (fp," nearDistance (SFFloat) \t%4.3f\n",tmp->nearDistance);
+			spacer fprintf (fp," farDistance (SFFloat) \t%4.3f\n",tmp->farDistance);
+			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
+			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
+			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
+			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
+			spacer fprintf (fp," upVector (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->upVector.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," fieldOfView (SFFloat) \t%4.3f\n",tmp->fieldOfView);
+		    break;
+		}
 		case NODE_TextureProjectorParallel : {
 			struct X3D_TextureProjectorParallel *tmp;
 			tmp = (struct X3D_TextureProjectorParallel *) node;
@@ -22031,49 +22060,20 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," direction (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," aspectRatio (SFFloat) \t%4.3f\n",tmp->aspectRatio);
+			spacer fprintf (fp," nearDistance (SFFloat) \t%4.3f\n",tmp->nearDistance);
+			spacer fprintf (fp," farDistance (SFFloat) \t%4.3f\n",tmp->farDistance);
+			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
+			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
+			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
+			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
+			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
+			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
 			spacer fprintf (fp," upVector (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->upVector.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," fieldOfView (MFFloat):\n");
 			for (i=0; i<tmp->fieldOfView.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->fieldOfView.p[i]); }
-			spacer fprintf (fp," aspectRatio (SFFloat) \t%4.3f\n",tmp->aspectRatio);
-			spacer fprintf (fp," nearDistance (SFFloat) \t%4.3f\n",tmp->nearDistance);
-			spacer fprintf (fp," farDistance (SFFloat) \t%4.3f\n",tmp->farDistance);
-			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
-			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
-			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
-			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
-			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
-			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
-		    break;
-		}
-		case NODE_TextureProjectorPerspective : {
-			struct X3D_TextureProjectorPerspective *tmp;
-			tmp = (struct X3D_TextureProjectorPerspective *) node;
-			UNUSED(tmp); // compiler warning mitigation
-		    if(allFields) {
-			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
-		    }
-			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
-			spacer fprintf (fp," location (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
-			fprintf (fp,"\n");
-			spacer fprintf (fp," direction (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
-			fprintf (fp,"\n");
-			spacer fprintf (fp," upVector (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->upVector.c[i]); }
-			fprintf (fp,"\n");
-			spacer fprintf (fp," fieldOfView (SFFloat) \t%4.3f\n",tmp->fieldOfView);
-			spacer fprintf (fp," aspectRatio (SFFloat) \t%4.3f\n",tmp->aspectRatio);
-			spacer fprintf (fp," nearDistance (SFFloat) \t%4.3f\n",tmp->nearDistance);
-			spacer fprintf (fp," farDistance (SFFloat) \t%4.3f\n",tmp->farDistance);
-			spacer fprintf (fp," global (SFBool) \t%d\n",tmp->global);
-			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
-			spacer fprintf (fp," texture (SFNode):\n"); dump_scene(fp,level+1,tmp->texture); 
-			spacer fprintf (fp," backCull (SFBool) \t%d\n",tmp->backCull);
-			spacer fprintf (fp," shadows (SFBool) \t%d\n",tmp->shadows);
-			spacer fprintf (fp," shadowIntensity (SFFloat) \t%4.3f\n",tmp->shadowIntensity);
 		    break;
 		}
 		case NODE_TextureProperties : {
@@ -23037,8 +23037,8 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_TextureCoordinate3D: return X3DTextureCoordinateNode; break;
 	case NODE_TextureCoordinate4D: return X3DTextureCoordinateNode; break;
 	case NODE_TextureCoordinateGenerator: return X3DTextureCoordinateNode; break;
+	case NODE_TextureProjector: return X3DTextureProjectorNode; break;
 	case NODE_TextureProjectorParallel: return X3DTextureProjectorNode; break;
-	case NODE_TextureProjectorPerspective: return X3DTextureProjectorNode; break;
 	case NODE_TextureProperties: return X3DSFNode; break;
 	case NODE_TextureTransform: return X3DTextureTransformNode; break;
 	case NODE_TextureTransform3D: return X3DTextureTransformNode; break;

@@ -1132,7 +1132,7 @@ sub gen {
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
 	"#define X3D_BUFFERTEXTURE(node) ((struct X3D_BufferTexture*)node)\n".
-	"#define X3D_TEXTUREPROJECTORPERSPECTIVE(node) ((struct X3D_TextureProjectorPerspective*)node)\n",
+	"#define X3D_TEXTUREPROJECTOR(node) ((struct X3D_TextureProjector*)node)\n",
 	"#define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)\n",
 
 	"void mark_event (struct X3D_Node *from, int totalptr);\n".

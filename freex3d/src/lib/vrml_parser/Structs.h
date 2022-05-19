@@ -388,8 +388,8 @@ typedef int indexT;
 #define NODE_TextureCoordinate3D	312
 #define NODE_TextureCoordinate4D	313
 #define NODE_TextureCoordinateGenerator	314
-#define NODE_TextureProjectorParallel	315
-#define NODE_TextureProjectorPerspective	316
+#define NODE_TextureProjector	315
+#define NODE_TextureProjectorParallel	316
 #define NODE_TextureProperties	317
 #define NODE_TextureTransform	318
 #define NODE_TextureTransform3D	319
@@ -3094,7 +3094,7 @@ struct X3D_Node {
 #define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)
 #define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)
 #define X3D_BUFFERTEXTURE(node) ((struct X3D_BufferTexture*)node)
-#define X3D_TEXTUREPROJECTORPERSPECTIVE(node) ((struct X3D_TextureProjectorPerspective*)node)
+#define X3D_TEXTUREPROJECTOR(node) ((struct X3D_TextureProjector*)node)
 #define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)
 void mark_event (struct X3D_Node *from, int totalptr);
 #undef DEBUG_VALIDNODE
@@ -12524,6 +12524,43 @@ struct X3D_TextureCoordinateGenerator {
 };
 extern struct X3D_Virt virt_TextureCoordinateGenerator;
 /***********************/
+struct X3D_TextureProjector {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       char * _fieldchange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_GeomRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	struct Uni_String *description;
+	struct SFVec3f location;
+	struct SFVec3f direction;
+	float aspectRatio;
+	float nearDistance;
+	float farDistance;
+	int global;
+	int on;
+	struct X3D_Node *texture;
+	int backCull;
+	int shadows;
+	float shadowIntensity;
+	struct SFVec4f _dir;
+	struct SFVec4f _loc;
+	struct SFVec4f _upVec;
+	struct SFVec3f upVector;
+	float fieldOfView;
+};
+extern struct X3D_Virt virt_TextureProjector;
+/***********************/
 struct X3D_TextureProjectorParallel {
        int _nodeType; /* unique integer for each type */ 
        int _renderFlags; /*sensitive, etc */ 
@@ -12544,59 +12581,22 @@ struct X3D_TextureProjectorParallel {
 	struct Uni_String *description;
 	struct SFVec3f location;
 	struct SFVec3f direction;
+	float aspectRatio;
+	float nearDistance;
+	float farDistance;
+	int global;
+	int on;
+	struct X3D_Node *texture;
+	int backCull;
+	int shadows;
+	float shadowIntensity;
+	struct SFVec4f _dir;
+	struct SFVec4f _loc;
+	struct SFVec4f _upVec;
 	struct SFVec3f upVector;
 	struct Multi_Float fieldOfView;
-	float aspectRatio;
-	float nearDistance;
-	float farDistance;
-	int global;
-	int on;
-	struct X3D_Node *texture;
-	int backCull;
-	int shadows;
-	float shadowIntensity;
-	struct SFVec4f _dir;
-	struct SFVec4f _loc;
-	struct SFVec4f _upVec;
 };
 extern struct X3D_Virt virt_TextureProjectorParallel;
-/***********************/
-struct X3D_TextureProjectorPerspective {
-       int _nodeType; /* unique integer for each type */ 
-       int _renderFlags; /*sensitive, etc */ 
-       int _hit; 
-       int _change; 
-       int _ichange; 
-       char * _fieldchange; 
-       struct Vector* _parentVector; 
-       double _dist; /*sorting for blending */ 
-       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
-       struct X3D_GeomRep *_intern; 
-       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
-       int _defaultContainer; /* holds the container */
-       void* _gc; /* ptr to vector of ptrs to free */
-       struct X3D_Node* _executionContext; /* scene or protoInstance */
- 	/*** node specific data: *****/
-	struct X3D_Node *metadata;
-	struct Uni_String *description;
-	struct SFVec3f location;
-	struct SFVec3f direction;
-	struct SFVec3f upVector;
-	float fieldOfView;
-	float aspectRatio;
-	float nearDistance;
-	float farDistance;
-	int global;
-	int on;
-	struct X3D_Node *texture;
-	int backCull;
-	int shadows;
-	float shadowIntensity;
-	struct SFVec4f _dir;
-	struct SFVec4f _loc;
-	struct SFVec4f _upVec;
-};
-extern struct X3D_Virt virt_TextureProjectorPerspective;
 /***********************/
 struct X3D_TextureProperties {
        int _nodeType; /* unique integer for each type */ 

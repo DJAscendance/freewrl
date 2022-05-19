@@ -82,8 +82,8 @@ void normalChildren(struct Multi_Node ch) {
 			} else if (p->_nodeType == NODE_PointLight) {
 				if (X3D_POINTLIGHT(p)->global == TRUE) 
 					render_node(p);
-			} else if (p->_nodeType == NODE_TextureProjectorPerspective) {
-				if (X3D_TEXTUREPROJECTORPERSPECTIVE(p)->global == TRUE) 
+			} else if (p->_nodeType == NODE_TextureProjector) {
+				if (X3D_TEXTUREPROJECTOR(p)->global == TRUE) 
 					render_node(p);
 			} else if (p->_nodeType == NODE_TextureProjectorParallel) {
 				if (X3D_TEXTUREPROJECTORPARALLEL(p)->global == TRUE) 

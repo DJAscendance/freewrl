@@ -379,7 +379,7 @@ void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 			sib_prep_ClipPlane(parent,sibAffector); break;
 		case NODE_Effect: 
 			sib_prep_Effect(parent,sibAffector); break;
-		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjector:
 		case NODE_TextureProjectorParallel: 
 			sib_prep_TextureProjector(parent,sibAffector); break;
 		default:
@@ -409,7 +409,7 @@ void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 			sib_fin_ClipPlane(parent,sibAffector); break;
 		case NODE_Effect:
 			sib_fin_Effect(parent,sibAffector); break;
-		case NODE_TextureProjectorPerspective:
+		case NODE_TextureProjector:
 		case NODE_TextureProjectorParallel: 
 			sib_fin_TextureProjector(parent,sibAffector); break;
 
