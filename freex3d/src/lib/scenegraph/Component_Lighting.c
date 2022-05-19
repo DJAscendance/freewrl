@@ -494,6 +494,34 @@ void compile_PointLight_shadowMap(struct X3D_PointLight* node) {
 void get_view_matrix(double* savePosOri, double* saveView);
 void freeASCIIString(struct Uni_String* us);
 
+void shadowTable_clear();
+void shadowTable_push(usehit ptuple);
+void shadowTable_pop();
+
+void shadowTable_clear() {
+	//called once per frame, before the search for global=true projectors
+	//will clear any global=true shadow lights from last frame
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	clearStack(p->genshadow_stack);
+}
+void shadowTable_push(usehit ptuple) {
+	//called when we find a global=true, on=true shadow light, and
+	//called in sib_prep for a global=false, on=false shadow light
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	//we need a deep copy because the light node can't hold it
+	// because it can be DEF/USED with different transform each use
+	stack_push(usehit, p->genshadow_stack, ptuple);
+
+}
+void shadowTable_pop() {
+	//called in sib_fin for a global=false, on=true shadow light
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	if (p->genshadow_stack->n < 1)
+		printf("ouch from shadowTable_pop()\n");
+	stack_pop(usehit, p->genshadow_stack);
+
+}
+
 // called from the scene traversal render_PointLight
 void render_PointLight_shadowMap(struct X3D_PointLight* node) {
 	int count, iface;
@@ -600,7 +628,7 @@ void render_bound_background();
 
 // called from MainLoop.c
 #include "../x3d_parser/Bindable.h"
-void generate_depthmap_cube(usehit uhit) {
+void generate_shadowmap_cube(usehit uhit) {
 	//call from mainloop once per frame:
 	//foreach cubemaptexture location in cubgen list
 	//  foreach 6 sides
@@ -757,6 +785,9 @@ void generate_depthmap_cube(usehit uhit) {
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
 
+void generate_shadowmap_2D(usehit uhit) {
+
+}
 void generate_GlobalShadowMaps() {
 	Stack* genshadow_stack;
 	ttglobal tg = gglobal();
@@ -772,13 +803,13 @@ void generate_GlobalShadowMaps() {
 			uhit = vector_get(usehit, genshadow_stack, i);
 			switch (uhit.node->_nodeType) {
 				case NODE_PointLight:
-					generate_depthmap_cube(uhit);
+					generate_shadowmap_cube(uhit);
 					break;
 				case NODE_DirectionalLight:
 				case NODE_SpotLight:
 				case NODE_TextureProjector:
 				case NODE_TextureProjectorParallel:
-					generate_depthmap_2D(uhit);
+					generate_shadowmap_2D(uhit);
 				default:
 					break;
 			}

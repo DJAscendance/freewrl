@@ -137,9 +137,11 @@ void* set_ProjectorRep(void* _projectorrep)
 }
 
 
-void generate_depthmap_2D(usehit uhit) {
 
-}
+
+void shadowTable_clear();
+void shadowTable_push(usehit ptuple);
+void shadowTable_pop();
 
 void projectorTable_clear(){
 	//called once per frame, before the search for global=true projectors
@@ -149,7 +151,7 @@ void projectorTable_clear(){
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	clearStack(p->projector_stack);
 }
-void projectorTable_push(usehit *ptuple ){
+void projectorTable_push(usehit ptuple ){
 	//called when we find a global=true, on=true projector, and
 	//called in sib_prep for a global=false, on=false projector
 	ppComponent_TextureProjector p;
@@ -157,7 +159,7 @@ void projectorTable_push(usehit *ptuple ){
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 	//we need a deep copy because the ptm node can't hold it
 	// because it can be DEF/USED with different transform each use
-	stack_push(usehit,p->projector_stack,*ptuple);
+	stack_push(usehit,p->projector_stack,ptuple);
 
 }
 void projectorTable_pop(){
@@ -410,7 +412,8 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			projectorTable_push(&ptuple);
+			projectorTable_push(ptuple);
+			if(node->global && node->shadows) shadowTable_push(ptuple);
 		}
 
 	} //if(node->on)
@@ -561,7 +564,9 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			projectorTable_push(&ptuple);
+			projectorTable_push(ptuple);
+			if (node->global && node->shadows)
+				shadowTable_push(ptuple);
 		}
 
 
