@@ -296,7 +296,8 @@ void resend_textureprojector_matrix()
 	GLUNIFORM1I(me->ptmCount,pcount);
 
 }
-
+void compile_shadowMap(struct X3D_Node* node); // Component_Lighting
+void render_shadowMap(struct X3D_Node* node);
 void compile_TextureProjector (struct X3D_TextureProjector *node) { 
 
 	node->_intern = set_ProjectorRep(node->_intern);
@@ -315,7 +316,7 @@ void compile_TextureProjector (struct X3D_TextureProjector *node) {
 	node->_dir.c[3] = 0.0f;
 	veccopy3f(node->_upVec.c,up);
 	node->_upVec.c[3] = 0.0f;
-
+	if (node->shadows) compile_shadowMap(X3D_NODE(node));
 	MARK_NODE_COMPILED;
 }
 
@@ -413,7 +414,10 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
 			projectorTable_push(ptuple);
-			if(node->global && node->shadows) shadowTable_push(ptuple);
+			if (node->global && node->shadows) {
+				shadowTable_push(ptuple);
+				render_shadowMap(X3D_NODE(node));
+			}
 		}
 
 	} //if(node->on)
