@@ -88,14 +88,15 @@ struct X3D_LightRep {
 
 void* set_LightRep(void* _lightrep)
 {
-	struct X3D_LightRep* lightrep = NULL;
+	struct X3D_LightRep* lightrep = _lightrep;
 	if (!_lightrep) {
 		_lightrep = MALLOC(struct X3D_LightRep*, sizeof(struct X3D_LightRep));
 		memset(_lightrep, 0, sizeof(struct X3D_LightRep));
+		lightrep = (struct X3D_LightRep*)_lightrep;
+		lightrep->itype = 5;
+		lightrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
+		lightrep->idepthtexture = -1;
 	}
-	lightrep = (struct X3D_LightRep*)_lightrep;
-	lightrep->itype = 5;
-	lightrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
 	return lightrep;
 }
 
@@ -454,22 +455,25 @@ void compile_shadowMap(struct X3D_Node* node) {
 		tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
 		tti->x = tti->y = lightrep->size;
 		//tti->z = 6;
-		loadTextureNode(X3D_NODE(tex), NULL);
+//		loadTextureNode(X3D_NODE(tex), NULL);
 		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
 			int j, isize;
 			isize = lightrep->size; //node->size is initializeOnly, we will ignore any change during run
 			tti->x = isize; //by storing and retrieving initial size from here
+			tti->y = isize;
 			// https://www.opengl.org/wiki/Framebuffer_Object
+
 			glGenFramebuffers(1, &tti->ifbobuffer);
 			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 
-			glGenRenderbuffers(1, &tti->idepthbuffer);
-			glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
+			//glGenRenderbuffers(1, &tti->idepthbuffer);
+			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
+			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
+			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
 
 			glGenTextures(1, &tti->OpenGLTexture);
 			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			lightrep->idepthtexture = tti->OpenGLTexture;
 			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, isize, isize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -947,7 +951,7 @@ void generate_shadowmap_2D(usehit uhit) {
 	tti = getTableIndex(tex->__textureTableIndex);
 	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps_2D before");
 
-	isize = tti->x; //set in compile_
+	isize = lightrep->size; //set in compile_
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 	//GLuint attachments [1] = {GL_COLOR_ATTACHMENT0};
 	//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
@@ -968,6 +972,7 @@ void generate_shadowmap_2D(usehit uhit) {
 		int j = 0;
 		nodep = tex;
 		ttip = tti;
+
 		//we won't directly generate cubemap textures here, but looks interesting as possible 
 		//  shotcut to skip readpixels below
 		// glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);

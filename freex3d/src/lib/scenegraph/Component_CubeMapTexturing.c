@@ -1313,7 +1313,7 @@ void compile_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) 
 		tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
 		tti->x = tti->y = node->size; 
 		//tti->z = 6;
-		loadTextureNode(X3D_NODE(node),NULL);
+		//loadTextureNode(X3D_NODE(node),NULL);
 		if(tti->ifbobuffer == 0 && haveFrameBufferObject() ){
 			int j, isize;
 			isize = node->size; //node->size is initializeOnly, we will ignore any change during run
@@ -1322,10 +1322,10 @@ void compile_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) 
 			glGenFramebuffers(1, &tti->ifbobuffer);
 			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 
-			glGenRenderbuffers(1, &tti->idepthbuffer);
-			glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize,isize);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
+			//glGenRenderbuffers(1, &tti->idepthbuffer);
+			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
+			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize,isize);
+			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
 
 			for(j=0;j<node->__subTextures.n;j++){  //should be 6
 				//textureTableIndexStruct_s* ttip;

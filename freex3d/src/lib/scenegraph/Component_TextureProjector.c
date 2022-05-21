@@ -121,18 +121,20 @@ struct X3D_ProjectorRep {
 	//projector section
 	struct X3D_Node* texture;
 	int itexture;
+	double matmodelviewproj[16];
 };
 
 void* set_ProjectorRep(void* _projectorrep)
 {
-	struct X3D_ProjectorRep* projectorrep = NULL;
+	struct X3D_ProjectorRep* projectorrep = _projectorrep;
 	if (!_projectorrep) {
 		_projectorrep = MALLOC(struct X3D_ProjectorRep*, sizeof(struct X3D_ProjectorRep));
 		memset(_projectorrep, 0, sizeof(struct X3D_ProjectorRep));
+		projectorrep = (struct X3D_ProjectorRep*)_projectorrep;
+		projectorrep->itype = 6;
+		projectorrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
+		projectorrep->idepthtexture = -1;
 	}
-	projectorrep = (struct X3D_ProjectorRep*)_projectorrep;
-	projectorrep->itype = 6;
-	projectorrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
 	return projectorrep;
 }
 
@@ -232,6 +234,7 @@ void resend_textureprojector_matrix()
 	int kdesc = 0;
 	int unitTextures[4];
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
+	PRINT_GL_ERROR_IF_ANY("BEGIN resend_textureprojector_matrix");
 
 	for(int i=0;i<tcount;i++)
 	{
@@ -240,7 +243,7 @@ void resend_textureprojector_matrix()
 		GLint texture;
 		if(me->ptmGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(usehit, p->projector_stack, i);
-			double2float(TenLinearGexMatCam0f, ptuple->mvm,16);
+			double2float(TenLinearGexMatCam0f, ptuple->userdata,16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
 			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
 			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
@@ -253,7 +256,7 @@ void resend_textureprojector_matrix()
 			GLUNIFORM1I(me->ptmbackCull[i],ptm->backCull);
 			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
-			GLUNIFORM1I(me->ptmdepthmap[i], projrep->idepthtexture);
+		//GLUNIFORM1I(me->ptmdepthmap[i], projrep->idepthtexture);
 			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 
 			int ntdesc = 0; //number of texture descriptors in this projector
@@ -268,6 +271,7 @@ void resend_textureprojector_matrix()
 			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
 			render_node(projrep->texture);
+			PRINT_GL_ERROR_IF_ANY("MIDDLE resend_textureprojector_matrix");
 
 			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height);
 			GLUNIFORM1I(me->ntdesc[i],ntdesc);
@@ -289,12 +293,24 @@ void resend_textureprojector_matrix()
 				GLUNIFORM1I(me->sources[kdesc],sources[j]);
 				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
 			}
+			if (ptm->shadows) {
+				PRINT_GL_ERROR_IF_ANY("before shadow resend_textureprojector_matrix");
+
+				render_node(projrep->depthTexture);
+				texture = projrep->idepthtexture;
+				int ksamp = share_or_next_material_sampler_index(texture);
+				glUniform1i(me->textureUnit[ksamp], texture);
+				PRINT_GL_ERROR_IF_ANY("after [ksamp], texture resend_textureprojector_matrix");
+
+				glUniform1i(me->ptmdepthmap[i], ksamp);
+				PRINT_GL_ERROR_IF_ANY("after shadow resend_textureprojector_matrix");
+			}
 			pcount++;
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
 	}
 	GLUNIFORM1I(me->ptmCount,pcount);
-
+	PRINT_GL_ERROR_IF_ANY("END resend_textureprojector_matrix");
 }
 void compile_shadowMap(struct X3D_Node* node); // Component_Lighting
 void render_shadowMap(struct X3D_Node* node);
@@ -344,9 +360,10 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 
 	if(node->on) {
 		double tempmat[16];
-		GLDOUBLE TenLinearGexMatCam0[16];
+		//GLDOUBLE TenLinearGexMatCam0[16];
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
+		struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
 
 		if(node->global) tg->Component_TextureProjector.globalProjector = TRUE;
 
@@ -380,7 +397,7 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 		matmultiplyFULL(tempmat,ProjMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
+		matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
 	
 	
 		if(node->texture)
@@ -406,10 +423,10 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 		{
 			GLuint texture;
 			usehit ptuple;
-			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
+
 			ptuple.node = X3D_NODE(node);
-			memcpy(ptuple.mvm, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			projrep->idepthtexture = -1; 
+			memcpy(ptuple.mvm, modelview,16*sizeof (GLDOUBLE));
+			ptuple.userdata = projrep->matmodelviewproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
@@ -506,6 +523,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		GLDOUBLE TenLinearGexMatCam0[16];
 		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
 		struct X3D_Node *tmpN = NULL;
+		struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
 
 		if(node->global) tg->Component_TextureProjector.globalProjector = TRUE;
 
@@ -537,7 +555,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		matmultiplyFULL(tempmat,orthoMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		matmultiplyFULL(TenLinearGexMatCam0,eye2projector,tempmat);
+		matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
 	
 		{
 			float aspectRatio, denom, *fov;
@@ -559,12 +577,11 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->texture,tmpN);
 		}
 		{
-			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
 			GLuint texture;
 			usehit ptuple;
 			ptuple.node = X3D_NODE(node);
-			memcpy(ptuple.mvm, TenLinearGexMatCam0,16*sizeof (GLDOUBLE));
-			projrep->idepthtexture = -1;
+			memcpy(ptuple.mvm,modelview ,16*sizeof (GLDOUBLE));
+			ptuple.userdata = projrep->matmodelviewproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;

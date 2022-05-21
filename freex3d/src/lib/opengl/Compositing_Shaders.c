@@ -1333,6 +1333,14 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 					float dotval = dot(nvec,peye); \n\
 					facingProjector = (dotval < 0.0); \n\
 				} \n\
+                if(facingProjector){ \n\
+                  if(ptmshadows[i] > 0){ \n\
+                    float depthValue = texture2D(textureUnit[ptmdepthmap[i]],pptex.xy).r; \n\
+					//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
+                    //frag_color = vec4(vec3(depthValue),1.0); \n\
+                    facingProjector = pptex.z < depthValue; \n\
+                  } \n\
+                } \n\
 				if(facingProjector){ \n\
 					//parallel/ortho \n\
 					vec2 ptex = pptex.xy; \n\
