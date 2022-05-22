@@ -5172,11 +5172,11 @@ struct X3D_DirectionalLight {
 	struct X3D_Node *metadata;
 	int global;
 	int on;
+	int shadows;
+	float shadowIntensity;
 	float ambientIntensity;
 	float intensity;
 	struct SFColor color;
-	int shadows;
-	float shadowIntensity;
 	struct SFVec3f direction;
 };
 extern struct X3D_Virt virt_DirectionalLight;
@@ -5455,11 +5455,11 @@ struct X3D_EnvironmentLight {
 	struct X3D_Node *metadata;
 	int global;
 	int on;
+	int shadows;
+	float shadowIntensity;
 	float ambientIntensity;
 	float intensity;
 	struct SFColor color;
-	int shadows;
-	float shadowIntensity;
 	struct SFRotation rotation;
 	struct X3D_Node *diffuse;
 	struct Multi_Float diffuseCoefficients;
@@ -10622,11 +10622,11 @@ struct X3D_PointLight {
 	struct X3D_Node *metadata;
 	int global;
 	int on;
+	int shadows;
+	float shadowIntensity;
 	float ambientIntensity;
 	float intensity;
 	struct SFColor color;
-	int shadows;
-	float shadowIntensity;
 	struct SFVec3f attenuation;
 	struct SFVec3f location;
 	float radius;
@@ -12111,11 +12111,11 @@ struct X3D_SpotLight {
 	struct X3D_Node *metadata;
 	int global;
 	int on;
+	int shadows;
+	float shadowIntensity;
 	float ambientIntensity;
 	float intensity;
 	struct SFColor color;
-	int shadows;
-	float shadowIntensity;
 	struct SFVec3f attenuation;
 	struct SFVec3f location;
 	float radius;
@@ -12541,18 +12541,18 @@ struct X3D_TextureProjector {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
+	int global;
+	int on;
+	int shadows;
+	float shadowIntensity;
 	struct Uni_String *description;
 	struct SFVec3f location;
 	struct SFVec3f direction;
 	float aspectRatio;
 	float nearDistance;
 	float farDistance;
-	int global;
-	int on;
 	struct X3D_Node *texture;
 	int backCull;
-	int shadows;
-	float shadowIntensity;
 	struct SFVec4f _dir;
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;
@@ -12578,18 +12578,18 @@ struct X3D_TextureProjectorParallel {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
+	int global;
+	int on;
+	int shadows;
+	float shadowIntensity;
 	struct Uni_String *description;
 	struct SFVec3f location;
 	struct SFVec3f direction;
 	float aspectRatio;
 	float nearDistance;
 	float farDistance;
-	int global;
-	int on;
 	struct X3D_Node *texture;
 	int backCull;
-	int shadows;
-	float shadowIntensity;
 	struct SFVec4f _dir;
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;
