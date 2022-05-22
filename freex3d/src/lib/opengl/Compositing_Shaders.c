@@ -689,6 +689,18 @@ uniform int u_pointMethod; \n\
 uniform float u_pointFogCoord; \n\
 uniform vec4 u_pointCPV; \n\
 #endif //POINTP \n\
+#ifdef LITE //&& SHADOW \n\
+//similar to PROJTEX, could be generalized \n\
+uniform mat4 lightMat[8]; //could be in LightSourceParameters\n\
+varying vec4 lightCoord[8]; \n\
+varying vec4 lightNorm[8]; \n\
+void generateLightCoord(void) { \n\
+	for(int i=0;i<lightcount;i++){ \n\
+		lightCoord[i] = lightMat[i] * castle_vertex_eye; \n\
+		lightNorm[i] = lightMat[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+	} \n\
+} \n\
+#endif //LITE \n\
 #ifdef PROJTEX \n\
 uniform mat4 ptmGenMatCam[8]; \n\
 uniform int ptmCount; \n\
@@ -798,6 +810,9 @@ void main(void) \n\
   #ifdef PROJTEX \n\
 	vertProjCalTexCoord(); \n\
   #endif //PROJETEX \n\
+  #ifdef LITE \n\
+    generateLightCoord(); \n\
+  #endif //LITE \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
@@ -1291,6 +1306,9 @@ uniform fw_MaterialParameters fw_BackMaterial; \n\
 //#else //LITE \n\
 //per-vertex lighting - interpolated Emissive-specular \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
+//for shadows, shape frag coord transformed into light system by vertex shader \n\
+varying vec4 lightCoord[8]; \n\
+varying vec4 lightNorm[8]; \n\
 //#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
@@ -3180,6 +3198,42 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
+float ShadowCalculation(int ilight, vec3 lightdir) \n\
+{ \n\
+    vec4 fragPosLightSpace = lightCoord[ilight]; \n\
+	// perform perspective divide \n\
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
+	// transform to [0,1] range \n\
+	projCoords = projCoords * 0.5 + 0.5; \n\
+	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
+	float closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
+	// get depth of current fragment from light's perspective \n\
+	float currentDepth = projCoords.z; \n\
+	// calculate bias (based on depth map resolution and slope) \n\
+	vec3 normal = normalize(lightNorm[ilight]-lightCoord[ilight]); \n\
+	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
+    vec3 lightDir = normalize(lightdir); \n\
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+	// check whether current frag pos is in shadow \n\
+	// float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+	// PCF \n\
+	float shadow = 0.0; \n\
+	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
+	for (int x = -1; x <= 1; ++x) \n\
+	{ \n\
+		for (int y = -1; y <= 1; ++y) \n\
+		{ \n\
+			float pcfDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy + vec2(x, y) * texelSize).r; \n\
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0; \n\
+		} \n\
+	} \n\
+	shadow /= 9.0; \n\
+	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
+	if (projCoords.z > 1.0) \n\
+		shadow = 0.0; \n\
+	return shadow; \n\
+} \n\
+\n\
 void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
 		in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular){ \n\
 	//working in eye space: eye is at 0,0,0 looking generally in direction 0,0,-1 \n\
@@ -3258,8 +3312,18 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 				} \n\
 			} \n\
 		} \n\
-		sum_vertex   += on * attenuation * spot * light.color * (ambient + diffuse); \n\
-		sum_specular += on * attenuation * spot * light.color * (specular); \n\
+		shadowtest = 1.0; \n\
+		if (light.shadows) { \n\
+			if (myLightType > 0) { \n\
+				//spot, directional, uses 2D shadow texture \n\
+				shadowtest = 1.0 - ShadowCalculation(i,VP); \n\
+			} \n\
+			else { \n\
+				//point, uses cubemap shadow texture \n\
+			} \n\
+		} \n\
+		sum_vertex   += on * shadowtest * attenuation * spot * light.color * (ambient + diffuse); \n\
+		sum_specular += on * shadowtest * attenuation * spot * light.color * (specular); \n\
 	} \n\
 	vertexcolor = clamp(sum_vertex + vertexcolor, 0.0, 1.0); \n\
 	specularcolor = clamp(sum_specular + specularcolor, 0.0, 1.0); \n\

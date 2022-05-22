@@ -416,6 +416,7 @@ typedef struct s_shader_capabilities{
 	GLint lightshadows[MAX_LIGHTS];
 	GLint lightshadowIntensity[MAX_LIGHTS];
 	GLint lightdepthmap[MAX_LIGHTS];
+	GLint lightMat[MAX_LIGHTS];
 
 	GLint ModelViewMatrix;
 	GLint ProjectionMatrix;

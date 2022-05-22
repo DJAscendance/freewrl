@@ -3037,12 +3037,21 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 
 		}
 #endif // USING_SHADER_LIGHT_ARRAY_METHOD
+		//could /should these 2 be in struct LightSource {} now?
+		// or should we generalize TextureProjector::Light and Light first / together?
 		strcpy(uniformName,"lightType[0]");
 		for (i = 0; i < MAX_LIGHTS; i++) {
 			/* go through and modify the array for each variable */
 			uniformName[10] = '0' + i;
 			me->lightType[i] = GET_UNIFORM(myProg, uniformName);
 		}
+		strcpy(uniformName, "lightMat[0]"); //needed for shadows
+		for (i = 0; i < MAX_LIGHTS; i++) {
+			/* go through and modify the array for each variable */
+			uniformName[9] = '0' + i;
+			me->lightMat[i] = GET_UNIFORM(myProg, uniformName);
+		}
+
 	}
 
 	//if (me->haveLightInShader) ConsoleMessage ("this shader HAS lightfields");
