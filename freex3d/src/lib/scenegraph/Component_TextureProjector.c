@@ -121,7 +121,9 @@ struct X3D_ProjectorRep {
 	//projector section
 	struct X3D_Node* texture;
 	int itexture;
-	double matmodelviewproj[16];
+	double matproj[16];
+	double matview[16];
+	//double matmodelviewproj[16];
 };
 
 void* set_ProjectorRep(void* _projectorrep)
@@ -243,7 +245,10 @@ void resend_textureprojector_matrix()
 		GLint texture;
 		if(me->ptmGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(usehit, p->projector_stack, i);
-			double2float(TenLinearGexMatCam0f, ptuple->userdata,16);
+			double matfull[16];
+			matmultiplyFULL(matfull, ptuple->mvm, ptuple->proj);
+			double2float(TenLinearGexMatCam0f, matfull,16);
+			//double2float(TenLinearGexMatCam0f, ptuple->userdata, 16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
 			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
 			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
@@ -296,12 +301,15 @@ void resend_textureprojector_matrix()
 			if (ptm->shadows) {
 				PRINT_GL_ERROR_IF_ANY("before shadow resend_textureprojector_matrix");
 
-				render_node(projrep->depthTexture);
-				texture = projrep->idepthtexture;
-				int ksamp = share_or_next_material_sampler_index(texture);
-				glUniform1i(me->textureUnit[ksamp], texture);
-				PRINT_GL_ERROR_IF_ANY("after [ksamp], texture resend_textureprojector_matrix");
+				//render_node(projrep->depthTexture);
 
+				texture = projrep->idepthtexture;
+				int ksamp = share_or_next_material_sampler_index(texture); //does bind and activetexture
+				int itextureunit = tunit(ksamp);
+				//glActiveTexture(GL_TEXTURE1);
+				//glBindTexture(GL_TEXTURE_2D, texture);
+				glUniform1i(me->textureUnit[ksamp], itextureunit);
+				PRINT_GL_ERROR_IF_ANY("after [ksamp], texture resend_textureprojector_matrix");
 				glUniform1i(me->ptmdepthmap[i], ksamp);
 				PRINT_GL_ERROR_IF_ANY("after shadow resend_textureprojector_matrix");
 			}
@@ -380,7 +388,7 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			vecdifd(eye,loc,dir);
 			projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
 		}
-
+		matcopy(projrep->matview, ViewMat);
 		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
 		matinverse(modelviewinv,modelview);
 		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
@@ -391,14 +399,16 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			(GLDOUBLE)node->aspectRatio, // aspectRatio = width/height see below, gets from image
 			(GLDOUBLE)node->nearDistance,(GLDOUBLE)node->farDistance, // near, far
 			ProjMat);
+		matcopy(projrep->matproj, ProjMat);
 
-		matidentity4d(tempmat);
+		//matidentity4d(tempmat);
 //		matmultiplyFULL(tempmat,bias,tempmat);
-		matmultiplyFULL(tempmat,ProjMat,tempmat);
+		//matmultiplyFULL(tempmat,ProjMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
-	
+		//matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
+		//matmultiplyFULL(projrep->matmodelviewproj, eye2projector, ProjMat);
+
 	
 		if(node->texture)
 		{
@@ -425,8 +435,9 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			usehit ptuple;
 
 			ptuple.node = X3D_NODE(node);
-			memcpy(ptuple.mvm, modelview,16*sizeof (GLDOUBLE));
-			ptuple.userdata = projrep->matmodelviewproj;
+			matcopy(ptuple.mvm, eye2projector);
+			//ptuple.userdata = projrep->matproj;
+			matcopy(ptuple.proj, projrep->matproj);
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
@@ -539,7 +550,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			vecdifd(eye,loc,dir);
 			projLookAt(eye[0],eye[1],eye[2], loc[0],loc[1],loc[2], up[0],up[1],up[2],ViewMat);
 		}
-
+		matcopy(projrep->matview, ViewMat);
 		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
 		matinverse(modelviewinv,modelview);
 		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
@@ -549,13 +560,13 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
 		mesa_Ortho((GLDOUBLE)node->fieldOfView.p[0],(GLDOUBLE)node->fieldOfView.p[2],(GLDOUBLE)node->fieldOfView.p[1],(GLDOUBLE)node->fieldOfView.p[3],
 			(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance,orthoMat);
-
-		matidentity4d(tempmat);
+		matcopy(projrep->matproj, orthoMat);
+		//matidentity4d(tempmat);
 //		matmultiplyFULL(tempmat,bias,tempmat); //in shader now
-		matmultiplyFULL(tempmat,orthoMat,tempmat);
+		//matmultiplyFULL(tempmat,orthoMat,tempmat);
 
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
-		matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
+		//matmultiplyFULL(projrep->matmodelviewproj,eye2projector,orthoMat);
 	
 		{
 			float aspectRatio, denom, *fov;
@@ -580,8 +591,9 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			GLuint texture;
 			usehit ptuple;
 			ptuple.node = X3D_NODE(node);
-			memcpy(ptuple.mvm,modelview ,16*sizeof (GLDOUBLE));
-			ptuple.userdata = projrep->matmodelviewproj;
+			matcopy(ptuple.mvm, eye2projector);
+			matcopy(ptuple.proj, projrep->matproj);
+			//ptuple.userdata = projrep->matproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;

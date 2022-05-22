@@ -1895,6 +1895,7 @@ void main(void) \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
 	gl_FragColor = fragment_color; \n\
+    //gl_FragColor = vec4(vec3(gl_FragCoord.z),1.0); //depth rendering test \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
 } \n";
@@ -4726,6 +4727,7 @@ char* fragDepth = "#version 330 core \n\
 void main() \n\
 { \n\
 	gl_FragDepth = gl_FragCoord.z; \n\
+    //gl_FragColor = vec4(vec3(gl_FragCoord.z),1.0); \n\
 }  ";
 int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
 	*vertexSource = strdup(vertexDepth);

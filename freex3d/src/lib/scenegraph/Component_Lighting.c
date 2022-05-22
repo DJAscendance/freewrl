@@ -478,8 +478,10 @@ void compile_shadowMap(struct X3D_Node* node) {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, isize, isize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
 			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
@@ -975,8 +977,11 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//we won't directly generate cubemap textures here, but looks interesting as possible 
 		//  shotcut to skip readpixels below
-		// glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
-		// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
+		if (1) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
+			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
+		}
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
 
 		//glClearColor(1.0f, 0.0f, 0.0f, 1.0f); //red, for diagnostics during debugging
@@ -987,7 +992,7 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//set viewpoint matrix for side
 		//setup_projection(); 
-		{
+		if(0) {
 			FW_GL_MATRIX_MODE(GL_PROJECTION);
 			FW_GL_LOAD_IDENTITY();
 			//fw_gluPerspective(90.0, 1.0, .1,10000.0);
@@ -1001,6 +1006,10 @@ void generate_shadowmap_2D(usehit uhit) {
 			fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
 			fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
 			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
+		}
+		else {
+			fw_glSetDoublev(GL_PROJECTION_MATRIX, uhit.proj);
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 		}
 		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
@@ -1031,43 +1040,45 @@ void generate_shadowmap_2D(usehit uhit) {
 		///*  5. Blended Nodes*/
 		//if (tg->RenderFuncs.have_transparency) {
 		//	/*  render the blended nodes*/
-		//	render_hier(rootNode(), VF_Geom | VF_Blend | VF_Cube);
+		//render_hier(rootNode(), VF_Geom | VF_Blend | VF_Depth);
 		//	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
 		//}
 
 		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
 		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-		pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-		bytesPerPixel = sizeof(float); // 4;
-		if (!ttip->texdata || ttip->x != isize) {
-			FREE_IF_NZ(ttip->texdata);
-			ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
-		}
-
-		/* grab the data */
-		//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-		//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-
-		//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-		FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
-
-		ttip->x = isize;
-		ttip->y = isize;
-		ttip->z = 1;
-		ttip->hasAlpha = 0; // 1;
-		ttip->channels = 0; // 4;
-		ttip->idepthbuffer = 1;
-		ttip->status = TEX_NEEDSBINDING;
 		if (0) {
-			//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
-			//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
-			static int iframe = 0;
-			iframe++;
-			if (iframe == 50) {
-				char namebuf[100];
-				sprintf(namebuf, "%s%d.web3dit", "cubemapface_", j);
-				saveImage_web3dit(ttip, namebuf);
+			pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
+			bytesPerPixel = sizeof(float); // 4;
+			if (!ttip->texdata || ttip->x != isize) {
+				FREE_IF_NZ(ttip->texdata);
+				ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
+			}
+
+			/* grab the data */
+			//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+			//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+
+			//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
+			FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
+			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
+
+			ttip->x = isize;
+			ttip->y = isize;
+			ttip->z = 1;
+			ttip->hasAlpha = 0; // 1;
+			ttip->channels = 1; // 4;
+			ttip->idepthbuffer = 1;
+			ttip->status = TEX_NEEDSBINDING;
+			if (1) {
+				//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
+				//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
+				static int iframe = 0;
+				iframe++;
+				if (iframe == 50) {
+					char namebuf[100];
+					sprintf(namebuf, "%s%d.web3dit", "depth_", j);
+					saveImage_web3dit(ttip, namebuf);
+				}
 			}
 		}
 	}
