@@ -3169,14 +3169,18 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 		vec3 shade = getPointShade(-VP, mat, -N, -E); \n\
 		if (myLightType==1) { \n\
 			// SpotLight  \n\
-			spot = 0.0; //spec multiplier \n\
-			float rayAngle = acos(dot (-L,light.direction)); \n\
-			// check against spotCutoff \n\
-			if (rayAngle < light.spotCutoff) { \n\
-				if(rayAngle <= light.spotBeamWidth) { \n\
+			spot = 0.0; \n\
+            float cosCut = cos(light.spotCutoff); \n\
+            float cosBeam  = cos(light.spotBeamWidth); \n\
+			float rayAngle = dot(normalize(-L),normalize(light.direction)); \n\
+			// check against spotCosCutoff \n\
+			if (rayAngle > cosCut) { \n\
+				if(rayAngle > cosBeam) { \n\
 					spot = 1.0; \n\
 				} else { \n\
-					spot = (rayAngle - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
+                    //spot = (rayAngle - cosCut)/(cosBeam - cosCut); \n\
+                    float rayradians = acos(rayAngle); \n\
+					spot = (light.spotCutoff - rayradians)/(light.spotCutoff - light.spotBeamWidth); \n\
 				} \n\
 			} \n\
 		} \n\
@@ -3308,13 +3312,17 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 		if (myLightType==1) { \n\
 			// SpotLight  \n\
 			spot = 0.0; \n\
-			float rayAngle = acos(dot (-L,light.direction)); \n\
+            float cosCut = cos(light.spotCutoff); \n\
+            float cosBeam  = cos(light.spotBeamWidth); \n\
+			float rayAngle = dot(normalize(-L),normalize(light.direction)); \n\
 			// check against spotCosCutoff \n\
-			if (rayAngle < light.spotCutoff) { \n\
-				if(rayAngle <= light.spotBeamWidth) { \n\
+			if (rayAngle > cosCut) { \n\
+				if(rayAngle > cosBeam) { \n\
 					spot = 1.0; \n\
 				} else { \n\
-					spot = (rayAngle - light.spotCutoff)/(light.spotBeamWidth - light.spotCutoff); \n\
+                    //spot = (rayAngle - cosCut)/(cosBeam - cosCut); \n\
+                    float rayradians = acos(rayAngle); \n\
+					spot = (light.spotCutoff - rayradians)/(light.spotCutoff - light.spotBeamWidth); \n\
 				} \n\
 			} \n\
 		} \n\
