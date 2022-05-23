@@ -370,15 +370,15 @@ void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffe
 void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_DirectionalLight:
-			if (new_lightway) sib_prep_Light(parent, sibAffector);
+			if (new_lightway()) sib_prep_Light(parent, sibAffector);
 			else sib_prep_DirectionalLight(parent,sibAffector); 
 			break;
 		case NODE_SpotLight:
-			if (new_lightway) sib_prep_Light(parent, sibAffector);
+			if (new_lightway()) sib_prep_Light(parent, sibAffector);
 			else sib_prep_SpotlLight(parent,sibAffector); 
 			break;
 		case NODE_PointLight:
-			if (new_lightway) sib_prep_Light(parent, sibAffector);
+			if (new_lightway()) sib_prep_Light(parent, sibAffector);
 			else sib_prep_PointLight(parent,sibAffector); 
 			break;
 		case NODE_LocalFog:
@@ -408,15 +408,15 @@ void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffec
 void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_DirectionalLight:
-			if (new_lightway) sib_fin_Light(parent, sibAffector);
+			if (new_lightway()) sib_fin_Light(parent, sibAffector);
 			else sib_fin_DirectionalLight(parent,sibAffector); 
 			break;
 		case NODE_SpotLight:
-			if (new_lightway) sib_fin_Light(parent, sibAffector);
+			if (new_lightway()) sib_fin_Light(parent, sibAffector);
 			else sib_fin_SpotlLight(parent,sibAffector); 
 			break;
 		case NODE_PointLight:
-			if (new_lightway) sib_fin_Light(parent, sibAffector);
+			if (new_lightway()) sib_fin_Light(parent, sibAffector);
 			else sib_fin_PointLight(parent,sibAffector); 
 			break;
 		case NODE_LocalFog:

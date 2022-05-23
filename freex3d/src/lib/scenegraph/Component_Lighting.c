@@ -84,7 +84,7 @@ void lightTable_pop();
 int lightTable_count();
 usehit* lightTable_item(int i);
 int new_lightway();
-static int lightway = 1; //0 pre-May 22, 2022 1 post-May 22, 2022
+static int lightway = 0; //0 pre-May 22, 2022 1 post-May 22, 2022
 int new_lightway() {
 	return lightway;
 }
