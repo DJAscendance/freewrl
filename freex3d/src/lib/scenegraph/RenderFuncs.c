@@ -716,7 +716,7 @@ void fwglLighti(int light, int pname, GLint param) {
 		- cuts from 3% of loop to .5%
 
 */
-void sendLightInfo (s_shader_capabilities_t *me) {
+void sendLightInfo0 (s_shader_capabilities_t *me) {
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
     int i,j, lightcount, lightsChanged;
 	int lightIndexesToSend[MAX_LIGHTS];
@@ -814,7 +814,12 @@ void sendLightInfo (s_shader_capabilities_t *me) {
 	profile_end("sendlight");
     PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
 }
-
+int new_lightway();
+void sendLightInfo2(s_shader_capabilities_t* me);
+void sendLightInfo(s_shader_capabilities_t* me) {
+	if (new_lightway()) sendLightInfo2(me);
+	else sendLightInfo0(me);
+}
 /* finished rendering thisshape. */
 void finishedWithGlobalShader(void) {
     //printf ("finishedWithGlobalShader\n");
@@ -2201,6 +2206,7 @@ void rwhat_printf(int rwhat){
 	}
 
 }
+void render_headlight();
 void clear_vp_reachable_flags();
 void render_hier(struct X3D_Node *g, int rwhat) {
 	/// not needed now - see below struct point_XYZ upvec = {0,1,0};
@@ -2265,7 +2271,11 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	printf("Render_hier node=%d what=%d\n", g, rwhat);
 #endif
 
-
+	if (rs->render_light) {
+		if (new_lightway()) {
+			render_headlight();
+		}
+	}
 	if (rs->render_sensitive) {
 		upd_ray();
 	}

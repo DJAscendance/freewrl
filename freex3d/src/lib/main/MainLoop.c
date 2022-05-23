@@ -5290,18 +5290,20 @@ void handle(const int mev, const unsigned int button, const float x, const float
 /* get setup for rendering. */
 
 void SSR_test_cumulative_pose();
+int new_lightway();
 static void render_pre() {
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-        /* 1. Set up projection */
-        // Nov 2015 moved render(): setup_projection(); //FALSE,0,0);
+	/* 1. Set up projection */
+	// Nov 2015 moved render(): setup_projection(); //FALSE,0,0);
 
 
-        /* 2. Headlight, initialized here where we have the modelview matrix to Identity.
-        FIXME: position of light sould actually be offset a little (towards the center)
-        when in stereo mode. */
-
-        if (fwl_get_headlight()) {
+	/* 2. Headlight, initialized here where we have the modelview matrix to Identity.
+	FIXME: position of light sould actually be offset a little (towards the center)
+	when in stereo mode. */
+	
+	if(!new_lightway())
+	if (fwl_get_headlight()) {
 		setLightState(HEADLIGHT_LIGHT,TRUE);
 		setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
 	}
@@ -5737,6 +5739,8 @@ void get_depth_slice(int islice, double *znear, double *zfar);
 void fw_depth_slice_push(double nearplane, double farplane);
 void fw_depth_slice_pop();
 void clear_renderstate();
+void lightTable_clear();
+
 static void render()
 {
 	//warning you must also maintain generate_GeneratedCubeMapTextures() which is a hacked clone of this function
@@ -5799,7 +5803,10 @@ static void render()
 		else
 			BackEndClearBuffer(2);
 		//BackEndLightsOff();
-		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+		if (new_lightway())
+			lightTable_clear();
+		else
+			clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 		projectorTable_clear();
 
 		clear_renderstate(); //setup_picking does a VF_Sensitive pass. render_background skips render_hier init of renderstate, so clear hear.
@@ -5812,11 +5819,12 @@ static void render()
 			fw_depth_slice_push(znear,zfar);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			/*  turn light #0 off only if it is not a headlight.*/
-			if (!fwl_get_headlight()) {
-				setLightState(HEADLIGHT_LIGHT,FALSE);
-				setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
+			if(!new_lightway()) {
+				if (!fwl_get_headlight()) {
+					setLightState(HEADLIGHT_LIGHT, FALSE);
+					setLightType(HEADLIGHT_LIGHT, 2); // DirectionalLight
+				}
 			}
-
 			/*  Other lights*/
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 			push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
