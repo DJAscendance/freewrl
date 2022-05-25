@@ -78,6 +78,8 @@ void Component_Lighting_clear(struct tComponent_Lighting* t) {
 }
 
 //ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+void get_view_matrix(double* savePosOri, double* saveView);
+void set_debug_quad_near_farplane(float nearplane, float farplane);
 void lightTable_clear();
 void lightTable_push(usehit tuple);
 void lightTable_pop();
@@ -393,6 +395,10 @@ void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 	GLDOUBLE centerx, GLDOUBLE centery, GLDOUBLE centerz,
 	GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE* matrix);
 double *matrix_lookAtd(double* eye3, double* center3, double* up3, double* matrix) {
+	//gluLookAt convention:
+	// eye - the viewpoint
+	// center - any point along the ray to the scene, typically a point on the geometry in the scene to look at
+	// up - which way is up in the viewing volume
 	projLookAt(eye3[0], eye3[1], eye3[2], center3[0], center3[1], center3[2], up3[0], up3[1], up3[2], matrix);
 	return matrix;
 }
@@ -431,14 +437,17 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
 		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		//perspective_projection_matrix(node->cutOffAngle*2.0, 1.0, .1, 10000.0, lightrep->matproj);
-		projPerspective(node->cutOffAngle * 360.0 / PI * 2.0, 1.0, .1, 10000.0, lightrep->matproj);
+		projPerspective(node->cutOffAngle * (180.0 / PI) * 2.0, 1.0, 1.0, 15.0, lightrep->matproj);
+		set_debug_quad_near_farplane(1.0f, 15.0f);
+
 		//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		//for up vector in theory we need a few cross products to ensure its at least orthogonal to direction
 		//- up is somewhat arbitrary -spotlight is symmetrical about direction vector-
 		//  but must be consistent between depth texture rendering and shader sampling
-		float up[3];
+		float up[3], center[3];
 		vecset3f(up, 0.0f, 1.0f, 0.0f); 
-		matrix_lookAtfd(node->direction.c, node->location.c, up, lightrep->matview);
+		vecadd3f(center, node->location.c, node->direction.c);
+		matrix_lookAtfd(node->location.c, center, up, lightrep->matview);
 	}
 
     MARK_NODE_COMPILED;
@@ -466,6 +475,19 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 				//matinverseAFFINE(mvmInverse, uhit.mvm);
 				//matmultiplyFULL(uhit.mvm, viewmatrix, mvmInverse);
 				//vector_pushBack(usehit, p->genshadow_stack, uhit);  //fat elements do another deep copy
+				//strip current viewpoint view matrix so we have light2world
+				if (0) {
+					double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
+					get_view_matrix(savePosOri, saveView);
+					matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
+					//matinverseAFFINE(bothinverse,viewmatrix);
+					matinverseAFFINE(mvmInverse, uhit.mvm);
+
+					//matmultiplyAFFINE(worldmatrix,bothinverse,modelviewMatrix);
+					//matmultiplyAFFINE(worldmatrix,modelviewMatrix,bothinverse);
+
+					matmultiplyAFFINE(uhit.mvm, viewmatrix, mvmInverse); // = world2light[16]
+				}
 				shadowTable_push(uhit);
 				render_shadowMap(X3D_NODE(node));
 			}
@@ -630,7 +652,7 @@ void popnset_framebuffer();
 int haveFrameBufferObject();
 
 
-void get_view_matrix(double* savePosOri, double* saveView);
+
 void freeASCIIString(struct Uni_String* us);
 
 
@@ -1176,7 +1198,7 @@ void render_debug_quad() {
 	shader_requirements.debug = debug_quad.which_debug_shader;
 	scap = getMyShaders(shader_requirements);
 	enableGlobalShader(scap);
-	if (debug_quad.which_debug_shader == 2) {
+	if (debug_quad.which_debug_shader == 3) {
 		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
 		glUniform1f(ia,debug_quad.near_plane);
 		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
@@ -1263,41 +1285,18 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//set viewpoint matrix for side
 		//setup_projection(); 
-		if (1) {
-			FW_GL_MATRIX_MODE(GL_PROJECTION);
-			FW_GL_LOAD_IDENTITY();
-			//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-			fw_gluPerspective_2(0.0, 90.0, 1.0, 3.0, 15.0); // .1, 1000.0);
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
+		{
+			double world2light[16], world2lightview[16];
+			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
+			get_view_matrix(savePosOri, saveView);
+			matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
+			matinverseAFFINE(mvmInverse, uhit.mvm);
 
-			FW_GL_MATRIX_MODE(GL_MODELVIEW);
-			FW_GL_LOAD_IDENTITY();
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
+			matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
+			matmultiplyAFFINE(world2lightview, lightrep->matview, world2light);
 
-			//fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
-
-			fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
-			//fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
-		}
-		else {
-			if (0) {
-				//copy view and proj from learning_ogl/shadows program which works
-				double lightview[] = { -0.447214, 0.78072, -0.436436, 0, 0, 0.48795, 0.872872, 0, 0.894427, 0.39036, -0.218218, 0, -0, -2.98023e-08, -4.58258, 1 };
-				double lightproj[] = { 0.1, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, -0.307692, 0, -0, -0, -1.30769, 1 };
-				fw_glSetDoublev(GL_PROJECTION_MATRIX, lightproj);
-				fw_glSetDoublev(GL_MODELVIEW_MATRIX, lightview);
-
-			}
-			else {
-				//struct X3D_Node* node = uhit.node;
-				double viewmatrix[16], mvmInverse[16], world2light[16];
-				//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-				matinverseAFFINE(mvmInverse, uhit.mvm);
-				matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
-
-				fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
-				fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2light);
-			}
+			fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightview);
 		}
 		if (new_lightway())
 			lightTable_clear();
@@ -1337,7 +1336,7 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
 		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-		if (1) {
+		if (0) {
 			static int iframe = 0;
 			iframe++;
 			if (iframe == 50) {
@@ -1409,7 +1408,7 @@ void generate_shadowmap_2D(usehit uhit) {
 	}
 	popnset_viewport();
 	popnset_framebuffer();
-	set_debug_quad(2, lightrep->idepthtexture);
+	if(0) set_debug_quad(3, lightrep->idepthtexture);
 	//compile_generatedcubemaptexture // convert to opengl
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
@@ -1529,13 +1528,66 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			//process the uhit->mvm matrix for shadows
 			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, lightrep->idepthtexture);
 			GLUNIFORM1I(me->lightdepthmap[j], itexunit);
-			double viewmatrix[16], mvmInverse[16], world2light[16], world2lightfrustum[16];
+			//double viewmatrix[16], mvmInverse[16], world2light[16], world2lightfrustum[16];
+			//float w2l[16];
+			////struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			//matinverseAFFINE(mvmInverse, uhit->mvm);
+			//matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
+			//matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2light);
+			//double2float(w2l, world2lightfrustum, 16);
+			//same as generate_shadowMap_2D >>>
 			float w2l[16];
-			//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-			matinverseAFFINE(mvmInverse, uhit->mvm);
-			matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
-			matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2light);
-			double2float(w2l, world2lightfrustum, 16);
+			if (0) {
+				double world2light[16], world2lightview[16], world2lightfrustum[16];
+				double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
+				get_view_matrix(savePosOri, saveView);
+				matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
+				matinverseAFFINE(mvmInverse, uhit->mvm);
+
+				matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
+				matmultiplyAFFINE(world2lightview, lightrep->matview, world2light);
+				//same as generate_shadowMap_2D <<<
+				matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2lightview);
+				double2float(w2l, world2lightfrustum, 16);
+			}
+			if (0) {
+				//shape2viewpoint x viewpoint2light x light2lightview
+				double shape2viewpoint[16], shape2light[16], viewpoint2light[16], shape2lightview[16], shape2lightfrustum[16];
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, shape2viewpoint);
+				matinverseAFFINE(viewpoint2light, uhit->mvm);
+				matmultiplyAFFINE(shape2light, viewpoint2light, shape2viewpoint);
+				matmultiplyAFFINE(shape2lightview, lightrep->matview, shape2light);
+				matmultiplyFULL(shape2lightfrustum, lightrep->matproj, shape2lightview);
+				double2float(w2l, shape2lightfrustum, 16);
+
+			}
+			if (0) {
+				//in vertex shader, coords are already transformed into viewpoint coords before multiplying with our lightMat
+				// lightfrustmCoord = vpCoords x viewpoint2light x light2lightview x lightview2lightfrustum 
+				double viewpoint2light[16], viewpoint2lightview[16], viewpoint2lightfrustum[16];
+				if (0) {
+					matinverseAFFINE(viewpoint2light, uhit->mvm);
+					matmultiplyAFFINE(viewpoint2lightview, lightrep->matview, viewpoint2light);
+				}
+				else {
+					double lightview2viewpoint[16];
+					matmultiplyAFFINE(lightview2viewpoint, uhit->mvm, lightrep->matview);
+					matinverseAFFINE(viewpoint2lightview, lightview2viewpoint);
+
+				}
+				matmultiplyFULL(viewpoint2lightfrustum, lightrep->matproj, viewpoint2lightview);
+				double2float(w2l, viewpoint2lightfrustum, 16);
+
+			}
+			if (1) {
+				//following textureProjector
+				double modelviewinv[16], eye2projector[16], matfull[16];
+				matinverse(modelviewinv, uhit->mvm);
+				matmultiplyAFFINE(eye2projector, modelviewinv, lightrep->matview);
+				matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
+				double2float(w2l, matfull, 16);
+			}
+
 			GLUNIFORMMATRIX4FV(me->lightMat[j], 1, GL_FALSE, w2l);
 		}
 	}

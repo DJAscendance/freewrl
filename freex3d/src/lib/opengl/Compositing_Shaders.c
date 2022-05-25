@@ -588,9 +588,9 @@ varying vec4 castle_Color; //DA diffuse ambient term \n\
    material emissive color + material ambient color * global (light model) ambient. \n\
 */ \n\
 \n\
-#ifdef LITE \n\
 #define MAX_LIGHTS 8 \n\
 uniform int lightcount; \n\
+#ifdef LITE \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
@@ -691,7 +691,7 @@ uniform vec4 u_pointCPV; \n\
 #endif //POINTP \n\
 varying vec4 lightCoord[8]; \n\
 varying vec4 lightNorm[8]; \n\
-#ifdef LITE //&& SHADOW \n\
+//#ifdef LITE //&& SHADOW \n\
 //similar to PROJTEX, could be generalized \n\
 uniform mat4 lightMat[8]; //could be in LightSourceParameters\n\
 void generateLightCoord(void) { \n\
@@ -700,7 +700,7 @@ void generateLightCoord(void) { \n\
 		lightNorm[i] = lightMat[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
 	} \n\
 } \n\
-#endif //LITE \n\
+//#endif //LITE \n\
 #ifdef PROJTEX \n\
 uniform mat4 ptmGenMatCam[8]; \n\
 uniform int ptmCount; \n\
@@ -810,9 +810,9 @@ void main(void) \n\
   #ifdef PROJTEX \n\
 	vertProjCalTexCoord(); \n\
   #endif //PROJETEX \n\
-  #ifdef LITE \n\
+  #ifdef LIT \n\
     generateLightCoord(); \n\
-  #endif //LITE \n\
+  #endif //LIT \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
@@ -4816,6 +4816,8 @@ int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fra
 	*fragmentSource = strdup(fragDepth);
 	return TRUE;
 }
+
+//DEBUG quad rendering
 char* vertexQuad = "#version 330 core \n\
 layout(location = 0) in vec3 aPos; \n\
 layout(location = 1) in vec2 aTexCoords; \n\
