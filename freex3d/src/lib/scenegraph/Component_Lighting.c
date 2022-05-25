@@ -1118,7 +1118,78 @@ void generate_shadowmap_cube(usehit uhit) {
 	//compile_generatedcubemaptexture // convert to opengl
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
+// https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping  
+// shows rendering of shadow maps, and debug quad rendering
+// renderQuad() renders a 1x1 XY quad in NDC
+// -----------------------------------------
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad()
+{
+	if (quadVAO == 0)
+	{
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-.8f,  .8f, 0.0f, 0.0f, 1.0f,
+			-.8f, -.8f, 0.0f, 0.0f, 0.0f,
+			 .8f,  .8f, 0.0f, 1.0f, 1.0f,
+			 .8f, -.8f, 0.0f, 1.0f, 0.0f,
+		};
+		// setup plane VAO
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	}
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+static struct debug_quad {
+	int textureID; // opengl texture, -1 for no texture
+	int which_debug_shader; 
+	float near_plane, far_plane;
+} debug_quad = { -1,0,1.0f,15.0f};
+void set_debug_quad(int which_debug_shader, int textureID) {
+	// which_debug_shader - flag to indicate which quad shader 0=turn off debug quad 1-normal texture 2=ortho depth 3=perspective depth
+	// textureID - opengl texture number
+	debug_quad.textureID = textureID;
+	debug_quad.which_debug_shader = which_debug_shader;
+}
+void set_debug_quad_near_farplane(float nearplane, float farplane) {
+	debug_quad.near_plane = nearplane;
+	debug_quad.far_plane = farplane;
+}
+void render_debug_quad() {
+	//call this routinely at the end of main scene render() before swapBuffers
+	// if no debug_request just returns, else renders a quad over any rendered scene
+	int ia;
+	if (debug_quad.textureID < 0)return;
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+	shader_requirements.debug = debug_quad.which_debug_shader;
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	if (debug_quad.which_debug_shader == 2) {
+		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
+		glUniform1f(ia,debug_quad.near_plane);
+		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
+		glUniform1f(ia, debug_quad.far_plane);
+	}
+	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
+	glUniform1i(ia, 0);
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, debug_quad.textureID);
+	renderQuad();
+
+}
 void generate_shadowmap_2D(usehit uhit) {
 	//call from mainloop once per frame:
 	//foreach shadow depth texture location in genshadow list
@@ -1338,6 +1409,7 @@ void generate_shadowmap_2D(usehit uhit) {
 	}
 	popnset_viewport();
 	popnset_framebuffer();
+	set_debug_quad(2, lightrep->idepthtexture);
 	//compile_generatedcubemaptexture // convert to opengl
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }

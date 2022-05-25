@@ -5740,6 +5740,7 @@ void fw_depth_slice_push(double nearplane, double farplane);
 void fw_depth_slice_pop();
 void clear_renderstate();
 void lightTable_clear();
+void render_debug_quad();
 
 static void render()
 {
@@ -5888,6 +5889,7 @@ static void render()
 			}
 		}
 	}
+	render_debug_quad(); //renders any splat texture for debugging
 
 }
 

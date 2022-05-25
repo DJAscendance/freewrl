@@ -65,6 +65,7 @@ int effects;
 int usershaders; 
 int volume;
 int depth;
+int debug;
 } shaderflagsstruct;
 
 shaderflagsstruct getShaderFlags();
