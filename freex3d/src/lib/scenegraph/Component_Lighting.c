@@ -84,11 +84,12 @@ void lightTable_pop();
 int lightTable_count();
 usehit* lightTable_item(int i);
 int new_lightway();
-static int lightway = 0; //0 pre-May 22, 2022 1 post-May 22, 2022
+static int lightway = 1; //0 pre-May 22, 2022 1 post-May 22, 2022
 int new_lightway() {
 	return lightway;
 }
 
+//LIGHT TABLE
 void lightTable_clear() {
 	//called once per frame, before the search for global=true projectors
 	//will clear any global=true projectors from last frame
@@ -118,12 +119,48 @@ usehit *lightTable_item(int i) {
 	return vector_get_ptr(usehit,p->light_stack,i);
 }
 
+//SHADOW TABLE
+void shadowTable_clear() {
+	//called once per frame, before the search for global=true projectors
+	//will clear any global=true shadow lights from last frame
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	clearStack(p->genshadow_stack);
+}
+void shadowTable_push(usehit ptuple) {
+	//called when we find a global=true, on=true shadow light, and
+	//called in sib_prep for a global=false, on=false shadow light
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	//we need a deep copy because the light node can't hold it
+	// because it can be DEF/USED with different transform each use
+	stack_push(usehit, p->genshadow_stack, ptuple);
+
+}
+void shadowTable_pop() {
+	//called in sib_fin for a global=false, on=true shadow light
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	if (p->genshadow_stack->n < 1)
+		printf("ouch from shadowTable_pop()\n");
+	stack_pop(usehit, p->genshadow_stack);
+
+}
+int shadowTable_count() {
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	return p->genshadow_stack->n;
+}
+usehit* shadowTable_item(int i) {
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	return vector_get_ptr(usehit, p->genshadow_stack, i);
+}
+
 // a specialization of InternalRep - see PolyRep.h
 struct X3D_LightRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
+	//depth section
 	struct X3D_Node* depthTexture;
 	int size;
 	int idepthtexture;
+	double matproj[16];
+	double matview[16];
 };
 
 void* set_LightRep(void* _lightrep)
@@ -166,6 +203,9 @@ enum {
 	LIGHT_AMBIENT = 5,
 };
 */
+void compile_shadowMap(struct X3D_Node* node);
+void render_shadowMap(struct X3D_Node* node);
+
 void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 	/* if we are doing global lighting, is this one for us? */
 	RETURN_IF_LIGHT_STATE_NOT_US
@@ -336,6 +376,34 @@ void prep_PointLight (struct X3D_PointLight *node) {
 	render_PointLight(node);
 }
 
+//void mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE* m);
+//double * perspective_projection_matrix(double fovy_radians, double aspect, double zNear, double zFar, double* matrix) {
+//	double xmin, xmax, ymin, ymax;
+//
+//	ymax = zNear * tan(fovy_radians);
+//	ymin = -ymax;
+//	xmin = ymin * aspect;
+//	xmax = ymax * aspect;
+//
+//	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, matrix);
+//	return matrix;
+//}
+void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE* matrix);
+void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
+	GLDOUBLE centerx, GLDOUBLE centery, GLDOUBLE centerz,
+	GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE* matrix);
+double *matrix_lookAtd(double* eye3, double* center3, double* up3, double* matrix) {
+	projLookAt(eye3[0], eye3[1], eye3[2], center3[0], center3[1], center3[2], up3[0], up3[1], up3[2], matrix);
+	return matrix;
+}
+double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix) {
+	double eyed[3], centerd[3], upd[3];
+	float2double(eyed, eye3, 3);
+	float2double(centerd, center3, 3);
+	float2double(upd, up3, 3);
+	matrix_lookAtd(eyed,centerd,upd,matrix);
+	return matrix;
+}
 void compile_SpotLight (struct X3D_SpotLight *node) {
     struct point_XYZ vec;
 	float dlen;
@@ -356,7 +424,22 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
  //   node->_dir.c[1] = (float) vec.y;
  //   node->_dir.c[2] = (float) vec.z;
  //   node->_dir.c[3] = 1.0f;/* 1.0 = SpotLight */
-	if (node->shadows) compile_shadowMap(X3D_NODE(node));
+	if (node->shadows) {
+		compile_shadowMap(X3D_NODE(node)); //prepares fbo buffer and texture
+		//prepare local view matrix (from node.location, node.direction which aren't included in modelview matrix)
+		// and projection matrix, both of which are stable / same between DEF and USE instances of a spotlight
+		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		//perspective_projection_matrix(node->cutOffAngle*2.0, 1.0, .1, 10000.0, lightrep->matproj);
+		projPerspective(node->cutOffAngle * 360.0 / PI * 2.0, 1.0, .1, 10000.0, lightrep->matproj);
+		//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		//for up vector in theory we need a few cross products to ensure its at least orthogonal to direction
+		//- up is somewhat arbitrary -spotlight is symmetrical about direction vector-
+		//  but must be consistent between depth texture rendering and shader sampling
+		float up[3];
+		vecset3f(up, 0.0f, 1.0f, 0.0f); 
+		matrix_lookAtfd(node->direction.c, node->location.c, up, lightrep->matview);
+	}
 
     MARK_NODE_COMPILED;
 }
@@ -376,6 +459,16 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 			uhit.node = X3D_NODE(node);
 			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 			lightTable_push(uhit);
+			if (node->shadows) {
+				//double viewmatrix[16], mvmInverse[16], world2light[16];
+				//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+				//matmultiplyFULL(viewmatrix, lightrep->matview, lightrep->matproj);
+				//matinverseAFFINE(mvmInverse, uhit.mvm);
+				//matmultiplyFULL(uhit.mvm, viewmatrix, mvmInverse);
+				//vector_pushBack(usehit, p->genshadow_stack, uhit);  //fat elements do another deep copy
+				shadowTable_push(uhit);
+				render_shadowMap(X3D_NODE(node));
+			}
 		}else{
 			int light = nextlight();
 			if (light >= 0) {
@@ -541,29 +634,6 @@ void get_view_matrix(double* savePosOri, double* saveView);
 void freeASCIIString(struct Uni_String* us);
 
 
-void shadowTable_clear() {
-	//called once per frame, before the search for global=true projectors
-	//will clear any global=true shadow lights from last frame
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	clearStack(p->genshadow_stack);
-}
-void shadowTable_push(usehit ptuple) {
-	//called when we find a global=true, on=true shadow light, and
-	//called in sib_prep for a global=false, on=false shadow light
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	//we need a deep copy because the light node can't hold it
-	// because it can be DEF/USED with different transform each use
-	stack_push(usehit, p->genshadow_stack, ptuple);
-
-}
-void shadowTable_pop() {
-	//called in sib_fin for a global=false, on=true shadow light
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	if (p->genshadow_stack->n < 1)
-		printf("ouch from shadowTable_pop()\n");
-	stack_pop(usehit, p->genshadow_stack);
-
-}
 
 
 void compile_shadowMap(struct X3D_Node* node) {
@@ -1106,7 +1176,7 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//we won't directly generate cubemap textures here, but looks interesting as possible 
 		//  shotcut to skip readpixels below
-		if (1) {
+		if (0) {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
 			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
@@ -1115,32 +1185,53 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//glClearColor(1.0f, 0.0f, 0.0f, 1.0f); //red, for diagnostics during debugging
 		//FW_GL_CLEAR(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
 		//glClear(GL_DEPTH_BUFFER_BIT);
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
 
 		//set viewpoint matrix for side
 		//setup_projection(); 
-		if(0) {
+		if (1) {
 			FW_GL_MATRIX_MODE(GL_PROJECTION);
 			FW_GL_LOAD_IDENTITY();
 			//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-			fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 10000.0);
+			fw_gluPerspective_2(0.0, 90.0, 1.0, 3.0, 15.0); // .1, 1000.0);
 			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
 
 			FW_GL_MATRIX_MODE(GL_MODELVIEW);
 			FW_GL_LOAD_IDENTITY();
 			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
 
-			fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
+			//fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
+
 			fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
-			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
+			//fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 		}
 		else {
-			fw_glSetDoublev(GL_PROJECTION_MATRIX, uhit.proj);
-			fw_glSetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+			if (0) {
+				//copy view and proj from learning_ogl/shadows program which works
+				double lightview[] = { -0.447214, 0.78072, -0.436436, 0, 0, 0.48795, 0.872872, 0, 0.894427, 0.39036, -0.218218, 0, -0, -2.98023e-08, -4.58258, 1 };
+				double lightproj[] = { 0.1, 0, 0, 0, 0, 0.1, 0, 0, 0, 0, -0.307692, 0, -0, -0, -1.30769, 1 };
+				fw_glSetDoublev(GL_PROJECTION_MATRIX, lightproj);
+				fw_glSetDoublev(GL_MODELVIEW_MATRIX, lightview);
+
+			}
+			else {
+				//struct X3D_Node* node = uhit.node;
+				double viewmatrix[16], mvmInverse[16], world2light[16];
+				//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+				matinverseAFFINE(mvmInverse, uhit.mvm);
+				matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
+
+				fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
+				fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2light);
+			}
 		}
-		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+		if (new_lightway())
+			lightTable_clear();
+		else
+			clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
 		//render_bound_background();
 
@@ -1175,6 +1266,28 @@ void generate_shadowmap_2D(usehit uhit) {
 
 		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
 		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
+		if (1) {
+			static int iframe = 0;
+			iframe++;
+			if (iframe == 50) {
+				float* fd = malloc(isize * isize * sizeof(float));
+				memset(fd, 0, sizeof(float) * isize * isize);
+				glReadPixels(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, fd);
+
+				int nonzero = 0;
+
+				for (int kk = 0; kk < isize * isize; kk++) if (fd[kk] != 0.0f) nonzero++;
+				for (int m = 0; m < isize; m += 128) {
+					for (int mm = 0; mm < isize; mm += 128) {
+						printf("%f ", fd[m * isize + mm]);
+					}
+					printf("\n");
+				}
+				printf("number of nonzero depth values: %d\n", nonzero);
+				free(fd);
+			}
+		}
+
 		if (0) {
 			pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
 			bytesPerPixel = sizeof(float); // 4;
@@ -1188,7 +1301,7 @@ void generate_shadowmap_2D(usehit uhit) {
 			//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
 
 			//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-			FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
+			glReadPixels(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
 			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
 
 			ttip->x = isize;
@@ -1204,6 +1317,18 @@ void generate_shadowmap_2D(usehit uhit) {
 				static int iframe = 0;
 				iframe++;
 				if (iframe == 50) {
+					//count non-zero depth pixels
+					int nonzero = 0;
+					float* fd = (float*)ttip->texdata;
+					for (int kk = 0; kk < 1024 * 1024; kk++) if (fd[kk] != 0.0f) nonzero++;
+					for (int m = 0; m < 1024; m += 128) {
+						for (int mm = 0; mm < 1024; mm += 128) {
+							printf("%f ", fd[m * 1024 + mm]);
+						}
+						printf("\n");
+					}
+					printf("number of nonzero depth values: %d\n", nonzero);
+
 					char namebuf[100];
 					sprintf(namebuf, "%s%d.web3dit", "depth_", j);
 					saveImage_web3dit(ttip, namebuf);
@@ -1330,7 +1455,16 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 		if (plight->shadows) {
 			//lookup a textureUnit[index] index to use on this pass
 			//process the uhit->mvm matrix for shadows
-			GLUNIFORM1I(me->lightdepthmap[j], lightrep->idepthtexture);
+			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, lightrep->idepthtexture);
+			GLUNIFORM1I(me->lightdepthmap[j], itexunit);
+			double viewmatrix[16], mvmInverse[16], world2light[16], world2lightfrustum[16];
+			float w2l[16];
+			//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			matinverseAFFINE(mvmInverse, uhit->mvm);
+			matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
+			matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2light);
+			double2float(w2l, world2lightfrustum, 16);
+			GLUNIFORMMATRIX4FV(me->lightMat[j], 1, GL_FALSE, w2l);
 		}
 	}
 	GLUNIFORM1I(me->lightcount, lightcount);

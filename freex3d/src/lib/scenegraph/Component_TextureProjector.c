@@ -114,15 +114,15 @@ void Component_TextureProjector_clear(struct tComponent_TextureProjector *t){
 
 struct X3D_ProjectorRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep
-	//light section
+	//depth section
 	struct X3D_Node* depthTexture;
 	int size;
 	int idepthtexture;
+	double matproj[16];
+	double matview[16];
 	//projector section
 	struct X3D_Node* texture;
 	int itexture;
-	double matproj[16];
-	double matview[16];
 	//double matmodelviewproj[16];
 };
 

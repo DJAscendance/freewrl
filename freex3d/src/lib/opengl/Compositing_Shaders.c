@@ -3331,7 +3331,7 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 		if (light.shadows) { \n\
 			if (myLightType > 0) { \n\
 				//spot, directional, uses 2D shadow texture \n\
-				shadowtest = 1.0 - ShadowCalculation(i,VP); \n\
+				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
 			} \n\
 			else { \n\
 				//point, uses cubemap shadow texture \n\
@@ -4794,14 +4794,15 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping 
 // Phase I generate depth map
 char* vertexDepth = "#version 330 core \n\
-layout(location = 0) in vec3 fw_Vertex; \n\
+//layout(location = 0) in vec3 fw_Vertex; \n\
+in vec4 fw_Vertex; \n\
 \n\
-uniform mat4 fw_ProjectionMatrix; \n\
 uniform mat4 fw_ModelViewMatrix; \n\
+uniform mat4 fw_ProjectionMatrix; \n\
 \n\
 void main() \n\
 { \n\
-	gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * vec4(fw_Vertex, 1.0); \n\
+	gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * fw_Vertex; \n\
 }  ";
 char* fragDepth = "#version 330 core \n\
  \n\

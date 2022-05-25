@@ -7567,8 +7567,7 @@ void fw_gluPickMatrix(GLDOUBLE xx, GLDOUBLE yy, GLDOUBLE width, GLDOUBLE height,
  * Build a glFrustum matrix.
  */
 
-static void
-mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
+void mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m)
 {
  /* http://www.songho.ca/opengl/gl_projectionmatrix.html shows derivation*/
 	GLDOUBLE x = (2.0*nearZ) / (right-left);

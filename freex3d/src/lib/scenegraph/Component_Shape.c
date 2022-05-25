@@ -1423,6 +1423,7 @@ void child_Shape (struct X3D_Shape *node) {
 				shader_requirements.depth = TRUE;
 				scap = getMyShaders(shader_requirements);
 				enableGlobalShader(scap);
+				sendMatriciesToShader(scap);  //send matrices
 			}
 			else {
 				return; //do nothing
@@ -1430,6 +1431,13 @@ void child_Shape (struct X3D_Shape *node) {
 		}
 		PRINT_GL_ERROR_IF_ANY("child_shape depth before render");
 		render_node(tmpNG);
+		if (peek_group_visible()) {  //v4 X3DGroupingNode .visible 
+			//reallyDraw();
+			reallyDrawOnce();
+		}
+		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
+		finishedWithGlobalShader();
+
 		PRINT_GL_ERROR_IF_ANY("child_shape depth end");
 		return;
 	}
