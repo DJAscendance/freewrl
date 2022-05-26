@@ -1528,58 +1528,8 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			//process the uhit->mvm matrix for shadows
 			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, lightrep->idepthtexture);
 			GLUNIFORM1I(me->lightdepthmap[j], itexunit);
-			//double viewmatrix[16], mvmInverse[16], world2light[16], world2lightfrustum[16];
-			//float w2l[16];
-			////struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-			//matinverseAFFINE(mvmInverse, uhit->mvm);
-			//matmultiplyAFFINE(world2light, lightrep->matview, mvmInverse);
-			//matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2light);
-			//double2float(w2l, world2lightfrustum, 16);
-			//same as generate_shadowMap_2D >>>
 			float w2l[16];
-			if (0) {
-				double world2light[16], world2lightview[16], world2lightfrustum[16];
-				double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
-				get_view_matrix(savePosOri, saveView);
-				matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
-				matinverseAFFINE(mvmInverse, uhit->mvm);
-
-				matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
-				matmultiplyAFFINE(world2lightview, lightrep->matview, world2light);
-				//same as generate_shadowMap_2D <<<
-				matmultiplyFULL(world2lightfrustum, lightrep->matproj, world2lightview);
-				double2float(w2l, world2lightfrustum, 16);
-			}
-			if (0) {
-				//shape2viewpoint x viewpoint2light x light2lightview
-				double shape2viewpoint[16], shape2light[16], viewpoint2light[16], shape2lightview[16], shape2lightfrustum[16];
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, shape2viewpoint);
-				matinverseAFFINE(viewpoint2light, uhit->mvm);
-				matmultiplyAFFINE(shape2light, viewpoint2light, shape2viewpoint);
-				matmultiplyAFFINE(shape2lightview, lightrep->matview, shape2light);
-				matmultiplyFULL(shape2lightfrustum, lightrep->matproj, shape2lightview);
-				double2float(w2l, shape2lightfrustum, 16);
-
-			}
-			if (0) {
-				//in vertex shader, coords are already transformed into viewpoint coords before multiplying with our lightMat
-				// lightfrustmCoord = vpCoords x viewpoint2light x light2lightview x lightview2lightfrustum 
-				double viewpoint2light[16], viewpoint2lightview[16], viewpoint2lightfrustum[16];
-				if (0) {
-					matinverseAFFINE(viewpoint2light, uhit->mvm);
-					matmultiplyAFFINE(viewpoint2lightview, lightrep->matview, viewpoint2light);
-				}
-				else {
-					double lightview2viewpoint[16];
-					matmultiplyAFFINE(lightview2viewpoint, uhit->mvm, lightrep->matview);
-					matinverseAFFINE(viewpoint2lightview, lightview2viewpoint);
-
-				}
-				matmultiplyFULL(viewpoint2lightfrustum, lightrep->matproj, viewpoint2lightview);
-				double2float(w2l, viewpoint2lightfrustum, 16);
-
-			}
-			if (1) {
+			{
 				//following textureProjector
 				double modelviewinv[16], eye2projector[16], matfull[16];
 				matinverse(modelviewinv, uhit->mvm);
