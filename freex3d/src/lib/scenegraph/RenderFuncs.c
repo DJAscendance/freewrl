@@ -89,6 +89,7 @@ typedef struct pRenderFuncs{
 	int profile_entry_count;
 	struct profile_entry profile_entries[100];
 	int profiling_on;
+#ifdef OLDCODE
 	float light_attenuation[MAX_LIGHT_STACK][3];
 	float light_spotCutoffAngle[MAX_LIGHT_STACK];
 	float light_spotBeamWidth[MAX_LIGHT_STACK];
@@ -113,6 +114,7 @@ typedef struct pRenderFuncs{
 	GLint lightOnOff[MAX_LIGHT_STACK];
 	GLint lightChanged[MAX_LIGHT_STACK]; //optimization
 	GLint lastShader;
+#endif //OLDCODE
 	//int cur_hits;//=0;
 	void *empty_group;//=0;
 	//struct point_XYZ ht1, ht2; not used
@@ -169,12 +171,18 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		ppRenderFuncs p = (ppRenderFuncs)t->prv;
 		p->profile_entry_count = 0;
 		p->profiling_on = 0; //toggle on with '.' on keyboard
+#ifdef OLDCODE
 		/* which arrays are enabled, and defaults for each array */
 		/* Rearrange to take advantage of headlight when off */
 		p->nextFreeLight = 0;
 		p->refreshLightUniforms = 0;
 		//p->firstLight = 0;
 		//p->cur_hits=0;
+		p->lastShader = -1;
+		p->currentLoop = 0;
+		p->lastLoop = 10000000;
+		p->sendCount = 0;
+#endif //OLDCODE
 		p->empty_group=0;
 		p->rootNode=NULL;	/* scene graph root node */
 		p->libraries=newVector(void3 *,1);
@@ -182,10 +190,6 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		t->rayHit = (void *)&p->rayHit;
 		//t->rayHitHyper = (void *)&p->rayHitHyper;
 		p->renderLevel = 0;
-		p->lastShader = -1;
-		p->currentLoop = 0;
-		p->lastLoop = 10000000;
-		p->sendCount = 0;
 		p->render_geom_stack = newStack(int);
 		p->sensor_stack = newStack(struct currayhit);
 		p->ray_stack = newStack(struct point_XYZ3);
@@ -396,6 +400,7 @@ void unload_libraryscenes(){
 		p->libraries->n = 0;
 	}
 }
+#ifdef OLCODE
 void clearLightTable(){ //unsigned int loop_count){
 	//int i;
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
@@ -460,7 +465,7 @@ int numberOfLights(){
 	int rv = p->nextFreeLight;
 	return rv;
 }
-
+#endif //OLDCODE
 int getLocalLight(){
 	//return top-of-stack Fog or LocalFog
 	int retval = 0;
@@ -569,7 +574,7 @@ pos[0],pos[1],pos[2],pos[3]);
 	dir[3] = 0.0;
 
 }
-
+#ifdef OLDCODE
 void fwglLightfv (int light, int pname, GLfloat *params) {
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
 	/*printf ("fwglLightfv light: %d ",light);
@@ -815,10 +820,16 @@ void sendLightInfo0 (s_shader_capabilities_t *me) {
     PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
 }
 int new_lightway();
+#endif //OLDCODE
+
 void sendLightInfo2(s_shader_capabilities_t* me);
 void sendLightInfo(s_shader_capabilities_t* me) {
+#ifdef OLDCODE
 	if (new_lightway()) sendLightInfo2(me);
 	else sendLightInfo0(me);
+#else //OLDCODE
+	sendLightInfo2(me);
+#endif //OLDCODE
 }
 /* finished rendering thisshape. */
 void finishedWithGlobalShader(void) {
@@ -1130,7 +1141,7 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 	#endif
 }
 
-
+#ifdef OLDCODE
 void initializeLightTables() {
 	int i;
 	float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
@@ -1168,7 +1179,7 @@ void initializeLightTables() {
 
 	PRINT_GL_ERROR_IF_ANY("end initializeLightTables");
 }
-
+#endif //OLDCODE
 
 ttrenderstate renderstate()
 {
@@ -2252,7 +2263,9 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
 
 	//p->nextFreeLight = 0;
+#ifdef OLDCODE
 	p->lastShader = -1; //in sendLights,and optimization
+#endif OLDCODE
 	tg->RenderFuncs.hitPointDist = -1;
 
 
@@ -2272,9 +2285,13 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 #endif
 
 	if (rs->render_light) {
+#ifdef OLDWAY
 		if (new_lightway()) {
 			render_headlight();
 		}
+#else //OLDWAY
+		render_headlight();
+#endif //OLDWAY
 	}
 	if (rs->render_sensitive) {
 		upd_ray();

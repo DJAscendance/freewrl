@@ -1554,16 +1554,19 @@ void generate_GeneratedCubeMapTextures(){
 				fw_glRotated(sideangle[j].angle,sideangle[j].x,sideangle[j].y,sideangle[j].z);
 				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 
+#ifdef OLDCODE
 				clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
-
+#else //OLDCODE
+				lightTable_clear();
+#endif //OLDCODE
 				render_bound_background();
-
+#ifdef OLDCODE
 				/*  turn light #0 off only if it is not a headlight.*/
 				if (!fwl_get_headlight()) {
 					setLightState(HEADLIGHT_LIGHT,FALSE);
 					setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
 				}
-
+#endif //OLDCODE
 				/*  Other lights*/
 				PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 

@@ -3787,8 +3787,10 @@ bool fwl_initialize_GL()
 
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start c0");
 
+#ifdef OLDCODE
 	/* keep track of light states; initial turn all lights off except for headlight */
 	initializeLightTables();
+#endif //OLDCODE
 
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start c1");
 
@@ -3844,7 +3846,7 @@ void BackEndClearBuffer(int which) {
 	}
 	glDisable(GL_SCISSOR_TEST);
 }
-
+#ifdef OLDCODE
 /* turn off all non-headlight lights; will turn them on if required. */
 void BackEndLightsOff() {
 	int i;
@@ -3852,7 +3854,7 @@ void BackEndLightsOff() {
 		setLightState(i, FALSE);
 	}
 }
-
+#endif //OLDCODE
 
 void fw_glMatrixMode(GLint mode) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;

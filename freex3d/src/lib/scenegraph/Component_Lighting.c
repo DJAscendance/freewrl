@@ -85,11 +85,13 @@ void lightTable_push(usehit tuple);
 void lightTable_pop();
 int lightTable_count();
 usehit* lightTable_item(int i);
+#ifdef OLDCODE
 int new_lightway();
 static int lightway = 1; //0 pre-May 22, 2022 1 post-May 22, 2022
 int new_lightway() {
 	return lightway;
 }
+#endif //OLDCODE
 
 //LIGHT TABLE
 void lightTable_clear() {
@@ -231,12 +233,15 @@ void render_DirectionalLight (struct X3D_DirectionalLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
+#ifdef OLDWAY
 		if (new_lightway()) {
+#endif //OLDWAY
 			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 			usehit uhit;
 			uhit.node = X3D_NODE(node);
 			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 			lightTable_push(uhit);
+#ifdef OLDCODE
 		}
 		else {
 
@@ -258,6 +263,7 @@ void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 				setLightChangedFlag(light);
 			}
 		}
+#endif //OLDCODE
 	}
 }
 
@@ -337,12 +343,15 @@ void render_PointLight (struct X3D_PointLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
+#ifdef OLDWAY
 		if (new_lightway()) {
+#endif //OLDWAY
 			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 			usehit uhit;
 			uhit.node = X3D_NODE(node);
 			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 			lightTable_push(uhit);
+#ifdef OLDCODE
 		}
 		else {
 
@@ -367,6 +376,7 @@ void render_PointLight (struct X3D_PointLight *node) {
 				setLightChangedFlag(light);
 			}
 		}
+#endif //OLDCODE
 	}
 }
 
@@ -462,7 +472,9 @@ void render_SpotLight(struct X3D_SpotLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
+#ifdef OLDWAY
 		if (new_lightway()) {
+#endif //OLDWAY 
 			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 			usehit uhit;
 			uhit.node = X3D_NODE(node);
@@ -491,7 +503,9 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 				shadowTable_push(uhit);
 				render_shadowMap(X3D_NODE(node));
 			}
-		}else{
+#ifdef OLDWAY
+		}
+		else{
 			int light = nextlight();
 			if (light >= 0) {
 				setLightState(light, TRUE);
@@ -517,6 +531,7 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 				setLightChangedFlag(light);
 			}
 		}
+#endif //OLDWAY
 	}
 }
 /* SpotLights are done before the rendering of geometry */
@@ -532,6 +547,7 @@ void render_EnvironmentLight(struct X3D_EnvironmentLight * node){
 void prep_EnvironmentLight(struct X3D_EnvironmentLight * node){
 }
 
+#ifdef OLDCODE
 int getLocalLight();
 void pushLocalLight(int lastlight);
 void popLocalLight();
@@ -601,6 +617,8 @@ void sib_fin_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 		restoreLightState2(lastlight);
 	}
 }
+#endif //OLDCODE
+
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
@@ -1066,7 +1084,7 @@ void generate_shadowmap_cube(usehit uhit) {
 		fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
 		fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 
-		clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+		//clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
 
 		//render_bound_background();
 

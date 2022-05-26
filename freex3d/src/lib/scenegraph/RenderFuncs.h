@@ -52,10 +52,12 @@ void render_node(struct X3D_Node *node);
 
 struct X3D_Anchor *AnchorsAnchor();
 void setAnchorsAnchor(struct X3D_Anchor* anchor);
+void projectorTable_clear();
 
+#ifdef OLDCODE
 void clearLightTable();
 int nextlight(void);
-void projectorTable_clear();
+
 
 
 enum {
@@ -78,7 +80,9 @@ void setLightType(GLint light, int type);
 void setLightChangedFlag(GLint light);
 void fwglLightfv (int light, int pname, GLfloat *params);
 void fwglLightf (int light, int pname, GLfloat param);
+
 void initializeLightTables(void);
+#endif //OLDCODE
 void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, int, char*, int);
 void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);

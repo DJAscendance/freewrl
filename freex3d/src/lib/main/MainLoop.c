@@ -5290,7 +5290,9 @@ void handle(const int mev, const unsigned int button, const float x, const float
 /* get setup for rendering. */
 
 void SSR_test_cumulative_pose();
+#ifdef OLDWAY
 int new_lightway();
+#endif //OLDWAY
 static void render_pre() {
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
@@ -5302,12 +5304,13 @@ static void render_pre() {
 	FIXME: position of light sould actually be offset a little (towards the center)
 	when in stereo mode. */
 	
+#ifdef OLDCODE
 	if(!new_lightway())
 	if (fwl_get_headlight()) {
 		setLightState(HEADLIGHT_LIGHT,TRUE);
 		setLightType(HEADLIGHT_LIGHT,2); // DirectionalLight
 	}
-
+#endif //OLDCODE
 
         ///* 3. Viewpoint */
         //setup_viewpoint();      
@@ -5804,10 +5807,14 @@ static void render()
 		else
 			BackEndClearBuffer(2);
 		//BackEndLightsOff();
+#ifdef OLDCODE
 		if (new_lightway())
 			lightTable_clear();
 		else
 			clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
+#else //OLDCODE
+		lightTable_clear();
+#endif //OLDCODE
 		projectorTable_clear();
 
 		clear_renderstate(); //setup_picking does a VF_Sensitive pass. render_background skips render_hier init of renderstate, so clear hear.
@@ -5819,6 +5826,7 @@ static void render()
 			get_depth_slice(islice,&znear,&zfar);
 			fw_depth_slice_push(znear,zfar);
 			glClear(GL_DEPTH_BUFFER_BIT);
+#ifdef OLDCODE
 			/*  turn light #0 off only if it is not a headlight.*/
 			if(!new_lightway()) {
 				if (!fwl_get_headlight()) {
@@ -5826,6 +5834,7 @@ static void render()
 					setLightType(HEADLIGHT_LIGHT, 2); // DirectionalLight
 				}
 			}
+#endif //OLDCODE
 			/*  Other lights*/
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 			push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
