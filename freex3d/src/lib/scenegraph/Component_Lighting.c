@@ -1247,17 +1247,9 @@ void generate_shadowmap_2D(usehit uhit) {
 
 	isize = lightrep->size; //set in compile_
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-	//GLuint attachments [1] = {GL_COLOR_ATTACHMENT0};
-	//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
-	//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
 	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
 	glViewport(0, 0, isize, isize); //viewport we want 
 
-	//create fbo or fbo tiles collection for generatedcubemap
-	//method: we draw each face to a single framebuffer texture, 
-	// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
-	// we skip the steps of creating and reading back PixelTexture->image.p into texdata
-	//for (int j = 0; j < cubetex->__subTextures.n; j++) //should be 6
 	{
 		textureTableIndexStruct_s* ttip;
 		struct X3D_PixelTexture* nodep;
@@ -1267,24 +1259,12 @@ void generate_shadowmap_2D(usehit uhit) {
 		nodep = tex;
 		ttip = tti;
 
-		//we won't directly generate cubemap textures here, but looks interesting as possible 
-		//  shotcut to skip readpixels below
-		if (0) {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
-			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
-		}
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
 
-		//glClearColor(1.0f, 0.0f, 0.0f, 1.0f); //red, for diagnostics during debugging
-		//FW_GL_CLEAR(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
-		//glClear(GL_DEPTH_BUFFER_BIT);
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
 
-		//set viewpoint matrix for side
-		//setup_projection(); 
+		//set viewpoint matrix 
 		{
 			double world2light[16], world2lightview[16];
 			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
@@ -1298,25 +1278,6 @@ void generate_shadowmap_2D(usehit uhit) {
 			fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
 			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightview);
 		}
-		if (new_lightway())
-			lightTable_clear();
-		else
-			clearLightTable();//turns all lights off- will turn them on for VF_globalLight and scope-wise for non-global in VF_geom
-
-		//render_bound_background();
-
-		///*  turn light #0 off only if it is not a headlight.*/
-		//if (!fwl_get_headlight()) {
-		//	setLightState(HEADLIGHT_LIGHT, FALSE);
-		//	setLightType(HEADLIGHT_LIGHT, 2); // DirectionalLight
-		//}
-
-		///*  Other lights*/
-		//PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
-
-		//render_hier(rootNode(), VF_globalLight);
-		//PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
-		//render_hier(rootNode(), VF_Other);
 
 		/*  4. Nodes (not the blended ones)*/
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
@@ -1326,90 +1287,10 @@ void generate_shadowmap_2D(usehit uhit) {
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
-
-		///*  5. Blended Nodes*/
-		//if (tg->RenderFuncs.have_transparency) {
-		//	/*  render the blended nodes*/
-		//render_hier(rootNode(), VF_Geom | VF_Blend | VF_Depth);
-		//	PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
-		//}
-
-		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-		if (0) {
-			static int iframe = 0;
-			iframe++;
-			if (iframe == 50) {
-				float* fd = malloc(isize * isize * sizeof(float));
-				memset(fd, 0, sizeof(float) * isize * isize);
-				glReadPixels(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, fd);
-
-				int nonzero = 0;
-
-				for (int kk = 0; kk < isize * isize; kk++) if (fd[kk] != 0.0f) nonzero++;
-				for (int m = 0; m < isize; m += 128) {
-					for (int mm = 0; mm < isize; mm += 128) {
-						printf("%f ", fd[m * isize + mm]);
-					}
-					printf("\n");
-				}
-				printf("number of nonzero depth values: %d\n", nonzero);
-				free(fd);
-			}
-		}
-
-		if (0) {
-			pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-			bytesPerPixel = sizeof(float); // 4;
-			if (!ttip->texdata || ttip->x != isize) {
-				FREE_IF_NZ(ttip->texdata);
-				ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
-			}
-
-			/* grab the data */
-			//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-			//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-
-			//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-			glReadPixels(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
-
-			ttip->x = isize;
-			ttip->y = isize;
-			ttip->z = 1;
-			ttip->hasAlpha = 0; // 1;
-			ttip->channels = 1; // 4;
-			ttip->idepthbuffer = 1;
-			ttip->status = TEX_NEEDSBINDING;
-			if (1) {
-				//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
-				//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
-				static int iframe = 0;
-				iframe++;
-				if (iframe == 50) {
-					//count non-zero depth pixels
-					int nonzero = 0;
-					float* fd = (float*)ttip->texdata;
-					for (int kk = 0; kk < 1024 * 1024; kk++) if (fd[kk] != 0.0f) nonzero++;
-					for (int m = 0; m < 1024; m += 128) {
-						for (int mm = 0; mm < 1024; mm += 128) {
-							printf("%f ", fd[m * 1024 + mm]);
-						}
-						printf("\n");
-					}
-					printf("number of nonzero depth values: %d\n", nonzero);
-
-					char namebuf[100];
-					sprintf(namebuf, "%s%d.web3dit", "depth_", j);
-					saveImage_web3dit(ttip, namebuf);
-				}
-			}
-		}
 	}
 	popnset_viewport();
 	popnset_framebuffer();
 	if(0) set_debug_quad(3, lightrep->idepthtexture);
-	//compile_generatedcubemaptexture // convert to opengl
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
 
