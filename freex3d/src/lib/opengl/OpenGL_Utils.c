@@ -3785,12 +3785,6 @@ bool fwl_initialize_GL()
 	   but putting this here is already a saving ;)...
 	*/
 
-	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start c0");
-
-#ifdef OLDCODE
-	/* keep track of light states; initial turn all lights off except for headlight */
-	initializeLightTables();
-#endif //OLDCODE
 
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start c1");
 
@@ -3846,15 +3840,6 @@ void BackEndClearBuffer(int which) {
 	}
 	glDisable(GL_SCISSOR_TEST);
 }
-#ifdef OLDCODE
-/* turn off all non-headlight lights; will turn them on if required. */
-void BackEndLightsOff() {
-	int i;
-	for (i=0; i<HEADLIGHT_LIGHT; i++) {
-		setLightState(i, FALSE);
-	}
-}
-#endif //OLDCODE
 
 void fw_glMatrixMode(GLint mode) {
 	ppOpenGL_Utils p = (ppOpenGL_Utils)gglobal()->OpenGL_Utils.prv;
@@ -6954,7 +6939,7 @@ GLint tunit(int index){
 	return unit[index];
 }
 
-
+void sendLightInfo2(s_shader_capabilities_t* me);
 int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
@@ -7100,7 +7085,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 
 	profile_end("sendvec");
 
-	if (me->haveLightInShader) sendLightInfo(me);
+	if (me->haveLightInShader) sendLightInfo2(me);
 
 	/* FillProperties, LineProperty lineType */
 	#if defined (GL_ES_VERSION_2_0)

@@ -1264,6 +1264,7 @@ void render_SEGMENTED_volume_data(s_shader_capabilities_t *caps, struct X3D_Node
 float *getTransformedClipPlanes();
 int getClipPlaneCount();
 void sendFogToShader(s_shader_capabilities_t *me);
+void sendLightInfo2(s_shader_capabilities_t* me);
 void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node **renderStyle, int nstyle, struct X3D_Node *voxels, struct X3D_VolumeData *node ) {
 	static int once = 0;
 	int myProg;
@@ -1384,7 +1385,7 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	//if(haveShaderStyle){
 		//send lights
 		if (caps->haveLightInShader) {
-			sendLightInfo(caps);
+			sendLightInfo2(caps);
 			sendFogToShader(caps);
 		}
 	//}

@@ -159,11 +159,6 @@ void sendMaterialsToShader(s_shader_capabilities_t *me);
 void
 BackEndClearBuffer(int);
 
-#ifdef OLDCODE
-void
-BackEndLightsOff(void);
-#endif //OLDCODE
-
 void fw_glMatrixMode(GLint mode);
 void fw_glLoadIdentity(void);
 void fw_glPushMatrix(void);

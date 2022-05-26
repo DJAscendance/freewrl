@@ -54,42 +54,12 @@ struct X3D_Anchor *AnchorsAnchor();
 void setAnchorsAnchor(struct X3D_Anchor* anchor);
 void projectorTable_clear();
 
-#ifdef OLDCODE
-void clearLightTable();
-int nextlight(void);
-
-
-
-enum {
-	LIGHT_DIRECTION = 1,
-	LIGHT_POSITION = 2,
-	LIGHT_COLOR = 3,
-	LIGHT_INTENSITY = 4,
-	LIGHT_AMBIENT = 5,
-	LIGHT_ATTENUATION = 6,
-	LIGHT_SHADOWS = 7,
-	LIGHT_SHADOWINTENSITY = 8,
-	LIGHT_DEPTHMAP = 9,
-};
-
-
-void setLightState(GLint light, int status);
-void setLightType(GLint light, int type);
-//JAS void saveLightState2(int *ls);
-//JAS void restoreLightState2(int ls);
-void setLightChangedFlag(GLint light);
-void fwglLightfv (int light, int pname, GLfloat *params);
-void fwglLightf (int light, int pname, GLfloat param);
-
-void initializeLightTables(void);
-#endif //OLDCODE
 void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, int, char*, int);
 void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
 void sendElementsToGPU0 (int mode, int count, int type, void *indices);
 void saveElementsForGPU0(int mode, int count, int type, void* indices);
 void render_hier(struct X3D_Node *p, int rwhat);
-void sendLightInfo (s_shader_capabilities_t *me);
 void restoreGlobalShader();
 
 

@@ -85,13 +85,6 @@ void lightTable_push(usehit tuple);
 void lightTable_pop();
 int lightTable_count();
 usehit* lightTable_item(int i);
-#ifdef OLDCODE
-int new_lightway();
-static int lightway = 1; //0 pre-May 22, 2022 1 post-May 22, 2022
-int new_lightway() {
-	return lightway;
-}
-#endif //OLDCODE
 
 //LIGHT TABLE
 void lightTable_clear() {
@@ -233,37 +226,12 @@ void render_DirectionalLight (struct X3D_DirectionalLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-#ifdef OLDWAY
-		if (new_lightway()) {
-#endif //OLDWAY
 			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 			usehit uhit;
 			uhit.node = X3D_NODE(node);
 			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 			lightTable_push(uhit);
-#ifdef OLDCODE
-		}
-		else {
 
-			int light = nextlight();
-			if (light >= 0) {
-				float pos[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-				setLightState(light, TRUE);
-				setLightType(light, 2);
-				FW_GL_LIGHTFV(light, LIGHT_DIRECTION, node->direction.c);
-				FW_GL_LIGHTFV(light, LIGHT_POSITION, pos); //direction lights don't have a postion
-				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c);
-				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity);
-				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity);
-				FW_GL_LIGHTI(light, LIGHT_SHADOWS, node->shadows);
-				FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
-				FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
-
-			/* used to test if a PointLight, SpotLight or DirectionalLight in shader  */
-				setLightChangedFlag(light);
-			}
-		}
-#endif //OLDCODE
 	}
 }
 
@@ -343,40 +311,11 @@ void render_PointLight (struct X3D_PointLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-#ifdef OLDWAY
-		if (new_lightway()) {
-#endif //OLDWAY
-			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-			usehit uhit;
-			uhit.node = X3D_NODE(node);
-			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-			lightTable_push(uhit);
-#ifdef OLDCODE
-		}
-		else {
-
-			int light = nextlight();
-			if (light >= 0) {
-				float vec[4] = { 0.0f, 0.0f, -1.0f, 1.0f };
-				if (node->global && node->shadows) render_PointLight_shadowMap(node);
-				setLightState(light, TRUE);
-				setLightType(light, 0);
-				FW_GL_LIGHTFV(light, LIGHT_DIRECTION, vec);
-				FW_GL_LIGHTFV(light, LIGHT_POSITION, node->location.c); //node->_loc.c);
-
-				FW_GL_LIGHTFV(light, LIGHT_ATTENUATION, node->attenuation.c);
-
-				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c);
-				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity);
-				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity);
-				FW_GL_LIGHTF(light, GL_LIGHT_RADIUS, node->radius);
-				FW_GL_LIGHTI(light, LIGHT_SHADOWS, node->shadows);
-				FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
-				FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
-				setLightChangedFlag(light);
-			}
-		}
-#endif //OLDCODE
+		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
+		usehit uhit;
+		uhit.node = X3D_NODE(node);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+		lightTable_push(uhit);
 	}
 }
 
@@ -472,66 +411,15 @@ void render_SpotLight(struct X3D_SpotLight *node) {
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-#ifdef OLDWAY
-		if (new_lightway()) {
-#endif //OLDWAY 
-			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-			usehit uhit;
-			uhit.node = X3D_NODE(node);
-			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-			lightTable_push(uhit);
-			if (node->shadows) {
-				//double viewmatrix[16], mvmInverse[16], world2light[16];
-				//struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-				//matmultiplyFULL(viewmatrix, lightrep->matview, lightrep->matproj);
-				//matinverseAFFINE(mvmInverse, uhit.mvm);
-				//matmultiplyFULL(uhit.mvm, viewmatrix, mvmInverse);
-				//vector_pushBack(usehit, p->genshadow_stack, uhit);  //fat elements do another deep copy
-				//strip current viewpoint view matrix so we have light2world
-				if (0) {
-					double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
-					get_view_matrix(savePosOri, saveView);
-					matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
-					//matinverseAFFINE(bothinverse,viewmatrix);
-					matinverseAFFINE(mvmInverse, uhit.mvm);
-
-					//matmultiplyAFFINE(worldmatrix,bothinverse,modelviewMatrix);
-					//matmultiplyAFFINE(worldmatrix,modelviewMatrix,bothinverse);
-
-					matmultiplyAFFINE(uhit.mvm, viewmatrix, mvmInverse); // = world2light[16]
-				}
-				shadowTable_push(uhit);
-				render_shadowMap(X3D_NODE(node));
-			}
-#ifdef OLDWAY
+		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
+		usehit uhit;
+		uhit.node = X3D_NODE(node);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+		lightTable_push(uhit);
+		if (node->shadows) {
+			shadowTable_push(uhit);
+			render_shadowMap(X3D_NODE(node));
 		}
-		else{
-			int light = nextlight();
-			if (light >= 0) {
-				setLightState(light, TRUE);
-				setLightType(light, 1);
-				FW_GL_LIGHTFV(light, LIGHT_DIRECTION, node->direction.c); //_dir.c);
-				FW_GL_LIGHTFV(light, LIGHT_POSITION, node->location.c); //_loc.c);
-
-				FW_GL_LIGHTFV(light, LIGHT_ATTENUATION, node->attenuation.c);
-				FW_GL_LIGHTFV(light, LIGHT_COLOR, node->color.c);
-				FW_GL_LIGHTF(light, LIGHT_INTENSITY, node->intensity);
-				FW_GL_LIGHTF(light, LIGHT_AMBIENT, node->ambientIntensity);
-
-				FW_GL_LIGHTF(light, GL_SPOT_BEAMWIDTH, node->beamWidth); // ft);
-				//ConsoleMessage ("spotLight, bw %f, cuta %f, PI/4 %f", node->beamWidth,node->cutOffAngle, PI/4.0);
-
-				/* create a ratio of light in relation to PI/4.0 */
-				FW_GL_LIGHTF(light, GL_SPOT_CUTOFF, node->cutOffAngle); // ft);
-				FW_GL_LIGHTF(light, GL_LIGHT_RADIUS, node->radius);
-				FW_GL_LIGHTI(light, LIGHT_SHADOWS, node->shadows);
-				FW_GL_LIGHTF(light, LIGHT_SHADOWINTENSITY, node->shadowIntensity);
-				FW_GL_LIGHTI(light, LIGHT_DEPTHMAP, -1); //WHERE DO WE GET NUMBER
-
-				setLightChangedFlag(light);
-			}
-		}
-#endif //OLDWAY
 	}
 }
 /* SpotLights are done before the rendering of geometry */
@@ -547,77 +435,6 @@ void render_EnvironmentLight(struct X3D_EnvironmentLight * node){
 void prep_EnvironmentLight(struct X3D_EnvironmentLight * node){
 }
 
-#ifdef OLDCODE
-int getLocalLight();
-void pushLocalLight(int lastlight);
-void popLocalLight();
-
-
-void sib_prep_DirectionalLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	//if ((parent->_renderFlags & VF_localLight)==VF_localLight && renderstate()->render_light != VF_globalLight){
-	if ( renderstate()->render_light != VF_globalLight){
-	  saveLightState2(&lastlight);
-	  pushLocalLight(lastlight);
-	  render_DirectionalLight((struct X3D_DirectionalLight*)sibAffector);
-	}
-}
-void sib_prep_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	if ( renderstate()->render_light != VF_globalLight){
-	  saveLightState2(&lastlight);
-	  pushLocalLight(lastlight);
-	  render_SpotLight((struct X3D_SpotLight*)sibAffector);
-	}
-
-}
-void sib_prep_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	if ( renderstate()->render_light != VF_globalLight){
-	  saveLightState2(&lastlight);
-	  pushLocalLight(lastlight);
-	  render_PointLight((struct X3D_PointLight*)sibAffector);
-	}
-}
-
-
-void sib_fin_DirectionalLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	if ( renderstate()->render_light != VF_globalLight) {
-		lastlight = getLocalLight();
-		if(numberOfLights() > lastlight) {
-			setLightChangedFlag(numberOfLights()-1);
-			refreshLightUniforms();
-		}
-		restoreLightState2(lastlight);
-		popLocalLight();
-	}
-}
-void sib_fin_SpotlLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	if (renderstate()->render_light != VF_globalLight) {
-		lastlight = getLocalLight();
-		if(numberOfLights() > lastlight) {
-			setLightChangedFlag(numberOfLights()-1);
-			refreshLightUniforms();
-		}
-		popLocalLight();
-		restoreLightState2(lastlight);
-	}
-}
-void sib_fin_PointLight(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	int lastlight;
-	if (renderstate()->render_light != VF_globalLight) {
-		lastlight = getLocalLight();
-		if(numberOfLights() > lastlight) {
-			setLightChangedFlag(numberOfLights()-1);
-			refreshLightUniforms();
-		}
-		popLocalLight();
-		restoreLightState2(lastlight);
-	}
-}
-#endif //OLDCODE
 
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);

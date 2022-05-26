@@ -89,32 +89,7 @@ typedef struct pRenderFuncs{
 	int profile_entry_count;
 	struct profile_entry profile_entries[100];
 	int profiling_on;
-#ifdef OLDCODE
-	float light_attenuation[MAX_LIGHT_STACK][3];
-	float light_spotCutoffAngle[MAX_LIGHT_STACK];
-	float light_spotBeamWidth[MAX_LIGHT_STACK];
-	float light_ambientIntensity[MAX_LIGHT_STACK];
-	float light_color[MAX_LIGHT_STACK][3];
-	float light_location[MAX_LIGHT_STACK][3];
-	float light_intensity[MAX_LIGHT_STACK];
-	float light_direction[MAX_LIGHT_STACK][3];
-    float light_radius[MAX_LIGHT_STACK];
-	int light_shadows[MAX_LIGHT_STACK];
-	float light_shadowIntensity[MAX_LIGHT_STACK];
-	int light_depthmap[MAX_LIGHT_STACK];
-	GLint lightType[MAX_LIGHT_STACK]; //0=point 1=spot 2=directional
-	/* Rearrange to take advantage of headlight when off */
-	int nextFreeLight;// = 0;
-	int refreshLightUniforms;
-	unsigned int currentLoop;
-	unsigned int lastLoop;
-	unsigned int sendCount;
-	//int firstLight;//=0;
-	/* lights status. Light HEADLIGHT_LIGHT is the headlight */
-	GLint lightOnOff[MAX_LIGHT_STACK];
-	GLint lightChanged[MAX_LIGHT_STACK]; //optimization
-	GLint lastShader;
-#endif //OLDCODE
+
 	//int cur_hits;//=0;
 	void *empty_group;//=0;
 	//struct point_XYZ ht1, ht2; not used
@@ -135,7 +110,6 @@ typedef struct pRenderFuncs{
 	Stack *shaderflags_stack;
 	Stack *fog_stack;
 	Stack* ectx_stack; //executionContext
-	Stack *localLight_stack;
 
 	//struct point_XYZ t_r1,t_r2,t_r3; /* transformed ray */
 	struct point_XYZ3 t_r123;
@@ -171,18 +145,7 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		ppRenderFuncs p = (ppRenderFuncs)t->prv;
 		p->profile_entry_count = 0;
 		p->profiling_on = 0; //toggle on with '.' on keyboard
-#ifdef OLDCODE
-		/* which arrays are enabled, and defaults for each array */
-		/* Rearrange to take advantage of headlight when off */
-		p->nextFreeLight = 0;
-		p->refreshLightUniforms = 0;
-		//p->firstLight = 0;
-		//p->cur_hits=0;
-		p->lastShader = -1;
-		p->currentLoop = 0;
-		p->lastLoop = 10000000;
-		p->sendCount = 0;
-#endif //OLDCODE
+
 		p->empty_group=0;
 		p->rootNode=NULL;	/* scene graph root node */
 		p->libraries=newVector(void3 *,1);
@@ -199,7 +162,6 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		p->shaderflags_stack = newStack(shaderflagsstruct); //newStack(unsigned int);
 		p->fog_stack = newStack(struct X3D_Node*);
 		p->ectx_stack = newStack(struct X3D_Node*);
-		p->localLight_stack = newStack(int);
 		p->draw_call_params_stack = newStack(draw_call_params);
 		//t->t_r123 = (void *)&p->t_r123;
 		t->hp = (void *)&p->hp;
@@ -365,7 +327,6 @@ void RenderFuncs_clear(struct tRenderFuncs *t){
 	//deleteVector(unsigned int,p->shaderflags_stack);
 	deleteVector(shaderflagsstruct,p->shaderflags_stack);
 	deleteVector(struct X3D_Node*,p->fog_stack);
-	deleteVector(int,p->localLight_stack);
 	deleteVector(draw_call_params,p->draw_call_params_stack);
 }
 void unload_libraryscenes(){
@@ -400,96 +361,6 @@ void unload_libraryscenes(){
 		p->libraries->n = 0;
 	}
 }
-#ifdef OLCODE
-void clearLightTable(){ //unsigned int loop_count){
-	//int i;
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->nextFreeLight = 0;
-	//p->currentLoop = loop_count;
-	p->sendCount = 0;
-	//for(i=0;i<MAX_LIGHT_STACK;i++){
-	//	p->lightChanged[i] = 0;
-	//}
-}
-/* we assume max MAX_LIGHTS lights. The max light is the Headlight, so we go through 0-HEADLIGHT_LIGHT for Lights */
-int nextlight() {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	int rv = p->nextFreeLight;
-	if(rv == HEADLIGHT_LIGHT) { 
-		return -1; 
-	}
-	p->lightChanged[rv] = 0;
-	p->nextFreeLight ++;
-	return rv;
-}
-
-/* lightType 0=point 1=spot 2=directional */
-void setLightType(GLint light, int type) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    p->lightType[light] = type;
-}
-void setLightChangedFlag(GLint light) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    p->lightChanged[light] = 1;
-}
-
-/* keep track of lighting */
-void setLightState(GLint light, int status) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    //ConsoleMessage ("start lightState, light %d, status %d\n",light,status);
-
-    
-    PRINT_GL_ERROR_IF_ANY("start lightState");
-
-	if (light<0) return; /* nextlight will return -1 if too many lights */
-	p->lightOnOff[light] = status;
-    PRINT_GL_ERROR_IF_ANY("end lightState");
-}
-
-/* for local lights, we keep track of what is on and off */
-void saveLightState2(int *last) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	*last = p->nextFreeLight;
-} 
-
-void restoreLightState2(int last) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->nextFreeLight = last;
-}
-void refreshLightUniforms(){
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->refreshLightUniforms = TRUE;
-}
-int numberOfLights(){
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	int rv = p->nextFreeLight;
-	return rv;
-}
-#endif //OLDCODE
-int getLocalLight(){
-	//return top-of-stack Fog or LocalFog
-	int retval = 0;
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	if(p->localLight_stack->n)
-		retval = stack_top(int,p->localLight_stack);
-	return retval;
-}
-void pushLocalLight(int lastlight){
-	//at root level, before render_hier, any bound Fog node
-	//and pop after render_hier
-	//for prep_LocalFog you would call this to push (and pop in fin_LocalFog)
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_push(int,p->localLight_stack,lastlight);
-}
-void popLocalLight(){
-	//
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_pop(int,p->localLight_stack);
-}
-
 
 void transformPositionToEye(float *pos)
 {
@@ -574,263 +445,8 @@ pos[0],pos[1],pos[2],pos[3]);
 	dir[3] = 0.0;
 
 }
-#ifdef OLDCODE
-void fwglLightfv (int light, int pname, GLfloat *params) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	/*printf ("fwglLightfv light: %d ",light);
-	switch (pname) {
-		case GL_AMBIENT: printf ("GL_AMBIENT"); break;
-		case GL_DIFFUSE: printf ("GL_DIFFUSE"); break;
-		case GL_POSITION: printf ("GL_POSITION"); break;
-		case GL_SPECULAR: printf ("GL_SPECULAR"); break;
-		case GL_SPOT_DIRECTION: printf ("GL_SPOT_DIRECTION"); break;
-        case GL_LIGHT_RADIUS: printf ("GL_LIGHT_RADIUS"); break;
-	}
-	printf (" %f %f %f %f\n",params[0], params[1],params[2],params[3]);
-     */
-    
-	//printLTDebug(__FILE__,__LINE__);
-
-/*
-	switch (pname) {
-		case GL_AMBIENT:
-			memcpy ((void *)p->light_amb[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_DIFFUSE:
-			memcpy ((void *)p->light_dif[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_POSITION:
-			memcpy ((void *)p->light_pos[light],(void *)params,sizeof(shaderVec4));
-			//the following function call assumes spotdir has already been set - set it first from render_light
-			if (light != HEADLIGHT_LIGHT)  transformLightToEye(p->light_pos[light], p->light_spotDir[light]);
-			break;
-		case GL_SPECULAR:
-			memcpy ((void *)p->light_spec[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_SPOT_DIRECTION:
-			//call spot_direction before spot_position, so direction gets transformed above in spot position
-			memcpy ((void *)p->light_spotDir[light],(void *)params,sizeof(shaderVec4));
-			break;
-		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
-	}
-	*/
-	switch (pname) {
-		case LIGHT_AMBIENT:
-			p->light_ambientIntensity[light] = params[0];
-			break;
-		case LIGHT_INTENSITY:
-			p->light_intensity[light] = params[0];
-			break;
-		case LIGHT_COLOR:
-			veccopy3f(p->light_color[light],params);
-			break;
-		case LIGHT_POSITION:
-			veccopy3f(p->light_location[light],params);
-			//the following function call assumes spotdir has already been set - set it first from render_light
-			if (light != HEADLIGHT_LIGHT)  transformPositionToEye(p->light_location[light]);
-			break;
-		case LIGHT_DIRECTION:
-			//call spot_direction before spot_position, so direction gets transformed above in spot position
-			veccopy3f(p->light_direction[light],params);
-			if (light != HEADLIGHT_LIGHT)  transformDirectionToEye(p->light_direction[light]);
-			break;
-		case LIGHT_ATTENUATION:
-			veccopy3f(p->light_attenuation[light],params);
-			break;
-		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
-	}
-}
-
-void fwglLightf (int light, int pname, GLfloat param) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-
-#ifdef RENDERVERBOSE
-	printf ("fwglLightf light: %d ",light);
-	switch (pname) {
-		case GL_CONSTANT_ATTENUATION: printf ("GL_CONSTANT_ATTENUATION"); break;
-		case GL_LINEAR_ATTENUATION: printf ("GL_LINEAR_ATTENUATION"); break;
-		case GL_QUADRATIC_ATTENUATION: printf ("GL_QUADRATIC_ATTENUATION"); break;
-		case GL_SPOT_CUTOFF: printf ("GL_SPOT_CUTOFF"); break;
-		case GL_SPOT_BEAMWIDTH: printf ("GL_SPOT_BEAMWIDTH"); break;
-	}
-	printf (" %f\n",param);
-#endif
-	
-    
-	switch (pname) {
-		//case GL_CONSTANT_ATTENUATION:
-		//	p->light_constAtten[light] = param;
-		//	break;
-		//case GL_LINEAR_ATTENUATION:
-		//	p->light_linAtten[light] = param;
-		//	break;
-		//case GL_QUADRATIC_ATTENUATION:
-		//	p->light_quadAtten[light] = param;
-		//	break;
-		case LIGHT_AMBIENT:
-			p->light_ambientIntensity[light] = param;
-			break;
-		case LIGHT_INTENSITY:
-			p->light_intensity[light] = param;
-			break;
-		case GL_SPOT_CUTOFF:
-			p->light_spotCutoffAngle[light] = param;
-            //ConsoleMessage ("setting light_spotCutoffAngle for %d to %f\n",light,param);
-			break;
-		case GL_SPOT_BEAMWIDTH:
-			p->light_spotBeamWidth[light] = param;
-            //ConsoleMessage ("setting light_spotBeamWidth for %d to %f\n",light,param);
-
-			break;
-        case GL_LIGHT_RADIUS:
-            p->light_radius[light] = param;
-            break;
-		case LIGHT_SHADOWINTENSITY:
-			p->light_shadowIntensity[light] = param;
-			break;
-
-		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
-	}
-}
-void fwglLighti(int light, int pname, GLint param) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	switch (pname) {
-	case LIGHT_SHADOWS:
-		p->light_shadows[light] = param;
-	case LIGHT_DEPTHMAP:
-		p->light_depthmap[light] = param;
-		break;
-
-	default: {printf("help, unknown fwgllighti param %d\n", pname); }
-	}
-}
 
 
-/* send light info into Shader. if OSX gets glGetUniformBlockIndex calls, we can do this with 1 call 
-	On old pentium with old board in old PCI slot, 8 lights take 1050bytes and 12% of mainloop load
-	3 optimizations reduce the light sending traffic:
-	1. send only active lights 
-		-Android had a problem on startup with this, I changed the flavor a bit - lets see if it works now
-		-cuts from 12% of loop to 4%
-	2. for an active light, send only parameters that light type needs in the shader calc
-		-cuts from 4% of loop to 3%
-	3. if the active light set and shader haven't changed since last shape, don't resend any lights.
-		(active light sets can change during scene graph traversal. But a light itself doesn't change
-		settings during traversal. Just during routing and scripting. So in render_heir 
-		lastShader is set to -1 to trigger a fresh send.
-		- cuts from 3% of loop to .5%
-
-*/
-void sendLightInfo0 (s_shader_capabilities_t *me) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    int i,j, lightcount, lightsChanged;
-	int lightIndexesToSend[MAX_LIGHTS];
-    		
-	// in case we are trying to render a node that has just been killed...
-	if (me==NULL) return;
-
-	PRINT_GL_ERROR_IF_ANY("BEGIN sendLightInfo");
-	/* if one of these are equal to -1, we had an error in the shaders... */
-	//Optimization 3>> if the shader and lights haven't changed since the last shape,
-	//then don't resend the lights to the shader
-	if(0){
-		lightsChanged = FALSE;
-		for(i=0;i<MAX_LIGHT_STACK;i++){
-			if(p->lightChanged[i]) lightsChanged = TRUE;
-		}
-		if(!lightsChanged && (p->currentShader == p->lastShader)) 
-			return;
-		p->lastShader = p->currentShader;
-		//p->lastLoop = p->currentLoop;
-		//p->sendCount++;
-	}
-	//<<end optimization 3
-	profile_start("sendlight");
-	//GLUNIFORM1I(me->lightcount,lightcount);
-	//GLUNIFORM1IV(me->lightState,MAX_LIGHTS,p->lightOnOff); //don't need with lightcount
-	//GLUNIFORM1IV(me->lightType,MAX_LIGHTS,p->lightType); //need to pack into light struct
-    //GLUNIFORM1FV(me->lightRadius,MAX_LIGHTS,p->light_radius); //need to pack into lightstruct
-   
-    // send in lighting info, but only for lights that are "on"
-	// reason: at 1100+ bytes per shape for 8 lights, it takes up 11.2% of mainloop activity on an old pentium
-	// so this cuts it down to about 200 bytes per shape if you have a headlight and another light.
-
-	lightcount = 0;
-	lightsChanged = FALSE;
-	//by looping from the top down, we'll give headlight first chance,
-	//then local lights pushed onto the stack
-	//then global lights last chance
-	for(i=MAX_LIGHT_STACK-1;i>-1;i--){
-		if(i==HEADLIGHT_LIGHT || i<p->nextFreeLight){
-			if (p->lightOnOff[i]){
-				lightIndexesToSend[lightcount] = i;
-				lightcount++;
-				lightsChanged = lightsChanged || p->lightChanged[i];
-				if(lightcount >= MAX_LIGHTS) break;
-			}
-		}
-	}
-	if(!lightsChanged && (p->currentShader == p->lastShader) && !p->refreshLightUniforms) 
-			return;
-	p->refreshLightUniforms = FALSE;
-	p->lastShader = p->currentShader;
-    for (j=0;j<lightcount; j++) {
-		i = lightIndexesToSend[j];
-		p->lightChanged[i] = 0;
-		// this causes initial screen on Android to fail.
-		// dug9 - I added another parameter lightcount above and in ADSL shader
-		// and pack the lights ie. moving headlight up here so its at 
-		// lightcount-1 instead of MAX_LIGHTS-1 on the GPU.
-		// LMK if breaks android
-		//0 - pointlight
-		//1 - spotlight
-		//2 - directionlight
-		//save a bit of bandwidth by not sending unused parameters for a light type
-		if(p->lightType[i]<2 ){ //not direction
-			//shaderVec4 light_Attenuations;
-			//light_Attenuations[0] = p->light_constAtten[i];
-			//light_Attenuations[1] = p->light_linAtten[i];
-			//light_Attenuations[2] = p->light_quadAtten[i];
-			GLUNIFORM3FV(me->lightAtten[j],1,p->light_attenuation[i]); //.light_Attenuations);
-			//GLUNIFORM1F (me->lightConstAtten[j], p->light_constAtten[i]);
-			//GLUNIFORM1F (me->lightLinAtten[j], p->light_linAtten[i]);
-			//GLUNIFORM1F(me->lightQuadAtten[j], p->light_quadAtten[i]);
-			GLUNIFORM1F(me->lightRadius[j], p->light_radius[i]);
-		}
-		if(p->lightType[i]==1 ){ //spot
-			GLUNIFORM1F(me->lightSpotCutoffAngle[j], p->light_spotCutoffAngle[i]);
-			GLUNIFORM1F(me->lightSpotBeamWidth[j], p->light_spotBeamWidth[i]);
-		}
-		//if(p->lightType[i]==0){ //point
-		//	GLUNIFORM1F(me->lightRadius[j],p->light_radius[i]);
-		//}
-		GLUNIFORM3FV(me->lightDirection[j],1, p->light_direction[i]);
-		GLUNIFORM3FV(me->lightLocation[j],1,p->light_location[i]);
-		GLUNIFORM1F(me->lightAmbientIntensity[j],p->light_ambientIntensity[i]);
-		GLUNIFORM3FV(me->lightColor[j],1,p->light_color[i]);
-		GLUNIFORM1F(me->lightIntensity[j],p->light_intensity[i]);
-		GLUNIFORM1I(me->lightType[j],p->lightType[i]);
-		GLUNIFORM1I(me->lightshadows[j], p->light_shadows[i]);
-		GLUNIFORM1F(me->lightshadowIntensity[j], p->light_shadowIntensity[i]);
-		GLUNIFORM1I(me->lightdepthmap[j], p->light_depthmap[i]);
-    }
-	GLUNIFORM1I(me->lightcount,lightcount);
-	//printf("lightcount %d\n",lightcount);
-	profile_end("sendlight");
-    PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
-}
-int new_lightway();
-#endif //OLDCODE
-
-void sendLightInfo2(s_shader_capabilities_t* me);
-void sendLightInfo(s_shader_capabilities_t* me) {
-#ifdef OLDCODE
-	if (new_lightway()) sendLightInfo2(me);
-	else sendLightInfo0(me);
-#else //OLDCODE
-	sendLightInfo2(me);
-#endif //OLDCODE
-}
 /* finished rendering thisshape. */
 void finishedWithGlobalShader(void) {
     //printf ("finishedWithGlobalShader\n");
@@ -1141,45 +757,6 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 	#endif
 }
 
-#ifdef OLDCODE
-void initializeLightTables() {
-	int i;
-	float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-	float dir[] = { 0.0f, 0.0f, -1.0f, 0.0f };
-	float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
-	float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	float At[] = { 1.0f, 0.0f, 0.0f, 0.0f };
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-
-	PRINT_GL_ERROR_IF_ANY("start of initializeightTables");
-
-	for(i=0; i<MAX_LIGHT_STACK; i++) {
-		p->lightOnOff[i] = TRUE;
-		setLightState(i,FALSE);
-            
-		FW_GL_LIGHTFV(i, LIGHT_DIRECTION, dir);
-		FW_GL_LIGHTFV(i, LIGHT_POSITION, pos);
-		FW_GL_LIGHTF(i, LIGHT_AMBIENT, 0.0f);
-		FW_GL_LIGHTFV(i, LIGHT_COLOR, dif);
-		FW_GL_LIGHTF(i, LIGHT_INTENSITY, 1.0f);
-		FW_GL_LIGHTFV(i, LIGHT_ATTENUATION,At);
-		//FW_GL_LIGHTF(i, GL_LINEAR_ATTENUATION,0.0f);
-		//FW_GL_LIGHTF(i, GL_QUADRATIC_ATTENUATION,0.0f);
-		FW_GL_LIGHTF(i, GL_SPOT_CUTOFF,0.0f);
-		FW_GL_LIGHTF(i, GL_SPOT_BEAMWIDTH,0.0f);
-		FW_GL_LIGHTF(i, GL_LIGHT_RADIUS, 100000.0); /* just make it large for now*/ 
-            
-		PRINT_GL_ERROR_IF_ANY("initizlizeLight2.10");
-	}
-	setLightState(HEADLIGHT_LIGHT, TRUE);
-
-	LIGHTING_INITIALIZE
-	
-
-	PRINT_GL_ERROR_IF_ANY("end initializeLightTables");
-}
-#endif //OLDCODE
 
 ttrenderstate renderstate()
 {
@@ -2262,10 +1839,7 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 
 	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
 
-	//p->nextFreeLight = 0;
-#ifdef OLDCODE
-	p->lastShader = -1; //in sendLights,and optimization
-#endif OLDCODE
+
 	tg->RenderFuncs.hitPointDist = -1;
 
 
@@ -2285,13 +1859,7 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 #endif
 
 	if (rs->render_light) {
-#ifdef OLDWAY
-		if (new_lightway()) {
-			render_headlight();
-		}
-#else //OLDWAY
 		render_headlight();
-#endif //OLDWAY
 	}
 	if (rs->render_sensitive) {
 		upd_ray();
