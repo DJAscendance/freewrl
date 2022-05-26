@@ -2672,6 +2672,17 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 	LINK_SHADER(myProg);
 
 	glGetProgramiv(myProg,GL_LINK_STATUS, &success);
+	if (!success) {
+		char buffer[2048];
+		int len;
+		glGetProgramInfoLog(myProg, 2047,&len,buffer);
+		printf("SHADER PROGRAM ERROR: %s\n", buffer);
+		if (strstr(buffer, "error C5041")) {
+			int mvoc;
+			glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &mvoc);
+			printf("gl max vertex output components %d\n", mvoc);
+		}
+	}
 	(*myShader).compiledOK = (success == GL_TRUE);
 	getShaderCommonInterfaces(myShader);
 }
