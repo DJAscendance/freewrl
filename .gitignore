@@ -11,6 +11,7 @@ ipch
 *.sdf
 .vs/
 Thumbs.db
+*.web3dit
 *.opensdf
 *.VC.db
 #make ignore:
