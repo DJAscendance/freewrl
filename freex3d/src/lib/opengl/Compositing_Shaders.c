@@ -3058,6 +3058,47 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 
 /* PLUG: add_light_physical (color, view, normal, materialInfo ); */
 static const GLchar *plug_frag_lighting_physical = "\n\
+#ifdef SHADOW //this stuff only works in the fragment shader \n\
+float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
+{ \n\
+    float shadow = 0.0; \n\
+    vec4 fragPosLightSpace = lightCoord[ilight]; \n\
+	// perform perspective divide \n\
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
+    //instead of inverseTranspose we transform another point, and subtract \n\
+    vec3 projNorm = lightNorm[ilight].xyz/lightNorm[ilight].w; \n\
+	// transform to [0,1] range \n\
+	projCoords = projCoords * 0.5 + 0.5; \n\
+	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
+	float closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
+	// get depth of current fragment from light's perspective \n\
+	float currentDepth = projCoords.z; \n\
+	// calculate bias (based on depth map resolution and slope) \n\
+	vec3 normal = normalize(projNorm-projCoords); \n\
+	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
+    vec3 lightDir = normalize(lightdir); \n\
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+	// check whether current frag pos is in shadow \n\
+	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+#ifdef PCF \n\
+	shadow = 0.0; \n\
+	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
+	for (int x = -1; x <= 1; ++x) \n\
+	{ \n\
+		for (int y = -1; y <= 1; ++y) \n\
+		{ \n\
+			float pcfDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy + vec2(x, y) * texelSize).r; \n\
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0; \n\
+		} \n\
+	} \n\
+	shadow /= 9.0; \n\
+#endif //PCF \n\
+	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
+	if (projCoords.z > 1.0) \n\
+		shadow = 0.0; \n\
+	return shadow; \n\
+} \n\
+#endif //SHADOW \n\
 struct AngularInfo \n\
 { \n\
 	float NdotL; // cos angle between normal and light direction \n\
@@ -3186,7 +3227,19 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 				} \n\
 			} \n\
 		} \n\
-		vertexcolor   += on * attenuation * spot * light.color * light.intensity * shade; \n\
+		float shadowtest = 1.0; \n\
+#ifdef SHADOW \n\
+		if (light.shadows) { \n\
+			if (myLightType > 0) { \n\
+				//spot, directional, uses 2D shadow texture \n\
+				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
+			} \n\
+			else { \n\
+				//point, uses cubemap shadow texture \n\
+			} \n\
+		} \n\
+#endif //SHADOW \n\
+		vertexcolor   += on * shadowtest * attenuation * spot * light.color * light.intensity * shade; \n\
 		//vertexcolor   += shade; //vec3(0.0,1.0,1.0); \n\
 	} \n\
 	vertexcolor = clamp(vertexcolor, 0.0, 1.0); \n\
