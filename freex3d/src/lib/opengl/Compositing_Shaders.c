@@ -691,18 +691,6 @@ uniform int u_pointMethod; \n\
 uniform float u_pointFogCoord; \n\
 uniform vec4 u_pointCPV; \n\
 #endif //POINTP \n\
-varying vec4 lightCoord[8]; \n\
-varying vec4 lightNorm[8]; \n\
-#ifdef LIT //&& SHADOW \n\
-//similar to PROJTEX, could be generalized \n\
-uniform mat4 lightMat[8]; //could be in LightSourceParameters\n\
-void generateLightCoord(void) { \n\
-	for(int i=0;i<lightcount;i++){ \n\
-		lightCoord[i] = lightMat[i] * castle_vertex_eye; \n\
-		lightNorm[i] = lightMat[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-	} \n\
-} \n\
-#endif //LIT \n\
  \n\
  //literal string size break \n" "\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
@@ -797,9 +785,6 @@ void main(void) \n\
   } \n\
   #endif //PARTICLE \n\
   castle_normal_eye = normalize(fw_NormalMatrix * normal_object); \n\
-  #ifdef LIT \n\
-    generateLightCoord(); \n\
-  #endif //LIT \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
@@ -1024,8 +1009,7 @@ varying vec4 castle_Color; \n\
 #ifdef LITE \n\
 #define MAX_LIGHTS 8 \n\
 //for shadows, shape frag coord transformed into light system by vertex shader \n\
-varying vec4 lightCoord[8]; \n\
-varying vec4 lightNorm[8]; \n\
+uniform mat4 lightMat[8]; \n\
 uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
@@ -1311,8 +1295,6 @@ uniform int ptmdepthmap[8]; \n\
 uniform int ntdesc[8]; \n\
 uniform int ptmCount; \n\
 uniform mat4 ptmGenMatCam[8]; \n\
-//varying vec4 projTexCoord[8]; \n\
-//varying vec4 projTexNorm[8]; \n\
 //per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
 uniform int tunits[16]; \n\
 uniform int modes[16]; \n\
@@ -3050,11 +3032,13 @@ static const GLchar *plug_frag_lighting_physical = "\n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
-    vec4 fragPosLightSpace = lightCoord[ilight]; \n\
+    vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
+    vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+    vec4 fragPosLightSpace = lightCoord; \n\
 	// perform perspective divide \n\
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
     //instead of inverseTranspose we transform another point, and subtract \n\
-    vec3 projNorm = lightNorm[ilight].xyz/lightNorm[ilight].w; \n\
+    vec3 projNorm = lightNorm.xyz/lightNorm.w; \n\
 	// transform to [0,1] range \n\
 	projCoords = projCoords * 0.5 + 0.5; \n\
 	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
@@ -3249,11 +3233,13 @@ static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
-    vec4 fragPosLightSpace = lightCoord[ilight]; \n\
+    vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
+    vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+    vec4 fragPosLightSpace = lightCoord; \n\
 	// perform perspective divide \n\
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
     //instead of inverseTranspose we transform another point, and subtract \n\
-    vec3 projNorm = lightNorm[ilight].xyz/lightNorm[ilight].w; \n\
+    vec3 projNorm = lightNorm.xyz/lightNorm.w; \n\
 	// transform to [0,1] range \n\
 	projCoords = projCoords * 0.5 + 0.5; \n\
 	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
