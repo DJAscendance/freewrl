@@ -703,18 +703,6 @@ void generateLightCoord(void) { \n\
 	} \n\
 } \n\
 #endif //LIT \n\
-#ifdef PROJTEX \n\
-uniform mat4 ptmGenMatCam[8]; \n\
-uniform int ptmCount; \n\
-varying vec4 projTexCoord[8]; \n\
-varying vec4 projTexNorm[8]; \n\
-void vertProjCalTexCoord(void) { \n\
-	for(int i=0;i<ptmCount;i++){ \n\
-		projTexCoord[i] = ptmGenMatCam[i] * castle_vertex_eye; \n\
-		projTexNorm[i] = ptmGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-	} \n\
-} \n\
-#endif //PROJTEX \n\
  \n\
  //literal string size break \n" "\
  vec3 dehomogenize(in mat4 matrix, in vec4 vector){ \n\
@@ -809,9 +797,6 @@ void main(void) \n\
   } \n\
   #endif //PARTICLE \n\
   castle_normal_eye = normalize(fw_NormalMatrix * normal_object); \n\
-  #ifdef PROJTEX \n\
-	vertProjCalTexCoord(); \n\
-  #endif //PROJETEX \n\
   #ifdef LIT \n\
     generateLightCoord(); \n\
   #endif //LIT \n\
@@ -1325,8 +1310,9 @@ uniform float ptmshadowIntensity[8]; \n\
 uniform int ptmdepthmap[8]; \n\
 uniform int ntdesc[8]; \n\
 uniform int ptmCount; \n\
-varying vec4 projTexCoord[8]; \n\
-varying vec4 projTexNorm[8]; \n\
+uniform mat4 ptmGenMatCam[8]; \n\
+//varying vec4 projTexCoord[8]; \n\
+//varying vec4 projTexNorm[8]; \n\
 //per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
 uniform int tunits[16]; \n\
 uniform int modes[16]; \n\
@@ -1336,8 +1322,10 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	int k=0; \n\
 	for(int i=0;i<ptmCount;i++) { \n\
         //is point on + side of projector ? \n\
-		if( projTexCoord[i].z > 0.0 ){ \n\
-			vec4 pp = projTexCoord[i]; \n\
+		vec4 projTexCoord = ptmGenMatCam[i] * vec4(castle_vertex_eye.xyz,1.0); \n\
+        vec4 projTexNorm = ptmGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+		if( projTexCoord.z > 0.0 ){ \n\
+			vec4 pp = projTexCoord; \n\
 			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
 			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
 			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
@@ -1346,7 +1334,7 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
 				if(ptmbackCull[i] == 1) \n\
                 { \n\
-					vec3 pn = projTexNorm[i].xyz/projTexNorm[i].w; \n\
+					vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
 					//if(!gl_FrontFacing) pn = -pn; \n\
 					vec3 nvec = normalize(pn - pptex.xyz); \n\
 					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
@@ -3643,7 +3631,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 		AddDefine(SHADERPART_FRAGMENT,"UNLIT",CompleteCode);
 	}
 	if(DESIRE(whichOne.base,HAVE_PROJECTIVETEXTURE)){
-		AddDefine(SHADERPART_VERTEX,"PROJTEX",CompleteCode);
+		//May 27, 2022 moved PROJTEX calc to frag to reduce vertex shader component output, limited to 128
 		AddDefine(SHADERPART_FRAGMENT,"PROJTEX",CompleteCode);
 		AddDefine(SHADERPART_FRAGMENT,"TEX",CompleteCode);
 		if(!colCalc_loaded) Plug(SHADERPART_FRAGMENT,plug_finalColCalc,CompleteCode,&unique_int);	

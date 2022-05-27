@@ -1193,7 +1193,7 @@ near plane is thus farPlane - highestPeak.
 
 static void shaderErrorLog(GLuint myShader, char *which) {
 	#if defined  (GL_VERSION_2_0) || defined (GL_ES_VERSION_2_0)
-		#define MAX_INFO_LOG_SIZE 512
+		#define MAX_INFO_LOG_SIZE 2048
 		GLchar infoLog[MAX_INFO_LOG_SIZE];
 		char outline[MAX_INFO_LOG_SIZE*2];
 		glGetShaderInfoLog(myShader, MAX_INFO_LOG_SIZE, NULL, infoLog);
