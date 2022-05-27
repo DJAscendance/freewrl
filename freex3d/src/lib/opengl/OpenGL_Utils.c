@@ -2674,6 +2674,7 @@ static void makeAndCompileShader(struct shaderTableEntry *me) {
 	glGetProgramiv(myProg,GL_LINK_STATUS, &success);
 	if (!success) {
 		char buffer[2048];
+		memset(buffer, 0, 2048);
 		int len;
 		glGetProgramInfoLog(myProg, 2047,&len,buffer);
 		printf("SHADER PROGRAM ERROR: %s\n", buffer);
