@@ -152,6 +152,9 @@ usehit* shadowTable_item(int i) {
 // a specialization of InternalRep - see PolyRep.h
 struct X3D_LightRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
+	//light section
+	void* lightbuf;
+	int ilightbuf; //opengl uniform buffer index
 	//depth section
 	struct X3D_Node* depthTexture;
 	int size;
@@ -168,6 +171,7 @@ void* set_LightRep(void* _lightrep)
 		memset(_lightrep, 0, sizeof(struct X3D_LightRep));
 		lightrep = (struct X3D_LightRep*)_lightrep;
 		lightrep->itype = 5;
+		lightrep->ilightbuf = -1;
 		lightrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
 		lightrep->idepthtexture = -1;
 	}
@@ -359,26 +363,59 @@ double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix)
 	matrix_lookAtd(eyed,centerd,upd,matrix);
 	return matrix;
 }
+
+
+//UNIFORM BUFFER
+//https ://www.khronos.org/opengl/wiki/Interface_Block_(GLSL) 
+//-about ¾ down Buffer backed
+//https ://learnopengl.com/Advanced-OpenGL/Advanced-GLSL 
+//-25 % down Interface blocks > Uniform blocks, Lights mentioned.
+
+static int light_buf = 0;
+int light_buffering() {
+	return light_buf;
+}
+struct Lightbuf {
+	//std140 padding required so GPU padding using std140 is aligned
+	//static part of light, stored in gl buffer
+	float color[4];			//padded so consistently ends on vec4 boundary on CPU side, can read as vec3 on GPU side
+	float location[4]; 
+	float halfVector[4];
+	float direction[4]; 
+	float attenuations[4]; 
+	float matview[16];		//contains .location and .direction +up please transpose for shader
+	float matproj[16];		//shadow map > contains frustum projection, please transpose for shader
+	float ambient;			//the rest take up 4 bytes each on GPU and CPU, no padding needed except at end
+	float intensity;
+	float spotBeamWidth;
+	float spotCutoff;
+	float lightRadius;
+	float shadowIntensity;
+	bool shadows;
+	int depthmap;
+	int lighttype;
+	int pad1;
+	int pad2;
+	int pad3;
+};
+static int lightpose_buf = 0;
+int lightpose_buffering() {
+	return lightpose_buf;
+}
+struct LightPose {
+	//std140 padding required so GPU padding using std140 is aligned
+	//dynamic part of light, specifically modelview matrix aka visit transform 
+	// can be different for each render_ visit
+	// --can have multiple DEF/USE references to a light, or parent can be DEF/USEd--
+	// and typically re-sent to shader every child_shape affected, unless buffered
+	// lifespan of a visit transform is maximum 1 frame, so when lightTable cleared, should be cleared.
+	float modelview[16];	//visit transform: to transform .location .direction into viewpoint / eye space
+	float eye2frustum[16];	//for shadow maps, transforms from viewpoint to shadow map frustum
+	int lightbuf;			//opengl uniform buffer index pointing to a struct Lightbuf
+	int lightbufIndex;		//index of bound LightBufs in shader.
+	int pad2;
+};
 void compile_SpotLight (struct X3D_SpotLight *node) {
-    struct point_XYZ vec;
-	float dlen;
-    int i;
-
- //   for (i=0; i<3; i++) node->_loc.c[i] = node->location.c[i];
- //   node->_loc.c[3] = 1.0f;/* 1 == this is a position, not a vector */
-
- //   vec.x = (double) node->direction.c[0];
- //   vec.y = (double) node->direction.c[1];
- //   vec.z = (double) node->direction.c[2];
-	//dlen = veclength(vec);
-	//if(dlen < .1f) {
-	//	vec.x = 0.0; vec.y = 0.0, vec.z = -1.0;
-	//}
- //   normalize_vector(&vec);
- //   node->_dir.c[0] = (float) vec.x;
- //   node->_dir.c[1] = (float) vec.y;
- //   node->_dir.c[2] = (float) vec.z;
- //   node->_dir.c[3] = 1.0f;/* 1.0 = SpotLight */
 	if (node->shadows) {
 		compile_shadowMap(X3D_NODE(node)); //prepares fbo buffer and texture
 		//prepare local view matrix (from node.location, node.direction which aren't included in modelview matrix)
@@ -394,9 +431,49 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 		//- up is somewhat arbitrary -spotlight is symmetrical about direction vector-
 		//  but must be consistent between depth texture rendering and shader sampling
 		float up[3], center[3];
-		vecset3f(up, 0.0f, 1.0f, 0.0f); 
+		vecset3f(up, 0.0f, 1.0f, 0.0f);
 		vecadd3f(center, node->location.c, node->direction.c);
 		matrix_lookAtfd(node->location.c, center, up, lightrep->matview);
+	}
+
+	if (light_buffering()) {
+		//static / infrequently changing part of light
+		//.on and .global aren't included, they are implied in the list sent in sendLightInfo() to shader
+		//modelview matrix isn't included: DEF/USE instances each have a different LightPose
+		node->_intern = set_LightRep(node->_intern);
+		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+		if (!lightrep->lightbuf) {
+			lightrep->lightbuf = malloc(sizeof(struct Lightbuf));
+			memset(lightrep->lightbuf, 0, sizeof(struct Lightbuf));
+		}
+		struct Lightbuf* lightbuf = (struct Lightbuf*)lightrep->lightbuf;
+		//fill out lightbuf from node fields
+		veccopy3f(lightbuf->color, node->color.c);
+		veccopy3f(lightbuf->location, node->location.c);
+		veccopy3f(lightbuf->direction, node->direction.c);
+		veccopy3f(lightbuf->attenuations, node->attenuation.c);
+		lightbuf->ambient = node->ambientIntensity;
+		lightbuf->intensity = node->intensity;
+		lightbuf->spotBeamWidth = node->beamWidth;
+		lightbuf->spotCutoff = node->cutOffAngle;
+		lightbuf->lightRadius = node->radius;
+		lightbuf->shadows = node->shadows;
+		lightbuf->lighttype = 1; //0 point 1 spot 2 direction
+		//if shadows, update proj and view matx
+		if (lightbuf->shadows) {
+			double mtrans[16];
+			mattranspose(mtrans, lightrep->matview);
+			double2float(lightbuf->matview, mtrans,16);
+			mattranspose(mtrans, lightrep->matproj);
+			double2float(lightbuf->matproj, mtrans,16);
+		}
+		if (lightrep->ilightbuf < 0)
+			glGenBuffers(1, &lightrep->ilightbuf);
+		glBindBuffer(GL_UNIFORM_BUFFER, lightrep->ilightbuf);
+		int bufsize = sizeof(struct Lightbuf); 
+		glBufferData(GL_UNIFORM_BUFFER, bufsize, lightbuf, GL_STATIC_DRAW); // allocate 152 bytes of memory
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 	}
 
     MARK_NODE_COMPILED;
@@ -419,6 +496,28 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 		if (node->shadows) {
 			shadowTable_push(uhit);
 			render_shadowMap(X3D_NODE(node));
+		}
+		if (lightpose_buffering()) {
+			//dynamic maximum lifespan 1 frame buffering of light visit transform
+			//so (sibling or global) affected shapes can share common LightPose rather than resending on every child_shape
+			struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			float w2l[16];
+			//following textureProjector
+			double modelviewinv[16], eye2projector[16], matfull[16], mtrans[16];
+			matinverse(modelviewinv, uhit.mvm);
+			matmultiplyAFFINE(eye2projector, modelviewinv, lightrep->matview);
+			matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
+			double2float(w2l, matfull, 16);
+			struct LightPose pose;
+			mattranspose(mtrans, matfull);
+			double2float(pose.eye2frustum, mtrans, 16);
+			mattranspose(mtrans, uhit.mvm);
+			double2float(pose.modelview, mtrans, 16);
+			pose.lightbuf = lightrep->ilightbuf;
+			//push_heavy should manage a reusable list of uniform buffers
+			// - the size of maximum light visits per frame
+			// - and refresh buffer contents during a push (and ignoring old contents on pop or lightTable_clear())
+		//	lightTable_push_heavy(uhit, &pose); //not yet implemented
 		}
 	}
 }
@@ -1186,10 +1285,86 @@ void transformDirectionToEye0(double *modelMatrix, float* dir)
 	veccopy3f(dir, aux);
 
 }
-void sendLightInfo2(s_shader_capabilities_t* me) {
+
+/*
+
+void clear_uniform_buffers_used() {
+	//call this in child_shape just before you start sending data / textures to the shader program
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	p->uniformbufs.n = 0;
+}
+int next_uniform_buffer() {
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	p->tuniformbufs.n++;
+	return p->uniformbufs.n - 1;
+}
+
+int uniform_buffers_used() {
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+	return p->uniformbufs.n;
+}
+int bind_or_share_next_uniform_buffer(char *uniform_block_name, GLint ubuffer) {
+	// call this when sending uniform buffers to the shader 
+	// benefits 
+	// this one automatically
+	// a) checks if this uniform buffer is already bound
+	//   and if so return the buffer unit OR
+	// b) if not already bound, increments the buffer unit, binds (and returns its  unit index
+
+	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
+
+	//check if sharable
+	int unit = -1;
+	for (int i = 0; i < p->uniformbufs.n; i++) {
+		if (p->uniformbufs.p[i] == ubuffer) {
+			unit = i;
+			break;
+		}
+	}
+	if (unit == -1) {
+		unit = next_textureUnit();
+		p->uniformbufs.p[unit] = ubuffer;
+		//glActiveTexture(GL_TEXTURE0 + unit);
+		//glBindTexture(samplerType, ubuffer);
+	}
+	return unit;
+}
+*/
+void sendLightInfo3(s_shader_capabilities_t* me) {
 	// in case we are trying to render a node that has just been killed...
 	if (me == NULL) return;
 
+	PRINT_GL_ERROR_IF_ANY("BEGIN sendLightInfo2");
+	int lightcount = lightTable_count();
+
+	for (int j = 0; j < lightcount; j++) {
+		usehit* uhit = lightTable_item(j);
+		struct X3D_Node* node = uhit->node;
+		struct X3D_PointLight* plight = X3D_POINTLIGHT(node);
+		struct X3D_SpotLight* slight = X3D_SPOTLIGHT(node);
+		struct X3D_DirectionalLight* dlight = X3D_DIRECTIONALLIGHT(node);
+		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+		//int light_index = bind_or_share_next_uniform_buffer("lightbuf",pose->lightbufIndex);
+		//GLUNIFORM1I(me->lightbuf[j], light_index)
+		//if (lightpose_buffering()) {
+		//	struct LightPose* pose = lightTable_item_heavy(j);
+		//	me->lightpose[j] = glGetUniformBlockIndex(myProg, "lightPose");
+		//	//int pose_index = bind_or_share_next_uniform_buffer(pose->lightposebuf);
+		//	//GLUNIFORM1I(me->lightpose[j], pose_index);
+		//}
+	}
+	GLUNIFORM1I(me->lightcount, lightcount);
+
+	PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
+
+}
+void sendLightInfo2(s_shader_capabilities_t* me) {
+	// in case we are trying to render a node that has just been killed...
+	if (me == NULL) return;
+	if (light_buffering()) {
+		sendLightInfo3(me);
+		return;
+	}
 	PRINT_GL_ERROR_IF_ANY("BEGIN sendLightInfo2");
 	int lightcount = lightTable_count();
 
