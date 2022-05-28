@@ -1183,6 +1183,10 @@ void generate_shadowmap_2D(usehit uhit) {
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
 	glViewport(0, 0, isize, isize); //viewport we want 
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_PUSH_MATRIX();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	FW_GL_PUSH_MATRIX();
 
 	{
 		textureTableIndexStruct_s* ttip;
@@ -1222,9 +1226,14 @@ void generate_shadowmap_2D(usehit uhit) {
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
 	}
+	if (0) set_debug_quad(3, lightrep->idepthtexture);
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_POP_MATRIX();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	FW_GL_POP_MATRIX();
+
 	popnset_viewport();
 	popnset_framebuffer();
-	if(0) set_debug_quad(3, lightrep->idepthtexture);
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
 
