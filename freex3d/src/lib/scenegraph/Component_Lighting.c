@@ -423,8 +423,8 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
 		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		//perspective_projection_matrix(node->cutOffAngle*2.0, 1.0, .1, 10000.0, lightrep->matproj);
-		projPerspective(node->cutOffAngle * (180.0 / PI) * 2.0, 1.0, 1.0, 15.0, lightrep->matproj);
-		set_debug_quad_near_farplane(1.0f, 15.0f);
+		projPerspective(node->cutOffAngle * (180.0 / PI) * 2.0, 1.0, .5, (double)node->radius, lightrep->matproj);
+		set_debug_quad_near_farplane(.5f, node->radius);
 
 		//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		//for up vector in theory we need a few cross products to ensure its at least orthogonal to direction
@@ -1227,7 +1227,7 @@ void PRINT_GL_ERROR(GLenum _global_gl_err) {
 	else if (_global_gl_err == GL_TABLE_TOO_LARGE) {printf ("GL_TABLE_TOO_LARGE"); }
 	else printf ("unknown error %d ",_global_gl_err);
 }
-void generate_shadowmap_2D(usehit uhit) {
+void generate_shadowmap_2D(usehit uhit, int index) {
 	//call from mainloop once per frame:
 	//foreach shadow depth texture location in genshadow list
 	// set viewpoint pose
@@ -1299,17 +1299,17 @@ void generate_shadowmap_2D(usehit uhit) {
 
 			matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
 			matmultiplyAFFINE(world2lightview, lightrep->matview, world2light);
-
+			//printmatrix2(lightrep->matview, "lightrep matview");
+			//printmatrix2(world2lightview, "world2lightview");
 			fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
 			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightview);
 		}
-
 		/*  4. Nodes (not the blended ones)*/
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
 
 		profile_start("hier_geom");
 		struct X3D_Node* root = uhit.userdata ? uhit.userdata : rootNode();
-		render_hier(rootNode(), VF_Geom | VF_Depth);
+		render_hier(root, VF_Geom | VF_Depth);
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
@@ -1346,7 +1346,7 @@ void generate_GlobalShadowMaps() {
 				case NODE_SpotLight:
 				case NODE_TextureProjector:
 				case NODE_TextureProjectorParallel:
-					generate_shadowmap_2D(uhit);
+					generate_shadowmap_2D(uhit, i);
 				default:
 					break;
 			}
@@ -1455,6 +1455,7 @@ void sendLightInfo3(s_shader_capabilities_t* me) {
 	PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
 
 }
+GLint tunit(int index);
 void sendLightInfo2(s_shader_capabilities_t* me) {
 	// in case we are trying to render a node that has just been killed...
 	if (me == NULL) return;
@@ -1515,6 +1516,8 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			//lookup a textureUnit[index] index to use on this pass
 			//process the uhit->mvm matrix for shadows
 			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, lightrep->idepthtexture);
+			//int iunit = tunit(itexunit);
+			glUniform1i(me->textureUnit[itexunit], itexunit); // iunit);
 			GLUNIFORM1I(me->lightdepthmap[j], itexunit);
 			float w2l[16];
 			{
