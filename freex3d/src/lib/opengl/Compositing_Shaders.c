@@ -3049,7 +3049,10 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	vec3 normal = normalize(projNorm-projCoords); \n\
 	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
     vec3 lightDir = normalize(lightdir); \n\
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+    // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping \n\
+    // solve shadow acne with a small bias \n\
+	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+    float bias = 0.005; \n\
 	// check whether current frag pos is in shadow \n\
 	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
 #ifdef PCF \n\
@@ -3250,7 +3253,10 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	vec3 normal = normalize(projNorm-projCoords); \n\
 	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
     vec3 lightDir = normalize(lightdir); \n\
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+    // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping \n\
+    // solve shadow acne with a small bias \n\
+	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+    float bias = 0.005; \n\
 	// check whether current frag pos is in shadow \n\
 	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
 #ifdef PCF \n\
