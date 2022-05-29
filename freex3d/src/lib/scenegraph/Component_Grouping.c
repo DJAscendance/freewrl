@@ -366,11 +366,7 @@ void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffe
 void sib_prep(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_DirectionalLight:
-			sib_prep_Light(parent, sibAffector);
-			break;
 		case NODE_SpotLight:
-			sib_prep_Light(parent, sibAffector);
-			break;
 		case NODE_PointLight:
 			sib_prep_Light(parent, sibAffector);
 			break;
@@ -398,11 +394,7 @@ void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffec
 void sib_fin(struct X3D_Node *parent, struct X3D_Node *sibAffector){
 	switch(sibAffector->_nodeType){
 		case NODE_DirectionalLight:
-			sib_fin_Light(parent, sibAffector);
-			break;
 		case NODE_SpotLight:
-			sib_fin_Light(parent, sibAffector);
-			break;
 		case NODE_PointLight:
 			sib_fin_Light(parent, sibAffector);
 			break;

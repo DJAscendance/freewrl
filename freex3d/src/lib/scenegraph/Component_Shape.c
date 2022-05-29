@@ -1414,9 +1414,9 @@ void child_Shape (struct X3D_Shape *node) {
 	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other) || (renderstate()->render_depth)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
-		PRINT_GL_ERROR_IF_ANY("child_shape depth start"); 
 		if (renderstate()->render_depth) {
 			if (node->castShadow) {
+				PRINT_GL_ERROR_IF_ANY("child_shape depth start");
 				s_shader_capabilities_t* scap;
 				shaderflagsstruct shader_requirements;
 				memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
@@ -1424,21 +1424,20 @@ void child_Shape (struct X3D_Shape *node) {
 				scap = getMyShaders(shader_requirements);
 				enableGlobalShader(scap);
 				sendMatriciesToShader(scap);  //send matrices
-			}
-			else {
-				return; //do nothing
-			}
-		}
-		PRINT_GL_ERROR_IF_ANY("child_shape depth before render");
-		render_node(tmpNG);
-		if (peek_group_visible()) {  //v4 X3DGroupingNode .visible 
-			//reallyDraw();
-			reallyDrawOnce();
-		}
-		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
-		finishedWithGlobalShader();
+				render_node(tmpNG);
+				if (peek_group_visible()) {  //v4 X3DGroupingNode .visible 
+					//reallyDraw();
+					reallyDrawOnce();
+				}
+				clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
+				finishedWithGlobalShader();
 
-		PRINT_GL_ERROR_IF_ANY("child_shape depth end");
+				PRINT_GL_ERROR_IF_ANY("child_shape depth end");
+			}
+		}
+		else {
+			render_node(tmpNG);
+		}
 		return;
 	}
 	p = (ppComponent_Shape)tg->Component_Shape.prv;

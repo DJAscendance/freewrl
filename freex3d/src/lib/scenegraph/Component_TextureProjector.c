@@ -246,12 +246,12 @@ void resend_textureprojector_matrix()
 		if(me->ptmGenMatCam[i] > -1){
 			ptuple = vector_get_ptr(usehit, p->projector_stack, i);
 			double matfull[16];
-			matmultiplyFULL(matfull, ptuple->mvm, ptuple->proj);
+			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
+			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
+			matmultiplyFULL(matfull, ptuple->mvm, projrep->matproj);
 			double2float(TenLinearGexMatCam0f, matfull,16);
 			//double2float(TenLinearGexMatCam0f, ptuple->userdata, 16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
-			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
-			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
 			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
@@ -437,7 +437,7 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			ptuple.node = X3D_NODE(node);
 			matcopy(ptuple.mvm, eye2projector);
 			//ptuple.userdata = projrep->matproj;
-			matcopy(ptuple.proj, projrep->matproj);
+			//matcopy(ptuple.proj, projrep->matproj);
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
@@ -592,7 +592,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			usehit ptuple;
 			ptuple.node = X3D_NODE(node);
 			matcopy(ptuple.mvm, eye2projector);
-			matcopy(ptuple.proj, projrep->matproj);
+			//matcopy(ptuple.proj, projrep->matproj);
 			//ptuple.userdata = projrep->matproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;

@@ -669,8 +669,13 @@ void getMotifWindowedGLwin(Window *win);
 				if (_global_gl_err == GL_INVALID_ENUM) {printf ("GL_INVALID_ENUM"); } \
 				else if (_global_gl_err == GL_INVALID_VALUE) {printf ("GL_INVALID_VALUE"); } \
 				else if (_global_gl_err == GL_INVALID_OPERATION) {printf ("GL_INVALID_OPERATION"); } \
+				else if (_global_gl_err == GL_STACK_OVERFLOW) {printf ("GL_STACK_UNDERFLOW"); } \
+				else if (_global_gl_err == GL_STACK_UNDERFLOW) {printf ("GL_STACK_UNDERFLOW"); } \
 				else if (_global_gl_err == GL_OUT_OF_MEMORY) {printf ("GL_OUT_OF_MEMORY"); } \
-				else printf ("unknown error"); \
+				else if (_global_gl_err == GL_INVALID_FRAMEBUFFER_OPERATION) {printf ("GL_INVALID_FRAMEBUFFER_OPERATION"); } \
+				else if (_global_gl_err == GL_CONTEXT_LOST) {printf ("GL_CONTEXT_LOST"); } \
+				else if (_global_gl_err == GL_TABLE_TOO_LARGE) {printf ("GL_TABLE_TOO_LARGE"); } \
+				else printf ("unknown error %d ",_global_gl_err); \
 				printf(" here: %s (%s:%d)\n", _where,__FILE__,__LINE__); \
 				_global_gl_err = glGetError(); \
 			} \
