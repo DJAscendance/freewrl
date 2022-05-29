@@ -5292,6 +5292,7 @@ void startOfLoopNodeUpdates(void) {
 						if (X3D_DIRECTIONALLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
 						else{
+							update_renderFlag(pnode, VF_globalLight);
 							//LOCAL_LIGHT_PARENT_FLAG
 							ADD_TO_PARENT_SIBAFFECTORS
 						}
@@ -5302,6 +5303,7 @@ void startOfLoopNodeUpdates(void) {
 						if (X3D_SPOTLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
 						else{
+							update_renderFlag(pnode, VF_globalLight);
 							//LOCAL_LIGHT_PARENT_FLAG
 							ADD_TO_PARENT_SIBAFFECTORS
 						}
@@ -5312,6 +5314,7 @@ void startOfLoopNodeUpdates(void) {
 						if (X3D_POINTLIGHT(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
 						else{
+							update_renderFlag(pnode, VF_globalLight);
 							//LOCAL_LIGHT_PARENT_FLAG
 							ADD_TO_PARENT_SIBAFFECTORS
 						}

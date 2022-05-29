@@ -478,7 +478,67 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 
     MARK_NODE_COMPILED;
 }
+void shadow_Light(struct X3D_Node* parent, struct X3D_Node* node) {
+	usehit uhit;
+	COMPILE_IF_REQUIRED;
 
+	uhit.node = X3D_NODE(node);
+	uhit.userdata = parent; //will render_hier(parent,..) in generate_globalShadowMaps()
+	fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+	//lightTable_push(uhit);
+	if (node->_nodeType == NODE_SpotLight) {
+		struct X3D_SpotLight* light = X3D_SPOTLIGHT(node);
+		if (light->shadows) {
+			shadowTable_push(uhit);
+			//render_shadowMap(X3D_NODE(node));
+		}
+	}
+}
+void shadow_Light_debug_hide(struct X3D_Node *parent, struct X3D_SpotLight* node) {
+	float ft;
+
+	/* if we are doing global lighting, is this one for us? */
+	//RETURN_IF_LIGHT_STATE_NOT_US
+	if (renderstate()->render_light != VF_globalLight) return;
+	if (node->global) return;
+
+		COMPILE_IF_REQUIRED;
+
+	if (node->on) {
+		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
+		usehit uhit;
+		uhit.node = X3D_NODE(node);
+		uhit.userdata = NULL;
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+		lightTable_push(uhit);
+		if (node->shadows) {
+			shadowTable_push(uhit);
+			render_shadowMap(X3D_NODE(node));
+		}
+		if (lightpose_buffering()) {
+			//dynamic maximum lifespan 1 frame buffering of light visit transform
+			//so (sibling or global) affected shapes can share common LightPose rather than resending on every child_shape
+			struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			float w2l[16];
+			//following textureProjector
+			double modelviewinv[16], eye2projector[16], matfull[16], mtrans[16];
+			matinverse(modelviewinv, uhit.mvm);
+			matmultiplyAFFINE(eye2projector, modelviewinv, lightrep->matview);
+			matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
+			double2float(w2l, matfull, 16);
+			struct LightPose pose;
+			mattranspose(mtrans, matfull);
+			double2float(pose.eye2frustum, mtrans, 16);
+			mattranspose(mtrans, uhit.mvm);
+			double2float(pose.modelview, mtrans, 16);
+			pose.lightbuf = lightrep->ilightbuf;
+			//push_heavy should manage a reusable list of uniform buffers
+			// - the size of maximum light visits per frame
+			// - and refresh buffer contents during a push (and ignoring old contents on pop or lightTable_clear())
+		//	lightTable_push_heavy(uhit, &pose); //not yet implemented
+		}
+	}
+}
 void render_SpotLight(struct X3D_SpotLight *node) {
 	float ft;
 
@@ -491,6 +551,7 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 		usehit uhit;
 		uhit.node = X3D_NODE(node);
+		uhit.userdata = NULL;
 		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 		lightTable_push(uhit);
 		if (node->shadows) {
@@ -538,8 +599,8 @@ void prep_EnvironmentLight(struct X3D_EnvironmentLight * node){
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
+	struct X3D_PointLight* light = X3D_POINTLIGHT(sibAffector);
 	if (renderstate()->render_light != VF_globalLight) {
-		struct X3D_PointLight* light = X3D_POINTLIGHT(sibAffector);
 		if (light->global == FALSE && light->on == TRUE) {
 			//should lightTable_push(usehit):
 			switch (light->_nodeType) {
@@ -556,6 +617,13 @@ void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
 				break;
 			}
 		}
+	}
+	else {
+		if (light->global == FALSE && light->on == TRUE && light->shadows == TRUE) {
+			//does not lightTable_push(usehit), but does shadowmap_push(usehit)
+			shadow_Light(parent,sibAffector);
+		}
+
 	}
 }
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
@@ -607,7 +675,8 @@ void compile_shadowMap(struct X3D_Node* node) {
 		struct textureTableIndexStruct* tti;
 
 		tti = getTableIndex(tex->__textureTableIndex);
-		tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+		tti->status = TEX_LOADED; // TEX_NEEDSBINDING; //I found I didn't need - yet
+		tti->idepthbuffer = 1;
 		tti->x = tti->y = lightrep->size;
 		//tti->z = 6;
 //		loadTextureNode(X3D_NODE(tex), NULL);
@@ -713,7 +782,7 @@ void render_shadowMap(struct X3D_Node* node) {
 		}
 	}
 	//render what we have now for debugging?
-	{
+	if(0) {
 		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
 		struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)lightrep->depthTexture;
 		render_node(X3D_NODE(tex));
@@ -1146,6 +1215,18 @@ void render_debug_quad() {
 	renderQuad();
 
 }
+void PRINT_GL_ERROR(GLenum _global_gl_err) {
+	if (_global_gl_err == GL_INVALID_ENUM) {printf ("GL_INVALID_ENUM"); }
+	else if (_global_gl_err == GL_INVALID_VALUE) {printf ("GL_INVALID_VALUE"); }
+	else if (_global_gl_err == GL_INVALID_OPERATION) {printf ("GL_INVALID_OPERATION"); }
+	else if (_global_gl_err == GL_STACK_OVERFLOW) {printf ("GL_STACK_UNDERFLOW"); }
+	else if (_global_gl_err == GL_STACK_UNDERFLOW) {printf ("GL_STACK_UNDERFLOW"); }
+	else if (_global_gl_err == GL_OUT_OF_MEMORY) {printf ("GL_OUT_OF_MEMORY"); }
+	else if (_global_gl_err == GL_INVALID_FRAMEBUFFER_OPERATION) {printf ("GL_INVALID_FRAMEBUFFER_OPERATION"); }
+	else if (_global_gl_err == GL_CONTEXT_LOST) {printf ("GL_CONTEXT_LOST"); }
+	else if (_global_gl_err == GL_TABLE_TOO_LARGE) {printf ("GL_TABLE_TOO_LARGE"); }
+	else printf ("unknown error %d ",_global_gl_err);
+}
 void generate_shadowmap_2D(usehit uhit) {
 	//call from mainloop once per frame:
 	//foreach shadow depth texture location in genshadow list
@@ -1200,6 +1281,12 @@ void generate_shadowmap_2D(usehit uhit) {
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
 
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
+		//GLenum _global_gl_err = glGetError(); 
+		//while (_global_gl_err != GL_NONE) {
+		//	PRINT_GL_ERROR(_global_gl_err);
+		//	printf(" here: %s (%s:%d)\n", "generate_shadowMaps clear depth buffer", __FILE__, __LINE__);
+		//	_global_gl_err = glGetError();
+		//}
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
 
 		//set viewpoint matrix 
@@ -1221,6 +1308,7 @@ void generate_shadowmap_2D(usehit uhit) {
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
 
 		profile_start("hier_geom");
+		struct X3D_Node* root = uhit.userdata ? uhit.userdata : rootNode();
 		render_hier(rootNode(), VF_Geom | VF_Depth);
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
