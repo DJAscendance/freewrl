@@ -1266,8 +1266,10 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	glViewport(0, 0, isize, isize); //viewport we want 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_PUSH_MATRIX();
+	FW_GL_LOAD_IDENTITY();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
 	FW_GL_PUSH_MATRIX();
+	FW_GL_LOAD_IDENTITY();
 
 	{
 		textureTableIndexStruct_s* ttip;
@@ -1295,13 +1297,22 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
 			get_view_matrix(savePosOri, saveView);
 			matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
+			//printmatrix2(viewmatrix, "vp view matrix");
+
 			matinverseAFFINE(mvmInverse, uhit.mvm);
+			//printmatrix2(uhit.mvm, "uhit.mvm");
 
 			matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
-			matmultiplyAFFINE(world2lightview, lightrep->matview, world2light);
-			//printmatrix2(lightrep->matview, "lightrep matview");
-			//printmatrix2(world2lightview, "world2lightview");
+			//printmatrix2(world2light, "world2light = viewmatrix x mvmInverse");
+
+			matmultiplyAFFINE(world2lightview, world2light, lightrep->matview);
+			//printmatrix2(lightrep->matview, "lighrep.matview");
+
+			//printmatrix2(world2lightview, "world2lightview = lighrep.matview x world2light");
+
 			fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj);
+			//printmatrix2(lightrep->matproj, "matproj");
+
 			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightview);
 		}
 		/*  4. Nodes (not the blended ones)*/
@@ -1314,7 +1325,8 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
 	}
-	if (0) set_debug_quad(3, lightrep->idepthtexture);
+	//set index to 0 to debug (or 1 or which of the light visit shadow maps you want to see at end of frame)
+	if (index == -1) set_debug_quad(3, lightrep->idepthtexture);
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_POP_MATRIX();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
