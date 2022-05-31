@@ -445,12 +445,15 @@ void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
 //
 //};
 void prep_BBox(struct BBoxFields *bfields){
+	if (renderstate()->render_vp || renderstate()->render_other) return;
 	push_group_extent_default();
 	push_group_visible( bfields->visible && peek_group_visible());
 }
 
 //#define VERBOSE
 void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
+	if (renderstate()->render_vp || renderstate()->render_other) return;
+
 	#ifdef VERBOSE
 	printf ("\nstart fin_BBox\n");
 	printf ("... node %p type %s\n",node, stringNodeType(node->_nodeType));
