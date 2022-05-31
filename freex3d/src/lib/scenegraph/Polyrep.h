@@ -169,7 +169,7 @@ struct X3D_MeshRep {
 void* set_MeshRep(void* _meshrep);
 void render_MeshRep(void* meshrep);
 void delete_MeshRep(void* meshrep);
-
+void delete_LightRep(void* _lightrep);
 /* Internal representation of IndexedFaceSet, Text, Extrusion & ElevationGrid:
  * set of triangles.
  * done so that we get rid of concave polygons etc.

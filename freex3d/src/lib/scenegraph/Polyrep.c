@@ -1797,6 +1797,7 @@ void delete_geomrep(struct X3D_Node *node){
 	// null node's _intern field
 	if(!node) return;
 	if (!node->_intern) return;
+	// 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
 	switch(node->_intern->itype){
 	case 0: //points
 		{
@@ -1852,6 +1853,11 @@ void delete_geomrep(struct X3D_Node *node){
 
 		}
 		break;
+	case 5: //LightRep
+		{
+			delete_LightRep(node->_intern);
+			node->_intern = NULL;
+	}
 	default:
 		break;
 	}

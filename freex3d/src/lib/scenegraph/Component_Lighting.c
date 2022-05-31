@@ -124,7 +124,7 @@ int lightTable_node_use_count(struct X3D_Node *node) {
 	return count;
 }
 
-
+/*
 //SHADOW TABLE
 void shadowTable_clear() {
 	//called once per frame, before the search for global=true projectors
@@ -157,7 +157,7 @@ usehit* shadowTable_item(int i) {
 	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
 	return vector_get_ptr(usehit, p->genshadow_stack, i);
 }
-
+*/
 // a specialization of InternalRep - see PolyRep.h
 struct X3D_LightRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
@@ -187,7 +187,18 @@ void* set_LightRep(void* _lightrep)
 	}
 	return lightrep;
 }
-
+void delete_LightRep(void* _lightrep) {
+	//call during node deletion > unRegisterX3DAnyNode > delete_geomrep
+	if (_lightrep) {
+		struct X3D_LightRep* lightrep = _lightrep;
+		if (lightrep->depth_buffer_stack) {
+			//Q. are the texture nodes it points to registered and deleted separately?
+			// here we assume so
+			deleteStack(struct X3D_Node*, lightrep->depth_buffer_stack);
+		}
+		FREE_IF_NZ(_lightrep);
+	}
+}
 
 
 #define RETURN_IF_LIGHT_STATE_NOT_US \
@@ -197,11 +208,11 @@ void* set_LightRep(void* _lightrep)
 		} else if (node->global || renderstate()->render_depth || !renderstate()->render_geom ) return; \
 		/* else printf ("and this is a local light\n"); */
 
-void compile_shadowMap(struct X3D_Node* node);
+//void compile_shadowMap(struct X3D_Node* node);
 void compile_DirectionalLight (struct X3D_DirectionalLight *node) {
     struct point_XYZ vec;
 
-	if (node->shadows) compile_shadowMap(X3D_NODE(node));
+	//if (node->shadows) compile_shadowMap(X3D_NODE(node));
 
     MARK_NODE_COMPILED;
 }
@@ -214,8 +225,8 @@ enum {
 	LIGHT_AMBIENT = 5,
 };
 */
-void compile_shadowMap(struct X3D_Node* node);
-void render_shadowMap(struct X3D_Node* node);
+//void compile_shadowMap(struct X3D_Node* node);
+//void render_shadowMap(struct X3D_Node* node);
 
 void render_DirectionalLight (struct X3D_DirectionalLight *node) {
 	/* if we are doing global lighting, is this one for us? */
@@ -694,8 +705,8 @@ int make_or_get_depth_buffer(int index, struct X3D_Node* node) {
 	stack_push(struct X3D_Node*, lightrep->depth_buffer_stack, X3D_NODE(depth_buffer_texture));
 	return vectorSize(lightrep->depth_buffer_stack) - 1;
 }
-void compile_shadowMap(struct X3D_Node* node) {}
-void render_shadowMap(struct X3D_Node* node) {}
+//void compile_shadowMap(struct X3D_Node* node) {}
+//void render_shadowMap(struct X3D_Node* node) {}
 /*
 void compile_shadowMap(struct X3D_Node* node) {
 	node->_intern = set_LightRep(node->_intern);
@@ -1266,12 +1277,15 @@ void PRINT_GL_ERROR(GLenum _global_gl_err) {
 	else printf ("unknown error %d ",_global_gl_err);
 }
 void generate_shadowmap_2D(usehit uhit, int index) {
-	//call from mainloop once per frame:
-	//foreach shadow depth texture location in genshadow list
-	// set viewpoint pose
-	// render scene to fbo
-	// convert fbo to regular texture
-	//clear genshadow list
+	//call from render_xxxLight once per frame
+	// usehit - same as for lightTable / shared with lightTable which holds one usehit per scenegraph node visit
+	// -- so DEF/USE of light node will have 2+ entries in lightTable and 2+ shadowmaps
+	// -- currently fbo textures are persisted in Light node > LightRep > depth_buffer_stack
+	// -- index is index in that stack, 
+	//    and corresponds to scenegraph sequential visit number to light node on render pass
+	//assumes depth fbo buffer / texture already exists / created elsewhere / persistent storage
+	// set viewpoint pose at light node
+	// render parent>children sub-scene to fbo texture via render_hier2(parent,VF_Geom | VF_Depth)
 	double savebackmat[16];
 
 	int isize;
@@ -1374,7 +1388,7 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	popnset_framebuffer();
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
-
+/*
 void generate_GlobalShadowMaps() {
 	//Stack* genshadow_stack;
 	//ttglobal tg = gglobal();
@@ -1409,7 +1423,10 @@ void generate_GlobalShadowMaps() {
 }
 #else //SHADOWMAPS
 void generate_GlobalShadowMaps() {} //stub
+*/
 #endif //SHADOWMAPS
+
+
 
 void transformPositionToEye0(double *modelMatrix, float* pos)
 {

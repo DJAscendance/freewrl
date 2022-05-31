@@ -143,9 +143,9 @@ void* set_ProjectorRep(void* _projectorrep)
 
 
 
-void shadowTable_clear();
-void shadowTable_push(usehit ptuple);
-void shadowTable_pop();
+//void shadowTable_clear();
+//void shadowTable_push(usehit ptuple);
+//void shadowTable_pop();
 
 void projectorTable_clear(){
 	//called once per frame, before the search for global=true projectors
@@ -320,8 +320,8 @@ void resend_textureprojector_matrix()
 	GLUNIFORM1I(me->ptmCount,pcount);
 	PRINT_GL_ERROR_IF_ANY("END resend_textureprojector_matrix");
 }
-void compile_shadowMap(struct X3D_Node* node); // Component_Lighting
-void render_shadowMap(struct X3D_Node* node);
+//void compile_shadowMap(struct X3D_Node* node); // Component_Lighting
+//void render_shadowMap(struct X3D_Node* node);
 void compile_TextureProjector (struct X3D_TextureProjector *node) { 
 
 	node->_intern = set_ProjectorRep(node->_intern);
@@ -340,7 +340,7 @@ void compile_TextureProjector (struct X3D_TextureProjector *node) {
 	node->_dir.c[3] = 0.0f;
 	veccopy3f(node->_upVec.c,up);
 	node->_upVec.c[3] = 0.0f;
-	if (node->shadows) compile_shadowMap(X3D_NODE(node));
+//	if (node->shadows) compile_shadowMap(X3D_NODE(node));
 	MARK_NODE_COMPILED;
 }
 
@@ -443,8 +443,8 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			projrep->texture = tmpN;
 			projectorTable_push(ptuple);
 			if (node->global && node->shadows) {
-				shadowTable_push(ptuple);
-				render_shadowMap(X3D_NODE(node));
+				//shadowTable_push(ptuple);
+				//render_shadowMap(X3D_NODE(node));
 			}
 		}
 
@@ -598,8 +598,9 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
 			projectorTable_push(ptuple);
-			if (node->global && node->shadows)
-				shadowTable_push(ptuple);
+			if (node->global && node->shadows) {
+				//shadowTable_push(ptuple);
+			}
 		}
 
 
