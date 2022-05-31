@@ -74,6 +74,7 @@ typedef struct usehit {
 	struct X3D_Node *node;
 	double mvm[16];
 	//double proj[16];
+	int ivalue;
 	void *userdata;
 } usehit;
 void usehit_add(struct X3D_Node *node, double *modelviewmatrix);

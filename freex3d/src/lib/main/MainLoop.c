@@ -5813,7 +5813,7 @@ static void render()
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, before render_hier");
 			push_group_extent_default(); //we don't need the extent on this but don'e want it to bomb
 			render_hier(rootNode(), VF_globalLight ); //also do global TextureProjectors: TextureProjector global=true, TextureProjectorParallel global=true
-			generate_GlobalShadowMaps();
+			//generate_GlobalShadowMaps();
 
 			PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_globalLight)");
 			render_hier(rootNode(), VF_Other );

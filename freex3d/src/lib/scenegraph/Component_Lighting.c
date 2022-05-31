@@ -85,6 +85,7 @@ void lightTable_push(usehit tuple);
 void lightTable_pop();
 int lightTable_count();
 usehit* lightTable_item(int i);
+void generate_shadowmap_2D(usehit uhit, int index);
 
 //LIGHT TABLE
 void lightTable_clear() {
@@ -115,6 +116,14 @@ usehit *lightTable_item(int i) {
 	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
 	return vector_get_ptr(usehit,p->light_stack,i);
 }
+int lightTable_node_use_count(struct X3D_Node *node) {
+	int count = 0;
+	for (int i = 0; i < lightTable_count(); i++) {
+		if (lightTable_item(i)->node == node) count++;
+	}
+	return count;
+}
+
 
 //SHADOW TABLE
 void shadowTable_clear() {
@@ -157,8 +166,9 @@ struct X3D_LightRep {
 	int ilightbuf; //opengl uniform buffer index
 	//depth section
 	struct X3D_Node* depthTexture;
+	Stack* depth_buffer_stack;
 	int size;
-	int idepthtexture;
+	//int idepthtexture;
 	double matproj[16];
 	double matview[16];
 };
@@ -173,7 +183,7 @@ void* set_LightRep(void* _lightrep)
 		lightrep->itype = 5;
 		lightrep->ilightbuf = -1;
 		lightrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
-		lightrep->idepthtexture = -1;
+		//lightrep->idepthtexture = -1;
 	}
 	return lightrep;
 }
@@ -184,7 +194,7 @@ void* set_LightRep(void* _lightrep)
 		if (renderstate()->render_light== VF_globalLight) { \
 			if (!node->global) return;\
 			/* printf ("and this is a global light\n"); */\
-		} else if (node->global) return; \
+		} else if (node->global || renderstate()->render_depth || !renderstate()->render_geom ) return; \
 		/* else printf ("and this is a local light\n"); */
 
 void compile_shadowMap(struct X3D_Node* node);
@@ -417,9 +427,10 @@ struct LightPose {
 };
 void compile_SpotLight (struct X3D_SpotLight *node) {
 	if (node->shadows) {
-		compile_shadowMap(X3D_NODE(node)); //prepares fbo buffer and texture
+		//compile_shadowMap(X3D_NODE(node)); //prepares fbo buffer and texture
 		//prepare local view matrix (from node.location, node.direction which aren't included in modelview matrix)
 		// and projection matrix, both of which are stable / same between DEF and USE instances of a spotlight
+		node->_intern = set_LightRep(node->_intern);
 		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
 		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		//perspective_projection_matrix(node->cutOffAngle*2.0, 1.0, .1, 10000.0, lightrep->matproj);
@@ -478,68 +489,25 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 
     MARK_NODE_COMPILED;
 }
-void shadow_Light(struct X3D_Node* parent, struct X3D_Node* node) {
-	usehit uhit;
-	COMPILE_IF_REQUIRED;
+//void shadow_Light(struct X3D_Node* parent, struct X3D_Node* node) {
+//	usehit uhit;
+//	COMPILE_IF_REQUIRED;
+//
+//	uhit.node = X3D_NODE(node);
+//	uhit.userdata = parent; //will render_hier(parent,..) in generate_globalShadowMaps()
+//	fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+//	//lightTable_push(uhit);
+//	if (node->_nodeType == NODE_SpotLight) {
+//		struct X3D_SpotLight* light = X3D_SPOTLIGHT(node);
+//		if (light->shadows) {
+//			//shadowTable_push(uhit);
+//			generate_shadowmap_2D(uhit, 0);
+//			//render_shadowMap(X3D_NODE(node));
+//		}
+//	}
+//}
 
-	uhit.node = X3D_NODE(node);
-	uhit.userdata = parent; //will render_hier(parent,..) in generate_globalShadowMaps()
-	fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-	//lightTable_push(uhit);
-	if (node->_nodeType == NODE_SpotLight) {
-		struct X3D_SpotLight* light = X3D_SPOTLIGHT(node);
-		if (light->shadows) {
-			shadowTable_push(uhit);
-			//render_shadowMap(X3D_NODE(node));
-		}
-	}
-}
-void shadow_Light_debug_hide(struct X3D_Node *parent, struct X3D_SpotLight* node) {
-	float ft;
-
-	/* if we are doing global lighting, is this one for us? */
-	//RETURN_IF_LIGHT_STATE_NOT_US
-	if (renderstate()->render_light != VF_globalLight) return;
-	if (node->global) return;
-
-		COMPILE_IF_REQUIRED;
-
-	if (node->on) {
-		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-		usehit uhit;
-		uhit.node = X3D_NODE(node);
-		uhit.userdata = NULL;
-		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-		lightTable_push(uhit);
-		if (node->shadows) {
-			shadowTable_push(uhit);
-			render_shadowMap(X3D_NODE(node));
-		}
-		if (lightpose_buffering()) {
-			//dynamic maximum lifespan 1 frame buffering of light visit transform
-			//so (sibling or global) affected shapes can share common LightPose rather than resending on every child_shape
-			struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-			float w2l[16];
-			//following textureProjector
-			double modelviewinv[16], eye2projector[16], matfull[16], mtrans[16];
-			matinverse(modelviewinv, uhit.mvm);
-			matmultiplyAFFINE(eye2projector, modelviewinv, lightrep->matview);
-			matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
-			double2float(w2l, matfull, 16);
-			struct LightPose pose;
-			mattranspose(mtrans, matfull);
-			double2float(pose.eye2frustum, mtrans, 16);
-			mattranspose(mtrans, uhit.mvm);
-			double2float(pose.modelview, mtrans, 16);
-			pose.lightbuf = lightrep->ilightbuf;
-			//push_heavy should manage a reusable list of uniform buffers
-			// - the size of maximum light visits per frame
-			// - and refresh buffer contents during a push (and ignoring old contents on pop or lightTable_clear())
-		//	lightTable_push_heavy(uhit, &pose); //not yet implemented
-		}
-	}
-}
-void render_SpotLight(struct X3D_SpotLight *node) {
+void render_SpotLight0(struct X3D_Node *parent, struct X3D_SpotLight *node) {
 	float ft;
 
 	/* if we are doing global lighting, is this one for us? */
@@ -551,13 +519,17 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
 		usehit uhit;
 		uhit.node = X3D_NODE(node);
-		uhit.userdata = NULL;
+		uhit.userdata = parent;
 		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-		lightTable_push(uhit);
 		if (node->shadows) {
-			shadowTable_push(uhit);
-			render_shadowMap(X3D_NODE(node));
+			int nuse = lightTable_node_use_count(X3D_NODE(node));
+			//shadowTable_push(uhit);
+			//render_shadowMap(X3D_NODE(node));
+			uhit.ivalue = make_or_get_depth_buffer(nuse-1,X3D_NODE(node));
+			generate_shadowmap_2D(uhit, 0);
+
 		}
+		lightTable_push(uhit);
 		if (lightpose_buffering()) {
 			//dynamic maximum lifespan 1 frame buffering of light visit transform
 			//so (sibling or global) affected shapes can share common LightPose rather than resending on every child_shape
@@ -581,6 +553,9 @@ void render_SpotLight(struct X3D_SpotLight *node) {
 		//	lightTable_push_heavy(uhit, &pose); //not yet implemented
 		}
 	}
+}
+void render_SpotLight(struct X3D_SpotLight* node) {
+	render_SpotLight0(NULL, node);
 }
 /* SpotLights are done before the rendering of geometry */
 void prep_SpotLight (struct X3D_SpotLight *node) {
@@ -600,12 +575,12 @@ void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector);
 void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
 	struct X3D_PointLight* light = X3D_POINTLIGHT(sibAffector);
-	if (renderstate()->render_light != VF_globalLight) {
+	if (renderstate()->render_light != VF_globalLight && !renderstate()->render_depth && renderstate()->render_geom) {
 		if (light->global == FALSE && light->on == TRUE) {
 			//should lightTable_push(usehit):
 			switch (light->_nodeType) {
 			case NODE_SpotLight:
-				render_SpotLight((struct X3D_SpotLight*)sibAffector);
+				render_SpotLight0(parent,(struct X3D_SpotLight*)sibAffector);
 				break;
 			case NODE_PointLight:
 				render_PointLight((struct X3D_PointLight*)sibAffector);
@@ -618,16 +593,9 @@ void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
 			}
 		}
 	}
-	else {
-		if (light->global == FALSE && light->on == TRUE && light->shadows == TRUE) {
-			//does not lightTable_push(usehit), but does shadowmap_push(usehit)
-			shadow_Light(parent,sibAffector);
-		}
-
-	}
 }
 void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
-	if (renderstate()->render_light != VF_globalLight) {
+	if (renderstate()->render_light != VF_globalLight && !renderstate()->render_depth && renderstate()->render_geom) {
 		struct X3D_PointLight* light = X3D_POINTLIGHT(sibAffector);
 		if(light->global == FALSE && light->on == TRUE)
 			lightTable_pop();
@@ -658,8 +626,77 @@ int haveFrameBufferObject();
 void freeASCIIString(struct Uni_String* us);
 
 
+struct X3D_Node * make_depth_buffer(int width, int height) {
+	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);;
+	PRINT_GL_ERROR_IF_ANY("compile_shadowMap START");
+	//if (tex->__subTextures.n == 0) 
+	{
+
+		int i;
+		struct textureTableIndexStruct* tti;
+
+		tti = getTableIndex(tex->__textureTableIndex);
+		tti->status = TEX_LOADED; // TEX_NEEDSBINDING; //I found I didn't need - yet
+		tti->idepthbuffer = 1;
+		tti->x = width;
+		tti->y = height;
+		//tti->z = 6;
+//		loadTextureNode(X3D_NODE(tex), NULL);
+		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
+			int j;
+			tti->x = width; //by storing and retrieving initial size from here
+			tti->y = height;
+			tti->z = 1;
+			// https://www.opengl.org/wiki/Framebuffer_Object
+
+			glGenFramebuffers(1, &tti->ifbobuffer);
+			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+
+			//glGenRenderbuffers(1, &tti->idepthbuffer);
+			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
+			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
+			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
+
+			glGenTextures(1, &tti->OpenGLTexture);
+			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
+			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+			glDrawBuffer(GL_NONE);
+			glReadBuffer(GL_NONE);
+			popnset_framebuffer(); //tti->ifbobuffer);
+		}
+
+	}
+	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps END");
 
 
+	return X3D_NODE(tex);
+
+}
+int make_or_get_depth_buffer(int index, struct X3D_Node* node) {
+	node->_intern = set_LightRep(node->_intern);
+	struct X3D_LightRep* lightrep = (struct X3D_LightRep* )node->_intern;
+	if (!lightrep->depth_buffer_stack) {
+		lightrep->depth_buffer_stack = newStack(struct X3D_Node*);
+	}
+	if (index > -1 && index < vectorSize(lightrep->depth_buffer_stack)) return index;
+	struct X3D_Node* depth_buffer_texture = make_depth_buffer(lightrep->size, lightrep->size);
+	stack_push(struct X3D_Node*, lightrep->depth_buffer_stack, X3D_NODE(depth_buffer_texture));
+	return vectorSize(lightrep->depth_buffer_stack) - 1;
+}
+void compile_shadowMap(struct X3D_Node* node) {}
+void render_shadowMap(struct X3D_Node* node) {}
+/*
 void compile_shadowMap(struct X3D_Node* node) {
 	node->_intern = set_LightRep(node->_intern);
 	struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
@@ -722,6 +759,7 @@ void compile_shadowMap(struct X3D_Node* node) {
 	MARK_NODE_COMPILED
 
 }
+
 void render_shadowMap(struct X3D_Node* node) {
 	int count, iface;
 
@@ -787,12 +825,12 @@ void render_shadowMap(struct X3D_Node* node) {
 		struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)lightrep->depthTexture;
 		render_node(X3D_NODE(tex));
 	}
-	/* Finished rendering CubeMap, set it back for normal textures */
+	// Finished rendering CubeMap, set it back for normal textures 
 	PRINT_GL_ERROR_IF_ANY("render_PointLight_shadowMaps END");
 
 }
 
-
+*/
 
 
 // called from the scene traversal, linked in GeneratedCode.c
@@ -1253,17 +1291,17 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 
 	node = (struct X3D_SpotLight*)uhit.node;
 	lightrep = (struct X3D_LightRep*)node->_intern;
-	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)lightrep->depthTexture;
+	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack,uhit.ivalue);
 	memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
 
 	//compile_generatedcubemap - creates framebufferobject fbo
 	tti = getTableIndex(tex->__textureTableIndex);
 	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps_2D before");
 
-	isize = lightrep->size; //set in compile_
+	//isize = lightrep->size; //set in compile_
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
-	glViewport(0, 0, isize, isize); //viewport we want 
+	glViewport(0, 0, tti->x, tti->y); //viewport we want 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_PUSH_MATRIX();
 	FW_GL_LOAD_IDENTITY();
@@ -1320,13 +1358,13 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 
 		profile_start("hier_geom");
 		struct X3D_Node* root = uhit.userdata ? uhit.userdata : rootNode();
-		render_hier(root, VF_Geom | VF_Depth);
+		render_hier2(root, VF_Geom | VF_Depth);
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
 	}
 	//set index to 0 to debug (or 1 or which of the light visit shadow maps you want to see at end of frame)
-	if (index == -1) set_debug_quad(3, lightrep->idepthtexture);
+	if (index == -1) set_debug_quad(3, tti->OpenGLTexture); // lightrep->idepthtexture);
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_POP_MATRIX();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
@@ -1338,33 +1376,34 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 }
 
 void generate_GlobalShadowMaps() {
-	Stack* genshadow_stack;
-	ttglobal tg = gglobal();
-	ppComponent_Lighting p = (ppComponent_Lighting)tg->Component_Lighting.prv;
-	genshadow_stack = p->genshadow_stack;
-	if (vectorSize(genshadow_stack)) {
+	//Stack* genshadow_stack;
+	//ttglobal tg = gglobal();
+	//ppComponent_Lighting p = (ppComponent_Lighting)tg->Component_Lighting.prv;
+	//genshadow_stack = p->genshadow_stack;
+	//if (vectorSize(genshadow_stack)) {
+	if(shadowTable_count()){
 		int i, j, n;
 
-		n = vectorSize(genshadow_stack);
+		n = shadowTable_count(); // vectorSize(genshadow_stack);
 		for (i = 0; i < n; i++) {
-			usehit uhit;
+			usehit *uhit;
 
-			uhit = vector_get(usehit, genshadow_stack, i);
-			switch (uhit.node->_nodeType) {
+			uhit = shadowTable_item(i); // vector_get(usehit, genshadow_stack, i);
+			switch (uhit->node->_nodeType) {
 				case NODE_PointLight:
-					generate_shadowmap_cube(uhit);
+					generate_shadowmap_cube(*uhit);
 					break;
 				case NODE_DirectionalLight:
 				case NODE_SpotLight:
 				case NODE_TextureProjector:
 				case NODE_TextureProjectorParallel:
-					generate_shadowmap_2D(uhit, i);
+					generate_shadowmap_2D(*uhit, i);
 				default:
 					break;
 			}
 		}
 	}
-	genshadow_stack->n = 0;
+	shadowTable_clear(); //genshadow_stack->n = 0;
 	PRINT_GL_ERROR_IF_ANY("generate_GlobalShadowMaps END");
 
 }
@@ -1527,7 +1566,9 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 		if (plight->shadows) {
 			//lookup a textureUnit[index] index to use on this pass
 			//process the uhit->mvm matrix for shadows
-			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, lightrep->idepthtexture);
+			struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit->ivalue);
+			textureTableIndexStruct_s* tti = getTableIndex(tex->__textureTableIndex);
+			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, tti->OpenGLTexture); // lightrep->idepthtexture);
 			//int iunit = tunit(itexunit);
 			glUniform1i(me->textureUnit[itexunit], itexunit); // iunit);
 			GLUNIFORM1I(me->lightdepthmap[j], itexunit);

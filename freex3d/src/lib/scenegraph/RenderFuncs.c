@@ -99,7 +99,8 @@ typedef struct pRenderFuncs{
 	struct Vector *libraries; //vector of extern proto library scenes in X3D_Proto format that are parsed shallow (not instanced scenes) - the library protos will be in X3D_Proto->protoDeclares vector
 	struct X3D_Anchor *AnchorsAnchor;// = NULL;
 	struct currayhit rayHit; //,rayHitHyper;
-	struct trenderstate renderstate;
+	//struct trenderstate renderstate;
+	Stack* renderstate;
 	int renderLevel;
 
 	// which Shader is currently in use?
@@ -153,6 +154,10 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		t->rayHit = (void *)&p->rayHit;
 		//t->rayHitHyper = (void *)&p->rayHitHyper;
 		p->renderLevel = 0;
+		p->renderstate = newStack(struct trenderstate);
+		struct trenderstate ttr;
+		memset(&ttr, 0, sizeof(struct trenderstate));
+		stack_push(struct trenderstate, p->renderstate, ttr);
 		p->render_geom_stack = newStack(int);
 		p->sensor_stack = newStack(struct currayhit);
 		p->ray_stack = newStack(struct point_XYZ3);
@@ -761,10 +766,18 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 ttrenderstate renderstate()
 {
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	return &p->renderstate;
+	return stack_top_ptr(struct trenderstate,p->renderstate);
 }
-
-
+void push_new_renderstate() {
+	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
+	struct trenderstate ttr;
+	memset(&ttr, 0, sizeof(struct trenderstate));
+	stack_push(struct trenderstate, p->renderstate,ttr);
+}
+void pop_renderstate() {
+	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
+	stack_pop(struct trenderstate, p->renderstate);
+}
 //true statics:
 GLint viewport[4] = {-1,-1,2,2};  //pseudo-viewport - doesn't change, used in glu unprojects
 /* These two points (r2,r1) define a ray in pick-veiwport window coordinates 
@@ -1327,8 +1340,9 @@ void get_current_ray(struct point_XYZ* p1, struct point_XYZ* p2){
 void push_render_geom(int igeom){
 	ttglobal tg = gglobal();
 	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_push(int,p->render_geom_stack,p->renderstate.render_geom);
-	p->renderstate.render_geom = igeom;
+	ttrenderstate rs = renderstate();
+	stack_push(int,p->render_geom_stack,rs->render_geom);
+	rs->render_geom = igeom;
 }
 void pop_render_geom(){
 	int igeom;
@@ -1336,7 +1350,8 @@ void pop_render_geom(){
 	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
 	igeom = stack_top(int,p->render_geom_stack);
 	stack_pop(int,p->render_geom_stack);
-	p->renderstate.render_geom = igeom;
+	ttrenderstate rs = renderstate();
+	rs->render_geom = igeom;
 }
 void push_sensor(struct X3D_Node *node){
 	ttglobal tg = gglobal();
@@ -1434,7 +1449,7 @@ void render_node(struct X3D_Node *node) {
 	// leaf-node filtering (we still do the transform-children stack)
 	// if we are doing Viewpoints, and we don't have a Viewpoint, don't bother doing anything here *
 	//if (renderstate()->render_vp == VF_Viewpoint) { 
-	if (p->renderstate.render_vp == VF_Viewpoint) { 
+	if (renderstate()->render_vp == VF_Viewpoint) {
 		//if(tg->Bindable.activeLayer == 0)  //no Layerset nodes
 		//if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint && virt->children == NULL) { 
 		if (!is_vp_new_way()) {
@@ -1449,14 +1464,14 @@ void render_node(struct X3D_Node *node) {
 				return;
 			}
 		}
-		if(p->renderstate.render_vp == VF_Viewpoint && render_foundSelectedViewpoint()){ 
+		if(renderstate()->render_vp == VF_Viewpoint && render_foundSelectedViewpoint()){ 
 			//on vp pass, just find first DEF/USE of bound viewpoint
 			return;
 		}
 	}
 
 	/* are we working through global PointLights, DirectionalLights or SpotLights, but none exist from here on down? */
-	if (p->renderstate.render_light ) { 
+	if (renderstate()->render_light) {
 		if((node->_renderFlags & VF_globalLight) != VF_globalLight) { 
 	#ifdef RENDERVERBOSE
 			printf ("doing globalLight, but this  node is not for us - just returning\n"); 
@@ -1465,7 +1480,7 @@ void render_node(struct X3D_Node *node) {
 			return; 
 		}
 	}
-	justGeom = p->renderstate.render_geom && !p->renderstate.render_sensitive && !p->renderstate.render_blend;
+	justGeom = renderstate()->render_geom && !renderstate()->render_sensitive && !renderstate()->render_blend;
 	pushed_ray = FALSE;
 	pushed_sensor = FALSE;
 
@@ -1480,24 +1495,24 @@ void render_node(struct X3D_Node *node) {
 		profile_end("prep");
 		if(justGeom)
 			profile_end("prepgeom");
-		//if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
+		//if(renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		//	push_ray(); //upd_ray(); 
 		//	pushed_ray = TRUE;
 		//}
 		PRINT_GL_ERROR_IF_ANY("prep end"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
+	if(renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 
 		pushed_ray = TRUE;
 	}
-	if(p->renderstate.render_proximity && virt->proximity) {
+	if(renderstate()->render_proximity && virt->proximity) {
 		DEBUG_RENDER("rs 2a\n");
 		profile_start("proximity");
 		virt->proximity(node);
 		profile_end("proximity");
 		PRINT_GL_ERROR_IF_ANY("render_proximity"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_geom && ((node->_renderFlags & VF_USE) == VF_USE) && !p->renderstate.render_picking){
+	if(renderstate()->render_geom && ((node->_renderFlags & VF_USE) == VF_USE) && !renderstate()->render_picking){
 		//picking sensor, transform sensor and generally any USE_NODE-USE_NODE scenario
 		//ideally we would come in here once per scenegraph USE per frame, even when stereo or quad views
 		//because we want to work in world coordinates (not view coordinates) so by the time
@@ -1514,7 +1529,7 @@ void render_node(struct X3D_Node *node) {
 			usehit_add2(node,modelviewMatrix,getpickablegroupdata());
 		}
 	}
-	if(p->renderstate.render_picking && node->_nodeType == NODE_Shape ){
+	if(renderstate()->render_picking && node->_nodeType == NODE_Shape ){
 		//this is for when called from Component_Picking.c on a partial scenegraph,
 		//to get geometry nodes in the usehitB list
 		//I put vrit->rendray as a way to detect if its geometry, is there a better way?
@@ -1529,7 +1544,7 @@ void render_node(struct X3D_Node *node) {
 		}
 	}
 	
-	if(p->renderstate.render_collision && virt->collision) {
+	if(renderstate()->render_collision && virt->collision) {
 		DEBUG_RENDER("rs 2b\n");
 		profile_start("collision");
 		virt->collision(node);
@@ -1537,7 +1552,7 @@ void render_node(struct X3D_Node *node) {
 		PRINT_GL_ERROR_IF_ANY("render_collision"); PRINT_NODE(node,virt);
 	}
 
-	if(p->renderstate.render_geom && !p->renderstate.render_sensitive && !p->renderstate.render_picking && virt->rend) {
+	if(renderstate()->render_geom && !renderstate()->render_sensitive && !renderstate()->render_picking && virt->rend) {
 			DEBUG_RENDER("rs 3\n");
 			PRINT_GL_ERROR_IF_ANY("BEFORE render_geom"); PRINT_NODE(node,virt);
 			profile_start("rend");
@@ -1545,19 +1560,19 @@ void render_node(struct X3D_Node *node) {
 			profile_end("rend");
 			PRINT_GL_ERROR_IF_ANY("render_geom"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_other && virt->other )
+	if(renderstate()->render_other && virt->other )
 	{
 		virt->other(node);
 	} //other
 
-	if(p->renderstate.render_sensitive && ((node->_renderFlags & VF_Sensitive)|| Viewer()->LookatMode ==2)) {
+	if(renderstate()->render_sensitive && ((node->_renderFlags & VF_Sensitive)|| Viewer()->LookatMode ==2)) {
 		DEBUG_RENDER("rs 5\n");
 		profile_start("sensitive");
 		push_sensor(node);
 		pushed_sensor = TRUE;
 		profile_end("sensitive");
 	}
-	if(p->renderstate.render_geom && p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive && virt->rendray) {
+	if(renderstate()->render_geom && renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive && virt->rendray) {
 		DEBUG_RENDER("rs 6\n");
 		profile_start("rendray");
 		if(pickrayHitsMBB(node))
@@ -1567,7 +1582,7 @@ void render_node(struct X3D_Node *node) {
 	}
 
 	/* May 16 2016: now we don't come into render_hier on hypersensitive
-    if((p->renderstate.render_sensitive) && (tg->RenderFuncs.hypersensitive == node)) {
+    if((renderstate()->render_sensitive) && (tg->RenderFuncs.hypersensitive == node)) {
 		DEBUG_RENDER("rs 7\n");
 		p->hyper_r1 = p->t_r123.p1; //tg->RenderFuncs.t_r1;
 		p->hyper_r2 = p->t_r123.p2; //tg->RenderFuncs.t_r2;
@@ -1578,7 +1593,7 @@ void render_node(struct X3D_Node *node) {
 	/* start recursive section */
     if(virt->children) { 
 		DEBUG_RENDER("rs 8 - has valid child node pointer\n");
-		//if(! (p->renderstate.render_vp == VF_Viewpoint && render_foundLayerViewpoint())){ //on vp pass, just find first DEF/USE of bound viewpoint
+		//if(! (renderstate()->render_vp == VF_Viewpoint && render_foundLayerViewpoint())){ //on vp pass, just find first DEF/USE of bound viewpoint
 			//printf("children ");
 			virt->children(node);
 		//}
@@ -1589,7 +1604,7 @@ void render_node(struct X3D_Node *node) {
     }
 	/* end recursive section */
 
-	if(p->renderstate.render_other && virt->other)
+	if(renderstate()->render_other && virt->other)
 	{
 	}
 
@@ -1606,7 +1621,7 @@ void render_node(struct X3D_Node *node) {
 		profile_end("fin");
 		if(justGeom)
 			profile_end("fingeom");
-		//if(p->renderstate.render_sensitive && virt == &virt_Transform) {
+		//if(renderstate()->render_sensitive && virt == &virt_Transform) {
 		//	upd_ray();
 		//}
 		PRINT_GL_ERROR_IF_ANY("fin"); PRINT_NODE(node,virt);
@@ -1882,7 +1897,92 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 
 
 }
+void render_hier2(struct X3D_Node* g, int rwhat) {
+	// used for sub-scenegraph rendering ie depth maps from render_Light > render_shadowmap
 
+	ppRenderFuncs p;
+	shaderflagsstruct shaderflags;
+	ttglobal tg = gglobal();
+	ttrenderstate rs;
+	p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	push_new_renderstate();
+	rs = renderstate();
+	memset(&shaderflags, 0, sizeof(shaderflagsstruct));
+	pushShaderFlags(shaderflags);
+
+
+	/*
+	printf ("start of render_hier, rwhat %x, node has %x ",rwhat, g->_renderFlags);
+	if ((g->_renderFlags & VF_Viewpoint) == VF_Viewpoint) printf ("VF_Viewpoint ");
+	if ((g->_renderFlags & VF_Geom) == VF_Geom) printf ("VF_Geom ");
+	if ((g->_renderFlags & VF_localLight) == VF_localLight) printf ("VF_localLight ");
+	if ((g->_renderFlags & VF_Sensitive) == VF_Sensitive) printf ("VF_Sensitive ");
+	if ((g->_renderFlags & VF_Blend) == VF_Blend) printf ("VF_Blend ");
+	if ((g->_renderFlags & VF_Proximity) == VF_Proximity) printf ("VF_Proximity ");
+	if ((g->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision ");
+	if ((g->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
+	if ((g->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
+	printf ("\n");
+	*/
+
+	rs->render_vp = rwhat & VF_Viewpoint;
+	rs->render_geom = rwhat & VF_Geom;
+	rs->render_light = rwhat & VF_globalLight;
+	rs->render_sensitive = rwhat & VF_Sensitive;
+	rs->render_picking = rwhat & VF_Picking;
+	rs->render_blend = rwhat & VF_Blend;
+	rs->render_proximity = rwhat & VF_Proximity;
+	rs->render_collision = rwhat & VF_Collision;
+	rs->render_other = rwhat & VF_Other;
+	rs->render_cube = rwhat & VF_Cube;
+	rs->render_background = rwhat & VF_Background;
+	rs->render_depth = rwhat & VF_Depth;
+
+	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
+
+
+	//tg->RenderFuncs.hitPointDist = -1;
+
+
+#ifdef RENDERVERBOSE
+	printf("render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
+		rs->render_vp, rs->render_geom, rs->render_light, rs->render_sensitive, rs->render_blend, rs->render_proximity, rs->render_collision);
+#endif
+
+	if (!g) {
+		/* we have no geometry yet, sleep for a tiny bit */
+		//usleep(1000);
+		return;
+	}
+
+#ifdef RENDERVERBOSE
+	printf("Render_hier node=%d what=%d\n", g, rwhat);
+#endif
+
+	if (rs->render_light) {
+		render_headlight();
+	}
+	//if (rs->render_sensitive) {
+	//	upd_ray();
+	//}
+	//if (rs->render_blend || rs->render_geom) {
+	//	push_globalRenderFlags();
+	//}
+	//if (rs->render_geom)
+	//	clear_vp_reachable_flags();
+	//profile_start("render_hier");
+	//push_group_extent_default();
+	render_node(X3D_NODE(g));
+	//pop_group_extent(); // up where parents are
+	//rwhat_printf(rwhat);
+	//profile_end("render_hier");
+	//if (rs->render_blend || rs->render_geom) {
+	//	pop_globalRenderFlags();
+	//}
+	popShaderFlags();
+	pop_renderstate();
+
+}
 void clear_renderstate(){
 	ppRenderFuncs p;
 	ttglobal tg = gglobal();
