@@ -36,11 +36,11 @@ X3D Lighting Component
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Frustum.h"
 #include "RenderFuncs.h"
 //#include "../opengl/OpenGL_Utils.h"
 #include "LinearAlgebra.h"
 #include "Polyrep.h"
-
 
 
 typedef struct pComponent_Lighting {
@@ -208,11 +208,32 @@ void delete_LightRep(void* _lightrep) {
 		} else if (node->global || renderstate()->render_depth || !renderstate()->render_geom ) return; \
 		/* else printf ("and this is a local light\n"); */
 
-//void compile_shadowMap(struct X3D_Node* node);
+
+void projPerspective(double fovy, double aspect, double zNear, double zFar, double* matrix);
+void projOrtho(double left, double right, double bottom, double top,
+	double nearZ, double farZ, double* matrix);
+void projLookAt(double eyex, double eyey, double eyez,
+	double centerx, double centery, double centerz,
+	double upx, double upy, double upz, double* matrix);
+double* matrix_lookAtd(double* eye3, double* center3, double* up3, double* matrix) {
+	//gluLookAt convention:
+	// eye - the viewpoint
+	// center - any point along the ray to the scene, typically a point on the geometry in the scene to look at
+	// up - which way is up in the viewing volume
+	projLookAt(eye3[0], eye3[1], eye3[2], center3[0], center3[1], center3[2], up3[0], up3[1], up3[2], matrix);
+	return matrix;
+}
+double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix) {
+	double eyed[3], centerd[3], upd[3];
+	float2double(eyed, eye3, 3);
+	float2double(centerd, center3, 3);
+	float2double(upd, up3, 3);
+	matrix_lookAtd(eyed, centerd, upd, matrix);
+	return matrix;
+}
 void compile_DirectionalLight (struct X3D_DirectionalLight *node) {
     struct point_XYZ vec;
 
-	//if (node->shadows) compile_shadowMap(X3D_NODE(node));
 
     MARK_NODE_COMPILED;
 }
@@ -227,39 +248,89 @@ enum {
 */
 //void compile_shadowMap(struct X3D_Node* node);
 //void render_shadowMap(struct X3D_Node* node);
-
+/*
 void render_DirectionalLight (struct X3D_DirectionalLight *node) {
-	/* if we are doing global lighting, is this one for us? */
+	// if we are doing global lighting, is this one for us?
 	RETURN_IF_LIGHT_STATE_NOT_US
-	/*
-		if (renderstate()->render_light== VF_globalLight) { 
-			if (!node->global){ 
-				printf("x local dir,we want global %u\n",node);
-				return;
-			}
-			 printf ("* global dir, we want global %u\n",node); 
-		} else {
-			if (node->global){
-			  printf("x global dir, we want local %u\n",node);
-			  return; 
-			}
-			else {
-			   printf ("* local dir, we want local %u\n",node); 
-			}
-		}
-	*/
     COMPILE_IF_REQUIRED;
 
 	if(node->on) {
-			//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-			usehit uhit;
-			uhit.node = X3D_NODE(node);
-			fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-			lightTable_push(uhit);
-
+		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
+		usehit uhit;
+		uhit.node = X3D_NODE(node);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+		lightTable_push(uhit);
 	}
 }
+*/
+void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE* m);
+void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLight* node) {
 
+	// if we are doing global lighting, is this one for us? 
+	RETURN_IF_LIGHT_STATE_NOT_US
+
+	COMPILE_IF_REQUIRED;
+
+	if (node->on) {
+		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
+		usehit uhit;
+		uhit.node = X3D_NODE(node);
+		uhit.userdata = parent;
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
+		if (node->shadows) {
+			//prepare local view matrix (from node.location, node.direction which aren't included in modelview matrix)
+			// and projection matrix, both of which are stable / same between DEF and USE instances of a directionallight
+			node->_intern = set_LightRep(node->_intern);
+			struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+			//for up vector in theory we need a few cross products to ensure its at least orthogonal to direction
+			//- up is somewhat arbitrary -spotlight is symmetrical about direction vector-
+			//  but must be consistent between depth texture rendering and shader sampling
+			float up[3], center[3], location[3];
+			vecset3f(up, 0.0f, 1.0f, 0.0f);
+			vecset3f(location, 0.0f, 0.0f, 0.0f);
+			vecadd3f(center, location, node->direction.c);
+			matrix_lookAtfd(location, center, up, lightrep->matview);
+
+			//for ortho, we will scale in render_directionalLight to parent extent 
+			//void bbox2extent6f(float* center, float* size, float* extent6)
+			float eout6[6], ein6[6];
+			double ed[6];
+			if (node->global) {
+				extent6f_copy(ein6, rootNode()->_extent);
+			}
+			else {
+				extent6f_copy(ein6, parent->_extent);
+			}
+			if (!extent6f_isSet(ein6) ) {
+				float e6[6], scale3[3];
+				extent6f_constructor(e6, -1.0f, 1.0f, -1.0f, 1.0f, .1f, 15.0f); //something for the first frame
+				extent6f_scale3f(eout6, e6, vecset3f(scale3, 8.0f, 4.0f, 1.0f));
+			}
+			else {
+				float e6[6], scale3[3];
+				extent6f_mattransform4d(e6, ein6, lightrep->matview);
+				extent6f_scale3f(eout6, e6, vecset3f(scale3, 1.01f, 1.01f, 1.01f));
+
+			}
+			//extent6f_printf(eout6); printf("e6\n");
+			float2double(ed, eout6, 6);
+			//projOrtho(ed[1],ed[0],ed[3],ed[2], .1, ed[4], lightrep->matproj); only half or 1/4 the area
+			mesa_Ortho(ed[1], ed[0], ed[3], ed[2], .1, ed[4], lightrep->matproj);
+
+			set_debug_quad_near_farplane(eout6[4],eout6[5]);
+
+			int nuse = lightTable_node_use_count(X3D_NODE(node));
+			uhit.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+			generate_shadowmap_2D(uhit, 0);
+
+		}
+		lightTable_push(uhit);
+	}
+}
+void render_DirectionalLight(struct X3D_DirectionalLight* node) {
+	render_DirectionalLight0(NULL, node);
+}
 /* global lights  are done before the rendering of geometry */
 void prep_DirectionalLight (struct X3D_DirectionalLight *node) {
 	if (!renderstate()->render_light) return;
@@ -352,7 +423,7 @@ void prep_PointLight (struct X3D_PointLight *node) {
 	render_PointLight(node);
 }
 
-//void mesa_Frustum(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE* m);
+//void mesa_Frustum(double left, double right, double bottom, double top, double nearZ, double farZ, double* m);
 //double * perspective_projection_matrix(double fovy_radians, double aspect, double zNear, double zFar, double* matrix) {
 //	double xmin, xmax, ymin, ymax;
 //
@@ -364,26 +435,7 @@ void prep_PointLight (struct X3D_PointLight *node) {
 //	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, matrix);
 //	return matrix;
 //}
-void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE* matrix);
-void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
-	GLDOUBLE centerx, GLDOUBLE centery, GLDOUBLE centerz,
-	GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE* matrix);
-double *matrix_lookAtd(double* eye3, double* center3, double* up3, double* matrix) {
-	//gluLookAt convention:
-	// eye - the viewpoint
-	// center - any point along the ray to the scene, typically a point on the geometry in the scene to look at
-	// up - which way is up in the viewing volume
-	projLookAt(eye3[0], eye3[1], eye3[2], center3[0], center3[1], center3[2], up3[0], up3[1], up3[2], matrix);
-	return matrix;
-}
-double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix) {
-	double eyed[3], centerd[3], upd[3];
-	float2double(eyed, eye3, 3);
-	float2double(centerd, center3, 3);
-	float2double(upd, up3, 3);
-	matrix_lookAtd(eyed,centerd,upd,matrix);
-	return matrix;
-}
+
 
 
 //UNIFORM BUFFER
@@ -536,7 +588,7 @@ void render_SpotLight0(struct X3D_Node *parent, struct X3D_SpotLight *node) {
 			int nuse = lightTable_node_use_count(X3D_NODE(node));
 			//shadowTable_push(uhit);
 			//render_shadowMap(X3D_NODE(node));
-			uhit.ivalue = make_or_get_depth_buffer(nuse-1,X3D_NODE(node));
+			uhit.ivalue = make_or_get_depth_buffer(nuse,X3D_NODE(node));
 			generate_shadowmap_2D(uhit, 0);
 
 		}
@@ -597,7 +649,7 @@ void sib_prep_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
 				render_PointLight((struct X3D_PointLight*)sibAffector);
 				break;
 			case NODE_DirectionalLight:
-				render_DirectionalLight((struct X3D_DirectionalLight*)sibAffector);
+				render_DirectionalLight0(parent,(struct X3D_DirectionalLight*)sibAffector);
 				break;
 			default:
 				break;
@@ -1029,7 +1081,7 @@ static struct {
 };
 
 void saveImage_web3dit(struct textureTableIndexStruct* tti, char* fname);
-void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+void fw_gluPerspective_2(double xcenter, double fovy, double aspect, double zNear, double zFar);
 void pushnset_viewport(float* vpFraction);
 void popnset_viewport();
 void render_bound_background();
@@ -1378,7 +1430,7 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 
 	}
 	//set index to 0 to debug (or 1 or which of the light visit shadow maps you want to see at end of frame)
-	if (index == -1) set_debug_quad(3, tti->OpenGLTexture); // lightrep->idepthtexture);
+	if (index == -1) set_debug_quad(2, tti->OpenGLTexture); // lightrep->idepthtexture);
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_POP_MATRIX();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
