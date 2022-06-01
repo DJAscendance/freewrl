@@ -445,16 +445,16 @@ void fin_sibAffectors(struct X3D_Node *parent, struct Multi_Node* affectors){
 //
 //};
 void prep_BBox(struct BBoxFields *bfields){
-	ttrenderstate rs = renderstate();
-	if (rs->render_vp || rs->render_other || rs->render_sensitive) return;
+	ttrenderstate rs = renderstate(); //just want pure geom or geom+blend
+	if (rs->render_vp || rs->render_other || rs->render_sensitive || rs->render_depth || rs->render_light || rs->render_cube || rs->render_collision) return;
 	push_group_extent_default();
 	push_group_visible( bfields->visible && peek_group_visible());
 }
 
 //#define VERBOSE
 void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
-	ttrenderstate rs = renderstate();
-	if (rs->render_vp || rs->render_other || rs->render_sensitive) return;
+	ttrenderstate rs = renderstate(); //just want pure geom or geom+blend
+	if (rs->render_vp || rs->render_other || rs->render_sensitive || rs->render_depth || rs->render_light || rs->render_cube || rs->render_collision) return;
 
 	#ifdef VERBOSE
 	printf ("\nstart fin_BBox\n");
