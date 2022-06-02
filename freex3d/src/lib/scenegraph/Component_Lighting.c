@@ -341,8 +341,10 @@ void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLig
 				//matinverseAFFINE(matevinv, matev);
 
 				//printmatrix2(matevinv, "center and size in light space");
-				matmultiplyAFFINE(mvm2, mate, uhit.mvm);
-				matcopy(uhit.mvm, mvm2);
+				matcopy(uhit.extra, mate);
+				//do the following in generate_shadowmap_2D and shadow section of sendLightInfo2, with mate = uhit.extra
+				//	matmultiplyAFFINE(mvm2, uhit.extra, uhit.mvm);
+				//matcopy(uhit.mvm, mvm2);
 				mesa_Ortho(-.5,.5,-.5,.5, .001,.5, lightrep->matproj);
 
 				set_debug_quad_near_farplane(.0, .5);
@@ -1425,13 +1427,17 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 
 		//set viewpoint matrix 
 		{
-			double world2light[16], world2lightview[16];
+			double world2light[16], world2lightview[16], mvm[16];
 			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16];
 			get_view_matrix(savePosOri, saveView);
 			matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
 			//printmatrix2(viewmatrix, "vp view matrix");
 
-			matinverseAFFINE(mvmInverse, uhit.mvm);
+			if (uhit.node->_nodeType == NODE_DirectionalLight)
+				matmultiplyAFFINE(mvm, uhit.extra, uhit.mvm);
+			else
+				matcopy(mvm, uhit.mvm);
+			matinverseAFFINE(mvmInverse, mvm);
 			//printmatrix2(uhit.mvm, "uhit.mvm");
 
 			matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
@@ -1672,8 +1678,13 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			float w2l[16];
 			{
 				//following textureProjector
-				double modelviewinv[16], eye2projector[16], matfull[16];
-				matinverse(modelviewinv, uhit->mvm);
+				double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
+				if (uhit->node->_nodeType == NODE_DirectionalLight)
+					matmultiplyAFFINE(mvm, uhit->extra, uhit->mvm);
+				else
+					matcopy(mvm, uhit->mvm);
+
+				matinverse(modelviewinv, mvm);
 				matmultiplyAFFINE(eye2projector, modelviewinv, lightrep->matview);
 				matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
 				double2float(w2l, matfull, 16);

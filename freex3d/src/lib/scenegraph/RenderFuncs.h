@@ -73,7 +73,7 @@ int currentviewportvisible(Stack *vpstack);
 typedef struct usehit {
 	struct X3D_Node *node;
 	double mvm[16];
-	//double proj[16];
+	double extra[16];
 	int ivalue;
 	void *userdata;
 } usehit;
