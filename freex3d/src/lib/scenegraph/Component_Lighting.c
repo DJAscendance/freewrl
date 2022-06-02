@@ -293,7 +293,7 @@ void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLig
 			matrix_lookAtfd(location, center, up, lightrep->matview);
 
 			//for ortho, we will scale in render_directionalLight to parent extent 
-			//void bbox2extent6f(float* center, float* size, float* extent6)
+			//so shadow map covers siblings affected
 			float eout6[6], ein6[6];
 			double ed[6];
 			if (node->global) {
@@ -313,13 +313,41 @@ void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLig
 				extent6f_scale3f(eout6, e6, vecset3f(scale3, 1.01f, 1.01f, 1.01f));
 
 			}
-			//extent6f_printf(eout6); printf("e6\n");
-			float2double(ed, eout6, 6);
-			//projOrtho(ed[1],ed[0],ed[3],ed[2], .1, ed[4], lightrep->matproj); only half or 1/4 the area
-			mesa_Ortho(ed[1], ed[0], ed[3], ed[2], .1, ed[4], lightrep->matproj);
+			int method = 1;
+			if (method == 0) {
+				//extent6f_printf(eout6); printf("e6\n");
+				float2double(ed, eout6, 6);
+				//projOrtho(ed[1],ed[0],ed[3],ed[2], .1, ed[4], lightrep->matproj); only half or 1/4 the area
+				mesa_Ortho(ed[1], ed[0], ed[3], ed[2], .1, ed[4], lightrep->matproj);
 
-			set_debug_quad_near_farplane(eout6[4],eout6[5]);
+				set_debug_quad_near_farplane(eout6[4], eout6[5]);
+			}
+			else if (method == 1) {
+				//convert extent in lightview space into an equivalent transform
+				//and transform it back to light space, to append to mvm
+				float size[3];
+				double mate[16], matel[16], dcenter[3], dsize[3], matviewInv[16], mvm2[16], matev[16], matevinv[16];
+				extent6f2bbox(eout6, center, size);
+				//extent6f_printf(eout6); printf("extent in lightview space\n");
+				//vecprint3fb("center", center, "\n");
+				//vecprint3fb("size", size, "\n");
+				matidentity4d(mate);
+				mattranslate4d(mate, float2double(dcenter, center, 3));
+				matscale4d(mate, float2double(dsize, size, 3));
+				//printmatrix2(mate, "center and size mat in lightview space");
+				//matinverseAFFINE(matviewInv, lightrep->matview);
+				//matmultiplyAFFINE(matev, matviewInv, mate);
+				//printmatrix2(matev, "invcenter and size in lightview space");
+				//matinverseAFFINE(matevinv, matev);
 
+				//printmatrix2(matevinv, "center and size in light space");
+				matmultiplyAFFINE(mvm2, mate, uhit.mvm);
+				matcopy(uhit.mvm, mvm2);
+				mesa_Ortho(-.5,.5,-.5,.5, .001,.5, lightrep->matproj);
+
+				set_debug_quad_near_farplane(.0, .5);
+
+			}
 			int nuse = lightTable_node_use_count(X3D_NODE(node));
 			uhit.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 			generate_shadowmap_2D(uhit, 0);
@@ -1604,7 +1632,7 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			default: break;
 		}
 		//save a bit of bandwidth by not sending unused parameters for a light type
-		if (lightType < 2) { //not direction
+		if (lightType < 2) { //not directional
 			GLUNIFORM3FV(me->lightAtten[j], 1, plight->attenuation.c); //.light_Attenuations);
 			GLUNIFORM1F(me->lightRadius[j], plight->radius);
 			float location[4];
@@ -1620,7 +1648,7 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 			transformDirectionToEye0(uhit->mvm, direction);
 			GLUNIFORM3FV(me->lightDirection[j], 1, direction);
 		}
-		if (lightType == 2) {
+		if (lightType == 2) { //directional
 			float direction[4];
 			veccopy3f(direction, dlight->direction.c);
 			transformDirectionToEye0(uhit->mvm, direction);

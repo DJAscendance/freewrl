@@ -296,6 +296,7 @@ double* matinverseFULL(double* res, double* m);
 double* matinverseAFFINE(double* res, double* m);
 double *matidentity4d(double *b);
 double *mattranslate4d(double *mat, double* xyz);
+double* matscale4d(double* mat, double* sxyz);
 
 float* matinverse4f(float* res, float* mm);
 double* mattranspose(double* res, double* m);

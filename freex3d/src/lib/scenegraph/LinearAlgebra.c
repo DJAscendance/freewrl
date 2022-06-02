@@ -1441,6 +1441,16 @@ double *mattranslate4d(double *mat, double* xyz){
 	matmultiplyFULL(mat,mtemp,mat);
 	return mat;
 }
+double* matscale4d(double* mat, double* sxyz) {
+	// untested, want it to work like fw_glTranslated
+	double mtemp[16];
+	matidentity4d(mtemp);
+	mtemp[0] = sxyz[0];
+	mtemp[5] = sxyz[1];
+	mtemp[10] = sxyz[2];
+	matmultiplyFULL(mat, mtemp, mat);
+	return mat;
+}
 float *matidentity4f(float *b){
 	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i,j;
