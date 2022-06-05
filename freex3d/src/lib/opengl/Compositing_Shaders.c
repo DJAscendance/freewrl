@@ -1008,10 +1008,10 @@ varying vec4 castle_Color; \n\
  \n\
 #ifdef LITE \n\
 #define MAX_LIGHTS 8 \n\
-//#ifdef SHADOWS \n\
+#ifdef SHADOW \n\
 //for shadows, shape frag coord transformed into light system by vertex shader \n\
 uniform mat4 lightMat[8]; \n\
-//#endif //SHADOWS \n\
+#endif //SHADOW \n\
 uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
@@ -1387,14 +1387,14 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
 // material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
 vec4 sample_map0(int iunit, bool apply_gamma){ \n\
-	#define CONFORMANT 1 \n\
-	#ifdef CONFORMANT \n\
 	int index = mat.tindex[mat.tstart[iunit]]; \n\
 	//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
 	//vec2 tc = fw_TexCoord[mat.cmap[iunit]].xy; \n\
     vec2 tc = fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy; \n\
 	vec4 nc = vec4(0); \n\
-	#ifdef FULL \n\
+	#if __VERSION__ >= 400 \n\
+      nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy); \n\
+    #elif __VERSION__ >= 330 \n\
 	switch(index) { \n\
 		case 0: nc = texture2D(textureUnit[0],tc); break; \n\
 		case 1: nc = texture2D(textureUnit[1],tc); break; \n\
@@ -1404,7 +1404,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		case 5: nc = texture2D(textureUnit[5],tc); break; \n\
 		case 6: nc = texture2D(textureUnit[6],tc); break; \n\
 		case 7: nc = texture2D(textureUnit[7],tc); break; \n\
-#ifndef SHADOW \n\
+        #ifndef SHADOW \n\
 		case 8: nc = texture2D(textureUnit[8],tc); break; \n\
 		case 9: nc = texture2D(textureUnit[9],tc); break; \n\
 		case 10: nc = texture2D(textureUnit[10],tc); break; \n\
@@ -1413,10 +1413,10 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		case 13: nc = texture2D(textureUnit[13],tc); break; \n\
 		case 14: nc = texture2D(textureUnit[14],tc); break; \n\
 		case 15: nc = texture2D(textureUnit[15],tc); break; \n\
-#endif //SHADOW \n\
+        #endif //SHADOW \n\
 		default: break; \n\
 	} \n\
-	#else //FULL \n\
+	#else //__VERSION__ < 330 \n\
 		//glsl 1.20 that goes with opengl 2.1 has trouble with switch \n\
 		if(index < 8){ \n\
 			if(index < 4){ \n\
@@ -1445,7 +1445,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 				} \n\
 			}\n\
 		}\n\
-#ifndef SHADOW \n\
+        #ifndef SHADOW \n\
         else{ \n\
 			if(index < 12){\n\
 				if(index < 10){ \n\
@@ -1473,12 +1473,8 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 				} \n\
 			} \n\
 		} \n\
-#endif //SHADOW \n\
-	#endif //FULL \n\
-	#else //CONFORMANT \n\
-	//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
-	vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy); \n\
-	#endif //CONVORMANT \n\
+        #endif //SHADOW \n\
+	#endif //__VERSION__ \n\
 	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	return nc; \n\
 } \n\
