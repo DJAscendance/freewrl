@@ -1008,8 +1008,10 @@ varying vec4 castle_Color; \n\
  \n\
 #ifdef LITE \n\
 #define MAX_LIGHTS 8 \n\
+//#ifdef SHADOWS \n\
 //for shadows, shape frag coord transformed into light system by vertex shader \n\
 uniform mat4 lightMat[8]; \n\
+//#endif //SHADOWS \n\
 uniform int lightcount; \n\
 //uniform float lightRadius[MAX_LIGHTS]; \n\
 uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
@@ -1050,11 +1052,6 @@ struct MaterialInfo \n\
 /* PLUG-DECLARATIONS */ \n\
 //#ifdef TEX \n\
 uniform int textureCount; \n\
-#ifdef CUB \n\
-uniform samplerCube fw_Texture_unit0; \n\
-#else //CUB \n\
-uniform sampler2D fw_Texture_unit0; \n\
-#endif //CUB \n\
 varying vec3 fw_TexCoord[6]; \n\
 #ifdef TEX3D \n\
 uniform int tex3dTiles[3]; \n\
@@ -1062,6 +1059,7 @@ uniform int repeatSTR[3]; \n\
 uniform int magFilter; \n\
 #endif //TEX3D \n\
 #ifdef TEX3DLAY \n\
+uniform sampler2D fw_Texture_unit0; \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
@@ -1283,8 +1281,15 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 //#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
+#ifdef SHADOW \n\
+//shared samplerCube array -light shadows \n\
+uniform samplerCube textureUnitCube[4]; \n\
+//shared sampler2D array -PTM or PBR use \n\
+uniform sampler2D textureUnit[8]; \n\
+#else //SHADOW \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
+#endif //SHADOW \n\
 //#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
@@ -1399,6 +1404,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		case 5: nc = texture2D(textureUnit[5],tc); break; \n\
 		case 6: nc = texture2D(textureUnit[6],tc); break; \n\
 		case 7: nc = texture2D(textureUnit[7],tc); break; \n\
+#ifndef SHADOW \n\
 		case 8: nc = texture2D(textureUnit[8],tc); break; \n\
 		case 9: nc = texture2D(textureUnit[9],tc); break; \n\
 		case 10: nc = texture2D(textureUnit[10],tc); break; \n\
@@ -1407,6 +1413,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		case 13: nc = texture2D(textureUnit[13],tc); break; \n\
 		case 14: nc = texture2D(textureUnit[14],tc); break; \n\
 		case 15: nc = texture2D(textureUnit[15],tc); break; \n\
+#endif //SHADOW \n\
 		default: break; \n\
 	} \n\
 	#else //FULL \n\
@@ -1437,7 +1444,9 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 						nc = texture2D(textureUnit[6],tc); \n\
 				} \n\
 			}\n\
-		}else{ \n\
+		}\n\
+#ifndef SHADOW \n\
+        else{ \n\
 			if(index < 12){\n\
 				if(index < 10){ \n\
 					if(index == 9) \n\
@@ -1464,6 +1473,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 				} \n\
 			} \n\
 		} \n\
+#endif //SHADOW \n\
 	#endif //FULL \n\
 	#else //CONFORMANT \n\
 	//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cindex[iunit]].xy); \n\
@@ -3232,22 +3242,33 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
-#ifdef SHADOW //this stuff only works in the fragment shader \n\
+#ifdef SHADOW//this stuff only works in the fragment shader \n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
     vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
     vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
     vec4 fragPosLightSpace = lightCoord; \n\
+    int type = lightType[ilight]; \n\
+    vec3 projCoords, projNorm; \n\
 	// perform perspective divide \n\
-	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
+	projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
     //instead of inverseTranspose we transform another point, and subtract \n\
-    vec3 projNorm = lightNorm.xyz/lightNorm.w; \n\
-	// transform to [0,1] range \n\
-	projCoords = projCoords * 0.5 + 0.5; \n\
-	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
-	float closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
-	// get depth of current fragment from light's perspective \n\
+    projNorm = lightNorm.xyz/lightNorm.w; \n\
+    float closestDepth = 10.0; \n\
+    if(type == 0){ \n\
+      //PointLight uses cubemap shadow and 3D lookup coord \n\
+	  projCoords = projCoords * 0.5 + 0.5; \n\
+		vec3 nc = normalize(projNorm-projCoords); \n\
+      closestDepth = texture(textureUnitCube[fw_LightSource[ilight].depthmap], nc).r; \n\
+      //closestDepth = texture(textureUnitCube[0], nc).r; \n\
+    }else{ \n\
+	  // transform to [0,1] range \n\
+	  projCoords = projCoords * 0.5 + 0.5; \n\
+	  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
+	  closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
+	  // get depth of current fragment from light's perspective \n\
+    } \n\
 	float currentDepth = projCoords.z; \n\
 	// calculate bias (based on depth map resolution and slope) \n\
 	vec3 normal = normalize(projNorm-projCoords); \n\
@@ -4905,6 +4926,40 @@ void main() \n\
 	//FragColor = vec4(vec3(depthValue), 1.0); // orthographic \n\
 } \n\
 ";
+char* fragmentQuadDepthCube = "#version 330 core \n\
+out vec4 FragColor; \n\
+in vec2 TexCoords; \n\
+uniform samplerCube textureUnit; \n\
+//uniform samplerCube textureUnitCube[16]; //challenge test to see if [16] cubemaps is a problem \n\
+//uniform int depthunit; \n\
+uniform float near_plane; \n\
+uniform float far_plane; \n\
+ \n\
+// required when using a perspective projection matrix \n\
+float LinearizeDepth(float depth) \n\
+{ \n\
+	float z = depth * 2.0 - 1.0; // Back to NDC  \n\
+	return (2.0 * near_plane * far_plane) / (far_plane + near_plane - z * (far_plane - near_plane)); \n\
+} \n\
+ \n\
+void main() \n\
+{ \n\
+	float phi = (TexCoords.x * 2.0 -1.0)*.5*3.14159623; \n\
+    float theta = (TexCoords.y * 2.0 -.5)*3.14159623; \n\
+	vec3 tc = vec3(cos(theta)*cos(phi),sin(theta)*cos(phi),sin(phi)); \n\
+	//float depthValue = texture(textureUnitCube[depthunit], tc).r; \n\
+	float depthValue = texture(textureUnit, tc).r; \n\
+    //vec3 cc = (tc*.5 +.5)*depthValue;\n\
+    //vec3 cc = vec3(TexCoords.x,TexCoords.y,depthValue); \n\
+	//FragColor = vec4(cc,1.0); \n\
+    //if(depthValue == 1.0) depthValue = 0.0; \n\
+    //depthValue = (depthValue - .8)*4.0; \n\
+    //FragColor = vec4(vec3(depthValue),1.0); \n\
+	FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0); // perspective \n\
+	//FragColor = vec4(vec3(depthValue), 1.0); // orthographic \n\
+} \n\
+";
+
 int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
 	*vertexSource = strdup(vertexQuad);
 
@@ -4918,6 +4973,10 @@ int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fra
 	case 3:
 		*fragmentSource = strdup(fragmentQuadDepthPerspective);
 		break;
+	case 4:
+		*fragmentSource = strdup(fragmentQuadDepthCube);
+		break;
+
 	}
 	return TRUE;
 }

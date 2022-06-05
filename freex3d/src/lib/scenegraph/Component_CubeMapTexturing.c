@@ -294,7 +294,7 @@ void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
 	for (count=0; count<6; count++) {
 
 		/* set up the appearanceProperties to indicate a CubeMap */
-		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT+count;
+		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X+count;
         //printf ("set cubeFace to %d in rcm\n",getAppearanceProperties()->cubeFace);
 		/* go through these, right left, top, bottom, front, back, */
 		//                     +x,   -x,  +y,     -y,   +z,   -z    //LHS system
@@ -999,7 +999,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 			for (count = 0; count < 6; count++) {
 				if (imethod != 1) {
 					/* set up the appearanceProperties to indicate a CubeMap */
-					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT + count;
+					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
 
 					/* go through these, back, front, top, bottom, right left */
 					iface = lookup_xxyyzz_face_from_count[count];
@@ -1432,7 +1432,7 @@ void render_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) {
 		for (count=0; count<6; count++) {
 
 			/* set up the appearanceProperties to indicate a CubeMap */
-			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT+count;
+			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X+count;
 
 			/* go through these, back, front, top, bottom, right left */
 			iface = lookup_xxyyzz_face_from_count[count];
@@ -1610,6 +1610,11 @@ void generate_GeneratedCubeMapTextures(){
 			}
 			popnset_viewport();
 			popnset_framebuffer();
+			if (0) {
+				set_debug_quad_near_farplane(.5f, 100.0f);
+				set_debug_quad(4, tti->OpenGLTexture);
+			}
+
 			//compile_generatedcubemaptexture // convert to opengl
 		}
 

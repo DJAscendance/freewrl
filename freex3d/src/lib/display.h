@@ -455,6 +455,7 @@ typedef struct s_shader_capabilities{
 
 	//shared PTM and PBR
 	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
+	GLint textureUnitCube[8]; //shared light shadow maps, anything else that needs cube texture
 
 	/* PTM Projective Texture */
 	GLint ptmCount;

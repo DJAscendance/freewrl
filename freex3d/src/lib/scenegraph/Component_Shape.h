@@ -188,8 +188,10 @@ struct fw_MaterialParameters {
 
 // helpers for sharing sampler2D (and texture units)
 void clear_material_samplers();
-int share_or_next_material_sampler_index(GLint texture);
-GLint tunit(int index);
+int share_or_next_material_sampler_index_2D(GLint texture);
+GLint tunit2D(int index);
+int share_or_next_material_sampler_index_Cube(GLint texture);
+GLint tunitCube(int index);
 
 struct matpropstruct {
 	/* material properties for current shape */

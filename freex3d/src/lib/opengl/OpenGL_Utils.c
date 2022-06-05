@@ -2748,6 +2748,12 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		sprintf(line,"textureUnit[%d]",i);
 		me->textureUnit[i] = GET_UNIFORM(myProg,line);
 	}
+	for (int i = 0; i < 8; i++) {
+		//per (projector related) sampler2D and shared with PBR
+		char line[32];
+		sprintf(line, "textureUnitCube[%d]", i);
+		me->textureUnitCube[i] = GET_UNIFORM(myProg, line);
+	}
 	for(int i=0;i<8;i++){
 		//per projector
 		char line[24];
@@ -6921,37 +6927,62 @@ void sendClipplanesToShader(s_shader_capabilities_t *me){
 // we keep track of which units are claimed already on a given rendering pass on child_Shape
 // child_Shape order: material(s).textures get the first crack, then PTM.texture, then appearance.texture
 
-static int nunit = 0;
-static int unit[32];
+static int nunit2D = 0;
+static int nunitCube = 0;
+static int unit2D[32];
+static int unitCube[8];
 void clear_material_samplers();
-int share_or_next_material_sampler_index(GLint texture);
-GLint tunit(int index);
-int sampler_units_used(){
-	return nunit;
-}
+int share_or_next_material_sampler_index_2D(GLint texture);
+GLint tunit2D(int index);
+//int sampler_units_used(){
+//	return nunit;
+//}
 void clear_material_samplers(){
 	//called early in child_shape, before the 3 uses start claiming textureUnits
-	nunit = 0;
+	nunit2D = 0;
+	nunitCube = 0;
 }
-int share_or_next_material_sampler_index(GLint texture){
+int share_or_next_material_sampler_index_2D(GLint texture){
+	// returns i as in GL_TEXTUREi - next available texture unit (or re-use one that has the same opengl texture name)
 	int kunit, index;
 	kunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, texture);
 	index = -1;
-	for(int i=0;i<nunit;i++){
-		if(unit[i] == kunit){
+	for(int i=0;i<nunit2D;i++){
+		if(unit2D[i] == kunit){
 			index = i;
 		}
 	}
 	if(index == -1){
-		unit[nunit] = kunit;
-		index = nunit;
-		nunit++;
+		unit2D[nunit2D] = kunit;
+		index = nunit2D;
+		nunit2D++;
 	}
 	//glUniform1i(me->TextureUnit[i],unit[kunit]);
 	return index;
 }
-GLint tunit(int index){
-	return unit[index];
+GLint tunit2D(int index){
+	return unit2D[index];
+}
+int share_or_next_material_sampler_index_Cube(GLint texture) {
+	// returns i as in GL_TEXTUREi - next available texture unit (or re-use one that has the same opengl texture name)
+	int kunit, index;
+	kunit = bind_or_share_next_textureUnit(GL_TEXTURE_CUBE_MAP, texture);
+	index = -1;
+	for (int i = 0; i < nunitCube; i++) {
+		if (unitCube[i] == kunit) {
+			index = i;
+		}
+	}
+	if (index == -1) {
+		unitCube[nunitCube] = kunit;
+		index = nunitCube;
+		nunitCube++;
+	}
+	//glUniform1i(me->TextureUnit[i],unit[kunit]);
+	return index;
+}
+GLint tunitCube(int index) {
+	return unitCube[index];
 }
 
 void sendLightInfo2(s_shader_capabilities_t* me);
@@ -7017,12 +7048,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 			int ntdesc = getTextureDescriptors(mp->textures[iuse],textures, modes,sources, funcs, width, height);
 			mp->tcount[iuse] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
-				int kunit = share_or_next_material_sampler_index(textures[j]);
+				int kunit = share_or_next_material_sampler_index_2D(textures[j]);//returns i as in GL_TEXTUREi, next available
 				mp->tindex[nt] = kunit;
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-				int iunit = tunit(kunit);
+				int iunit = tunit2D(kunit);//returns the shader sampler2D textureUnit[iunit]
 				glUniform1i(me->textureUnit[kunit],iunit);
 				glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
 				glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
@@ -7068,13 +7099,13 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 			int ntdesc = getTextureDescriptors(mp->textures[iuse],textures, modes,sources, funcs, width, height);
 			mp->tcount[iuse] = ntdesc;
 			for(int j=0;j<ntdesc;j++){
-				int kunit = share_or_next_material_sampler_index(textures[j]);
+				int kunit = share_or_next_material_sampler_index_2D(textures[j]); //returns i as in GL_TEXTUREi, next available
 
 				mp->tindex[nt] = kunit;
 				mp->source[nt] = sources[j];
 				mp->mode[nt] = modes[j];
 				mp->func[nt] = funcs[j];
-				int iunit = tunit(kunit);
+				int iunit = tunit2D(kunit); //returns the shader sampler2D textureUnit[iunit]
 				glUniform1i(me->textureUnit[kunit], iunit);
 				glUniform1i(me->myMaterialBackTindex[nt], mp->tindex[nt]);
 				glUniform1i(me->myMaterialBackMode[nt], mp->mode[nt]);

@@ -41,7 +41,7 @@ X3D Lighting Component
 //#include "../opengl/OpenGL_Utils.h"
 #include "LinearAlgebra.h"
 #include "Polyrep.h"
-
+#include "Component_Shape.h"
 
 typedef struct pComponent_Lighting {
 	Stack* genshadow_stack;
@@ -165,7 +165,7 @@ struct X3D_LightRep {
 	void* lightbuf;
 	int ilightbuf; //opengl uniform buffer index
 	//depth section
-	struct X3D_Node* depthTexture;
+	//struct X3D_Node* depthTexture;
 	Stack* depth_buffer_stack;
 	int size;
 	//int idepthtexture;
@@ -200,6 +200,18 @@ void delete_LightRep(void* _lightrep) {
 	}
 }
 
+// PointLight Shadowmap phases/stages
+// cubemap Stage I - creating empty cubemap and 6 side textures and fbo
+// cubemap Stage II - rendering the 6 sides of cubemap to fill with images
+// cubemap Stage III - sending to shader for sampling cubemap
+//GCM generated cube map texture method:
+// - Stage II uses 6 individual textures
+//non-GCM method:
+// - uses cubemap in Stage II, specificie which side is attached to FBO for rendering
+static int gcm_method_used = 0;
+int gcm_method() {
+	return gcm_method_used;
+}
 
 #define RETURN_IF_LIGHT_STATE_NOT_US \
 		if (renderstate()->render_light== VF_globalLight) { \
@@ -431,6 +443,8 @@ void compile_PointLight(struct X3D_PointLight* node) {
 		matrix_lookAtfd(node->location.c, center, up, lightrep->matview);
 		matidentity4d(lightrep->matproj);
 	}
+	MARK_NODE_COMPILED;
+
 }
 
 void render_PointLight_OLD (struct X3D_PointLight *node) {
@@ -468,6 +482,26 @@ void render_PointLight0(struct X3D_Node* parent, struct X3D_PointLight* node) {
 			//render_shadowMap(X3D_NODE(node));
 			uhit.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 			generate_shadowmap_cube(uhit, uhit.ivalue);
+			if(gcm_method()) {
+				/* we have the 6 faces from the image, just go through and render them as a cube */
+				struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+				struct X3D_GeneratedCubeMapTexture *cubtex = 
+					(struct X3D_GeneratedCubeMapTexture*) vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);
+				if (cubtex->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
+
+				for (int count = 0; count < 6; count++) {
+
+					/* set up the appearanceProperties to indicate a CubeMap */
+					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
+
+					/* go through these, back, front, top, bottom, right left */
+					//iface = count; // lookup_xxyyzz_face_from_count[count];
+					render_node(cubtex->__subTextures.p[count]);
+				}
+			}
+			/* Finished rendering CubeMap, set it back for normal textures */
+			getAppearanceProperties()->cubeFace = 0;
+
 
 		}
 		lightTable_push(uhit);
@@ -756,7 +790,7 @@ void freeASCIIString(struct Uni_String* us);
 
 struct X3D_Node * make_depth_buffer(int width, int height) {
 	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);;
-	PRINT_GL_ERROR_IF_ANY("compile_shadowMap START");
+	PRINT_GL_ERROR_IF_ANY("make_depth_buffer START");
 	//if (tex->__subTextures.n == 0) 
 	{
 
@@ -805,7 +839,7 @@ struct X3D_Node * make_depth_buffer(int width, int height) {
 		}
 
 	}
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps END");
+	PRINT_GL_ERROR_IF_ANY("make_depth_buffer END");
 
 
 	return X3D_NODE(tex);
@@ -818,58 +852,148 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 	//its a 'dynamic cubemap' like GeneratedCubeMapTexture
 	// that means we'll be re-rendering and re-submitting each of the 6 textures once per frame
 	// so need access.
+	// cubemap Stage I
 	struct X3D_GeneratedCubeMapTexture *cubetex = createNewX3DNode(NODE_GeneratedCubeMapTexture);
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps START");
+	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube START");
 	if (cubetex->__subTextures.n == 0) {
 
 		int i;
 		struct textureTableIndexStruct* tti;
-
-		//FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
-		cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
-		for (i = 0; i < 6; i++) {
-			struct X3D_PixelTexture* pt;
-			pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
-			cubetex->__subTextures.p[i] = X3D_NODE(pt);
+		if (gcm_method()) {
+			//FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
+			cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
+			for (i = 0; i < 6; i++) {
+				struct X3D_PixelTexture* pt;
+				pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
+				tti = getTableIndex(pt->__textureTableIndex);
+				tti->idepthbuffer = 1;
+				tti->x = width;
+				tti->y = height;
+				tti->status = TEX_LOADED;
+				glGenTextures(1, &tti->OpenGLTexture);
+				glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+				cubetex->__subTextures.p[i] = X3D_NODE(pt);
+			}
+			cubetex->__subTextures.n = 6;
 		}
-		cubetex->__subTextures.n = 6;
 		tti = getTableIndex(cubetex->__textureTableIndex);
-		tti->status = TEX_LOADED; // TEX_NEEDSBINDING; //I found I didn't need - yet
+		tti->status = TEX_LOADED; // I found I didn't need - yet TEX_NEEDSBINDING; //
 		tti->x = width;
 		tti->y = height;
 		tti->z = 1;
-		loadTextureNode(X3D_NODE(cubetex), NULL);
+		tti->idepthbuffer = 1;
+		//loadTextureNode(X3D_NODE(cubetex), NULL); 
+		GLuint status;
 		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
 			int j;
 			// https://www.opengl.org/wiki/Framebuffer_Object
-			// https://learnopengl.com/Advanced-OpenGL/Cubemaps - doesn't show 'dynamic' cubemaps
+			// https://learnopengl.com/Advanced-OpenGL/Cubemaps - doesn't show 'dynamic' cubemaps, but create with images, not renderbuffers, so can sample in shader
+			// https://learnopengl.com/Advanced-OpenGL/Framebuffers 
 
-			glGenFramebuffers(1, &tti->ifbobuffer);
-			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+			if (gcm_method()) {
+				glGenFramebuffers(1, &tti->ifbobuffer);
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
 
-			glGenTextures(1, &tti->OpenGLTexture);
-			//glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
-			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-			for (int i = 0; i < 6; i++) {
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+				glGenTextures(1, &tti->OpenGLTexture);
+				pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+				glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+
+				//created above in textures.c //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+
+				//glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 2");
+				for (int i = 0; i < 6; i++) {
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+				}
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 3");
+
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 4");
+
+				//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
+				//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+				glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tti->OpenGLTexture, 0);
+
+
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 5");
+
+				glDrawBuffer(GL_NONE);
+				glReadBuffer(GL_NONE);
+				status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+
+				popnset_framebuffer(); //tti->ifbobuffer);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			else {
+				glGenTextures(1, &tti->OpenGLTexture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+				// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT); //DEFAULT, no need for this line
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE);
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE); //used with samplerCubeShadow which we aren't using
+				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+				for (size_t i = 0; i < 6; ++i) {
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+				}
+				glGenFramebuffers(1, &tti->ifbobuffer);
+				pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
+				glDrawBuffer(GL_NONE);
+				//glReadBuffer(GL_NONE);
+				glViewport(0, 0, width, height);
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glDrawBuffer(GL_NONE);
-			glReadBuffer(GL_NONE);
-			popnset_framebuffer(); //tti->ifbobuffer);
+				//bind one tex now for fun, and to check FBO completeness, but will bind in iteration loop during depth rendering generate_shadowmap_cube
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + 0, tti->OpenGLTexture, 0);
+				status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+
+				popnset_framebuffer(); //tti->ifbobuffer);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+
+			}
+
+			// https://www.khronos.org/opengl/wiki/Framebuffer_Object#Framebuffer_Completeness
+			// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCheckFramebufferStatus.xhtml 
+			status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+			if (status != GL_FRAMEBUFFER_COMPLETE) {
+				printf("make_depth_buffer_cube: framebuffer not complete\n");
+				switch (status) {
+				case GL_FRAMEBUFFER_UNDEFINED:
+					printf("GL_FRAMEBUFFER_UNDEFINED\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n"); break;
+				case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+					printf("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n"); break;
+				case GL_FRAMEBUFFER_UNSUPPORTED:
+					printf("GL_FRAMEBUFFER_UNSUPPORTED\n"); break;
+				default:
+					printf("unknown GL error %u\n", (unsigned int)status); break;
+				}
+			}
 		}
-
 	}
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps END");
+	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube END");
 
 	// tell the whole system to re-create the data for these sub-children 
 	//node->__regenSubTextures = TRUE;
@@ -1186,7 +1310,7 @@ void render_PointLight_shadowMap(struct X3D_PointLight* node) {
 		for (count = 0; count < 6; count++) {
 
 			// set up the appearanceProperties to indicate a CubeMap 
-			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT + count;
+			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
 
 			// go through these, back, front, top, bottom, right left 
 			iface = count;
@@ -1200,6 +1324,105 @@ void render_PointLight_shadowMap(struct X3D_PointLight* node) {
 }
 */
 
+
+// https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping  
+// shows rendering of shadow maps, and debug quad rendering
+// renderQuad() renders a 1x1 XY quad in NDC
+// -----------------------------------------
+static unsigned int quadVAO = 0;
+static unsigned int quadVBO;
+void renderQuad()
+{
+	if (quadVAO == 0)
+	{
+		float quadVertices[] = {
+			// positions        // texture Coords
+			-.8f,  .8f, 0.0f, 0.0f, 1.0f,
+			-.8f, -.8f, 0.0f, 0.0f, 0.0f,
+			 .8f,  .8f, 0.0f, 1.0f, 1.0f,
+			 .8f, -.8f, 0.0f, 1.0f, 0.0f,
+		};
+		// setup plane VAO
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	}
+	glBindVertexArray(quadVAO);
+	PRINT_GL_ERROR_IF_ANY("render_quad before glDrawArrays");
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	PRINT_GL_ERROR_IF_ANY("render_quad after glDrawArrays");
+	glBindVertexArray(0);
+}
+static struct debug_quad {
+	int textureID; // opengl texture, -1 for no texture
+	int which_debug_shader;
+	float near_plane, far_plane;
+} debug_quad = { -1,0,1.0f,15.0f };
+void set_debug_quad(int which_debug_shader, int textureID) {
+	// which_debug_shader - flag to indicate which quad shader 0=turn off debug quad 1-normal texture 2=ortho depth 3=perspective depth
+	// textureID - opengl texture number
+	debug_quad.textureID = textureID;
+	debug_quad.which_debug_shader = which_debug_shader;
+}
+void set_debug_quad_near_farplane(float nearplane, float farplane) {
+	debug_quad.near_plane = nearplane;
+	debug_quad.far_plane = farplane;
+}
+void render_debug_quad() {
+	//call this routinely at the end of main scene render() before swapBuffers
+	// if no debug_request just returns, else renders a quad over any rendered scene
+	int ia;
+	if (debug_quad.textureID < 0)return;
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad START");
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+	shader_requirements.debug = debug_quad.which_debug_shader;
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	if (debug_quad.which_debug_shader > 2) {
+		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
+		glUniform1f(ia, debug_quad.near_plane);
+		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
+		glUniform1f(ia, debug_quad.far_plane);
+	}
+	//if (debug_quad.which_debug_shader == 4) {
+	//	ia = glGetUniformLocation(scap->myShaderProgram, "depthunit");
+	//	glUniform1i(ia, 15);
+	//	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnitCube[15]"); //challenge test for arrays of cubemaps
+	//}
+	//else
+	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
+	glUniform1i(ia, 0);
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad before ActiveTexture");
+
+	glActiveTexture(GL_TEXTURE0);
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad before enable CUBE_MAP");
+
+	if (debug_quad.which_debug_shader == 4) {
+		glEnable(GL_TEXTURE_CUBE_MAP);
+		PRINT_GL_ERROR_IF_ANY("render_debug_quad before bind CUBE_MAP");
+		glBindTexture(GL_TEXTURE_CUBE_MAP, debug_quad.textureID);
+	}
+	else
+		glBindTexture(GL_TEXTURE_2D, debug_quad.textureID);
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad before renderQuad");
+
+	renderQuad();
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad after renderQuad");
+
+	if (debug_quad.which_debug_shader == 4) {
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		glDisable(GL_TEXTURE_CUBE_MAP);
+	}
+	PRINT_GL_ERROR_IF_ANY("render_debug_quad END");
+}
 //we'll do a different matrix rotation for each face, using sideangle struct:
 static struct {
 	double angle;
@@ -1233,6 +1456,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	//assumes depth fbo buffer / texture already exists / created elsewhere / persistent storage
 	// set viewpoint pose at light node
 	// render parent>children sub-scene to fbo texture via render_hier2(parent,VF_Geom | VF_Depth)
+	// cubemap Stage II
 	double savebackmat[16];
 
 	int isize;
@@ -1252,56 +1476,114 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 
 	node = (struct X3D_PointLight*)uhit.node;
 	lightrep = (struct X3D_LightRep*)node->_intern;
-	struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)lightrep->depthTexture;
+	struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);;
 	memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
 
 	//compile_generatedcubemap - creates framebufferobject fbo
 	tti = getTableIndex(cubetex->__textureTableIndex);
 	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before cube 6 loop");
 
-	isize = tti->x; //set in compile_
+	//isize = tti->x; //set in compile_
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-	//GLuint attachments [1] = {GL_COLOR_ATTACHMENT0};
+	//GLuint attachments [1] = {GL_DEPTH_ATTACHMENT};
 	//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after drawBuffers");
+
 	//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
 	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
-	glViewport(0, 0, isize, isize); //viewport we want 
+	glViewport(0, 0, tti->x, tti->y); //viewport we want 
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_PUSH_MATRIX();
+	FW_GL_LOAD_IDENTITY();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	FW_GL_PUSH_MATRIX();
+	FW_GL_LOAD_IDENTITY();
 
+	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before loop 2");
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		printf("generate_shadowmap_cube: framebuffer not complete\n");
 	//create fbo or fbo tiles collection for generatedcubemap
 	//method: we draw each face to a single framebuffer texture, 
 	// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
 	// we skip the steps of creating and reading back PixelTexture->image.p into texdata
-	for (int j = 0; j < cubetex->__subTextures.n; j++) {  //should be 6
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+	glEnable(GL_TEXTURE_CUBE_MAP);
+	glEnable(GL_TEXTURE_GEN_S);
+	glEnable(GL_TEXTURE_GEN_T);
+	glEnable(GL_TEXTURE_GEN_R);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+
+	for (int j = 0; j < 6; j++) {  //should be 6 cubetex->__subTextures.n
 		textureTableIndexStruct_s* ttip;
 		struct X3D_PixelTexture* nodep;
 		GLuint pixelType;
 		int bytesPerPixel;
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->ifbobuffer, 0);
-
-		nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
-		ttip = getTableIndex(nodep->__textureTableIndex);
-		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before GL calls");
-
+		PRINT_GL_ERROR_IF_ANY("generate_cube shadow before glFramebufferTexture2D");
+		if(!gcm_method())
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->OpenGLTexture, 0);
+		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glFramebufferTexture.xhtml
+		//glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0);
+		//glNamedFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->ifbobuffer, 0);
+		if (gcm_method()) {
+			nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
+			ttip = getTableIndex(nodep->__textureTableIndex);
+		}
+		PRINT_GL_ERROR_IF_ANY("generate_cube shadow after glFramebufferTexture2D");
+		//getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + j;
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
 		//glClear(GL_DEPTH_BUFFER_BIT);
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
 
 		//set viewpoint matrix for side
-		//setup_projection(); 
-		FW_GL_MATRIX_MODE(GL_PROJECTION);
-		FW_GL_LOAD_IDENTITY();
-		//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-		fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 10000.0);
-		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
+		if(1){
+			double world2light[16], world2lightview[16], mvm[16];
+			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16], matrotside[16], world2lightviewside[16];
+			double matproj[16];
+			get_view_matrix(savePosOri, saveView);
+			matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
+			//printmatrix2(viewmatrix, "vp view matrix");
 
-		FW_GL_MATRIX_MODE(GL_MODELVIEW);
-		FW_GL_LOAD_IDENTITY();
-		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
+			matcopy(mvm, uhit.mvm);
+			matinverseAFFINE(mvmInverse, mvm);
+			//printmatrix2(uhit.mvm, "uhit.mvm");
 
-		fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
-		fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
-		fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
+			matmultiplyAFFINE(world2light, viewmatrix, mvmInverse); // = world2light[16]
+			//printmatrix2(world2light, "world2light = viewmatrix x mvmInverse");
 
+			matmultiplyAFFINE(world2lightview, world2light, lightrep->matview);
+			//printmatrix2(lightrep->matview, "lighrep.matview");
+			matrotate(matrotside,sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
+			matmultiplyAFFINE(world2lightviewside, world2lightview, matrotside);
+			//printmatrix2(world2lightview, "world2lightview = lighrep.matview x world2light");
+
+			//fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj); //identity
+			projPerspective(90.0, 1.0, .5, 15.0, matproj);
+			fw_glSetDoublev(GL_PROJECTION_MATRIX, matproj);
+			//printmatrix2(lightrep->matproj, "matproj");
+
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightviewside);
+		}
+		else {
+
+			//setup_projection(); 
+			FW_GL_MATRIX_MODE(GL_PROJECTION);
+			FW_GL_LOAD_IDENTITY();
+			//fw_gluPerspective(90.0, 1.0, .1,10000.0);
+			fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 15.0);
+			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
+
+			FW_GL_MATRIX_MODE(GL_MODELVIEW);
+			FW_GL_LOAD_IDENTITY();
+			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
+
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
+			fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
+			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
+		}
 		/*  4. Nodes (not the blended ones)*/
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
 
@@ -1310,110 +1592,76 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
-		/*
-		//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-		//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-		pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-		bytesPerPixel = sizeof(float); // 4;
-		if (!ttip->texdata || ttip->x != isize) {
-			FREE_IF_NZ(ttip->texdata);
-			ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
+		if (gcm_method()) {
+			//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
+			//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
+			pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
+			bytesPerPixel = sizeof(float); // 4;
+			if (!ttip->texdata || ttip->x != tti->x) {
+				FREE_IF_NZ(ttip->texdata);
+				ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * tti->x * tti->y);
+			}
+
+			// grab the data
+			//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+			//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+
+			//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
+			FW_GL_READPIXELS(0, 0, tti->x, tti->y, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
+			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
+
+			ttip->x = tti->x;
+			ttip->y = tti->y;
+			ttip->z = 1;
+			ttip->hasAlpha = 0; // 1;
+			ttip->channels = 0; // 4;
+			ttip->idepthbuffer = 1;
+			ttip->status = TEX_NEEDSBINDING;
 		}
+		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after GL calls");
+		if (j == 5) {
+			if (0) {
+				//console printf of last rendered side depth map
+				static char* texdata = NULL;
+				if (!texdata) {
+					texdata = malloc(tti->x * tti->y * sizeof(float));
+					memset(texdata, 0, tti->x * tti->y * sizeof(float));
+				}
+				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 0");
+				glReadPixels(0, 0, tti->x, tti->y, GL_DEPTH_COMPONENT, GL_FLOAT, texdata);
+				float* ftex = (float*)texdata;
+				for (int ik = 0; ik < tti->y; ik += 128) {
+					for (int jk = 0; jk < tti->x; jk += 128)
+						printf("%4f ", ftex[ik * tti->x + jk]);
+					printf("\n");
+				}
+			}
+			if (1) {
+				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 2");
+				set_debug_quad_near_farplane(.5f, 15.0f);
 
-		// grab the data 
-		//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-		//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+				set_debug_quad(4, tti->OpenGLTexture);
+				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 3");
 
-		//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-		FW_GL_READPIXELS(0, 0, isize, isize, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
-
-		ttip->x = isize;
-		ttip->y = isize;
-		ttip->z = 1;
-		ttip->hasAlpha = 0; // 1;
-		ttip->channels = 0; // 4;
-		ttip->idepthbuffer = 1;
-		ttip->status = TEX_NEEDSBINDING;
-		*/
+			}
+		}
 	}
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	glDisable(GL_TEXTURE_CUBE_MAP);
+
+	FW_GL_MATRIX_MODE(GL_PROJECTION);
+	FW_GL_POP_MATRIX();
+	FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	FW_GL_POP_MATRIX();
+	//glCullFace(GL_FRONT);
+
 	popnset_viewport();
 	popnset_framebuffer();
 	//compile_generatedcubemaptexture // convert to opengl
+
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
-// https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping  
-// shows rendering of shadow maps, and debug quad rendering
-// renderQuad() renders a 1x1 XY quad in NDC
-// -----------------------------------------
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-void renderQuad()
-{
-	if (quadVAO == 0)
-	{
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-.8f,  .8f, 0.0f, 0.0f, 1.0f,
-			-.8f, -.8f, 0.0f, 0.0f, 0.0f,
-			 .8f,  .8f, 0.0f, 1.0f, 1.0f,
-			 .8f, -.8f, 0.0f, 1.0f, 0.0f,
-		};
-		// setup plane VAO
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-}
-static struct debug_quad {
-	int textureID; // opengl texture, -1 for no texture
-	int which_debug_shader; 
-	float near_plane, far_plane;
-} debug_quad = { -1,0,1.0f,15.0f};
-void set_debug_quad(int which_debug_shader, int textureID) {
-	// which_debug_shader - flag to indicate which quad shader 0=turn off debug quad 1-normal texture 2=ortho depth 3=perspective depth
-	// textureID - opengl texture number
-	debug_quad.textureID = textureID;
-	debug_quad.which_debug_shader = which_debug_shader;
-}
-void set_debug_quad_near_farplane(float nearplane, float farplane) {
-	debug_quad.near_plane = nearplane;
-	debug_quad.far_plane = farplane;
-}
-void render_debug_quad() {
-	//call this routinely at the end of main scene render() before swapBuffers
-	// if no debug_request just returns, else renders a quad over any rendered scene
-	int ia;
-	if (debug_quad.textureID < 0)return;
-	s_shader_capabilities_t* scap;
-	shaderflagsstruct shader_requirements;
-	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
-	shader_requirements.debug = debug_quad.which_debug_shader;
-	scap = getMyShaders(shader_requirements);
-	enableGlobalShader(scap);
-	if (debug_quad.which_debug_shader == 3) {
-		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
-		glUniform1f(ia,debug_quad.near_plane);
-		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
-		glUniform1f(ia, debug_quad.far_plane);
-	}
-	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
-	glUniform1i(ia, 0);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, debug_quad.textureID);
-	renderQuad();
-
-}
 void PRINT_GL_ERROR(GLenum _global_gl_err) {
 	if (_global_gl_err == GL_INVALID_ENUM) {printf ("GL_INVALID_ENUM"); }
 	else if (_global_gl_err == GL_INVALID_VALUE) {printf ("GL_INVALID_VALUE"); }
@@ -1741,14 +1989,32 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 		if (plight->shadows) {
 			//lookup a textureUnit[index] index to use on this pass
 			//process the uhit->mvm matrix for shadows
-			struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit->ivalue);
-			textureTableIndexStruct_s* tti = getTableIndex(tex->__textureTableIndex);
-			int itexunit = bind_or_share_next_textureUnit(GL_TEXTURE_2D, tti->OpenGLTexture); // lightrep->idepthtexture);
+			struct X3D_Node* texnode = (struct X3D_Node*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit->ivalue);
+			int itexunit, iunit;
+			textureTableIndexStruct_s* tti;
+			if (texnode->_nodeType == NODE_GeneratedCubeMapTexture && !gcm_method()) {
+				struct X3D_GeneratedCubeMapTexture* tex = (struct X3D_GeneratedCubeMapTexture*)texnode;
+				tti = getTableIndex(tex->__textureTableIndex);
+				PRINT_GL_ERROR_IF_ANY("sendLightInfo before bind_or_share");
+				glEnable(GL_TEXTURE_CUBE_MAP);
+				itexunit = share_or_next_material_sampler_index_Cube(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
+				iunit = tunitCube(itexunit); //returns index into shader samplerCube textureUnitCube[iunit]
+				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");
+				glUniform1i(me->textureUnitCube[iunit], itexunit); // iunit);
+			}
+			else {
+				struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)texnode;
+				tti = getTableIndex(tex->__textureTableIndex);
+				PRINT_GL_ERROR_IF_ANY("sendLightInfo before bind_or_share");
+				itexunit = share_or_next_material_sampler_index_2D(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
+				iunit = tunit2D(itexunit); //returns index into shader sampler2D textureUnit[iunit]
+				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");
+				glUniform1i(me->textureUnit[iunit], itexunit); 
+			}
 			//int iunit = tunit(itexunit);
-			glUniform1i(me->textureUnit[itexunit], itexunit); // iunit);
-			GLUNIFORM1I(me->lightdepthmap[j], itexunit);
+			GLUNIFORM1I(me->lightdepthmap[j], iunit);
 			float w2l[16];
-			{
+			if(1) {
 				//following textureProjector
 				double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
 				if (uhit->node->_nodeType == NODE_DirectionalLight)

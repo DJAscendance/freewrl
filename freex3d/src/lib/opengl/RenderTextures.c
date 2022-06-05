@@ -684,7 +684,7 @@ void textureTransform_start() {
 				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
 					// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
 				for (int j = 0; j < ntdesc; j++) {
-					int kunit = share_or_next_material_sampler_index(textures[j]);
+					int kunit = share_or_next_material_sampler_index_2D(textures[j]); //returns i as in GL_TEXTUREi, next available
 					mp->tindex[nt] = kunit;
 					mp->source[nt] = sources[j];
 					mp->mode[nt] = modes[j];
@@ -693,7 +693,7 @@ void textureTransform_start() {
 					//	mp->cmap[nt] = immap[j];
 					//mp->cmap[nt] = icombo[j][0]; // immap[j]; //assigned above? or is this different?
 					glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
-					int iunit = tunit(kunit);
+					int iunit = tunit2D(kunit); //returns index into shader sampler2D textureUnit[iunit] array
 					glUniform1i(me->textureUnit[kunit], iunit);
 					glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
 					glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);

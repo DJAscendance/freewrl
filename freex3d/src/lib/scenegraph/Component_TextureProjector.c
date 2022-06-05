@@ -288,8 +288,8 @@ void resend_textureprojector_matrix()
 
 				nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
 				kunit = nunit-1;
-				int ksamp = share_or_next_material_sampler_index(texture);
-				int itextureunit = tunit(ksamp);
+				int ksamp = share_or_next_material_sampler_index_2D(texture); //returns i as in GL_TEXTUREi next available
+				int itextureunit = tunit2D(ksamp); //returns index into shader sampler2D textureUnit[itextureunit] 
 				glUniform1i(me->textureUnit[ksamp],itextureunit); //tunit(kkunit));
 				GLUNIFORM1I(me->tunits[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
 				//glActiveTexture(GL_TEXTURE0);
@@ -304,8 +304,8 @@ void resend_textureprojector_matrix()
 				//render_node(projrep->depthTexture);
 
 				texture = projrep->idepthtexture;
-				int ksamp = share_or_next_material_sampler_index(texture); //does bind and activetexture
-				int itextureunit = tunit(ksamp);
+				int ksamp = share_or_next_material_sampler_index_2D(texture); //does bind and activetexture
+				int itextureunit = tunit2D(ksamp);
 				//glActiveTexture(GL_TEXTURE1);
 				//glBindTexture(GL_TEXTURE_2D, texture);
 				glUniform1i(me->textureUnit[ksamp], itextureunit);

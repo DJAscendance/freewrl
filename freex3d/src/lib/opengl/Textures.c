@@ -1570,7 +1570,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	/* we need to get parameters. */
 	if (me->OpenGLTexture == TEXTURE_INVALID) {
 /* 		me->OpenGLTexture = MALLOC (GLuint *, sizeof (GLuint) * me->frames); */
-        if ((getAppearanceProperties()->cubeFace==0) || (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT)) {
+        if ((getAppearanceProperties()->cubeFace==0) || (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X)) {
                 FW_GL_GENTEXTURES (1, &me->OpenGLTexture);
         }
 
@@ -1779,7 +1779,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 
 		/* first image in the ComposedCubeMap, do some setups */
-		if (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT) {
+		if (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X) {
 			FW_GL_TEXPARAMETERI(GL_TEXTURE_CUBE_MAP_EXT, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			FW_GL_TEXPARAMETERI(GL_TEXTURE_CUBE_MAP_EXT, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			FW_GL_TEXPARAMETERI(GL_TEXTURE_CUBE_MAP_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
