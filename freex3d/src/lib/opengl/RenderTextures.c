@@ -188,7 +188,7 @@ void clear_textureUnit_used(){
 		glBindTextureUnit(i, checkerboard_texture2D);
 		glBindTextureUnit(i, checkerboard_textureCube);
 	}
-	p->textureUnit_used = 1;  //start at 1 and leave TEXTURE0 for debugging?
+	p->textureUnit_used = 0;  //start at 1 and leave TEXTURE0 for debugging?
 }
 int next_textureUnit(){
 	ppRenderTextures p;
@@ -218,7 +218,7 @@ int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
 
 	//check if sharable
 	int unit = -1;
-	for(int i=1;i<p->textureUnit_used;i++){
+	for(int i=0;i<p->textureUnit_used;i++){
 		if(p->texture_in_unit[i] == texture && samplerType == p->sampler_type[i]){
 			unit = i;
 			break;
