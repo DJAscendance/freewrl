@@ -641,6 +641,7 @@ struct fw_MaterialParameters { \n\
   int cmap[10]; \n\
   int nt; //total single textures \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+  int samplr[7]; //0 texture2D 1 cubeMap \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
   int cindex[7]; // which geometry multitexcoord channel 0=default \n\
@@ -980,11 +981,11 @@ static const GLchar* genericFragmentCube = "\
 out vec4 FragColor;  \n\
 in vec3 fw_TexCoord[6]; \n\
  \n\
-uniform samplerCube fw_Texture_unit0; \n\
+uniform samplerCube textureUnitCube[1]; \n\
  \n\
 void main() \n\
 { \n\
-	FragColor = vec4(texture(fw_Texture_unit0, fw_TexCoord[0]).rgb, 1.0); \n\
+	FragColor = vec4(texture(textureUnitCube[0], fw_TexCoord[0]).rgb, 1.0); \n\
 } \n\
 \n";
 
@@ -1002,6 +1003,9 @@ precision mediump float; \n\
 //#else \n\
 //precision highp float; \n\
 #endif //MOBILE \n\
+//#ifdef CUB \n\
+//#extension GL_NV_shadow_samplers_cube : enable \n\
+//#endif //CUB \n\
 /* Generic GLSL fragment shader, used on OpenGL ES. */ \n\
  \n\
 varying vec4 castle_Color; \n\
@@ -1264,6 +1268,7 @@ struct fw_MaterialParameters { \n\
     int cmap[10]; \n\
 	int nt; //total single textures \n\
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+    int samplr[7]; //0 texture2D 1 cubeMap \n\
 	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
 	int tstart[7]; // where in packed tindex list to start looping \n\
 	int cindex[7]; // which geometry multitexcoord channel 0=default \n\
@@ -1281,15 +1286,15 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 //#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
-#ifdef SHADOW \n\
-//shared samplerCube array -light shadows \n\
-uniform samplerCube textureUnitCube[4]; \n\
+#if defined(SHADOW) || defined(CUB) \n\
+//shared samplerCube array -pointlight shadows, cubemapTextures \n\
+uniform samplerCube textureUnitCube[8]; \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[8]; \n\
-#else //SHADOW \n\
+#else //SHADOW || CUB \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
-#endif //SHADOW \n\
+#endif //SHADOW  || CUB \n\
 //#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
@@ -1404,7 +1409,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 		case 5: nc = texture2D(textureUnit[5],tc); break; \n\
 		case 6: nc = texture2D(textureUnit[6],tc); break; \n\
 		case 7: nc = texture2D(textureUnit[7],tc); break; \n\
-        #ifndef SHADOW \n\
+        #if !defined(SHADOW) && !defined(CUB) \n\
 		case 8: nc = texture2D(textureUnit[8],tc); break; \n\
 		case 9: nc = texture2D(textureUnit[9],tc); break; \n\
 		case 10: nc = texture2D(textureUnit[10],tc); break; \n\
@@ -1445,7 +1450,7 @@ vec4 sample_map0(int iunit, bool apply_gamma){ \n\
 				} \n\
 			}\n\
 		}\n\
-        #ifndef SHADOW \n\
+        #if !defined(SHADOW) && !defined(CUB) \n\
         else{ \n\
 			if(index < 12){\n\
 				if(index < 10){ \n\
@@ -1679,6 +1684,7 @@ vec4 getDiffuseFactor() { \n\
 	dcolor *= mix(D,IC,mixcpv); \n\
 	#ifdef TEX \n\
 	if(textureCount > 0){ \n\
+        //appearance level textures (vs material level) \n\
 		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
 		#if defined(MODT) || defined(MODC) \n\
@@ -1773,6 +1779,7 @@ void main(void) \n\
 	#else //LINE \n\
 		vec4 diffuseFactor = getDiffuseFactor(); \n\
 		fragment_color =  diffuseFactor; \n\
+    //endif //LINE is near the bottom of main() \n\
 //STEP2 LIGHTS \n\
 	#ifndef PHONG \n\
 		fragment_color = getGouraudColor(); \n\
@@ -3021,11 +3028,14 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   } \n\
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
+    int iuse = 3; //diffuse \n\
     #ifdef CUB \n\
-    finalFrag = texture(fw_Texture_unit0, fw_TexCoord[0]) * finalFrag; \n\
-    #else //CUB \n\
-    finalFrag = texture2D(textureUnit[0], fw_TexCoord[0].st) * finalFrag; \n\
+    if(mat.samplr[iuse]==1) \n\
+      finalFrag = texture(textureUnitCube[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]]) * finalFrag; \n\
+      //finalFrag = texture(textureUnitCube[0], fw_TexCoord[0]) * finalFrag; \n\
+    else \n\
     #endif //CUB \n\
+      finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
   #endif //MTEX \n\
   \n\
 }\n";
@@ -3238,7 +3248,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
-#ifdef SHADOW//this stuff only works in the fragment shader \n\
+#ifdef SHADOW //this stuff only works in the fragment shader \n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
@@ -3749,9 +3759,20 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 // (but won't allow creative permutations with other effects, for that ubershader integration needed)
 	// CUB / cubemap - not working in Ubershader / genericFragmentGLES2 April 2022 so made a genericFragmentCube that's dead simple
 	// if becomes permanent, then make a CUBEMAP_MATERIAL_APPEARANCE_SHADER entry above?
-	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE))
+	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
 		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
-
+	}
+	if (0) {
+		char* fragbuf = malloc(64000);
+		memset(fragbuf, 0, 64000);
+		FILE* fp = fopen("C:\\Users\\dougs\\Documents\\dev\\source2\\freewrk_tmp\\hacked_frag.txt", "r+");
+		int ir = fread(fragbuf, 1, 64000, fp);
+		fragbuf[ir] = 0;
+		//char *eof = strstr(fragbuf, "EOF");
+		//*eof = '\0';
+	//	printf("%s", fragbuf);
+		*fragmentSource = fragbuf;
+	}
 
 	//printf("size of finished fragment shader %d bytes\n",strlen(*fragmentSource));
 //#define DEBUGSHADER 1
@@ -4437,8 +4458,10 @@ struct fw_MaterialParameters { \n\
   int mode[10]; \n\
   int source[10]; \n\
   int func[10]; \n\
+  int cmap[10]; \n\
   int nt; //total single textures \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+  int samplr[7]; //0 texture2D 1 cubeMap \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
   int cindex[7]; // which geometry multitexcoord channel 0=default \n\

@@ -953,7 +953,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 	int count, iface;
 
 	COMPILE_IF_REQUIRED
-		glActiveTexture(GL_TEXTURE0);
+	//	glActiveTexture(GL_TEXTURE0);
 
 	/* do we have to split this CubeMap raw data apart? */
 	if (node->__regenSubTextures) {
@@ -1006,7 +1006,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 					//gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
 
 					render_node(node->__subTextures.p[iface]);
-					gglobal()->RenderFuncs.textureStackTop = 0;
+//					gglobal()->RenderFuncs.textureStackTop = 0;
 				}
 				else {
 					// these images come out color-backward etc, prefer the move_textures_to_opengl method

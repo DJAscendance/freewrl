@@ -169,7 +169,8 @@ struct fw_MaterialParameters {
 	// used in frag, for texture maps:
 	int transdex; // which tindex to use for transparency -1 None, else 0-3
 	// multi-te4xtues are dis-aggregated at send-to-shader stage
-	int tindex[10]; //texture unit indexes, 
+	int tindex[10]; //sampler textureUnit[tindex] indexes, 
+	int binding[10]; //for debugging, persists for a child_shape rendering the GL_TEXTURE0+i texture binding point used
 	int mode[10];  //multitexture modulate mode
 	int source[10]; //multitexture modulate mode
 	int func[10]; //multitexture modulate mode
@@ -178,6 +179,7 @@ struct fw_MaterialParameters {
 	//// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
 	struct X3D_Node *textures[7]; //emissive,normal,[occlusion,{diffuse,ambient,specular,shininess}, or {base,smetallic}]
+	int samplr[7]; // 0=texture2D 1=cubeMap sampler (could have SH sphereical harmonic, cubeShadow, other??) 
 	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
 	int tstart[7]; // where in tindex to start looping
 	int cindex[7]; //texture coordinate channel

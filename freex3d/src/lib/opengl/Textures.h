@@ -98,7 +98,7 @@ struct X3D_Node *getThis_textureTransform();
 extern int fwl_isTextureLoaded(int texno);
 extern int isTextureAlpha(int n);
 extern int display_status;
-
+int is_cubeMap(struct X3D_Node* node);
 
 /* appearance does material depending on last texture depth */
 #define NOTEXTURE 0

@@ -444,8 +444,21 @@ void compile_Material (struct X3D_Material *node) {
 	}
 	MARK_NODE_COMPILED
 }
-
-
+void clear_materialparameters_per_draw_counts() {
+	// June 2022 both TextureTransform_start (Appearance textures) and sendMaterialsToShader (Material textures)
+	// can set mat values for diffuse (iuse == 3) and emissive (iuse=1) textures
+	// and to give them a common / shared initialization so one doesn't over-write the other
+	// we do this earlier in child_Shape, so they both (could in theory) add as multitextues (although we skip material iuse if appearance already set same iuse)
+	struct matpropstruct* mat = getAppearanceProperties();
+	for (int iuse = 0; iuse < 7; iuse++) {
+		mat->fw_FrontMaterial.tstart[iuse] = 0;
+		mat->fw_FrontMaterial.tcount[iuse] = 0;
+		mat->fw_BackMaterial.tstart[iuse] = 0;
+		mat->fw_BackMaterial.tcount[iuse] = 0;
+	}
+	mat->fw_FrontMaterial.nt = 0; //total number of single textures on this draw
+	mat->fw_BackMaterial.nt = 0;
+}
 
 #define CHECK_COLOUR_FIELD(aaa) \
 	case NODE_##aaa: { \
@@ -1394,7 +1407,7 @@ void reallyDraw();
 void resend_textureprojector_matrix();
 
 
-
+void PRINT_GL_ERROR(GLenum _global_gl_err);
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
 	//int channels;
@@ -1441,6 +1454,7 @@ void child_Shape (struct X3D_Shape *node) {
 		return;
 	}
 	p = (ppComponent_Shape)tg->Component_Shape.prv;
+	PRINT_GL_ERROR_IF_ANY("child_shape START");
 
 	/* initialization. This will get overwritten if there is a texture in an Appearance
 	   node in this shape (see child_Appearance) */
@@ -1612,6 +1626,7 @@ void child_Shape (struct X3D_Shape *node) {
 		//clear_bound_textures(); //testing only
 		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+		clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 		textureTransform_start(); //send regular appearance.textures to shader
 		resend_textureprojector_matrix();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
@@ -1623,8 +1638,17 @@ void child_Shape (struct X3D_Shape *node) {
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
 		if(peek_group_visible()){  //v4 X3DGroupingNode .visible 
+			PRINT_GL_ERROR_IF_ANY("child_shape before reallyDrawOnce");
 			//reallyDraw();
 			reallyDrawOnce();
+			//PRINT_GL_ERROR_IF_ANY("child_shape after reallyDrawOnce");
+			GLenum _global_gl_err = glGetError(); 
+			while (_global_gl_err != GL_NONE) {
+				PRINT_GL_ERROR(_global_gl_err);
+				printf(" here: %s (%s:%d)\n", "child_shape after reallyDrawOnce", __FILE__, __LINE__);
+				_global_gl_err = glGetError();
+			}
+
 		}
 		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
 
@@ -1679,6 +1703,7 @@ void child_Shape (struct X3D_Shape *node) {
 	DISABLE_CULL_FACE;
 
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	PRINT_GL_ERROR_IF_ANY("child_shape END");
 
 }
 

@@ -75,13 +75,120 @@ void RenderTextures_init(struct tRenderTextures *t){
 	}
 }
 
+unsigned char* generate_checkerboard_texture_data_RGBA(int size8, int divisions8, int black255, int white255, int opacity255) {
+	int texSize = size8;
+	int checkerSize = texSize / divisions8;
+	unsigned char* texdata = malloc(texSize * texSize * 4);
+	//initialize to black transparent
+	memset(texdata, 0, texSize * texSize * 4);
+	unsigned char black[4];
+	unsigned char white[4];
+	unsigned char* pixel;
+	black[0] = black[1] = black[2] = black255; black[3] = opacity255;
+	white[0] = white[1] = white[2] = white255; white[3] = opacity255;
+	for (int i = 0; i < texSize; ++i) {
+		for (int j = 0; j < texSize; ++j) {
+			int ii = i / checkerSize;
+			int jj = j / checkerSize;
+			int evenii = (ii % 2) == 0;
+			int evenjj = (jj % 2) == 0;
 
+			int drawWhite = evenii == evenjj;
+			pixel = black;
+			if (drawWhite) 
+				pixel = white;
+			int location = (i * texSize + j) * 4;
+			memcpy(&texdata[location], pixel, 4);
+		}
+	}
+	return texdata;
+}
+static GLuint checkerboard_texture2D = 0;
+static GLuint checkerboard_textureCube = 0;
+static unsigned char* checkerboard_data = NULL;
+static int checkerboard_size = 64;
+void compile_checkerboard_texture2D() {
+	if (checkerboard_texture2D < 1) {
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_texture2D start");
+
+		int texSize = checkerboard_size;
+		int divisions = 8;
+		int black = 0;
+		int white = 255;
+		int opacity = 127;
+		unsigned char* texdata = generate_checkerboard_texture_data_RGBA(texSize, divisions, black, white, opacity);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glGenTextures(1, &checkerboard_texture2D);
+		glBindTexture(GL_TEXTURE_2D, checkerboard_texture2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texSize, texSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texdata);
+		//free(texdata);
+		checkerboard_data = texdata;
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_texture2D end");
+
+	}
+}
+void compile_checkerboard_textureCube() {
+	if (checkerboard_textureCube < 1) {
+		compile_checkerboard_texture2D();
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube start");
+
+		glActiveTexture(GL_TEXTURE0);
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube very early");
+		glGenTextures(1, &checkerboard_textureCube);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, checkerboard_textureCube);
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube early");
+		//glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA, checkerboard_size, checkerboard_size);
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube middle");
+
+		//-allocates storage for all 6 faces
+		for (int face = 0; face < 6; face++) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+face, 0, GL_RGBA, checkerboard_size, checkerboard_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, checkerboard_data);
+			//glTextureSubImage3D(GL_TEXTURE_2D_ARRAY, //face
+			//	0, //level
+			//	0, 0, //x,y offset
+			//	face, //Z offset is the face
+			//	checkerboard_size, checkerboard_size, //size of face
+			//	1, //one face at a time (depth)
+			//	GL_RGBA, //format
+			//	GL_UNSIGNED_BYTE, //type
+			//	checkerboard_data); //Data if you have it)
+			PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube face");
+
+		}
+		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube end");
+
+	}
+}
+//void render_checkerboard_default_texture() {
+//	compile_checkerboard_texture2D();
+//	//glActiveTexture(GL_TEXTURE0);
+//	//glBindTexture(GL_TEXTURE_2D, checkerboard_texture);
+//}
+GLuint getCheckerboardTexture2D() {
+	compile_checkerboard_texture2D();
+	return checkerboard_texture2D;
+}
+GLuint getCheckerboardTextureCube() {
+	compile_checkerboard_textureCube();
+	return checkerboard_textureCube;
+}
 void clear_textureUnit_used(){
 	//call this in child_shape just before you start sending data / textures to the shader program
 	ppRenderTextures p;
 	ttglobal tg = gglobal();
 	p = (ppRenderTextures)tg->RenderTextures.prv;
-	p->textureUnit_used = 0;
+	//render_checkerboard_default_texture();
+	for (int i = 0; i < 16; i++) {
+		glBindTextureUnit(i, 0);
+		glBindTextureUnit(i, checkerboard_texture2D);
+		glBindTextureUnit(i, checkerboard_textureCube);
+	}
+	p->textureUnit_used = 1;  //start at 1 and leave TEXTURE0 for debugging?
 }
 int next_textureUnit(){
 	ppRenderTextures p;
@@ -111,7 +218,7 @@ int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
 
 	//check if sharable
 	int unit = -1;
-	for(int i=0;i<p->textureUnit_used;i++){
+	for(int i=1;i<p->textureUnit_used;i++){
 		if(p->texture_in_unit[i] == texture && samplerType == p->sampler_type[i]){
 			unit = i;
 			break;
@@ -121,6 +228,7 @@ int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
 		unit = next_textureUnit();
 		p->texture_in_unit[unit] = texture;
 		p->sampler_type[unit] = samplerType;
+	//	glBindTextureUnit(unit, 0); //clears all targets for a unit, gl 4.5 https://www.khronos.org/opengl/wiki/Sampler_(GLSL)
 		glActiveTexture(GL_TEXTURE0+unit); 
 		glBindTexture(samplerType,texture);
 	}
@@ -324,6 +432,14 @@ int is_cubeMap(struct X3D_Node* node) {
 		case NODE_GeneratedCubeMapTexture:
 			iret = TRUE;
 			break;
+		case NODE_MultiTexture:
+		{
+			struct X3D_MultiTexture* mt = (struct X3D_MultiTexture*)node;
+			if (mt->texture.n) {
+				iret = is_cubeMap(mt->texture.p[0]);
+			}
+			break;
+		}
 		default:
 			iret = FALSE;
 			break;
@@ -656,17 +772,8 @@ void textureTransform_start() {
 			}
 		}
 		if (tg->RenderFuncs.textureStackTop) {
-			static int imethod = 0; //0= pre April 2022 1=post
-			if (imethod == 1 && is_cubeMap(tnode)) {
-				PRINT_GL_ERROR_IF_ANY("tt_start before bind cube");
-				glActiveTexture(GL_TEXTURE0);
-				glEnable(GL_TEXTURE_CUBE_MAP);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, tg->RenderFuncs.boundTextureStack[0]);
-				glUniform1i(me->TextureUnit[0], 0);
-				PRINT_GL_ERROR_IF_ANY("tt_start after uniform");
-			}
-			else 
-			if(!is_cubeMap(tnode)) {
+			//June 2022 new approach: cubemaps are textures and should be treated as such
+			{
 				struct matpropstruct* myap = getAppearanceProperties();
 				struct fw_MaterialParameters* mp;
 
@@ -676,15 +783,24 @@ void textureTransform_start() {
 				// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
 				int iuse = 3; // MAT_REGULAR;
 				if (getAppearanceProperties()->fw_FrontMaterial.type == MAT_UNLIT) iuse = 1;
-				int nt = 0;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
 				mp = &myap->fw_FrontMaterial;
+				int nt = mp->nt;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
+				mp->samplr[iuse] = is_cubeMap(tnode);
 				mp->type = 2; //0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
-				mp->tcount[iuse] = ntdesc;
+				mp->tcount[iuse] += ntdesc;
 				mp->tstart[iuse] = nt;
 				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
 					// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
 				for (int j = 0; j < ntdesc; j++) {
-					int kunit = share_or_next_material_sampler_index_2D(textures[j]); //returns i as in GL_TEXTUREi, next available
+					int kunit, iunit;
+					kunit = iunit = 0;
+					if (mp->samplr[iuse] == 1) {
+						kunit = share_or_next_material_sampler_index_Cube(textures[j]);//returns index into shader samplerCube texterUnitCube[kunit]
+						glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+					}
+					else {
+						kunit = share_or_next_material_sampler_index_2D(textures[j]);//returns index into shader sampler2D texterUnit[kunit]
+					}
 					mp->tindex[nt] = kunit;
 					mp->source[nt] = sources[j];
 					mp->mode[nt] = modes[j];
@@ -693,14 +809,27 @@ void textureTransform_start() {
 					//	mp->cmap[nt] = immap[j];
 					//mp->cmap[nt] = icombo[j][0]; // immap[j]; //assigned above? or is this different?
 					glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
-					int iunit = tunit2D(kunit); //returns index into shader sampler2D textureUnit[iunit] array
-					glUniform1i(me->textureUnit[kunit], iunit);
+					if (mp->samplr[iuse] == 1) {
+						iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
+						glUniform1i(me->textureUnitCube[kunit], iunit);
+					}
+					else {
+						iunit = tunit2D(kunit);//returns i as in GL_TEXTUREi, to be stored in sampler2D textureUnit[kunit]
+						glUniform1i(me->textureUnit[kunit], iunit);
+					}
+					mp->binding[nt] = iunit; //for debugging around here (already sent to shader)
 					glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
 					glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
 					glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
 					glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
 					nt++;
 				}
+				mp->nt = nt;
+				//something about the multitexture..
+				//printf("sampler type samplr[%d]=%d start[%d]=%d ", iuse, mp->samplr[iuse], iuse, mp->tstart[iuse]); //samplr 0=2D 1=cube
+				//something about the first sub-texture in the multitexture..
+				//printf("textureUnit(Cube)[%d]=%d\n", mp->tindex[mp->tstart[iuse]], mp->binding[mp->tstart[iuse]] );
+				glUniform1i(me->myMaterialSampler[iuse], mp->samplr[iuse]);
 				GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
 				GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
 				GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
