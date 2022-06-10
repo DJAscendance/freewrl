@@ -978,7 +978,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 			OK = FALSE;
 			if (tti && tti->status >= TEX_LOADED && !cubemap_loaded)
 			{
-				glEnable(GL_TEXTURE_CUBE_MAP);
+//				glEnable(GL_TEXTURE_CUBE_MAP);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
 				OK = TRUE;
 			}
@@ -1287,66 +1287,127 @@ void popnset_framebuffer();
 #define FW_GL_DEPTH_COMPONENT GL_DEPTH_COMPONENT16
 #endif
 int haveFrameBufferObject();
-
+void printFramebufferStatusIfNotComplete(int status) {
+	// https://www.khronos.org/opengl/wiki/Framebuffer_Object#Framebuffer_Completeness
+	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCheckFramebufferStatus.xhtml 
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		printf("make_depth_buffer_cube: framebuffer not complete\n");
+		switch (status) {
+		case GL_FRAMEBUFFER_UNDEFINED:
+			printf("GL_FRAMEBUFFER_UNDEFINED\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n"); break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n"); break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			printf("GL_FRAMEBUFFER_UNSUPPORTED\n"); break;
+		default:
+			printf("unknown GL error %u\n", (unsigned int)status); break;
+		}
+	}
+}
 // called from the scene traversal, linked in GeneratedCode.c
 void compile_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) {
-	if (node->__subTextures.n == 0) {
-		int i;
-		struct textureTableIndexStruct *tti;
+	if (gcm_method()) {
+		if (node->__subTextures.n == 0) {
+			int i;
+			struct textureTableIndexStruct* tti;
 
-		/* printf ("changed_ImageCubeMapTexture - creating sub-textures\n"); */
-		FREE_IF_NZ(node->__subTextures.p); /* should be NULL, checking */
-		node->__subTextures.p = MALLOC(struct X3D_Node  **,  6 * sizeof (struct X3D_PixelTexture *));
-		for (i=0; i<6; i++) {
-			struct X3D_PixelTexture *pt;
-			pt = (struct X3D_PixelTexture *)createNewX3DNode(NODE_PixelTexture);
-			node->__subTextures.p[i] = X3D_NODE(pt);
-			if(node->_executionContext)
-				add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(node->__subTextures.p[i]));
-			//tti = getTableIndex(pt->__textureTableIndex);
-			//tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+			/* printf ("changed_ImageCubeMapTexture - creating sub-textures\n"); */
+			FREE_IF_NZ(node->__subTextures.p); /* should be NULL, checking */
+			node->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
+			for (i = 0; i < 6; i++) {
+				struct X3D_PixelTexture* pt;
+				pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
+				node->__subTextures.p[i] = X3D_NODE(pt);
+				if (node->_executionContext)
+					add_node_to_broto_context(X3D_PROTO(node->_executionContext), X3D_NODE(node->__subTextures.p[i]));
+				//tti = getTableIndex(pt->__textureTableIndex);
+				//tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+				//tti->z = 6;
+
+			}
+			node->__subTextures.n = 6;
+			tti = getTableIndex(node->__textureTableIndex);
+			tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+			tti->x = tti->y = node->size;
 			//tti->z = 6;
+			//loadTextureNode(X3D_NODE(node),NULL);
+			if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
+				int j, isize;
+				isize = node->size; //node->size is initializeOnly, we will ignore any change during run
+				tti->x = isize; //by storing and retrieving initial size from here
+				// https://www.opengl.org/wiki/Framebuffer_Object
+				glGenFramebuffers(1, &tti->ifbobuffer);
+				pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+
+				//glGenRenderbuffers(1, &tti->idepthbuffer);
+				//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
+				//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize,isize);
+				//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
+
+				for (j = 0; j < node->__subTextures.n; j++) {  //should be 6
+					//textureTableIndexStruct_s* ttip;
+					//struct X3D_PixelTexture * nodep;
+					//nodep = (struct X3D_PixelTexture *)node->__subTextures.p[j];
+					//ttip = getTableIndex(nodep->__textureTableIndex);
+					//glGenTextures(1,&ttip->OpenGLTexture);
+					//glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
+
+					//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA , GL_UNSIGNED_BYTE, 0);
+					//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
+				}
+				glGenTextures(1, &tti->OpenGLTexture);
+				glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+
+				popnset_framebuffer(); //tti->ifbobuffer);
+			}
 
 		}
-		node->__subTextures.n=6;
+	}
+	else {
+		//new way
+		struct textureTableIndexStruct* tti;
 		tti = getTableIndex(node->__textureTableIndex);
-		tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
-		tti->x = tti->y = node->size; 
-		//tti->z = 6;
-		//loadTextureNode(X3D_NODE(node),NULL);
-		if(tti->ifbobuffer == 0 && haveFrameBufferObject() ){
-			int j, isize;
-			isize = node->size; //node->size is initializeOnly, we will ignore any change during run
-			tti->x = isize; //by storing and retrieving initial size from here
-			// https://www.opengl.org/wiki/Framebuffer_Object
+		if (tti->OpenGLTexture == 0) {
+			tti->x = tti->y = node->size;
+			tti->status = TEX_LOADED;
+			glGenTextures(1, &tti->OpenGLTexture);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
+			for (size_t i = 0; i < 6; ++i) {
+				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, tti->x, tti->y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			}
 			glGenFramebuffers(1, &tti->ifbobuffer);
 			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+			PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
+			//glDrawBuffer(GL_NONE);
+			//glReadBuffer(GL_NONE);
+			glViewport(0, 0, tti->x, tti->y);
 
-			//glGenRenderbuffers(1, &tti->idepthbuffer);
-			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize,isize);
-			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
-
-			for(j=0;j<node->__subTextures.n;j++){  //should be 6
-				//textureTableIndexStruct_s* ttip;
-				//struct X3D_PixelTexture * nodep;
-				//nodep = (struct X3D_PixelTexture *)node->__subTextures.p[j];
-				//ttip = getTableIndex(nodep->__textureTableIndex);
-				//glGenTextures(1,&ttip->OpenGLTexture);
-				//glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
-
-				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA , GL_UNSIGNED_BYTE, 0);
-				//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
-			}
-			glGenTextures(1,&tti->OpenGLTexture);
-			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA , GL_UNSIGNED_BYTE, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-
+			//bind one tex now for fun, and to check FBO completeness, but will bind in iteration loop during depth rendering generate_shadowmap_cube
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + 0, tti->OpenGLTexture, 0);
+			int status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+			printFramebufferStatusIfNotComplete(status);
 			popnset_framebuffer(); //tti->ifbobuffer);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		}
-
 	}
 
 	/* tell the whole system to re-create the data for these sub-children */
@@ -1425,7 +1486,7 @@ void render_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) {
 	//	loadTextureNode(X3D_NODE(node),NULL);
 	//} 
 	//else 
-	{
+	if(0) {
 		/* we have the 6 faces from the image, just go through and render them as a cube */
 		if (node->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
 
@@ -1436,11 +1497,15 @@ void render_GeneratedCubeMapTexture (struct X3D_GeneratedCubeMapTexture *node) {
 
 			/* go through these, back, front, top, bottom, right left */
 			iface = lookup_xxyyzz_face_from_count[count];
-			render_node(node->__subTextures.p[iface]);
+//			render_node(node->__subTextures.p[iface]);
 		}
 	}
     /* Finished rendering CubeMap, set it back for normal textures */
     getAppearanceProperties()->cubeFace = 0; 
+
+	gglobal()->RenderFuncs.textureStackTop = 1;
+	gglobal()->RenderFuncs.texturenode = node;
+
 }
 
 //Stack *getGenCubeList(){
@@ -1521,19 +1586,24 @@ void generate_GeneratedCubeMapTextures(){
 			//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
 			pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
 			glViewport(0,0,isize,isize); //viewport we want 
+			if (!gcm_method()) {
+				glEnable(GL_TEXTURE_GEN_S);
+				glEnable(GL_TEXTURE_GEN_T);
+				glEnable(GL_TEXTURE_GEN_R);
 
+				//glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+
+			}
 			//create fbo or fbo tiles collection for generatedcubemap
 			//method: we draw each face to a single framebuffer texture, 
 			// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
 			// we skip the steps of creating and reading back PixelTexture->image.p into texdata
-			for(j=0;j<node->__subTextures.n;j++){  //should be 6
-				textureTableIndexStruct_s* ttip;
-				struct X3D_PixelTexture * nodep;
-				GLuint pixelType;
-				int bytesPerPixel;
-
-				nodep = (struct X3D_PixelTexture *)node->__subTextures.p[j];
-				ttip = getTableIndex(nodep->__textureTableIndex);
+			//for(j=0;j<node->__subTextures.n;j++){  //should be 6
+			for(j=0;j<6;j++){
+				if (!gcm_method()) {
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->OpenGLTexture, 0);
+					// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glFramebufferTexture.xhtml
+				}
 				//we won't directly generate cubemap textures here, but looks interesting as possible 
 				//  shotcut to skip readpixels below
 				//glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
@@ -1578,41 +1648,52 @@ void generate_GeneratedCubeMapTextures(){
 					PRINT_GL_ERROR_IF_ANY("XEvents::render, render_hier(VF_Geom)");
 				}
 
-				//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-				//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-				pixelType = GL_RGBA;
-				bytesPerPixel = 4;
-				if(!ttip->texdata || ttip->x != isize){
-					FREE_IF_NZ(ttip->texdata);
-					ttip->texdata = MALLOC (GLvoid *, bytesPerPixel*isize*isize);
-				}
+				if (gcm_method()) {
+					//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
+					//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
+					GLuint pixelType;
+					int bytesPerPixel;
+					textureTableIndexStruct_s* ttip;
+					struct X3D_PixelTexture* nodep;
 
-				/* grab the data */
-				//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-				//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-	
-				FW_GL_READPIXELS (0,0,isize,isize,pixelType,GL_UNSIGNED_BYTE, ttip->texdata);
-				ttip->x = isize;
-				ttip->y = isize;
-				ttip->z = 1;
-				ttip->hasAlpha = 1;
-				ttip->channels = 4;
-				ttip->status = TEX_NEEDSBINDING;
-				if(0){
-					//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
-					//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
-					if(iframe == 50){
-						char namebuf[100];
-						sprintf(namebuf,"%s%d.web3dit","cubemapface_",j);
-						saveImage_web3dit(ttip, namebuf);
+					nodep = (struct X3D_PixelTexture*)node->__subTextures.p[j];
+					ttip = getTableIndex(nodep->__textureTableIndex);
+					pixelType = GL_RGBA;
+					bytesPerPixel = 4;
+					if (!ttip->texdata || ttip->x != isize) {
+						FREE_IF_NZ(ttip->texdata);
+						ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * isize * isize);
+					}
+
+					/* grab the data */
+					//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+					//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+
+					FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
+					ttip->x = isize;
+					ttip->y = isize;
+					ttip->z = 1;
+					ttip->hasAlpha = 1;
+					ttip->channels = 4;
+					ttip->status = TEX_NEEDSBINDING;
+					if (0) {
+						//write out tti as web3dit image files for diagnostic viewing, can use for BackGround node
+						//void saveImage_web3dit(struct textureTableIndexStruct *tti, char *fname)
+						if (iframe == 50) {
+							char namebuf[100];
+							sprintf(namebuf, "%s%d.web3dit", "cubemapface_", j);
+							saveImage_web3dit(ttip, namebuf);
+						}
 					}
 				}
 			}
 			popnset_viewport();
+			int status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+			printFramebufferStatusIfNotComplete(status);
+
 			popnset_framebuffer();
 			if (0) {
-				set_debug_quad_near_farplane(.5f, 100.0f);
-				set_debug_quad(4, tti->OpenGLTexture);
+				set_debug_quad(5, tti->OpenGLTexture);
 			}
 
 			//compile_generatedcubemaptexture // convert to opengl

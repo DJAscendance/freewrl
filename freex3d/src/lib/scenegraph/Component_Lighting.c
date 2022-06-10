@@ -1386,7 +1386,7 @@ void render_debug_quad() {
 	shader_requirements.debug = debug_quad.which_debug_shader;
 	scap = getMyShaders(shader_requirements);
 	enableGlobalShader(scap);
-	if (debug_quad.which_debug_shader > 2) {
+	if (debug_quad.which_debug_shader > 2 && debug_quad.which_debug_shader < 5) {
 		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
 		glUniform1f(ia, debug_quad.near_plane);
 		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
@@ -1405,8 +1405,8 @@ void render_debug_quad() {
 	glActiveTexture(GL_TEXTURE0);
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad before enable CUBE_MAP");
 
-	if (debug_quad.which_debug_shader == 4) {
-		glEnable(GL_TEXTURE_CUBE_MAP);
+	if (debug_quad.which_debug_shader > 3) {
+//		glEnable(GL_TEXTURE_CUBE_MAP);
 		PRINT_GL_ERROR_IF_ANY("render_debug_quad before bind CUBE_MAP");
 		glBindTexture(GL_TEXTURE_CUBE_MAP, debug_quad.textureID);
 	}
@@ -1417,9 +1417,9 @@ void render_debug_quad() {
 	renderQuad();
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad after renderQuad");
 
-	if (debug_quad.which_debug_shader == 4) {
+	if (debug_quad.which_debug_shader > 3) {
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-		glDisable(GL_TEXTURE_CUBE_MAP);
+//		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad END");
 }
@@ -1510,7 +1510,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
 	// we skip the steps of creating and reading back PixelTexture->image.p into texdata
 	//glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
-	glEnable(GL_TEXTURE_CUBE_MAP);
+//glEnable(GL_TEXTURE_CUBE_MAP);
 	glEnable(GL_TEXTURE_GEN_S);
 	glEnable(GL_TEXTURE_GEN_T);
 	glEnable(GL_TEXTURE_GEN_R);
@@ -1647,7 +1647,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		}
 	}
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	glDisable(GL_TEXTURE_CUBE_MAP);
+//	glDisable(GL_TEXTURE_CUBE_MAP);
 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_POP_MATRIX();
@@ -1996,7 +1996,7 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 				struct X3D_GeneratedCubeMapTexture* tex = (struct X3D_GeneratedCubeMapTexture*)texnode;
 				tti = getTableIndex(tex->__textureTableIndex);
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo before bind_or_share");
-				glEnable(GL_TEXTURE_CUBE_MAP);
+//				glEnable(GL_TEXTURE_CUBE_MAP);
 				itexunit = share_or_next_material_sampler_index_Cube(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
 				iunit = tunitCube(itexunit); //returns index into shader samplerCube textureUnitCube[iunit]
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");

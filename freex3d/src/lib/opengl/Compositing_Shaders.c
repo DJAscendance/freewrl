@@ -4979,6 +4979,20 @@ void main() \n\
 } \n\
 ";
 
+char* fragmentQuadColorCube = "#version 330 core \n\
+out vec4 FragColor; \n\
+in vec2 TexCoords; \n\
+uniform samplerCube textureUnit; \n\
+void main() \n\
+{ \n\
+	float phi = (TexCoords.x * 2.0 -1.0)*.5*3.14159623; \n\
+    float theta = (TexCoords.y * 2.0 -.5)*3.14159623; \n\
+	vec3 tc = vec3(cos(theta)*cos(phi),sin(theta)*cos(phi),sin(phi)); \n\
+	FragColor = texture(textureUnit, tc); \n\
+} \n\
+";
+
+
 int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
 	*vertexSource = strdup(vertexQuad);
 
@@ -4995,7 +5009,9 @@ int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fra
 	case 4:
 		*fragmentSource = strdup(fragmentQuadDepthCube);
 		break;
-
+	case 5:
+		*fragmentSource = strdup(fragmentQuadColorCube);
+		break;
 	}
 	return TRUE;
 }

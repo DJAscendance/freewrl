@@ -144,6 +144,11 @@ void compile_checkerboard_textureCube() {
 		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube early");
 		//glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA, checkerboard_size, checkerboard_size);
 		PRINT_GL_ERROR_IF_ANY("compile_checkerboard_textureCube middle");
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 		//-allocates storage for all 6 faces
 		for (int face = 0; face < 6; face++) {
@@ -185,8 +190,8 @@ void clear_textureUnit_used(){
 	//render_checkerboard_default_texture();
 	for (int i = 0; i < 16; i++) {
 		glBindTextureUnit(i, 0);
-		glBindTextureUnit(i, checkerboard_texture2D);
-		glBindTextureUnit(i, checkerboard_textureCube);
+		//glBindTextureUnit(i, checkerboard_texture2D);
+		//glBindTextureUnit(i, checkerboard_textureCube);
 	}
 	p->textureUnit_used = 0;  //start at 1 and leave TEXTURE0 for debugging?
 }
@@ -228,7 +233,7 @@ int bind_or_share_next_textureUnit(const int samplerType, GLint texture){
 		unit = next_textureUnit();
 		p->texture_in_unit[unit] = texture;
 		p->sampler_type[unit] = samplerType;
-	//	glBindTextureUnit(unit, 0); //clears all targets for a unit, gl 4.5 https://www.khronos.org/opengl/wiki/Sampler_(GLSL)
+		glBindTextureUnit(unit, 0); //clears all targets for a unit, gl 4.5 https://www.khronos.org/opengl/wiki/Sampler_(GLSL)
 		glActiveTexture(GL_TEXTURE0+unit); 
 		glBindTexture(samplerType,texture);
 	}
@@ -795,8 +800,26 @@ void textureTransform_start() {
 					int kunit, iunit;
 					kunit = iunit = 0;
 					if (mp->samplr[iuse] == 1) {
+						if (1) {
+							GLenum target;
+							printf("%s ", stringNodeType(tnode->_nodeType));
+							glGetTextureParameteriv(textures[j], GL_TEXTURE_TARGET, (GLint*)&target);
+							switch (target) {
+							case GL_TEXTURE_CUBE_MAP: printf("CUBE MAP \n"); break;
+							case GL_TEXTURE_2D: printf("texture2D\n"); break;
+							case GL_TEXTURE_3D: printf("texture3D\n"); break;
+							case GL_TEXTURE_2D_ARRAY: printf("GL_TEXTURE_2D_ARRAY\n");
+							default: printf("unknown %d \n",target); break;
+							}
+						}
+						PRINT_GL_ERROR_IF_ANY("TT_start_ bfor bind cube");
+
 						kunit = share_or_next_material_sampler_index_Cube(textures[j]);//returns index into shader samplerCube texterUnitCube[kunit]
+						//kunit = share_or_next_material_sampler_index_Cube(getCheckerboardTextureCube());//returns index into shader samplerCube texterUnitCube[kunit]
+						PRINT_GL_ERROR_IF_ANY("TT_start_ aftr bind cube");
 						glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+						PRINT_GL_ERROR_IF_ANY("TT_start_ aftr seamless");
+
 					}
 					else {
 						kunit = share_or_next_material_sampler_index_2D(textures[j]);//returns index into shader sampler2D texterUnit[kunit]

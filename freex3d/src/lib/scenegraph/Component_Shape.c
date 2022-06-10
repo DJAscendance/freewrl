@@ -1453,6 +1453,9 @@ void child_Shape (struct X3D_Shape *node) {
 		}
 		return;
 	}
+	if ((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
+		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
+
 	p = (ppComponent_Shape)tg->Component_Shape.prv;
 	PRINT_GL_ERROR_IF_ANY("child_shape START");
 
@@ -1465,8 +1468,6 @@ void child_Shape (struct X3D_Shape *node) {
 	initialize_non_material_appearance_parameters(); //zero /clear from last draw
 	initialize_front_and_back_material_params();
 
-	if((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
-		return; //don't draw if this node uses a generatedcubemaptexture and its a cubemaptexture generation pass; is there more optimal place to do this?
 
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
