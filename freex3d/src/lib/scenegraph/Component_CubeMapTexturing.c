@@ -304,60 +304,6 @@ static int lookup_xxyyzz_face_from_count [] = {0,1,2,3,4,5}; // {1,0,2,3,5,4}; /
 
 static int cubetextureID = 0;
 
-void render_ComposedCubeMapTexture_OLD (struct X3D_ComposedCubeMapTexture *node) {
-	int count, iface;
-	struct X3D_Node *thistex = 0;
-        //printf ("render_ComposedCubeMapTexture\n");
-	if (0) {
-		if (!cubetextureID) {
-			glGenTextures(1, &cubetextureID);
-		}
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
-	}
-	for (count=0; count<6; count++) {
-
-		/* set up the appearanceProperties to indicate a CubeMap */
-		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X+count;
-        //printf ("set cubeFace to %d in rcm\n",getAppearanceProperties()->cubeFace);
-		/* go through these, right left, top, bottom, front, back, */
-		//                     +x,   -x,  +y,     -y,   +z,   -z    //LHS system
-		//                                              -z,   +z    //RHS system
-		// we appear to be swapping left/right front/back
-		iface = lookup_xxyyzz_face_from_count[count];
-		switch (iface) {
-			case 0: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->right,thistex); break;}
-			case 1: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->left,thistex);    break;}
-
-			case 2: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->top,thistex);  break;}
-			case 3: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->bottom,thistex);   break;}
-
-			case 4: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->front,thistex);   break;}
-			case 5: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->back,thistex);  break;}
-		}
-        //printf ("rcm, thistex %p, type %s\n",thistex,stringNodeType(thistex->_nodeType));
-		if (thistex != NULL) {
-			/* we have an image specified for this face */
-			/* the X3D spec says that a X3DTextureNode has to be one of... */
-			if ((thistex->_nodeType == NODE_ImageTexture) ||
-			    (thistex->_nodeType == NODE_PixelTexture) ||
-			    (thistex->_nodeType == NODE_MovieTexture) ||
-			    (thistex->_nodeType == NODE_MultiTexture)) {
-
-				gglobal()->RenderFuncs.textureStackTop = 0;
-				/* render the proper texture */
-				render_node((void *)thistex);
-			} 
-		}
-	}
-	if (0) {
-		gglobal()->RenderFuncs.textureStackTop = 1;
-		gglobal()->RenderFuncs.boundTextureStack[0] = cubetextureID;
-		gglobal()->RenderFuncs.texturenode = node;
-	}
-    /* set this back for "normal" textures. */
-
-     getAppearanceProperties()->cubeFace = 0;
-}
 void texture_flipy(int width, int height, int bytesperpixel, unsigned char* data){
 	//flips image data in place
 	int ipixi, ipixo, ibytei, ibyteo;
