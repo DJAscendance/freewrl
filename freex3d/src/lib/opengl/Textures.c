@@ -680,6 +680,9 @@ int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node){
 	} else if (thisTextureType==NODE_MovieTexture){
 		struct X3D_MovieTexture* mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
+	}else if (thisTextureType == NODE_ComposedCubeMapTexture) {
+		struct X3D_ImageCubeMapTexture* ict = (struct X3D_ImageCubeMapTexture*)node;
+		thisTexture = ict->__textureTableIndex;
 	} else if (thisTextureType==NODE_ImageCubeMapTexture){
 		struct X3D_ImageCubeMapTexture* ict = (struct X3D_ImageCubeMapTexture*) node;
 		thisTexture = ict->__textureTableIndex;
@@ -744,6 +747,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 	if ((it->_nodeType == NODE_ImageTexture) ||
 		(it->_nodeType == NODE_PixelTexture) ||
 		(it->_nodeType == NODE_BufferTexture) ||
+		(it->_nodeType == NODE_ComposedCubeMapTexture) ||
 		(it->_nodeType == NODE_ImageCubeMapTexture) ||
 		(it->_nodeType == NODE_GeneratedCubeMapTexture) ||
 		(it->_nodeType == NODE_PixelTexture3D) ||
@@ -810,6 +814,13 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 				mt = (struct X3D_MovieTexture *) tmp;
 				mt->__textureTableIndex = textureNumber;
 				break; }
+
+			case NODE_ComposedCubeMapTexture: {
+				struct X3D_ComposedCubeMapTexture* v1t;
+				v1t = (struct X3D_ComposedCubeMapTexture*)tmp;
+				v1t->__textureTableIndex = textureNumber;
+				break;
+			}
 
 			case NODE_ImageCubeMapTexture: {
 				struct X3D_ImageCubeMapTexture *v1t;
@@ -879,6 +890,12 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 				struct X3D_MovieTexture *mt;
 				mt = (struct X3D_MovieTexture *) tmp;
 				textureNumber = &mt->__textureTableIndex;
+				break; }
+
+			case NODE_ComposedCubeMapTexture: {
+				struct X3D_ComposedCubeMapTexture* v1t;
+				v1t = (struct X3D_ComposedCubeMapTexture*)tmp;
+				textureNumber = &v1t->__textureTableIndex;
 				break; }
 
 			case NODE_ImageCubeMapTexture: {
@@ -2215,6 +2232,10 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 		mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
 		mfurl = &mt->url;
+	} else if (thisTextureType == NODE_ComposedCubeMapTexture) {
+		ict = (struct X3D_ImageCubeMapTexture*)node;
+		thisTexture = ict->__textureTableIndex;
+		mfurl = &ict->url;
 	} else if (thisTextureType==NODE_ImageCubeMapTexture){
 		ict = (struct X3D_ImageCubeMapTexture*) node;
 		thisTexture = ict->__textureTableIndex;
@@ -2358,6 +2379,10 @@ int get_bound_image(struct X3D_Node *node) {
 		mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
 		mfurl = &mt->url;
+	} else if (thisTextureType == NODE_ComposedCubeMapTexture) {
+		ict = (struct X3D_ImageCubeMapTexture*)node;
+		thisTexture = ict->__textureTableIndex;
+		mfurl = &ict->url;
 	} else if (thisTextureType==NODE_ImageCubeMapTexture){
 		ict = (struct X3D_ImageCubeMapTexture*) node;
 		thisTexture = ict->__textureTableIndex;

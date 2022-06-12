@@ -4537,14 +4537,16 @@ struct X3D_ComposedCubeMapTexture {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
+	struct Uni_String *description;
+	struct X3D_Node *textureProperties;
+	int __textureTableIndex;
+	void * _parentResource;
 	struct X3D_Node *back;
 	struct X3D_Node *bottom;
 	struct X3D_Node *front;
 	struct X3D_Node *left;
 	struct X3D_Node *top;
 	struct X3D_Node *right;
-	void * _parentResource;
-	int __textureTableIndex;
 };
 extern struct X3D_Virt virt_ComposedCubeMapTexture;
 /***********************/
@@ -5866,6 +5868,7 @@ struct X3D_GeneratedCubeMapTexture {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
+	struct Uni_String *description;
 	struct X3D_Node *textureProperties;
 	int __textureTableIndex;
 	struct Uni_String *update;
@@ -7335,13 +7338,13 @@ struct X3D_ImageCubeMapTexture {
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
 	struct X3D_Node *metadata;
+	struct Uni_String *description;
 	struct X3D_Node *textureProperties;
 	int __textureTableIndex;
 	void * _parentResource;
 	struct Multi_Node __subTextures;
 	int __regenSubTextures;
 	struct Multi_String url;
-	struct Uni_String *description;
 	int load;
 	int __oldload;
 	double autoRefresh;

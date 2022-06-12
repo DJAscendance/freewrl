@@ -800,7 +800,7 @@ void textureTransform_start() {
 					int kunit, iunit;
 					kunit = iunit = 0;
 					if (mp->samplr[iuse] == 1) {
-						if (1) {
+						if (0) {
 							GLenum target;
 							printf("%s ", stringNodeType(tnode->_nodeType));
 							glGetTextureParameteriv(textures[j], GL_TEXTURE_TARGET, (GLint*)&target);

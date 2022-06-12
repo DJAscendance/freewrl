@@ -265,6 +265,29 @@ https://github.com/WebGLSamples/WebGLSamples.github.io/tree/master/dynamic-cubem
 
 */
 
+
+
+textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
+
+int generate_color_cubemap_gl_texture(int size) {
+	//if size > 0, reserves blank space for each side, otherwise just the basics
+	int tex;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
+	if (size > 0) {
+		for (size_t i = 0; i < 6; ++i) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		}
+	}
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	return tex;
+}
 static int lookup_xxyyzz_face_from_count [] = {0,1,2,3,4,5}; // {1,0,2,3,5,4}; //swaps left-right front-back faces
 
 
@@ -281,7 +304,7 @@ static int lookup_xxyyzz_face_from_count [] = {0,1,2,3,4,5}; // {1,0,2,3,5,4}; /
 
 static int cubetextureID = 0;
 
-void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
+void render_ComposedCubeMapTexture_OLD (struct X3D_ComposedCubeMapTexture *node) {
 	int count, iface;
 	struct X3D_Node *thistex = 0;
         //printf ("render_ComposedCubeMapTexture\n");
@@ -334,6 +357,101 @@ void render_ComposedCubeMapTexture (struct X3D_ComposedCubeMapTexture *node) {
     /* set this back for "normal" textures. */
 
      getAppearanceProperties()->cubeFace = 0;
+}
+void texture_flipy(int width, int height, int bytesperpixel, unsigned char* data){
+	//flips image data in place
+	int ipixi, ipixo, ibytei, ibyteo;
+	unsigned char* row = malloc(width * bytesperpixel);
+	for (int y = 0; y < height/2; y++) {
+		int y2 = height - 1 - y;
+		ipixo = y2 * width;
+		ibyteo = ipixo * bytesperpixel;
+		ipixi = y * width;
+		ibytei = ipixi * bytesperpixel;
+		memcpy(row, &data[ibyteo], width * bytesperpixel);
+		memcpy(&data[ibyteo], &data[ibytei], width * bytesperpixel);
+		memcpy(&data[ibytei], row, width * bytesperpixel);
+	}
+}
+
+// new way
+void render_ComposedCubeMapTexture(struct X3D_ComposedCubeMapTexture* node) {
+	//step 1 create a cubemap texture
+	//step 2 iterate over textures, and any that are loaded, apply to cubemap
+	//step 3 when all loaded, flag cubemap as loaded, otherwise keep checking
+	textureTableIndexStruct_s* tti;
+	tti = getTableTableFromTextureNode(X3D_NODE(node));
+	if (tti && tti->status != TEX_LOADED)
+	{
+		if (tti->status == TEX_NOTLOADED) {
+			tti->OpenGLTexture = generate_color_cubemap_gl_texture(0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+			tti->status = TEX_LOADING;
+		}
+		if (tti->status == TEX_LOADING) {
+			int loaded_faces = 0;
+			textureTableIndexStruct_s* ttiface;
+			struct X3D_Node* texface;
+			for (int iface = 0; iface < 6; iface++) {
+
+				// right left, top, bottom, front, back, 
+				//  +x,   -x,  +y,     -y,   +z,   -z    //LHS system
+				//                           -z,   +z    //RHS system
+				switch (iface) {
+				case 0: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->right, texface); break; }
+				case 1: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->left, texface);    break; }
+
+				case 2: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->top, texface);  break; }
+				case 3: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->bottom, texface);   break; }
+
+				case 4: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->front, texface);   break; }
+				case 5: {POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->back, texface);  break; }
+				}
+				//printf ("rcm, thistex %p, type %s\n",thistex,stringNodeType(thistex->_nodeType));
+				if (texface != NULL) {
+					/* we have an image specified for this face */
+					/* the X3D spec says that a X3DTextureNode has to be one of... */
+					if ((texface->_nodeType == NODE_ImageTexture) ||
+						(texface->_nodeType == NODE_PixelTexture) ||
+						(texface->_nodeType == NODE_MovieTexture) ||
+						(texface->_nodeType == NODE_MultiTexture)) {
+
+						ttiface = getTableTableFromTextureNode(X3D_NODE(texface));
+						if (ttiface->status == TEX_LOADED) {
+							glBindTexture(GL_TEXTURE_2D, ttiface->OpenGLTexture);
+							unsigned char* texdata = malloc(ttiface->x * ttiface->y * 4);
+							// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetTexImage.xhtml
+							glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, texdata);
+							texture_flipy(ttiface->x, ttiface->y, 4, texdata);
+							glBindTexture(GL_TEXTURE_2D, 0);
+							glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+							glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + iface, 0, GL_RGBA, ttiface->x, ttiface->y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texdata);
+							glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+							free(texdata);
+							loaded_faces++;
+						}
+						else {
+							gglobal()->RenderFuncs.textureStackTop = 0;
+							/* render the proper texture */
+							render_node(X3D_NODE(texface));
+							gglobal()->RenderFuncs.textureStackTop = 0;
+						}
+					}
+				}
+			}
+			if (loaded_faces > 0 && loaded_faces < 6)
+				tti->status = TEX_LOADING;
+			else if (loaded_faces == 6)
+				tti->status = TEX_LOADED;
+		}
+	}
+	if (tti && tti->status >= TEX_LOADING) {
+		gglobal()->RenderFuncs.textureStackTop = 1;
+		gglobal()->RenderFuncs.texturenode = node;
+	}
+	else {
+		gglobal()->RenderFuncs.textureStackTop = 0;
+	}
 }
 
 
@@ -919,26 +1037,11 @@ int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename) {
  *
  ****************************************************************************/
  void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
-int generate_color_cubemap_gl_texture(int size) {
-	int tex;
-	 glGenTextures(1, &tex);
-	 glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
-	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	 // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
-	 for (size_t i = 0; i < 6; ++i) {
-		 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-	 }
-	 glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	 return tex;
- }
+
 void compile_ImageCubeMapTexture (struct X3D_ImageCubeMapTexture *node) {
 	MARK_NODE_COMPILED
 }
-textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
+
 
 void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 	COMPILE_IF_REQUIRED
