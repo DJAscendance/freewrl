@@ -919,29 +919,47 @@ int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename) {
  *
  ****************************************************************************/
  void add_node_to_broto_context(struct X3D_Proto *currentContext,struct X3D_Node *node);
-
+int generate_color_cubemap_gl_texture(int size) {
+	int tex;
+	 glGenTextures(1, &tex);
+	 glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	 // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
+	 for (size_t i = 0; i < 6; ++i) {
+		 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	 }
+	 glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	 return tex;
+ }
 void compile_ImageCubeMapTexture (struct X3D_ImageCubeMapTexture *node) {
-	if (node->__subTextures.n == 0) {
-		int i;
+	if (0) {
+		if (node->__subTextures.n == 0) {
+			int i;
 
-		/* printf ("changed_ImageCubeMapTexture - creating sub-textures\n"); */
-		FREE_IF_NZ(node->__subTextures.p); /* should be NULL, checking */
-		node->__subTextures.p = MALLOC(struct X3D_Node  **,  6 * sizeof (struct X3D_PixelTexture *));
-		for (i=0; i<6; i++) {
-			struct X3D_PixelTexture *pt;
-			//struct textureTableIndexStruct *tti;
-			pt = (struct X3D_PixelTexture *)createNewX3DNode(NODE_PixelTexture);
-			node->__subTextures.p[i] = X3D_NODE(pt);
-			if(node->_executionContext)
-				add_node_to_broto_context(X3D_PROTO(node->_executionContext),X3D_NODE(node->__subTextures.p[i]));
-			//tti = getTableIndex(pt->__textureTableIndex);
-			//tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+			/* printf ("changed_ImageCubeMapTexture - creating sub-textures\n"); */
+			FREE_IF_NZ(node->__subTextures.p); /* should be NULL, checking */
+			node->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
+			for (i = 0; i < 6; i++) {
+				struct X3D_PixelTexture* pt;
+				//struct textureTableIndexStruct *tti;
+				pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
+				node->__subTextures.p[i] = X3D_NODE(pt);
+				if (node->_executionContext)
+					add_node_to_broto_context(X3D_PROTO(node->_executionContext), X3D_NODE(node->__subTextures.p[i]));
+				//tti = getTableIndex(pt->__textureTableIndex);
+				//tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
+			}
+			node->__subTextures.n = 6;
 		}
-		node->__subTextures.n=6;
+
+		/* tell the whole system to re-create the data for these sub-children */
+		node->__regenSubTextures = TRUE;
 	}
 
-	/* tell the whole system to re-create the data for these sub-children */
-	node->__regenSubTextures = TRUE;
 	MARK_NODE_COMPILED
 }
 textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
@@ -949,109 +967,185 @@ static int cubemap_loaded = 0;
 static int imethod = 0; //0= pre April 2022 1= April 2022 experiment 1 2= experiment 2
 // they all work, with imethod 2 being best of both worlds: texture colors and text flipped right thanks to send_texture_to_opengl
 // and just one initialization round, don't have to rebind the subtextures on each frame. (parent is bound in texturetransform_start
+
 void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
-	int count, iface;
 
 	COMPILE_IF_REQUIRED
-	//	glActiveTexture(GL_TEXTURE0);
+	if (0) {
+		int count, iface;
 
-	/* do we have to split this CubeMap raw data apart? */
-	if (node->__regenSubTextures) {
-		/* Yes! Get the image data from the file, and split it apart */
-		if (imethod) {
-			if (!cubetextureID) {
-				glGenTextures(1, &cubetextureID);
-			}
-			glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
-		}
-		loadTextureNode(X3D_NODE(node), NULL);
-	}
-	{
-		/* we have the 6 faces from the image, just go through and render them as a cube */
-		if (node->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
-		//patience - wait for main image to load and be split into 6 in move_texture_to_opengl 
-		//  which will signal when sub-images are parsed with tti->status = TEXT_LOADED
-		int OK = TRUE;
-		if (imethod) {
-			textureTableIndexStruct_s* tti;
-			tti = getTableTableFromTextureNode(X3D_NODE(node));
-			OK = FALSE;
-			if (tti && tti->status >= TEX_LOADED && !cubemap_loaded)
-			{
-//				glEnable(GL_TEXTURE_CUBE_MAP);
+		//	glActiveTexture(GL_TEXTURE0);
+
+		/* do we have to split this CubeMap raw data apart? */
+		if (node->__regenSubTextures) {
+			/* Yes! Get the image data from the file, and split it apart */
+			if (imethod) {
+				if (!cubetextureID) {
+					glGenTextures(1, &cubetextureID);
+				}
 				glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
-				OK = TRUE;
 			}
-		}else {
-			textureTableIndexStruct_s* tti;
-			tti = getTableTableFromTextureNode(X3D_NODE(node));
-			OK = FALSE;
-			if (tti && tti->status >= TEX_LOADED) //&& !cubemap_loaded)
-			{
-				//glEnable(GL_TEXTURE_CUBE_MAP);
-				//glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
-				OK = TRUE;
+			loadTextureNode(X3D_NODE(node), NULL);
+		}
+		{
+			/* we have the 6 faces from the image, just go through and render them as a cube */
+			if (node->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
+			//patience - wait for main image to load and be split into 6 in move_texture_to_opengl 
+			//  which will signal when sub-images are parsed with tti->status = TEXT_LOADED
+			int OK = TRUE;
+			if (imethod) {
+				textureTableIndexStruct_s* tti;
+				tti = getTableTableFromTextureNode(X3D_NODE(node));
+				OK = FALSE;
+				if (tti && tti->status >= TEX_LOADED && !cubemap_loaded)
+				{
+	//				glEnable(GL_TEXTURE_CUBE_MAP);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+					OK = TRUE;
+				}
+			}else {
+				textureTableIndexStruct_s* tti;
+				tti = getTableTableFromTextureNode(X3D_NODE(node));
+				OK = FALSE;
+				if (tti && tti->status >= TEX_LOADED) //&& !cubemap_loaded)
+				{
+					//glEnable(GL_TEXTURE_CUBE_MAP);
+					//glBindTexture(GL_TEXTURE_CUBE_MAP, cubetextureID);
+					OK = TRUE;
+				}
+			}
+
+			if (OK) {
+
+				for (count = 0; count < 6; count++) {
+					if (imethod != 1) {
+						/* set up the appearanceProperties to indicate a CubeMap */
+						getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
+
+						/* go through these, back, front, top, bottom, right left */
+						iface = lookup_xxyyzz_face_from_count[count];
+						//gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
+
+						render_node(node->__subTextures.p[iface]);
+	//					gglobal()->RenderFuncs.textureStackTop = 0;
+					}
+					else {
+						// these images come out color-backward etc, prefer the move_textures_to_opengl method
+						struct X3D_PixelTexture* pt = (struct X3D_PixelTexture*)node->__subTextures.p[count];
+						int width = pt->image.p[0];
+						int height = pt->image.p[1];
+						int next = pt->image.p[2];
+						unsigned char* q = (unsigned char*)&pt->image.p[3];
+						q++;
+						if (0) {
+							printf("side %d width %d height %d  next %d 10 rows of 10:\n", count, width, height, next);
+							for (int i = 0; i < 10; i++) {
+								for (int j = 0; j < 10; j++) {
+									int k = (i * width + j) * 4;
+									printf("%3d %3d %3d %3d | ", q[k], q[k + 1], q[k + 2], q[k + 3]);
+								}
+								printf("\n");
+							}
+						}
+						glTexImage2D(
+							GL_TEXTURE_CUBE_MAP_POSITIVE_X + count,
+							0, GL_RGBA, pt->image.p[0], pt->image.p[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)q
+						);
+
+					}
+
+				}
+				if (imethod) {
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+					if(imethod == 1) cubemap_loaded = TRUE;
+				}
 			}
 		}
+		/* Finished rendering CubeMap, set it back for normal textures */
+		getAppearanceProperties()->cubeFace = 0;
+		if (imethod) {
+			gglobal()->RenderFuncs.textureStackTop = 1;
+			gglobal()->RenderFuncs.boundTextureStack[0] = cubetextureID;
+			/* set this back for "normal" textures. */
+			gglobal()->RenderFuncs.texturenode = node;
+		}
+	}
+	else {
+		//step 1 load the texture as a 2D image texture
+		//step 2 use size hint from image texture to generate cubemap of approximate same size sides
+		//step 3 cut chunks out of 2D image texture and paste into cubemap sides
+		textureTableIndexStruct_s* tti;
+		tti = getTableTableFromTextureNode(X3D_NODE(node));
+		if (tti && tti->status != TEX_LOADED) 
+		{
+			//step 1 load the texture as a 2D image texture
+			if (node->__subTextures.n == 0) {
+				node->__subTextures.p = malloc(sizeof(struct X3D_Node*));
+				node->__subTextures.n = 1;
+				struct X3D_ImageTexture* tex2d = createNewX3DNode(NODE_ImageTexture);
+				tex2d->url.p = malloc(sizeof(struct Uni_String*)* node->url.n);
+				for (int i = 0; i < node->url.n; i++) {
+					tex2d->url.p[i] = newASCIIString(node->url.p[i]->strptr);
+				}
+				tex2d->url.n = node->url.n;
+				tex2d->_parentResource = node->_parentResource;
+				tex2d->load = TRUE;
+				if (node->_executionContext)
+					add_node_to_broto_context(X3D_PROTO(node->_executionContext), X3D_NODE(tex2d));
 
-		if (OK) {
-
-			for (count = 0; count < 6; count++) {
-				if (imethod != 1) {
-					/* set up the appearanceProperties to indicate a CubeMap */
-					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
-
-					/* go through these, back, front, top, bottom, right left */
-					iface = lookup_xxyyzz_face_from_count[count];
-					//gglobal()->RenderFuncs.texturenode = node->__subTextures.p[iface];
-
-					render_node(node->__subTextures.p[iface]);
-//					gglobal()->RenderFuncs.textureStackTop = 0;
+				textureTableIndexStruct_s* tti2d = getTableTableFromTextureNode(X3D_NODE(tex2d));
+				tti2d->scenegraphNode = X3D_NODE(tex2d);
+				tti2d->no_gl = TRUE; //skip move_texture_to_opengl and preserve texdata
+				node->__subTextures.p[0] = X3D_NODE(tex2d);
+				node->_ichange = node->_change;
+				render_node(X3D_NODE(tex2d));
+				printf("tti2d->no_gl=%d after first render_node\n", tti2d->no_gl);
+			}
+			else {
+				struct X3D_ImageTexture* tex2d = (struct X3D_ImageTexture* )node->__subTextures.p[0];
+				textureTableIndexStruct_s* tti2d = getTableTableFromTextureNode(X3D_NODE(tex2d));
+				if (tti2d->status < TEX_NEEDSBINDING){ // TEX_LOADED) {
+					render_node(X3D_NODE(tex2d));
+				
 				}
 				else {
-					// these images come out color-backward etc, prefer the move_textures_to_opengl method
-					struct X3D_PixelTexture* pt = (struct X3D_PixelTexture*)node->__subTextures.p[count];
-					int width = pt->image.p[0];
-					int height = pt->image.p[1];
-					int next = pt->image.p[2];
-					unsigned char* q = (unsigned char*)&pt->image.p[3];
-					q++;
-					if (0) {
-						printf("side %d width %d height %d  next %d 10 rows of 10:\n", count, width, height, next);
-						for (int i = 0; i < 10; i++) {
-							for (int j = 0; j < 10; j++) {
-								int k = (i * width + j) * 4;
-								printf("%3d %3d %3d %3d | ", q[k], q[k + 1], q[k + 2], q[k + 3]);
-							}
-							printf("\n");
-						}
-					}
-					glTexImage2D(
-						GL_TEXTURE_CUBE_MAP_POSITIVE_X + count,
-						0, GL_RGBA, pt->image.p[0], pt->image.p[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)q
-					);
+					//step 2 use size hint from image texture to generate cubemap of approximate same size sides
+					//step 3 cut chunks out of 2D image texture and paste into cubemap sides
+					// weakness: assumes image file has square, equal side sizes
+					//alternate method not attempted: node.size field, and
+					// a) render to sides using fbo + ortho, or
+					// b) use x,y interpolation loops
+					unsigned char* facetextures[6];
+					memset(facetextures, 0, 6 * sizeof(unsigned char*));
+					//pattern = ICM_T, ICM_3X2,or ICM_DDS: detects by file type (DDS) or rectangularity 
+					//width = 3/2 * height? ICM_3X2 : width = 4/3 * height? ICM_T
+					int isize = unpack_image_2D_into_cube_faces(tti2d,facetextures);
+					tti->OpenGLTexture = generate_color_cubemap_gl_texture(isize);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+					for (int iface = 0; iface < 6; iface++)
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + iface, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, facetextures[iface]);
+					tti->status = TEX_LOADED;
+					for (int iface = 0; iface < 6; iface++)
+						FREE_IF_NZ(facetextures[iface]);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 				}
+			}
 
-			}
-			if (imethod) {
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				if(imethod == 1) cubemap_loaded = TRUE;
-			}
+		}
+		if(tti&& tti->status == TEX_LOADED) {
+			gglobal()->RenderFuncs.textureStackTop = 1;
+			gglobal()->RenderFuncs.texturenode = node;
+		}
+		else {
+			gglobal()->RenderFuncs.textureStackTop = 0;
 		}
 	}
-	/* Finished rendering CubeMap, set it back for normal textures */
-	getAppearanceProperties()->cubeFace = 0;
-	if (imethod) {
-		gglobal()->RenderFuncs.textureStackTop = 1;
-		gglobal()->RenderFuncs.boundTextureStack[0] = cubetextureID;
-		/* set this back for "normal" textures. */
-		gglobal()->RenderFuncs.texturenode = node;
-	}
+
 
 }
 
@@ -1234,7 +1328,123 @@ void unpackImageCubeMap6 (textureTableIndexStruct_s* me) {
 	FREE_IF_NZ(me->texdata);
 }
 
+enum {
+	ICM_UNK = -1,
+	ICM_DDS = 0, //detected by file type
+	ICM_T = 1, //+-
+	ICM_3X2 = 2,
+	ICM_2X3 = 3,
+	ICM_6X1 = 4,
+	ICM_1X6 = 5,
+};
+int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned char** facetextures) {
+	int isize = 0;
+	int* offs = NULL;
+	if (pattern == ICM_DDS) {
+		isize = tti->x;
+		int oo0[] = { 0,0, 1,0, 2,0, 3,0, 4,0, 5,0 };
+		offs = oo0;
+	} else if (pattern == ICM_T) {
+		//+- format
+		isize = tti->x / 4;
+		offs = offsets; //defined above in y,x,y,x sequence
+	}
+	else {
+		//packed
+		int nx, ny;
+		//June 2022 - never seen this pattern in practice, don't know which way is up, won't test it
+		// if you have a real case then change the following to work
+		switch (pattern) {
+		case ICM_1X6: //nx = 1; ny = 6; 
+			isize = tti->x;
+			int oo1[] = {0,0, 1,0, 2,0, 3,0, 4,0, 5,0};
+			offs = oo1;
+			break;
+		case ICM_6X1: //nx = 6; ny = 1; 
+			isize = tti->y;
+			int oo2[] = { 0,0, 0,1, 0,2, 0,3, 0,4, 0,5 };
+			offs = oo2;
+			break;
+		case ICM_2X3: //nx = 2; ny = 3; 
+			isize = tti->x/2;
+			int oo3[] = { 0,0, 0,1, 1,0, 1,1, 2,0, 2,1 };
+			offs = oo3;
+			break;
+		case ICM_3X2: //nx = 3; ny = 2; 
+			isize = tti->x/3;
+			int oo4[] = { 0,0, 0,1, 0,2, 1,0, 1,2, 1,2 };
+			offs = oo4;
+			break;
+		default: nx = 0; ny = 0; isize = 0;
+		}
 
+	}
+	if(isize > 0){
+		/* go through each face, and send the data to the relevant PixelTexture */
+		/* order: right left, top, bottom, back, front */
+		for (int iface = 0; iface < 6; iface++) {
+			int x, y, yy, iy, index;
+			unsigned char* tex = tti->texdata;
+			unsigned char rgba[4];
+			unsigned char c;
+			int xSubIndex, ySubIndex;
+
+			int nci = 4; // tti->channels;
+			int nco = 4;
+			if (tti->hasAlpha && nci == 3) nci = 4;
+			ySubIndex = offs[iface * 2] * isize; xSubIndex = offs[iface * 2 + 1] * isize;
+
+			/* create the MFInt32 array for this face in the PixelTexture */
+			FREE_IF_NZ(facetextures[iface]);
+			facetextures[iface] = malloc(isize * isize * nco);
+			index = 0; //byte in face image
+			for (yy = ySubIndex, iy=0; yy < ySubIndex+isize; yy++,iy++) {
+				//flip cubemap textures to be y-down following opengl specs table 3-19
+				//'renderman' convention
+				y = (ySubIndex + isize - 1) - iy; //flip y for 
+				for (x = xSubIndex; x < xSubIndex + isize; x++) {
+					int ipix, ibyte;
+					ipix = y * tti->x + x; //pixel in big image
+					ibyte = ipix * nci;
+					memset(rgba, 255, 4);
+					memcpy(rgba, &tex[ibyte], nci);
+					memcpy(&facetextures[iface][index], rgba,nco);
+					index += nco;
+				}
+			}
+		}
+	}
+	return isize;
+
+}
+
+int unpack_image_2D_into_cube_faces(textureTableIndexStruct_s* tti, unsigned char** facetextures) {
+	int isize = 0;
+	if (tti->z == 1) {
+		/* if we have an single 2D image, ImageCubeMap, we have most likely got a png map;
+		   ________
+		  |	 T    | - Top
+		  |L F R B| - Left, Front, Right, Back
+		  |__D____| - Down(bottom)
+			let the  render_ImageCubeMapTexture code unpack the maps from this one png */
+			/* this is ok - what is happening is that we have one image, that needs to be
+				split up into each face */
+				/* this should print if we are actually working ok
+				if (me->status != TEX_LOADED) {
+					printf ("have ImageCubeMapTexture, but status != TEX_LOADED\n");
+				}
+		*/
+		int pattern = tti->x * 3 == tti->y * 4 ? ICM_T : tti->x * 3 == tti->y * 2 ? ICM_2X3 : tti->x * 2 == tti->y * 3 ? ICM_3X2 : tti->x * 6 == tti->y ? ICM_1X6 : tti->x == tti->y * 6 ? ICM_6X1 : ICM_UNK;
+		isize = unpackImageCubeMapB(tti,pattern,facetextures);
+	}
+	else if (tti->z == 6) {
+		//likely a .DDS (MS invention) or web3dit (dug9 invention)
+		//order of images: +x,-x,+y,-y,+z,-z (or R,L,F,B,T,D)
+		isize = unpackImageCubeMapB(tti,ICM_DDS,facetextures);
+	}
+
+	return isize;
+}
 
 /****************************************************************************
  *

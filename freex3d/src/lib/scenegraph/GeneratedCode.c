@@ -472,6 +472,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"autoDamp",
 	"autoDisable",
 	"autoOffset",
+	"autoRefresh",
+	"autoRefreshTimeLimit",
 	"avatarSize",
 	"axis",
 	"axis1",
@@ -1505,6 +1507,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"autoDamp",
 	"autoDisable",
 	"autoOffset",
+	"autoRefresh",
+	"autoRefreshTimeLimit",
 	"avatarSize",
 	"axis",
 	"axis1",
@@ -5310,6 +5314,7 @@ const int OFFSETS_ComposedCubeMapTexture[] = {
 	(int) FIELDNAMES_top, (int) offsetof (struct X3D_ComposedCubeMapTexture, top),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_right, (int) offsetof (struct X3D_ComposedCubeMapTexture, right),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_ComposedCubeMapTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_ComposedCubeMapTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ComposedShader[] = {
@@ -5961,9 +5966,6 @@ const int OFFSETS_GeneratedCubeMapTexture[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeneratedCubeMapTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_GeneratedCubeMapTexture, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_GeneratedCubeMapTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_GeneratedCubeMapTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___subTextures, (int) offsetof (struct X3D_GeneratedCubeMapTexture, __subTextures),  (int) FIELDTYPE_MFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___regenSubTextures, (int) offsetof (struct X3D_GeneratedCubeMapTexture, __regenSubTextures),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_update, (int) offsetof (struct X3D_GeneratedCubeMapTexture, update),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_GeneratedCubeMapTexture, size),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
@@ -6704,8 +6706,9 @@ const int OFFSETS_ImageCubeMapTexture[] = {
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_ImageCubeMapTexture, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_load, (int) offsetof (struct X3D_ImageCubeMapTexture, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_ImageCubeMapTexture, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_refresh, (int) offsetof (struct X3D_ImageCubeMapTexture, refresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_ImageCubeMapTexture, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_ImageCubeMapTexture, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_ImageCubeMapTexture, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ImageTexture[] = {
@@ -11333,6 +11336,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->top = NULL;
 			tmp2->right = NULL;
 			tmp2->_parentResource = getInputResource();
+			tmp2->__textureTableIndex = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -12171,9 +12175,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->textureProperties = NULL;
 			tmp2->__textureTableIndex = 0;
-			tmp2->_parentResource = getInputResource();
-			tmp2->__subTextures.n=0; tmp2->__subTextures.p=0;
-			tmp2->__regenSubTextures = FALSE;
 			tmp2->update = newASCIIString("NONE");
 			tmp2->size = 128;
 			tmp2->_defaultContainer = 0;
@@ -13077,8 +13078,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->description = newASCIIString("");
 			tmp2->load = TRUE;
 			tmp2->__oldload = FALSE;
-			tmp2->refresh = 0;
+			tmp2->autoRefresh = 0;
 			tmp2->__lasttime = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -19233,7 +19235,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
-			spacer fprintf (fp," refresh (SFTime) \t%4.3f\n",tmp->refresh);
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
 		    break;
 		}
 		case NODE_ImageTexture : {

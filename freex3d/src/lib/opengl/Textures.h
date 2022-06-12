@@ -53,6 +53,7 @@ struct textureTableIndexStruct {
 	GLint magFilter; //needed in TEX3D frag shader for Z
 	int textureNumber;
 	int channels; //number of original image file image channels/components 0=no texture default, 1=Intensity 2=IntensityAlpha 3=RGB 4=RGBA
+	int no_gl; //if 1, skips move_to_opengl and keeps the texdata
 };
 typedef struct textureTableIndexStruct textureTableIndexStruct_s;
 

@@ -482,23 +482,23 @@ void render_PointLight0(struct X3D_Node* parent, struct X3D_PointLight* node) {
 			//render_shadowMap(X3D_NODE(node));
 			uhit.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 			generate_shadowmap_cube(uhit, uhit.ivalue);
-			if(gcm_method()) {
-				/* we have the 6 faces from the image, just go through and render them as a cube */
-				struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-				struct X3D_GeneratedCubeMapTexture *cubtex = 
-					(struct X3D_GeneratedCubeMapTexture*) vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);
-				if (cubtex->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
+			//if(gcm_method()) {
+			//	/* we have the 6 faces from the image, just go through and render them as a cube */
+			//	struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
+			//	struct X3D_GeneratedCubeMapTexture *cubtex = 
+			//		(struct X3D_GeneratedCubeMapTexture*) vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);
+			//	if (cubtex->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
 
-				for (int count = 0; count < 6; count++) {
+			//	for (int count = 0; count < 6; count++) {
 
-					/* set up the appearanceProperties to indicate a CubeMap */
-					getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
+			//		/* set up the appearanceProperties to indicate a CubeMap */
+			//		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
 
-					/* go through these, back, front, top, bottom, right left */
-					//iface = count; // lookup_xxyyzz_face_from_count[count];
-					render_node(cubtex->__subTextures.p[count]);
-				}
-			}
+			//		/* go through these, back, front, top, bottom, right left */
+			//		//iface = count; // lookup_xxyyzz_face_from_count[count];
+			//		render_node(cubtex->__subTextures.p[count]);
+			//	}
+			//}
 			/* Finished rendering CubeMap, set it back for normal textures */
 			getAppearanceProperties()->cubeFace = 0;
 
@@ -855,28 +855,29 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 	// cubemap Stage I
 	struct X3D_GeneratedCubeMapTexture *cubetex = createNewX3DNode(NODE_GeneratedCubeMapTexture);
 	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube START");
-	if (cubetex->__subTextures.n == 0) {
+	//if (cubetex->__subTextures.n == 0) 
+	{
 
 		int i;
 		struct textureTableIndexStruct* tti;
-		if (gcm_method()) {
-			//FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
-			cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
-			for (i = 0; i < 6; i++) {
-				struct X3D_PixelTexture* pt;
-				pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
-				tti = getTableIndex(pt->__textureTableIndex);
-				tti->idepthbuffer = 1;
-				tti->x = width;
-				tti->y = height;
-				tti->status = TEX_LOADED;
-				glGenTextures(1, &tti->OpenGLTexture);
-				glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-				cubetex->__subTextures.p[i] = X3D_NODE(pt);
-			}
-			cubetex->__subTextures.n = 6;
-		}
+		//if (gcm_method()) {
+		//	//FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
+		//	cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
+		//	for (i = 0; i < 6; i++) {
+		//		struct X3D_PixelTexture* pt;
+		//		pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
+		//		tti = getTableIndex(pt->__textureTableIndex);
+		//		tti->idepthbuffer = 1;
+		//		tti->x = width;
+		//		tti->y = height;
+		//		tti->status = TEX_LOADED;
+		//		glGenTextures(1, &tti->OpenGLTexture);
+		//		glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+		//		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+		//		cubetex->__subTextures.p[i] = X3D_NODE(pt);
+		//	}
+		//	cubetex->__subTextures.n = 6;
+		//}
 		tti = getTableIndex(cubetex->__textureTableIndex);
 		tti->status = TEX_LOADED; // I found I didn't need - yet TEX_NEEDSBINDING; //
 		tti->x = width;
@@ -891,48 +892,49 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 			// https://learnopengl.com/Advanced-OpenGL/Cubemaps - doesn't show 'dynamic' cubemaps, but create with images, not renderbuffers, so can sample in shader
 			// https://learnopengl.com/Advanced-OpenGL/Framebuffers 
 
-			if (gcm_method()) {
-				glGenFramebuffers(1, &tti->ifbobuffer);
-				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
+			//if (gcm_method()) {
+			//	glGenFramebuffers(1, &tti->ifbobuffer);
+			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
 
-				glGenTextures(1, &tti->OpenGLTexture);
-				pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-				glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			//	glGenTextures(1, &tti->OpenGLTexture);
+			//	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
+			//	glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
 
-				//created above in textures.c //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+			//	//created above in textures.c //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+			//	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
 
-				//glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
-				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 2");
-				for (int i = 0; i < 6; i++) {
-					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-				}
-				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 3");
+			//	//glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			//	glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
+			//	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 2");
+			//	for (int i = 0; i < 6; i++) {
+			//		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			//	}
+			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 3");
 
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 4");
+			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 4");
 
-				//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-				//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-				glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tti->OpenGLTexture, 0);
+			//	//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
+			//	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
+			//	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tti->OpenGLTexture, 0);
 
 
-				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 5");
+			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 5");
 
-				glDrawBuffer(GL_NONE);
-				glReadBuffer(GL_NONE);
-				status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
+			//	glDrawBuffer(GL_NONE);
+			//	glReadBuffer(GL_NONE);
+			//	status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
 
-				popnset_framebuffer(); //tti->ifbobuffer);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-			}
-			else {
+			//	popnset_framebuffer(); //tti->ifbobuffer);
+			//	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+			//}
+			//else 
+			{
 				glGenTextures(1, &tti->OpenGLTexture);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1528,10 +1530,10 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glFramebufferTexture.xhtml
 		//glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0);
 		//glNamedFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->ifbobuffer, 0);
-		if (gcm_method()) {
-			nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
-			ttip = getTableIndex(nodep->__textureTableIndex);
-		}
+		//if (gcm_method()) {
+		//	nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
+		//	ttip = getTableIndex(nodep->__textureTableIndex);
+		//}
 		PRINT_GL_ERROR_IF_ANY("generate_cube shadow after glFramebufferTexture2D");
 		//getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + j;
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
@@ -1592,32 +1594,32 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
-		if (gcm_method()) {
-			//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-			//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-			pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-			bytesPerPixel = sizeof(float); // 4;
-			if (!ttip->texdata || ttip->x != tti->x) {
-				FREE_IF_NZ(ttip->texdata);
-				ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * tti->x * tti->y);
-			}
+		//if (gcm_method()) {
+		//	//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
+		//	//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
+		//	pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
+		//	bytesPerPixel = sizeof(float); // 4;
+		//	if (!ttip->texdata || ttip->x != tti->x) {
+		//		FREE_IF_NZ(ttip->texdata);
+		//		ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * tti->x * tti->y);
+		//	}
 
-			// grab the data
-			//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-			//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
+		//	// grab the data
+		//	//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
+		//	//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
 
-			//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-			FW_GL_READPIXELS(0, 0, tti->x, tti->y, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
+		//	//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
+		//	FW_GL_READPIXELS(0, 0, tti->x, tti->y, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
+		//	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
 
-			ttip->x = tti->x;
-			ttip->y = tti->y;
-			ttip->z = 1;
-			ttip->hasAlpha = 0; // 1;
-			ttip->channels = 0; // 4;
-			ttip->idepthbuffer = 1;
-			ttip->status = TEX_NEEDSBINDING;
-		}
+		//	ttip->x = tti->x;
+		//	ttip->y = tti->y;
+		//	ttip->z = 1;
+		//	ttip->hasAlpha = 0; // 1;
+		//	ttip->channels = 0; // 4;
+		//	ttip->idepthbuffer = 1;
+		//	ttip->status = TEX_NEEDSBINDING;
+		//}
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after GL calls");
 		if (j == 5) {
 			if (0) {

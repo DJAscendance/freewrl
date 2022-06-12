@@ -1684,15 +1684,16 @@ our %Nodes = (
 		top =>["SFNode","NULL","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		right =>["SFNode","NULL","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0,0],#ff
 	],"X3DEnvironmentTextureNode"),
 
 	"GeneratedCubeMapTexture" => new VRML::NodeType("GeneratedCubeMapTexture", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		textureProperties => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__textureTableIndex => ["SFInt32", 0, "initializeOnly", 0,0],#ff
-		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		__subTextures => ["MFNode",[],"initializeOnly",0,0],#ff
-		__regenSubTextures => ["SFBool","FALSE","initializeOnly",0,0],#ff
+		#_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		#__subTextures => ["MFNode",[],"initializeOnly",0,0],#ff
+		#__regenSubTextures => ["SFBool","FALSE","initializeOnly",0,0],#ff
 		update => ["SFString","NONE","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		size => ["SFInt32",128,"initializeOnly", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff # see note top of file
 	],"X3DEnvironmentTextureNode"),
@@ -1709,8 +1710,9 @@ our %Nodes = (
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__oldload => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
-		refresh => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		autoRefresh => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+		autoRefreshTimeLimit => ["SFTime", 3600.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DEnvironmentTextureNode"),
 
 

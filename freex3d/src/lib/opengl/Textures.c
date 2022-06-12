@@ -2269,19 +2269,21 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 
 		case TEX_NEEDSBINDING:
 			DEBUG_TEX("texture loaded into memory... now lets load it into OpenGL...\n");
-			move_texture_to_opengl(myTableIndex);
+			if (myTableIndex->no_gl == 0) {
+				move_texture_to_opengl(myTableIndex);
 
-			// do always #ifdef PATH_PLANNER
-			// JAS - skipping a rendering loop
-			// if we are ok, go direct to rendering this texture.
-			if (myTableIndex->status != TEX_LOADED) {
-				printf ("issue going from TEX_NEEDSBINDING to TEX_LOADED, is %s\n",
-					texst(myTableIndex->status));
-				break;
+				// do always #ifdef PATH_PLANNER
+				// JAS - skipping a rendering loop
+				// if we are ok, go direct to rendering this texture.
+				if (myTableIndex->status != TEX_LOADED) {
+					printf("issue going from TEX_NEEDSBINDING to TEX_LOADED, is %s\n",
+						texst(myTableIndex->status));
+					break;
+				}
+				// do always #else
+				// do always break;
+				// do always #endif  //PATH_PLANNER
 			}
-			// do always #else
-			// do always break;
-			// do always #endif  //PATH_PLANNER
 
 		case TEX_LOADED:
 			//DEBUG_TEX("now binding to pre-bound tex %u\n", myTableIndex->OpenGLTexture);

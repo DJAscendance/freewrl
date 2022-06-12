@@ -1783,7 +1783,8 @@ FIELD(ImageCubeMapTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_S
 EXPOSED_FIELD(ImageCubeMapTexture,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
 EXPOSED_FIELD(ImageCubeMapTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(ImageCubeMapTexture,load,sfbool,load,FIELDTYPE_SFBool,UNCA_NONE)
-EXPOSED_FIELD(ImageCubeMapTexture,refresh,sftime,refresh,FIELDTYPE_SFTime,UNCA_NONE)
+EXPOSED_FIELD(ImageCubeMapTexture,autoRefresh,sftime,autoRefresh,FIELDTYPE_SFTime,UNCA_NONE)
+EXPOSED_FIELD(ImageCubeMapTexture,autoRefreshTimeLimit,sftime,autoRefreshTimeLimit,FIELDTYPE_SFTime,UNCA_NONE)
 END_NODE(ImageCubeMapTexture)
 
 /* ImageTexture node */
