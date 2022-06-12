@@ -495,7 +495,6 @@ void render_PointLight0(struct X3D_Node* parent, struct X3D_PointLight* node) {
 			//		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
 
 			//		/* go through these, back, front, top, bottom, right left */
-			//		//iface = count; // lookup_xxyyzz_face_from_count[count];
 			//		render_node(cubtex->__subTextures.p[count]);
 			//	}
 			//}
