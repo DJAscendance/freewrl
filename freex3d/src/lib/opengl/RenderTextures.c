@@ -784,13 +784,16 @@ void textureTransform_start() {
 				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
 				GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 				int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height);
+				// https://www.web3d.org/documents/specifications/19775-1/V4.0/Part01/components/shape.html#CoexistenceMaterialTexturesWithAppearanceTexture
 				// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
-				int iuse = 3; // MAT_REGULAR;
-				if (getAppearanceProperties()->fw_FrontMaterial.type == MAT_UNLIT) iuse = 1;
+				//material.type: 0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
 				mp = &myap->fw_FrontMaterial;
+				int iuse = 3; // MAT_REGULAR;
+				if (mp->type < 2) iuse = 1;       //if none or UnlitMaterial, put appearance textures in emissive iuse
+				else if (mp->type == 2) iuse = 3; // if diffuse/specular Material put appearance textures in diffuse iuse
+				else if (mp->type == 3) iuse = 3; // if PhysicalMaterial (PBR) put appearance textures in base iuse 
 				int nt = mp->nt;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
 				mp->samplr[iuse] = is_cubeMap(tnode);
-				mp->type = 2; //0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
 				mp->tcount[iuse] += ntdesc;
 				mp->tstart[iuse] = nt;
 				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
