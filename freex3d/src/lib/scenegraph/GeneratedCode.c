@@ -6725,7 +6725,8 @@ const int OFFSETS_ImageTexture[] = {
 	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_ImageTexture, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_ImageTexture, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___specversion, (int) offsetof (struct X3D_ImageTexture, __specversion),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_refresh, (int) offsetof (struct X3D_ImageTexture, refresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_ImageTexture, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_ImageTexture, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_ImageTexture, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_ImageTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_ImageTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -6737,7 +6738,8 @@ const int OFFSETS_ImageTexture3D[] = {
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_ImageTexture3D, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_load, (int) offsetof (struct X3D_ImageTexture3D, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_ImageTexture3D, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_refresh, (int) offsetof (struct X3D_ImageTexture3D, refresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_ImageTexture3D, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_ImageTexture3D, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_ImageTexture3D, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_ImageTexture3D, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_ImageTexture3D, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7598,7 +7600,8 @@ const int OFFSETS_MovieTexture[] = {
 	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_MovieTexture, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___unitlengthfactor, (int) offsetof (struct X3D_MovieTexture, __unitlengthfactor),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___specversion, (int) offsetof (struct X3D_MovieTexture, __specversion),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_refresh, (int) offsetof (struct X3D_MovieTexture, refresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_MovieTexture, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_MovieTexture, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_MovieTexture, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -13103,7 +13106,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldload = FALSE;
 			tmp2->__unitlengthfactor = 1;
 			tmp2->__specversion = 0;
-			tmp2->refresh = 0;
+			tmp2->autoRefresh = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
 			tmp2->__lasttime = 0;
 			tmp2->__textureTableIndex = 0;
 			tmp2->_parentResource = getInputResource();
@@ -13118,7 +13122,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->description = newASCIIString("");
 			tmp2->load = TRUE;
 			tmp2->__oldload = FALSE;
-			tmp2->refresh = 0;
+			tmp2->autoRefresh = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
 			tmp2->__lasttime = 0;
 			tmp2->repeatS = FALSE;
 			tmp2->repeatT = FALSE;
@@ -14236,7 +14241,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__oldload = FALSE;
 			tmp2->__unitlengthfactor = 1;
 			tmp2->__specversion = 0;
-			tmp2->refresh = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
+			tmp2->autoRefresh = 0;
 			tmp2->__lasttime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -19258,7 +19264,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," url (MFString): \n");
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
-			spacer fprintf (fp," refresh (SFTime) \t%4.3f\n",tmp->refresh);
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
 		    break;
 		}
 		case NODE_ImageTexture3D : {
@@ -19272,7 +19279,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
-			spacer fprintf (fp," refresh (SFTime) \t%4.3f\n",tmp->refresh);
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
 		    break;
 		}
 		case NODE_IndexedFaceSet : {
@@ -20262,7 +20270,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
 			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
-			spacer fprintf (fp," refresh (SFTime) \t%4.3f\n",tmp->refresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
 		    break;
 		}
 		case NODE_MultiTexture : {

@@ -73,6 +73,18 @@ void render_BufferTexture(struct X3D_BufferTexture* node) {
 }
 
 void render_ImageTexture (struct X3D_ImageTexture *node) {
+	if (node->autoRefresh > 0.0) {
+		double dtime = TickTime();
+		double elapsedTime = dtime - node->__lasttime;
+		double runtime = dtime - BrowserStartTime();
+		if (elapsedTime > node->autoRefresh && runtime < node->autoRefreshTimeLimit) {
+			node->__lasttime = dtime;
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			tti->status = TEX_NOTLOADED;
+		}
+	}
+
 	loadTextureNode(X3D_NODE(node),NULL); //이미지 텍스처
 	
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
@@ -88,6 +100,18 @@ void render_MovieTexture (struct X3D_MovieTexture *node) {
 	//july 2016 movietexture fields put in same order as audioclip, so can up-caste and delegate
 	struct X3D_AudioClip *anode = (struct X3D_AudioClip*)node;
 	render_AudioClip(anode); //just checks if loaded, schedules if not
+	if (node->autoRefresh > 0.0) {
+		double dtime = TickTime();
+		double elapsedTime = dtime - node->__lasttime;
+		double runtime = dtime - BrowserStartTime();
+		if (elapsedTime > node->autoRefresh && runtime < node->autoRefreshTimeLimit) {
+			node->__lasttime = dtime;
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			tti->status = TEX_NOTLOADED;
+		}
+	}
+
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 

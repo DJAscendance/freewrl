@@ -56,6 +56,7 @@ struct textureTableIndexStruct {
 	int no_gl; //if 1, skips move_to_opengl and keeps the texdata
 };
 typedef struct textureTableIndexStruct textureTableIndexStruct_s;
+textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
 
 //extern textureTableIndexStruct_s* loadThisTexture;
 //extern GLuint defaultBlankTexture;

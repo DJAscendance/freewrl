@@ -7379,7 +7379,8 @@ struct X3D_ImageTexture {
 	int __oldload;
 	double __unitlengthfactor;
 	int __specversion;
-	double refresh;
+	double autoRefresh;
+	double autoRefreshTimeLimit;
 	double __lasttime;
 	int __textureTableIndex;
 	void * _parentResource;
@@ -7407,7 +7408,8 @@ struct X3D_ImageTexture3D {
 	struct Uni_String *description;
 	int load;
 	int __oldload;
-	double refresh;
+	double autoRefresh;
+	double autoRefreshTimeLimit;
 	double __lasttime;
 	int repeatS;
 	int repeatT;
@@ -9516,7 +9518,8 @@ struct X3D_MovieTexture {
 	int __oldload;
 	double __unitlengthfactor;
 	int __specversion;
-	double refresh;
+	double autoRefreshTimeLimit;
+	double autoRefresh;
 	double __lasttime;
 };
 extern struct X3D_Virt virt_MovieTexture;

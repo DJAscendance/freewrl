@@ -212,6 +212,8 @@ void child_Appearance (struct X3D_Appearance *node) {
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
 	/* Render the material node... */
 
+	PRINT_GL_ERROR_IF_ANY("child_Appearance start");
+
 	RENDER_MATERIAL_SUBNODES(node->material);
 	if(node->backMaterial){
 		push_isBackMaterial();
@@ -310,6 +312,7 @@ void child_Appearance (struct X3D_Appearance *node) {
 		//	}
 		//}
 	}
+	PRINT_GL_ERROR_IF_ANY("child_Appearance end");
 
 }
 
@@ -1287,7 +1290,6 @@ void render_PointProperties (struct X3D_PointProperties *node) {
 	me->pointMethod = node->_pointMethod;
 }
 
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 
 int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode ){
 	//int channels, imgalpha, isLit, isUnlitGeometry, hasColorNode, whichShapeColorShader;
@@ -1454,6 +1456,7 @@ void child_Shape (struct X3D_Shape *node) {
 		//unsigned int shader_requirements;
 		shaderflagsstruct shader_requirements;
 		memset(&shader_requirements,0,sizeof(shaderflagsstruct));
+		PRINT_GL_ERROR_IF_ANY("child_shape before render_material_subnodes");
 
 		//prep_Appearance
 		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance

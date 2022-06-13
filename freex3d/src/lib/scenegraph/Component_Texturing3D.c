@@ -186,10 +186,21 @@ void render_PixelTexture3D (struct X3D_PixelTexture3D *node) {
 void move_texture_to_opengl(textureTableIndexStruct_s* me);
 void render_ImageTexture3D (struct X3D_ImageTexture3D *node) {
 	/* printf ("render_ImageTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
+	if (node->autoRefresh > 0.0) {
+		double dtime = TickTime();
+		double elapsedTime = dtime - node->__lasttime;
+		double runtime = dtime - BrowserStartTime();
+		if (elapsedTime > node->autoRefresh && runtime < node->autoRefreshTimeLimit) {
+			node->__lasttime = dtime;
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			tti->status = TEX_NOTLOADED;
+		}
+	}
+
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 void render_ComposedTexture3D (struct X3D_ComposedTexture3D *node) {
 	/* printf ("render_ComposedTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
 	if(node && node->_nodeType == NODE_ComposedTexture3D){

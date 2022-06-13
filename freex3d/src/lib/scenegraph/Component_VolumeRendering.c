@@ -310,7 +310,6 @@ void popnset_framebuffer();
 void __gluMultMatricesd(const GLDOUBLE a[16], const GLDOUBLE b[16],	GLDOUBLE r[16]);
 int __gluInvertMatrixd(const GLDOUBLE m[16], GLDOUBLE invOut[16]);
 ivec4 get_current_viewport();
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 
 unsigned int prep_volumestyle(struct X3D_Node *vstyle, unsigned int volflags){
 	struct X3D_OpacityMapVolumeStyle *style0 = (struct X3D_OpacityMapVolumeStyle*)vstyle;

@@ -520,7 +520,7 @@ void normalize_ifs_face (float *point_normal,
 //extern double lastTime;
 double TickTime();
 double lastTime();
-
+double BrowserStartTime();
 /* number of triangles this rendering loop */
 //extern int trisThisLoop;
 

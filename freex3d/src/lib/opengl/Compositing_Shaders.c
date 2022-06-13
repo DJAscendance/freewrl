@@ -3762,7 +3762,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
 		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
 	}
-	if (0) {
+	if(0) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
 		char* fragbuf = malloc(64000);
 		memset(fragbuf, 0, 64000);
 		FILE* fp = fopen("C:\\Users\\dougs\\Documents\\dev\\source2\\freewrk_tmp\\hacked_frag.txt", "r+");

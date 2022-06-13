@@ -267,7 +267,7 @@ https://github.com/WebGLSamples/WebGLSamples.github.io/tree/master/dynamic-cubem
 
 
 
-textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
+
 
 int generate_color_cubemap_gl_texture(int size) {
 	//if size > 0, reserves blank space for each side, otherwise just the basics
@@ -1283,6 +1283,7 @@ int unpack_image_2D_into_cube_faces(textureTableIndexStruct_s* tti, unsigned cha
 	return isize;
 }
 void compile_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
+
 	MARK_NODE_COMPILED
 }
 
@@ -1291,15 +1292,28 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 	COMPILE_IF_REQUIRED
 	if(node->load)
 	{
+		int refresh = FALSE;
 		//step 1 load the texture as a 2D image texture
 		//step 2 use size hint from image texture to generate cubemap of approximate same size sides
 		//step 3 cut chunks out of 2D image texture and paste into cubemap sides
+		if (node->autoRefresh > 0.0) {
+			double dtime = TickTime();
+			double elapsedTime = dtime - node->__lasttime;
+			double runtime = dtime - BrowserStartTime();
+			if (elapsedTime > node->autoRefresh && runtime < node->autoRefreshTimeLimit ) {
+				node->__lasttime = dtime;
+				refresh = TRUE;
+			}
+		}
 		textureTableIndexStruct_s * tti;
 		tti = getTableTableFromTextureNode(X3D_NODE(node));
+		if (refresh) tti->status = TEX_NOTLOADED;
 		if (tti && tti->status != TEX_LOADED)
 		{
 			//step 1 load the texture as a 2D image texture
+			// a compile once section 
 			if (node->__subTextures.n == 0) {
+				tti->OpenGLTexture = generate_color_cubemap_gl_texture(0);
 				node->__subTextures.p = malloc(sizeof(struct X3D_Node*));
 				node->__subTextures.n = 1;
 				struct X3D_ImageTexture* tex2d = createNewX3DNode(NODE_ImageTexture);
@@ -1315,7 +1329,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 
 				textureTableIndexStruct_s* tti2d = getTableTableFromTextureNode(X3D_NODE(tex2d));
 				tti2d->scenegraphNode = X3D_NODE(tex2d);
-				tti2d->no_gl = TRUE; //skip move_texture_to_opengl and preserve texdata
+				tti2d->no_gl = TRUE; //skip move_texture_to_opengl to preserve texdata
 				node->__subTextures.p[0] = X3D_NODE(tex2d);
 				node->_ichange = node->_change;
 				render_node(X3D_NODE(tex2d));
@@ -1324,6 +1338,7 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 			else {
 				struct X3D_ImageTexture* tex2d = (struct X3D_ImageTexture*)node->__subTextures.p[0];
 				textureTableIndexStruct_s* tti2d = getTableTableFromTextureNode(X3D_NODE(tex2d));
+				if (refresh) tti2d->status = TEX_NOTLOADED;
 				if (tti2d->status < TEX_NEEDSBINDING) { // TEX_LOADED) {
 					render_node(X3D_NODE(tex2d));
 
@@ -1340,7 +1355,6 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 					//pattern = ICM_T, ICM_3X2,or ICM_DDS: detects by file type (DDS) or rectangularity 
 					//width = 3/2 * height? ICM_3X2 : width = 4/3 * height? ICM_T
 					int isize = unpack_image_2D_into_cube_faces(tti2d,facetextures);
-					tti->OpenGLTexture = generate_color_cubemap_gl_texture(isize);
 					glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
 					for (int iface = 0; iface < 6; iface++)
 						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + iface, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, facetextures[iface]);

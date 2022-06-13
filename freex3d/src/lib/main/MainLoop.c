@@ -3237,7 +3237,12 @@ void Mainloop_clear(struct tMainloop *t){
 		deleteVector(contenttype*,p->contenttype_registry);
 	}
 }
-
+double BrowserStartTime() {
+	ppMainloop p;
+	ttglobal tg = gglobal();
+	p = (ppMainloop)tg->Mainloop.prv;
+	return p->BrowserStartTime;
+}
 //call hwnd_to_windex in frontend window creation and event handling,
 //to convert to more convenient int index.
 int getWindex(){

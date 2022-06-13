@@ -424,7 +424,6 @@ int isMultiTexture(struct X3D_Node *node){
 		ret = TRUE;
 	return ret;
 }
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 int isTex3D(struct X3D_Node *node);
 
 
