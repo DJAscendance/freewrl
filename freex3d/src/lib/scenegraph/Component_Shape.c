@@ -798,6 +798,23 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 					retval |= TEX3D_LAYER_SHADER; //else VOLUME
 			} else if (tex->_nodeType == NODE_MultiTexture) {
 				retval |= MULTI_TEX_APPEARANCE_SHADER;
+				//need to recurse, but just one level, can unroll here
+				struct X3D_MultiTexture* mt = (struct X3D_MultiTexture*)tex;
+				for (int i = 0; i < mt->texture.n; i++) {
+					struct X3D_Node *stex = mt->texture.p[i];
+					if ((stex->_nodeType == NODE_PixelTexture3D) ||
+						(stex->_nodeType == NODE_ComposedTexture3D) ||
+						(stex->_nodeType == NODE_ImageTexture3D)) {
+						retval |= TEX3D_SHADER; //VOLUME by default
+						if (tex->_nodeType == NODE_ComposedTexture3D)
+							retval |= TEX3D_LAYER_SHADER; //else VOLUME
+					}
+					if ((tex->_nodeType == NODE_ComposedCubeMapTexture) ||
+						(tex->_nodeType == NODE_ImageCubeMapTexture) ||
+						(tex->_nodeType == NODE_GeneratedCubeMapTexture)) {
+						retval |= HAVE_CUBEMAP_TEXTURE;
+					}
+				}
 			} else if ((tex->_nodeType == NODE_ComposedCubeMapTexture) ||
 						(tex->_nodeType == NODE_ImageCubeMapTexture) || 
 						(tex->_nodeType == NODE_GeneratedCubeMapTexture)) {
