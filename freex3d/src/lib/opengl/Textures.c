@@ -1415,6 +1415,12 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 				/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
 				loadTextureNode (X3D_NODE(nt),paramPtr);
 				break;
+			case NODE_ImageCubeMapTexture:
+			case NODE_ComposedCubeMapTexture:
+			case NODE_GeneratedCubeMapTexture:
+				loadTextureNode(X3D_NODE(nt), paramPtr);
+				break;
+
 			case NODE_MultiTexture:
 				printf ("MultiTexture texture %d is a MULTITEXTURE!!\n",count);
 				break;

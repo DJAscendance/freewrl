@@ -7053,7 +7053,10 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		for (int iuse = 0; iuse < 7; iuse++) {
 			//mp->tcount[i] = 0; //textureTransform_start apppearance.texture if populated will already set this to non-zero, don't lose it
 			//mp->tstart[iuse] = nt;
-			if (mp->textures[iuse] && !mp->tcount[iuse]) { //skip if appearance textures added already (don't know how to combine yet)
+			if (mp->textures[iuse]) { //&& !mp->tcount[iuse]) { //skip if appearance textures added already (don't know how to combine yet)
+				// https://www.web3d.org/specifications/X3Dv4Draft/ISO-IEC19775-1v4-CD1/Part01/components/shape.html#CoexistenceMaterialTexturesWithAppearanceTexture 
+				// - specs say overwrite appearance if you have something for the same use in material
+				// - we will continue adding to end of [nt] list, but overwrite tstart, tcount for iuse
 				mp->tcount[iuse] = 0;
 				mp->tstart[iuse] = nt;
 				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
@@ -7119,7 +7122,10 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 		GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 		nt = mp->nt;
 		for (int iuse = 0; iuse < 7; iuse++) {
-			if (mp->textures[iuse] && !mp->tcount[iuse]) { //skip if appearance textures added already (don't know how to combine yet)
+			if (mp->textures[iuse]) { //&& !mp->tcount[iuse]) { //skip if appearance textures added already (don't know how to combine yet)
+				// https://www.web3d.org/specifications/X3Dv4Draft/ISO-IEC19775-1v4-CD1/Part01/components/shape.html#CoexistenceMaterialTexturesWithAppearanceTexture 
+				// - specs say overwrite appearance if you have something for the same use in material
+				// - we will continue adding to end of [nt] list, but overwrite tstart, tcount for iuse
 				mp->tcount[iuse] = 0;
 				mp->tstart[iuse] = nt;
 				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
