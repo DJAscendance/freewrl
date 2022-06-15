@@ -1784,14 +1784,16 @@ void main(void) \n\
     //mostly 3D geometry \n\
 	vec4 diffuseFactor = getDiffuseFactor(); \n\
 	fragment_color =  diffuseFactor; \n\
-	#ifndef PHONG \n\
 //STEP0 GOURAUD \n\
+	#ifndef PHONG \n\
     if(mat.type == 0){ \n\
         // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
         // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
 		fragment_color = getGouraudColor(); \n\
     } \n\
+	#endif //not PHONG \n\
 //STEP1 EMISSIVE \n\
+	#ifdef PHONG \n\
 	if(mat.type == 1) { \n\
         //MAT_UNLIT - no lighting \n\
 		fragment_color.rgb = getEmissive(); \n\
@@ -1800,9 +1802,7 @@ void main(void) \n\
         // .. then the shader code may need access to normals (where?) \n\
         // .. but not use here for lighting \n\
 	}\n\
-	#endif //not PHONG \n\
 //STEP2 LIGHTS \n\
-	#ifdef PHONG \n\
 	//per-fragment lighting aka PHONG shading \n\
 	if(mat.type == 2){ \n\
 		//MAT_REGULAR aka phong lighting \n\
