@@ -1377,7 +1377,7 @@ void initialize_fw_MaterialParameters(struct fw_MaterialParameters *mat){
 	mat->occlusion = 1.0f;
 	mat->normalScale = 1.0f;
 	vecset3f(mat->emissive, 1.0f, .8f, 1.0f);
-	mat->type = MAT_NONE; //Q MAT_UNLIT; //change from MAT_NONE may 3, 2022
+	mat->type = MAT_NONE; //Q MAT_UNLIT ? June 2022: MAT_NONE means use Gouraud (vertex shader) color. Unlit means use unlit.emissive. What's the diff? Background not working with Unlit.
 }
 void initialize_front_and_back_material_params(){
 	ppComponent_Shape p;

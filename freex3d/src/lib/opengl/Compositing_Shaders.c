@@ -1710,6 +1710,8 @@ vec4 getGouraudColor() { \n\
 		dcolor = cpv_Color; \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
+    //Q. do we need this, or is everyone including background using emissive texture and emissive color? \n\
+    //A. command line freewrl --shadingStyle 1  will invoke this texture + gouraud \n\
 	if(textureCount > 0){ \n\
 		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
@@ -1748,6 +1750,7 @@ void main(void) \n\
 //STEP1 INITIALIZE \n\
 	vec4 fragment_color; \n\
 	#ifdef LINE \n\
+        //lines are unlit (no lights) \n\
 		vec4 dcolor = vec4(1.0); \n\
 		dcolor.rgb = getEmissive(); \n\
 		#ifdef CPV \n\
@@ -1776,25 +1779,40 @@ void main(void) \n\
 				//fragment_color.a = 0.0; \n\
 			} \n\
 		#endif //LINETYPE \n\
-	#else //LINE \n\
-		vec4 diffuseFactor = getDiffuseFactor(); \n\
-		fragment_color =  diffuseFactor; \n\
-    //endif //LINE is near the bottom of main() \n\
-//STEP2 LIGHTS \n\
+	#endif //LINE \n\
+    #ifndef LINE \n\
+    //mostly 3D geometry \n\
+	vec4 diffuseFactor = getDiffuseFactor(); \n\
+	fragment_color =  diffuseFactor; \n\
 	#ifndef PHONG \n\
+//STEP0 GOURAUD \n\
+    if(mat.type == 0){ \n\
+        // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
+        // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
 		fragment_color = getGouraudColor(); \n\
+    } \n\
+//STEP1 EMISSIVE \n\
+	if(mat.type == 1) { \n\
+        //MAT_UNLIT - no lighting \n\
+		fragment_color.rgb = getEmissive(); \n\
+		fragment_color.a = getAlpha(); \n\
+        //if the shape is using TextureCoordinateGenerator with some modes (CAMERASPACENORMAL, CAMERASPACEREFLECTIONVECTOR) \n\
+        // .. then the shader code may need access to normals (where?) \n\
+        // .. but not use here for lighting \n\
+	}\n\
 	#endif //not PHONG \n\
+//STEP2 LIGHTS \n\
 	#ifdef PHONG \n\
-	//per-fragment lighting aka PHONG \n\
+	//per-fragment lighting aka PHONG shading \n\
 	if(mat.type == 2){ \n\
-		//MAT_REGULAR \n\
+		//MAT_REGULAR aka phong lighting \n\
 		#ifdef LITE \n\
 		//start over with the color, since we have material and lighting in here \n\
 		vec3 cumulative_specular = vec3(0.0,0.0,0.0); \n\
 		vec3 cumulative_diffuse = vec3(0.0,0.0,0.0); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
-		vec3 diffy = diffuseFactor.rgb; //getDiffuse(); \n\
+		vec3 diffy = diffuseFactor.rgb; //\n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
 		float occy = getOcclusion(); \n\
@@ -1803,8 +1821,9 @@ void main(void) \n\
 		fragment_color.rgb *= occy; \n\
 		//fragment_color.rgb = clamp(fragment_color.rgb,0.0,1.0); \n\
 		#endif //LITE \n\
+		fragment_color.rgb += getEmissive(); \n\
 	} else if(mat.type == 3){ \n\
-		//MAT_PHYSICAL \n\
+		//MAT_PHYSICAL aka physical lighting\n\
 		#ifdef LITE \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
@@ -1840,6 +1859,7 @@ void main(void) \n\
 		color *= occy; \n\
 		fragment_color.rgb = color; \n\
 		#endif //LITE \n\
+		fragment_color.rgb += getEmissive(); \n\
 	} \n\
 	#endif //PHONG \n\
 	\n\
@@ -1848,57 +1868,17 @@ void main(void) \n\
 	/* PLUG: fragment_fillPropertiesApply (fragment_color, hatchPosition) */ \n\
 	#endif //FILL \n\
 	\n\
-	#ifdef NOT_TEX \n\
-	if(textureCount > 0){ \n\
-		#ifndef MODA \n\
-		fragment_color.a = 1.0; \n\
-		#endif //MODA \n\
-		#ifndef MODC \n\
-		fragment_color.rgb = vec3(1.0); \n\
-		#endif //MODC \n\
-		/* PLUG: texture_apply (fragment_color, N) */ \n\
-	} \n\
-	#endif //TEX \n\
-  \n\
 //STEP3 PROJECTORS AND IBL image based lighting \n\
 	#ifdef PROJTEX \n\
 	fragment_color = fragProjCalTexCoord(fragment_color); \n\
 	#endif //PROJTEX \n\
 	\n\
-//STEP4 OCCLUSION \n\
-	/* PLUG: steep_parallax_shadow_apply (fragment_color) */ \n\
-//STEP5 EMISSIVE \n\
-	if(mat.type == 1) { \n\
-		fragment_color.rgb = getEmissive(); \n\
-		fragment_color.a = getAlpha(); \n\
-	}else if(mat.type > 1){ \n\
-		fragment_color.rgb += getEmissive(); \n\
-	} \n\
-	#endif //LINE \n\
-	#ifdef NOT_LINE \n\
-	fragment_color.rgb = getEmissive(); \n\
-	#endif //LINE \n\
-	#ifdef NOT_CPV \n\
-	if(mat.type == 0) { \n\
-		fragment_color = cpv_Color; //no mat to modulate with \n\
-	}else{ \n\
-		#ifndef MODC \n\
-		fragment_color = vec4(1.0); \n\
-		#endif //MODC \n\
-		fragment_color *= cpv_Color; //CPV modulates prior \n\
-	} \n\
-	#endif //CPV \n\
-	\n\
-//STEP6 FOG \n\
-	#ifdef  NOT_FOG \n\
-		gl_FragColor = vec4(0.0,1.0,1.0,1.0); \n\
-		return; \n\
-	#endif //FOG \n\
+	#endif //ndef LINE \n\
+//STEP4 FOG \n\
 	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
 	gl_FragColor = fragment_color; \n\
-    //gl_FragColor = vec4(vec3(gl_FragCoord.z),1.0); //depth rendering test \n\
 	\n\
 	/* PLUG: fragment_end (gl_FragColor) */ \n\
 } \n";
@@ -3759,7 +3739,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 // (but won't allow creative permutations with other effects, for that ubershader integration needed)
 	// CUB / cubemap - not working in Ubershader / genericFragmentGLES2 April 2022 so made a genericFragmentCube that's dead simple
 	// if becomes permanent, then make a CUBEMAP_MATERIAL_APPEARANCE_SHADER entry above?
-	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
+	if (0) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
 		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
 	}
 	if(0) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {

@@ -1858,6 +1858,9 @@ void render_prepped_Background(struct X3D_Background *node){
 	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 	FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
 	FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
+	clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+	clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+	clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 
 	if(setupShaderB()){
 		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
