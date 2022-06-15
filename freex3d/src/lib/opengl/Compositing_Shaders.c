@@ -3759,7 +3759,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 // (but won't allow creative permutations with other effects, for that ubershader integration needed)
 	// CUB / cubemap - not working in Ubershader / genericFragmentGLES2 April 2022 so made a genericFragmentCube that's dead simple
 	// if becomes permanent, then make a CUBEMAP_MATERIAL_APPEARANCE_SHADER entry above?
-	if (0) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
+	if (1) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {
 		*fragmentSource = genericFragmentCube; //testing cubemap reflection rendering by itself (had problems with frag ubershader Apr 2022).
 	}
 	if(0) if (DESIRE(whichOne.base, HAVE_CUBEMAP_TEXTURE)) {

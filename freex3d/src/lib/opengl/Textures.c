@@ -1018,6 +1018,7 @@ void loadBackgroundTextures (struct X3D_Background *node) {
 			/* we have an image specified for this face */
 			clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 			clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+			clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 
 			gglobal()->RenderFuncs.textureStackTop = 0;
 			/* render the proper texture */
@@ -1117,6 +1118,7 @@ void loadTextureBackgroundTextures (struct X3D_TextureBackground *node) {
 
 				clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 				clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+				clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 
 				gglobal()->RenderFuncs.textureStackTop = 0;
 				/* render the proper texture */
