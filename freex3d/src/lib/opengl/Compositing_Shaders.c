@@ -3087,10 +3087,11 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   #ifdef MTEX \n\
   int iunit = mat.type < 2? 1 : 3; \n\
   int ndesc = mat.tcount[iunit]; \n\
+  int k = mat.tstart[iunit]; \n\
   if(ndesc > 1){ //multitex \n\
     vec4 source; \n\
-    int isource,iasource, mode, modea, k; \n\
-    for(k=0;k<ndesc;k++){ \n\
+    int isource,iasource, mode, modea, j; \n\
+    for(j=0;j<ndesc;j++,k++){ \n\
       modea = int(mat.mode[k] / 100); \n\
       mode = mat.mode[k] - 100*modea; \n\
       if(mode != MTMODE_OFF) { \n\
@@ -3107,8 +3108,8 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
           else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
         } \n\
         //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
-        //vec4 cur = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]+k]], fw_TexCoord[mat.cmap[mat.tstart[iunit]+k]].xy); \n\
-        vec4 cur = texture2D(textureUnit[k],fw_TexCoord[mat.cmap[k]].st); \n\
+        vec4 cur = texture2D(textureUnit[mat.tindex[k]], fw_TexCoord[mat.cmap[k]].xy); \n\
+        //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[mat.cmap[k]].st); \n\
         finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
         finalFrag = source; \n\
       } \n\
@@ -3124,7 +3125,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
     int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
     if(mat.samplr[iuse]==1) \n\
-      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cindex[iuse]]) * finalFrag; \n\
+      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
       //finalFrag = texture(textureUnitCube[0], fw_TexCoord[0]) * finalFrag; \n\
     else \n\
     #endif //CUB \n\
