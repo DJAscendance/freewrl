@@ -25,7 +25,7 @@
 
 	In the starting default/base shader, structured for web3d lighting model, with PLUG deckarations:
 		...  PLUG: texture_apply (fragment_color, normal_eye_fragment) 
-
+		7
 	In an additive effect shader:
         void PLUG_texture_color(inout vec4 texture_color,
           const in vec4 tex_coord)
@@ -649,6 +649,7 @@ struct fw_MaterialParameters { \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
+uniform int material_side; //see renderfuncs reallydrawonce //0= front and back - no material difference, 1 = front 2=back\n\
 //#endif //TWO \n\
 #ifdef LIT \n\
 varying vec3 castle_ColorES; //emissive shininess term \n\
@@ -705,28 +706,38 @@ uniform vec4 u_pointCPV; \n\
 	if( abs(a - b) < .0001 )return true; \n\
 	return false; \n\
  } \n\
+struct MaterialInfo \n\
+{ \n\
+    float perceptualRoughness;    // roughness value, as authored by the model creator (input to shader) \n\
+    vec3 reflectance0;            // full reflectance color (normal incidence angle) \n\
+	 \n\
+    float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2]) \n\
+    vec3 diffuseColor;            // color contribution from diffuse lighting \n\
+	 \n\
+    vec3 reflectance90;           // reflectance color at grazing angle \n\
+    vec3 specularColor;           // color contribution from specular lighting \n\
+}; \n\
 /* PLUG-DECLARATIONS */ \n\
+vec3 cpv_rgb_replace(in vec3 c3){ \n\
+  vec3 ret = c3; \n\
+  #ifdef CPV //color per vertex \n\
+    ret = fw_Color.rgb; \n\
+  #endif //CPV \n\
+  return ret; \n\
+} \n\
+float cpv_alpha_modulate(in float alpha){\n\
+  float ret = alpha; \n\
+  #ifdef CPV //color per vertex \n\
+    ret = fw_Color.a; \n\
+  #endif //CPV \n\
+  return ret; \n\
+} \n\
 void main(void) \n\
 { \n\
+//STEP 0: GEOMETRY SECTION \n\
   #ifdef FOGCOORD \n\
   float fog_coord = fw_FogCoords; \n\
   #endif //FOGCOORD \n\
-  #ifdef LIT \n\
-  fw_MaterialParameters ourMat = fw_FrontMaterial; \n\
-  castle_MaterialDiffuseAlpha = (1.0 - fw_FrontMaterial.transparency); \n\
-  castle_MaterialShininess =	fw_FrontMaterial.shininess; \n\
-  castle_SceneColor = fw_FrontMaterial.diffuse*fw_FrontMaterial.ambient; \n\
-  castle_Specular =	vec4(fw_FrontMaterial.specular,1.0); \n\
-  castle_Emissive = fw_FrontMaterial.emissive; \n\
-  #ifdef LINE \n\
-   castle_SceneColor = vec3(0.0,0.0,0.0); //line gets color from castle_Emissive \n\
-  #endif //LINE\n\
-  #else //LIT \n\
-  //default unlits in case we dont set them \n\
-  castle_UnlitColor = vec4(1.0,1.0,1.0,1.0); \n\
-  castle_MaterialDiffuseAlpha = 1.0; \n\
-  #endif //LIT \n\
-  \n\
   #ifdef FILL \n\
   hatchPosition = fw_Vertex.xy; \n\
   #endif //FILL \n\
@@ -741,17 +752,6 @@ void main(void) \n\
   /* PLUG: vertex_object_space_change (vertex_object, normal_object) */ \n\
   /* PLUG: vertex_object_space (vertex_object, normal_object) */ \n\
    \n\
-  #ifdef CASTLE_BUGGY_GLSL_READ_VARYING \n\
-  /* use local variables, instead of reading + writing to varying variables, \n\
-     when VARYING_NOT_READABLE */ \n\
-  vec4 temp_castle_vertex_eye; \n\
-  vec3 temp_castle_normal_eye; \n\
-  vec4 temp_castle_Color; \n\
-  #define castle_vertex_eye temp_castle_vertex_eye \n\
-  #define castle_normal_eye temp_castle_normal_eye \n\
-  #define castle_Color      temp_castle_Color \n\
-  #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
-  \n\
   castle_vertex_eye = fw_ModelViewMatrix * vertex_object; \n\
   #if defined(LINETYPE) && defined(FULL) \n\
   if(u_linetype > 1){ \n\
@@ -789,32 +789,123 @@ void main(void) \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
+// STEP 2 MATERIAL SECTION \n\
+  fw_MaterialParameters ourMat = material_side < 2 ? fw_FrontMaterial : fw_BackMaterial; \n\
+  //default unlits in case we dont set them \n\
+  castle_UnlitColor = vec4(1.0,1.0,1.0,1.0); \n\
+  castle_MaterialDiffuseAlpha = 1.0; \n\
   #ifdef LIT \n\
-  castle_ColorES = castle_Emissive; \n\
-  castle_Color = vec4(castle_SceneColor, 1.0); \n\
-	/* back Facing materials - flip the normal and grab back materials */ \n\
+#ifdef PHONG \n\
+  castle_ColorES = vec3(0.0); \n\
+  if(ourMat.type == 0){ \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(vec3(1.0)); //ourMat.emissive; \n\
+	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 1){ \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(vec3(1.0)); \n\
+  	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 2){ \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_MaterialShininess =	ourMat.shininess; \n\
+	castle_SceneColor = cpv_rgb_replace(ourMat.diffuse)*ourMat.ambient; \n\
+	castle_Specular =	vec4(ourMat.specular,1.0); \n\
+	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 3){ \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(ourMat.baseColor); \n\
+	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  } \n\
+#else //PHONG \n\
+  //GOURAUD \n\
 	vec3 E = -normalize(castle_vertex_eye.xyz); \n\
 	vec3 N = normalize (castle_normal_eye); \n\
 	bool backFacing = (dot(N,E) < 0.0); \n\
 	if (backFacing) { \n\
 		N = -N; \n\
-		#ifdef TWO \n\
-		ourMat = fw_BackMaterial; \n\
-		#endif //TWO \n\
 	} \n\
-  vec3 vcolor = vec3(0.0,0.0,0.0); \n\
-  /* PLUG: add_light_contribution2 (vcolor, castle_ColorES, castle_vertex_eye, N, ourMat.shininess, ourMat.ambient, ourMat.diffuse, ourMat.specular) */ \n\
-  /* PLUG: add_light_contribution (vcolor, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess) */ \n\
-  castle_Color = vec4(vcolor, castle_MaterialDiffuseAlpha); \n\
-  /* Clamp sum of lights colors to be <= 1. See template.fs for comments. */ \n\
-  castle_Color.rgb = min(castle_Color.rgb, 1.0); \n\
+    castle_ColorES = vec3(0.0); \n\
+  if(ourMat.type == 0){ \n\
+    // no material aka MAT_NONE, not in specs \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(vec3(1.0)); //ourMat.emissive; \n\
+	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 1){ \n\
+    // unlit emissive \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(ourMat.emissive); \n\
+  	castle_Emissive = ourMat.emissive; \n\
+    castle_Color = vec4(castle_SceneColor, castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 2){ \n\
+    // Material Phong lighting \n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_MaterialShininess =	ourMat.shininess; \n\
+	castle_SceneColor = cpv_rgb_replace(ourMat.diffuse)*ourMat.ambient; \n\
+	castle_Specular =	vec4(ourMat.specular,1.0); \n\
+	castle_Emissive = ourMat.emissive; \n\
+	vec3 vcolor = vec3(0.0,0.0,0.0); \n\
+   #ifdef LITE \n\
+    /* back Facing materials - flip the normal and grab back materials */ \n\
+	/* PLUG: add_light_contribution2 (vcolor, castle_ColorES, castle_vertex_eye, N, ourMat.shininess, ourMat.ambient, ourMat.diffuse, ourMat.specular) */ \n\
+	/* Clamp sum of lights colors to be <= 1. See template.fs for comments. */ \n\
+   #endif //LITE \n\
+	castle_Color = vec4(min(vcolor,1.0),castle_MaterialDiffuseAlpha); \n\
+  }else if(ourMat.type == 3){ \n\
+	//MAT_PHYSICAL aka physical lighting\n\
+	castle_MaterialDiffuseAlpha = cpv_alpha_modulate(1.0 - ourMat.transparency); \n\
+	castle_SceneColor = cpv_rgb_replace(ourMat.baseColor); \n\
+	castle_Emissive = ourMat.emissive; \n\
+	vec3 vcolor = vec3(0.0, 0.0, 0.0); \n\
+   #ifdef LITE \n\
+	float metallic = ourMat.metallic; \n\
+	float perceptualRoughness = ourMat.roughness; \n\
+	vec3 baseColor = castle_SceneColor; //getBaseColor(); \n\
+	//unlit \n\
+	vec3 specularColor= vec3(0.0); \n\
+    vec3 f0 = vec3(0.04); \n\
+	// ?? baseColor *= getVertexColor().xyz; //hunh? \n\
+	vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0) * (1.0 - metallic); \n\
+	specularColor = mix(f0, baseColor.rgb, metallic); \n\
+	//lit \n\
+	float alphaRoughness = perceptualRoughness * perceptualRoughness; \n\
+	// Compute reflectance. \n\
+	float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b); \n\
+	vec3 specularEnvironmentR0 = specularColor.rgb; \n\
+	// Anything less than 2% is physically impossible and is instead considered to be shadowing. \n\
+	vec3 specularEnvironmentR90 = vec3(clamp(reflectance * 50.0, 0.0, 1.0)); \n\
+	MaterialInfo materialInfo = MaterialInfo( \n\
+		perceptualRoughness, \n\
+		specularEnvironmentR0, \n\
+		alphaRoughness, \n\
+		diffuseColor, \n\
+		specularEnvironmentR90, \n\
+		specularColor \n\
+	); \n\
+	// LIGHTING \n\
+	//vec3 normal = N; //getNormal(); \n\
+	/* PLUG: add_light_physical (vcolor, castle_vertex_eye.xyz, N, materialInfo ) */  \n\
+   #endif //LITE \n\
+	vcolor += castle_Emissive; //getEmissive(); \n\
+	castle_Color = vec4(vcolor, castle_MaterialDiffuseAlpha); \n\
+  } \n\
+#endif //PHONG \n\
+  #ifdef LINE \n\
+   castle_SceneColor = vec3(0.0,0.0,0.0); //line gets color from castle_Emissive \n\
+  #endif //LINE\n\
   #else //LIT \n\
   castle_Color.rgb = castle_UnlitColor.rgb; \n\
   #endif //LIT \n\
   \n\
-  #ifdef CPV //color per vertex \n\
+  #ifdef CPV \n\
+  //background sky comes through here, COLOR_MATERIAL_SHADER only \n\
+  //castle_Color = fw_Color; \n\
   cpv_Color = fw_Color; \n\
-  #endif //CPV \n\
+  #endif //CPV\n\
   \n\
   //#ifdef TEX \n\
   vec4 texcoord = yupuv(fw_MultiTexCoord0); \n\
@@ -930,15 +1021,6 @@ void main(void) \n\
   fw_TexCoord[0] = normalize(reflect(u,v)); //computed in object space \n\
   fw_TexCoord[0].st = -fw_TexCoord[0].st; //helps with renderman cubemap convention \n\
   #endif //CUB \n\
-  #ifdef CASTLE_BUGGY_GLSL_READ_VARYING \n\
-  #undef castle_vertex_eye \n\
-  #undef castle_normal_eye \n\
-  #undef castle_Color \n\
-  castle_vertex_eye = temp_castle_vertex_eye; \n\
-  castle_normal_eye = temp_castle_normal_eye; \n\
-  castle_Color      = temp_castle_Color; \n\
-  #endif //CASTLE_BUGGY_GLSL_READ_VARYING \n\
-  \n\
   #ifdef FOG \n\
   #ifdef FOGCOORD \n\
   castle_vertex_eye.z = fog_coord; \n\
@@ -949,7 +1031,20 @@ void main(void) \n\
   #endif //UNLIT \n\
 } \n";
 
+/*
+Ubershader varying between vertex and fragment shader:
+varying vec3 fw_TexCoord[6];
+#ifdef FILL
+varying vec2 hatchPosition;
+varying vec4 castle_vertex_eye;
+varying vec3 castle_normal_eye;
+varying vec4 castle_Color; //DA diffuse ambient term
+#ifdef LIT
+varying vec3 castle_ColorES; //emissive shininess term
+#ifdef CPV
+varying vec4 cpv_Color;
 
+*/
 /* Generic GLSL fragment shader.
    Used by ../castlerendererinternalshader.pas to construct the final shader.
 
@@ -1683,7 +1778,8 @@ vec4 getDiffuseFactor() { \n\
 	vec4 D = getDiffuseOrBase(); \n\
 	dcolor *= mix(D,IC,mixcpv); \n\
 	#ifdef TEX \n\
-	if(textureCount > 0){ \n\
+    int iuse = mat.type < 2 ? 1 : 3; \n\
+    if(mat.tcount[iuse] > 0){ \n\
         //appearance level textures (vs material level) \n\
 		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
@@ -1704,7 +1800,7 @@ vec4 getDiffuseFactor() { \n\
 vec4 getGouraudColor() { \n\
 	vec4 dcolor = castle_Color; \n\
 	#ifdef LIT\n\
-	dcolor *= vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
+	dcolor = vec4(clamp(castle_ColorES + castle_Color.rgb,0.0,1.0),castle_Color.a); \n\
 	#endif //LIT \n\
 	#ifdef CPV \n\
 		dcolor = cpv_Color; \n\
@@ -1712,12 +1808,14 @@ vec4 getGouraudColor() { \n\
 	#ifdef TEX \n\
     //Q. do we need this, or is everyone including background using emissive texture and emissive color? \n\
     //A. command line freewrl --shadingStyle 1  will invoke this texture + gouraud \n\
-	if(textureCount > 0){ \n\
+	//if(textureCount > 0){ \n\
+    int iuse = mat.type < 2 ? 1 : 3; \n\
+    if(mat.tcount[iuse] > 0){ \n\
 		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
-		//#if defined(MODT) || defined(MODC) \n\
+		#if defined(MODT) || defined(MODC) \n\
 			tcolor.rgb = dcolor.rgb; \n\
-		//#endif //MODT || MODC \n\
+		#endif //MODT || MODC \n\
 		/* PLUG: texture_apply (tcolor, N) */ \n\
 		dcolor.rgb = tcolor.rgb; \n\
 		#ifdef MODA \n\
@@ -1729,6 +1827,7 @@ vec4 getGouraudColor() { \n\
 	#endif //TEX \n\
 	return dcolor; \n\
 } \n\
+uniform int material_side; //see renderfuncs reallydrawonce //0= front and back - no material difference, 1 = front 2=back\n\
 //literal string size break \n" "\
 void main(void) \n\
 { \n\
@@ -1737,13 +1836,15 @@ void main(void) \n\
 	mtex_specular = castle_ColorES; \n\
 	mtex_diffuse = castle_Color; \n\
 	#endif //LIT \n\
-	mat = fw_FrontMaterial; \n\
 	/* back Facing materials - flip the normal and grab back materials */ \n\
-	//bool backFacing = (dot(N,E) < 0.0); \n\
-	if (!gl_FrontFacing){ //backFacing) { \n\
-		#ifdef TWO \n\
+    if (gl_FrontFacing && material_side == 2) discard; \n\
+    if(!gl_FrontFacing && material_side == 1) discard; \n\
+	//if (!gl_FrontFacing){ //backFacing) { \n\
+	mat = fw_FrontMaterial; \n\
+    if(material_side == 2){ \n\
+		//#ifdef TWO \n\
 		mat = fw_BackMaterial; \n\
-		#endif //TWO \n\
+		//#endif //TWO \n\
 	} \n\
 	vec3 N = getNormal(); \n\
 	\n\
@@ -1758,7 +1859,9 @@ void main(void) \n\
 		#endif //CVP \n\
 		#ifdef POINTP \n\
 			#ifdef TEX \n\
-			if(textureCount > 0){ \n\
+			//if(textureCount > 0){ \n\
+            int iuse = mat.type < 2 ? 1 : 3; \n\
+			if(mat.tcount[iuse] > 0){ \n\
 				vec3 N = getNormal(); \n\
 				vec4 tcolor = vec4(1); \n\
 				/* PLUG: texture_apply (tcolor, N) */ \n\
@@ -1782,18 +1885,23 @@ void main(void) \n\
 	#endif //LINE \n\
     #ifndef LINE \n\
     //mostly 3D geometry \n\
-	vec4 diffuseFactor = getDiffuseFactor(); \n\
-	fragment_color =  diffuseFactor; \n\
+	//vec4 diffuseFactor = getDiffuseFactor(); \n\
+	//fragment_color =  diffuseFactor; \n\
 //STEP0 GOURAUD \n\
 	#ifndef PHONG \n\
+    //if(mat.type == 0){ \n\
+        // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
+        // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
+		fragment_color = getGouraudColor(); \n\
+    //} \n\
+	#endif //not PHONG \n\
+//STEP1 EMISSIVE \n\
+	#ifdef PHONG \n\
     if(mat.type == 0){ \n\
         // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
         // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
 		fragment_color = getGouraudColor(); \n\
     } \n\
-	#endif //not PHONG \n\
-//STEP1 EMISSIVE \n\
-	#ifdef PHONG \n\
 	if(mat.type == 1) { \n\
         //MAT_UNLIT - no lighting \n\
 		fragment_color.rgb = getEmissive(); \n\
@@ -1810,9 +1918,10 @@ void main(void) \n\
 		//start over with the color, since we have material and lighting in here \n\
 		vec3 cumulative_specular = vec3(0.0,0.0,0.0); \n\
 		vec3 cumulative_diffuse = vec3(0.0,0.0,0.0); \n\
+        fragment_color.a = getAlpha(); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
-		vec3 diffy = diffuseFactor.rgb; //\n\
+		vec3 diffy = getDiffuseFactor().rgb; //diffuseFactor.rgb; //\n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
 		float occy = getOcclusion(); \n\
@@ -1824,6 +1933,7 @@ void main(void) \n\
 		fragment_color.rgb += getEmissive(); \n\
 	} else if(mat.type == 3){ \n\
 		//MAT_PHYSICAL aka physical lighting\n\
+        fragment_color.a = getAlpha(); \n\
 		#ifdef LITE \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
@@ -2975,7 +3085,7 @@ static const GLchar *plug_fragment_texture_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
  \n\
   #ifdef MTEX \n\
-  int iunit = 3; //appearance.texture or material.diffuseTexture texture \n\
+  int iunit = mat.type < 2? 1 : 3; \n\
   int ndesc = mat.tcount[iunit]; \n\
   if(ndesc > 1){ //multitex \n\
     vec4 source; \n\
@@ -2997,6 +3107,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
           else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
         } \n\
         //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
+        //vec4 cur = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]+k]], fw_TexCoord[mat.cmap[mat.tstart[iunit]+k]].xy); \n\
         vec4 cur = texture2D(textureUnit[k],fw_TexCoord[mat.cmap[k]].st); \n\
         finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
         finalFrag = source; \n\
@@ -3004,19 +3115,22 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
     } \n\
   } else { \n\
     /* ONE TEXTURE */ \n\
-    finalFrag = texture2D(textureUnit[0], fw_TexCoord[0].st) * finalFrag; \n\
+    int iuse = mat.type < 2? 1 : 3; \n\
+    finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
+	//finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
   } \n\
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
-    int iuse = 3; //diffuse \n\
+    int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
     if(mat.samplr[iuse]==1) \n\
-      finalFrag = texture(textureUnitCube[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]]) * finalFrag; \n\
+      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cindex[iuse]]) * finalFrag; \n\
       //finalFrag = texture(textureUnitCube[0], fw_TexCoord[0]) * finalFrag; \n\
     else \n\
     #endif //CUB \n\
-      finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
-  #endif //MTEX \n\
+     finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
+	//finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
+#endif //MTEX \n\
   \n\
 }\n";
 
@@ -3024,8 +3138,12 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 
 /* PLUG: add_light_physical (color, view, normal, materialInfo ); */
 static const GLchar *plug_frag_lighting_physical = "\n\
+#ifdef LITE \n\
+#ifndef M_PI \n\
+#define M_PI 3.14159265358979 \n\
+#endif \n\
 #ifdef SHADOW //this stuff only works in the fragment shader \n\
-float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
+float ShadowCalculationp(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
     vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
@@ -3203,7 +3321,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 		if (light.shadows) { \n\
 			if (myLightType > 0) { \n\
 				//spot, directional, uses 2D shadow texture \n\
-				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
+				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculationp(i,VP); \n\
 			} \n\
 			else { \n\
 				//point, uses cubemap shadow texture \n\
@@ -3215,6 +3333,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 	} \n\
 	vertexcolor = clamp(vertexcolor, 0.0, 1.0); \n\
 } \n\
+#endif //LITE \n\
 ";
 
 //add_light_contribution (castle_Color, castle_vertex_eye, castle_normal_eye, castle_MaterialShininess)
@@ -3228,6 +3347,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 
 static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
+#ifdef LITE \n\
 #ifdef SHADOW //this stuff only works in the fragment shader \n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
@@ -3386,6 +3506,7 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 	vertexcolor = clamp(sum_vertex + vertexcolor, 0.0, 1.0); \n\
 	specularcolor = clamp(sum_specular + specularcolor, 0.0, 1.0); \n\
 } \n\
+#endif //LITE \n\
 ";
 
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-foginterpolant
@@ -3582,14 +3703,16 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			AddDefine(SHADERPART_FRAGMENT,"TWO",CompleteCode);
 			AddDefine(SHADERPART_VERTEX,"TWO",CompleteCode);
 		}
-		
-		if(DESIRE(whichOne.base,SHADINGSTYLE_GOURAUD) || DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+		if(DESIRE(whichOne.base,SHADINGSTYLE_GOURAUD) ){ //|| DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
 			//when we say gouraud in freewrl, we really mean per-vertex lighting, in vertex shader
 			AddDefine(SHADERPART_VERTEX,"LITE",CompleteCode);  //add some lights
 			//with v4 Appearance.backMaterial, you could have physical on one side, and regular on the other - both
 			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
 				Plug(SHADERPART_VERTEX,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
-		} if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG)){
+			if (DESIRE(whichOne.base, PHYSICAL_MATERIAL_APPEARANCE_SHADER))
+				Plug(SHADERPART_VERTEX, plug_frag_lighting_physical, CompleteCode, &unique_int); //use lights
+		}
+		if(DESIRE(whichOne.base,SHADINGSTYLE_PHONG)){
 			//when we say phong in freewrl, we really mean per-fragment lighting in fragment shader
 			AddDefine(SHADERPART_FRAGMENT,"LITE",CompleteCode);  //add some lights
 			AddDefine(SHADERPART_FRAGMENT, "SHADOW", CompleteCode);  //add some shadow computations
@@ -3599,6 +3722,7 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			if(DESIRE(whichOne.base,MATERIAL_APPEARANCE_SHADER) || DESIRE(whichOne.base,TWO_MATERIAL_APPEARANCE_SHADER))
 				Plug(SHADERPART_FRAGMENT,plug_vertex_lighting_ADSLightModel,CompleteCode,&unique_int); //use lights
 			AddDefine(SHADERPART_FRAGMENT,"PHONG",CompleteCode);
+			AddDefine(SHADERPART_VERTEX, "PHONG", CompleteCode);
 		}
 		//lines and points with material (rendered emissive)
 		if( DESIRE(whichOne.base,HAVE_LINEPOINTS_COLOR) ) {
@@ -4447,9 +4571,9 @@ struct fw_MaterialParameters { \n\
   int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
-#ifdef TWO \n\
+//#ifdef TWO \n\
 uniform fw_MaterialParameters fw_BackMaterial; \n\
-#endif //TWO \n\
+//#endif //TWO \n\
 vec3 castle_ColorES; \n\
 #else //LITE \n\
 //per-vertex lighting - interpolated Emissive-specular \n\

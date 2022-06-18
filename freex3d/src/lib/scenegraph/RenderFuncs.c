@@ -669,36 +669,43 @@ void saveElementsForGPU0(int mode, int count, int type, void *indices){
 //void saveElementsForGPU(int mode, int count, ushort* indices) {
 //	saveElementsForGPU0(mode, count, GL_UNSIGNED_SHORT,indices);
 //}
-void reallyDrawOnce(){
+void reallyDrawOnce() {
 	//particle system will call this
 	//H: this might be a bit like glDrawMultiElements - a list of more primitive triangle fans etc that would make up a 3D shape
 	int i;
-	draw_call_params *params;
+	draw_call_params* params;
 	ppRenderFuncs p;
 	ttglobal tg = gglobal();
 	p = (ppRenderFuncs)tg->RenderFuncs.prv;
-
-	for(i=0;i<vectorSize(p->draw_call_params_stack);i++){
-		params = vector_get_ptr(draw_call_params,p->draw_call_params_stack,i);
-		if(params->calltype == 1){
-			// in msvc you can do try catch in flat C, but not recommended in general - use c++
-			// but works when testing/debugging if the video driver is throwing c++ exceptions
-			// because we're sending it junk, to stop it from vapor-crashing 
-			// https://msdn.microsoft.com/en-us/library/1deeycx5.aspx
-			#define CATCH_GLDRAWARRAYS_THROWS 1
-			#if defined(CATCH_GLDRAWARRAYS_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
-			__try {
-				glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
+	int loc_side = glGetUniformLocation(p->currentShader,"material_side");
+	int twosided = getAppearanceProperties()->twosided;
+	int nsides = twosided ? 2 : 1;
+	if (!twosided) glUniform1i(loc_side, 0);
+	for (int k = 0; k < nsides; k++) {
+		if(twosided) glUniform1i(loc_side, k+1); 
+		for (i = 0; i < vectorSize(p->draw_call_params_stack); i++) {
+			params = vector_get_ptr(draw_call_params, p->draw_call_params_stack, i);
+			if (params->calltype == 1) {
+				// in msvc you can do try catch in flat C, but not recommended in general - use c++
+				// but works when testing/debugging if the video driver is throwing c++ exceptions
+				// because we're sending it junk, to stop it from vapor-crashing 
+				// https://msdn.microsoft.com/en-us/library/1deeycx5.aspx
+#define CATCH_GLDRAWARRAYS_THROWS 1
+#if defined(CATCH_GLDRAWARRAYS_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
+				__try {
+					glDrawArrays(params->arrays.arrays_mode, params->arrays.arrays_first, params->arrays.arrays_count);
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					printf("\n ouch from reallyDrawOnce glDrawArrays \n");
+					printf("i= %d n= %d", i, vectorSize(p->draw_call_params_stack));
+				}
+#else
+				glDrawArrays(params->arrays.arrays_mode, params->arrays.arrays_first, params->arrays.arrays_count);
+#endif
 			}
-			__except(EXCEPTION_EXECUTE_HANDLER) {
-				printf("\n ouch from reallyDrawOnce glDrawArrays \n");
-				printf("i= %d n= %d",i,vectorSize(p->draw_call_params_stack));
+			else if (params->calltype == 2) {
+				glDrawElements(params->elements.elements_mode, params->elements.elements_count, params->elements.elements_type, params->elements.elements_indices);
 			}
-			#else
-			glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
-			#endif
-		}else if(params->calltype == 2){
-			glDrawElements(params->elements.elements_mode,params->elements.elements_count, params->elements.elements_type,params->elements.elements_indices);
 		}
 	}
 	//p->draw_call_params_stack->n = 0;

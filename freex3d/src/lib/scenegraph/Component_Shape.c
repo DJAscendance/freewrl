@@ -206,7 +206,8 @@ int get_isBackMaterial(){
 void child_Appearance (struct X3D_Appearance *node) {
 	struct X3D_Node *tmpN;
 	ttglobal tg = gglobal();
-	
+	ppComponent_Shape p = (ppComponent_Shape)gglobal()->Component_Shape.prv;
+
 	/* printf ("in Appearance, this %d, nodeType %d\n",node, node->_nodeType);
 	   printf (" vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
 	   render_vp,render_geom,render_light,render_sensitive,render_blend,render_proximity,render_collision); */
@@ -215,11 +216,17 @@ void child_Appearance (struct X3D_Appearance *node) {
 	PRINT_GL_ERROR_IF_ANY("child_Appearance start");
 
 	RENDER_MATERIAL_SUBNODES(node->material);
-	if(node->backMaterial){
+	if(node->material && node->material->_nodeType == NODE_TwoSidedMaterial) 
+		getAppearanceProperties()->twosided = TRUE;
+	else if(node->backMaterial){
 		push_isBackMaterial();
+		getAppearanceProperties()->twosided = TRUE;
 		RENDER_MATERIAL_SUBNODES(node->backMaterial);
 		pop_isBackMaterial();
 	}
+	//else {
+	//	memcpy(&p->appearanceProperties.fw_BackMaterial, &p->appearanceProperties.fw_FrontMaterial, sizeof(struct fw_MaterialParameters));
+	//}
 	
 	if (node->fillProperties) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->fillProperties,tmpN);
@@ -731,8 +738,8 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 	else {
 		//v4 specs section 12.2.5 Coexistence of textures (appearance and material) >
 		// 4. if material appearance.material is NULL and appearance.textures, use UNLIT and put textures in UNLIT emissive texture
-		if(realAppearanceNode->texture != NULL)
-			retval |= UNLIT_MATERIAL_APPEARANCE_SHADER; 
+		//if(realAppearanceNode->texture != NULL)
+		//	retval |= UNLIT_MATERIAL_APPEARANCE_SHADER; 
 	}
 
 

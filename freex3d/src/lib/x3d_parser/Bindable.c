@@ -386,12 +386,12 @@ void send_bind_to(struct X3D_Node *node, int value) {
 		bind_node (node, getBindableStacksByLayer(tg,ovp->_layerId)->viewpoint);
 		if (is_reachable_new_way()) {
 			if (ovp->set_bind > 0) { //value==1) {
-				bind_Viewpoint(ovp);
+				bind_Viewpoint(X3D_VIEWPOINT(ovp));
 			}
 		}
 		else {
 			if (value == 1) {
-				bind_Viewpoint(ovp);
+				bind_Viewpoint(X3D_VIEWPOINT(ovp));
 			}
 		}
 		break;
