@@ -638,10 +638,10 @@ struct fw_MaterialParameters { \n\
   int mode[10]; \n\
   int source[10]; \n\
   int func[10]; \n\
+  int samplr[10]; //0 texture2D 1 cubeMap \n\
   int cmap[10]; \n\
   int nt; //total single textures \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-  int samplr[7]; //0 texture2D 1 cubeMap \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
   int cindex[7]; // which geometry multitexcoord channel 0=default \n\
@@ -907,6 +907,7 @@ void main(void) \n\
   cpv_Color = fw_Color; \n\
   #endif //CPV\n\
   \n\
+//STEP 3 TEXTURE COORDINATES AND TRANSFORMS \n\
   //#ifdef TEX \n\
   vec4 texcoord = yupuv(fw_MultiTexCoord0); \n\
   #ifdef TEX3D \n\
@@ -964,6 +965,16 @@ void main(void) \n\
   } \n\
   //fw_TexCoord[0] = dehomogenize(fw_TextureMatrix[fw_tmap[1]], tcoord[0]); \n\
   //fw_TexCoord[1] = dehomogenize(fw_TextureMatrix[fw_tmap[0]], tcoord[1]); \n\
+  #ifdef CUB \n\
+  //cubemap \n\
+  vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
+  //vec3 u = normalize( vec4(castle_vertex_eye - camera).xyz ); \n\
+  vec3 u = normalize( vec4(vertex_object + camera).xyz ); \n\
+  vec3 v = normalize(fw_Normal); \n\
+  fw_TexCoord[0] = normalize(reflect(u,v)); //computed in object space \n\
+  fw_TexCoord[0].st = -fw_TexCoord[0].st; //helps with renderman cubemap convention \n\
+  //for(int i=1;i<6;i++) fw_TexCoord[i] = fw_TexCoord[0]; //programmer: please integrate with multitexture (trans+coord) above\n\
+  #endif //CUB \n\
   #ifdef FILL \n\
   hatchPosition = fw_TexCoord[0].xy; \n\
   #endif //FILL \n\
@@ -1012,15 +1023,6 @@ void main(void) \n\
 		gl_Position = view_position; \n\
 	} \n\
   #endif //POINTP \n\
-  #ifdef CUB \n\
-  //cubemap \n\
-  vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
-  //vec3 u = normalize( vec4(castle_vertex_eye - camera).xyz ); \n\
-  vec3 u = normalize( vec4(vertex_object + camera).xyz ); \n\
-  vec3 v = normalize(fw_Normal); \n\
-  fw_TexCoord[0] = normalize(reflect(u,v)); //computed in object space \n\
-  fw_TexCoord[0].st = -fw_TexCoord[0].st; //helps with renderman cubemap convention \n\
-  #endif //CUB \n\
   #ifdef FOG \n\
   #ifdef FOGCOORD \n\
   castle_vertex_eye.z = fog_coord; \n\
@@ -1098,9 +1100,6 @@ precision mediump float; \n\
 //#else \n\
 //precision highp float; \n\
 #endif //MOBILE \n\
-//#ifdef CUB \n\
-//#extension GL_NV_shadow_samplers_cube : enable \n\
-//#endif //CUB \n\
 /* Generic GLSL fragment shader, used on OpenGL ES. */ \n\
  \n\
 varying vec4 castle_Color; \n\
@@ -1360,10 +1359,10 @@ struct fw_MaterialParameters { \n\
 	int mode[10]; \n\
 	int source[10]; \n\
 	int func[10]; \n\
+    int samplr[10]; //0 texture2D 1 cubeMap \n\
     int cmap[10]; \n\
 	int nt; //total single textures \n\
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-    int samplr[7]; //0 texture2D 1 cubeMap \n\
 	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
 	int tstart[7]; // where in packed tindex list to start looping \n\
 	int cindex[7]; // which geometry multitexcoord channel 0=default \n\
@@ -3085,9 +3084,9 @@ static const GLchar *plug_fragment_texture_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
  \n\
   #ifdef MTEX \n\
-  int iunit = mat.type < 2? 1 : 3; \n\
-  int ndesc = mat.tcount[iunit]; \n\
-  int k = mat.tstart[iunit]; \n\
+  int iuse = mat.type < 2? 1 : 3; \n\
+  int ndesc = mat.tcount[iuse]; \n\
+  int k = mat.tstart[iuse]; \n\
   if(ndesc > 1){ //multitex \n\
     vec4 source; \n\
     int isource,iasource, mode, modea, j; \n\
@@ -3107,9 +3106,13 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
           else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
           else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
         } \n\
-        //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[k].st); \n\
-        vec4 cur = texture2D(textureUnit[mat.tindex[k]], fw_TexCoord[mat.cmap[k]].xy); \n\
-        //vec4 cur = texture2D(textureUnit[k],fw_TexCoord[mat.cmap[k]].st); \n\
+        vec4 cur; \n\
+        #ifdef CUB \n\
+        if(mat.samplr[k]==1){ \n\
+          cur = texture(textureUnitCube[mat.tindex[k]], fw_TexCoord[mat.cmap[k]]); \n\
+        }else \n\
+        #endif //CUB \n\
+          cur = texture2D(textureUnit[mat.tindex[k]], fw_TexCoord[mat.cmap[k]].xy); \n\
         finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
         finalFrag = source; \n\
       } \n\
@@ -3117,20 +3120,22 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   } else { \n\
     /* ONE TEXTURE */ \n\
     int iuse = mat.type < 2? 1 : 3; \n\
-    finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
-	//finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
+    #ifdef CUB \n\
+    if(mat.samplr[mat.tstart[iuse]]==1) \n\
+      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
+    else \n\
+    #endif //CUB \n\
+     finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
   } \n\
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
     int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
-    if(mat.samplr[iuse]==1) \n\
-      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
-      //finalFrag = texture(textureUnitCube[0], fw_TexCoord[0]) * finalFrag; \n\
+    if(mat.samplr[mat.tstart[iuse]]==1) \n\
+      finalFrag = vec4(.5) * texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
     else \n\
     #endif //CUB \n\
      finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
-	//finalFrag = texture2D(textureUnit[mat.tindex[iuse]], fw_TexCoord[mat.cindex[iuse]].st) * finalFrag; \n\
 #endif //MTEX \n\
   \n\
 }\n";
@@ -3794,7 +3799,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 				AddDefine(SHADERPART_VERTEX,"CUB",CompleteCode);
 				AddDefine(SHADERPART_FRAGMENT,"CUB",CompleteCode);
 				//AddExtension(SHADERPART_FRAGMENT, "GL_NV_","enable", CompleteCode);
-			} else if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
+			} 
+			if(DESIRE(whichOne.base,MULTI_TEX_APPEARANCE_SHADER)){
 				// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture 
 				//- source can be DIFFUSE or SPECULAR, from Gauraud (vertex) lighting
 				AddDefine(SHADERPART_VERTEX,"MTEX",CompleteCode);
@@ -4563,10 +4569,10 @@ struct fw_MaterialParameters { \n\
   int mode[10]; \n\
   int source[10]; \n\
   int func[10]; \n\
+  int samplr[10]; //0 texture2D 1 cubeMap \n\
   int cmap[10]; \n\
   int nt; //total single textures \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-  int samplr[7]; //0 texture2D 1 cubeMap \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
   int cindex[7]; // which geometry multitexcoord channel 0=default \n\

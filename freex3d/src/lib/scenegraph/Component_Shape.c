@@ -813,12 +813,12 @@ static int getAppearanceShader (struct X3D_Node *myApp) {
 						(stex->_nodeType == NODE_ComposedTexture3D) ||
 						(stex->_nodeType == NODE_ImageTexture3D)) {
 						retval |= TEX3D_SHADER; //VOLUME by default
-						if (tex->_nodeType == NODE_ComposedTexture3D)
+						if (stex->_nodeType == NODE_ComposedTexture3D) //should this be stex or tex? change from tex to stex June 2022 on wild guess
 							retval |= TEX3D_LAYER_SHADER; //else VOLUME
 					}
-					if ((tex->_nodeType == NODE_ComposedCubeMapTexture) ||
-						(tex->_nodeType == NODE_ImageCubeMapTexture) ||
-						(tex->_nodeType == NODE_GeneratedCubeMapTexture)) {
+					if ((stex->_nodeType == NODE_ComposedCubeMapTexture) ||
+						(stex->_nodeType == NODE_ImageCubeMapTexture) ||
+						(stex->_nodeType == NODE_GeneratedCubeMapTexture)) {
 						retval |= HAVE_CUBEMAP_TEXTURE;
 					}
 				}

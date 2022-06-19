@@ -6996,7 +6996,7 @@ GLint tunitCube(int index) {
 }
 
 void sendLightInfo2(s_shader_capabilities_t* me);
-int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
+int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height, int* samplr);
 void sendMaterialsToShader(s_shader_capabilities_t *me) {
 	struct matpropstruct *myap = getAppearanceProperties();
 	struct fw_MaterialParameters *fw_FrontMaterial, *mp;
@@ -7059,14 +7059,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				// - we will continue adding to end of [nt] list, but overwrite tstart, tcount for iuse
 				mp->tcount[iuse] = 0;
 				mp->tstart[iuse] = nt;
-				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
-				mp->samplr[iuse] = is_cubeMap(mp->textures[iuse]); //0=sampler2D 1=samplerCube
+				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4], samplr[4];
 				render_node(mp->textures[iuse]);
-				int ntdesc = getTextureDescriptors(mp->textures[iuse], textures, modes, sources, funcs, width, height);
+				int ntdesc = getTextureDescriptors(mp->textures[iuse], textures, modes, sources, funcs, width, height, samplr);
 				mp->tcount[iuse] = ntdesc;
 				for (int j = 0; j < ntdesc; j++) {
 					int kunit, iunit;
-					if (mp->samplr[iuse] == 1)
+					mp->samplr[nt] = samplr[j]; //0=sampler2D 1=samplerCube
+					if (mp->samplr[nt] == 1)
 						kunit = share_or_next_material_sampler_index_Cube(textures[j]);//returns index into shader samplerCube texterUnitCube[kunit]
 					else
 						kunit = share_or_next_material_sampler_index_2D(textures[j]);//returns index into shader sampler2D texterUnit[kunit]
@@ -7074,7 +7074,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 					mp->source[nt] = sources[j];
 					mp->mode[nt] = modes[j];
 					mp->func[nt] = funcs[j];
-					if (mp->samplr[iuse] == 1) {
+					if (mp->samplr[nt] == 1) {
 						iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
 						glUniform1i(me->textureUnitCube[kunit], iunit);
 					}
@@ -7086,13 +7086,13 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 					glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
 					glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
 					glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
+					glUniform1i(me->myMaterialSampler[nt], mp->samplr[nt]); //I don't know how to mix and match texture2D and cubeMap in multitexture, so sampler type 1:1 Multitexture
 					glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
 					//printf(" cmap[%d] = %d uniform %d\n", iuse, mp->cmap[iuse], me->myMaterialCmap[nt]);
 					nt++;
 				}
 				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 			}
-			glUniform1i(me->myMaterialSampler[iuse], mp->samplr[iuse]); //I don't know how to mix and match texture2D and cubeMap in multitexture, so sampler type 1:1 Multitexture
 			GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
 			GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
 			GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
@@ -7128,14 +7128,14 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				// - we will continue adding to end of [nt] list, but overwrite tstart, tcount for iuse
 				mp->tcount[iuse] = 0;
 				mp->tstart[iuse] = nt;
-				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
-				mp->samplr[iuse] = is_cubeMap(mp->textures[iuse]);
+				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4], samplr[4];
 				render_node(mp->textures[iuse]);
-				int ntdesc = getTextureDescriptors(mp->textures[iuse], textures, modes, sources, funcs, width, height);
+				int ntdesc = getTextureDescriptors(mp->textures[iuse], textures, modes, sources, funcs, width, height,samplr);
 				mp->tcount[iuse] = ntdesc;
 				for (int j = 0; j < ntdesc; j++) {
 					int kunit, iunit;
-					if (mp->samplr[iuse] == 1)
+					mp->samplr[nt] = samplr[j];
+					if (mp->samplr[nt] == 1)
 						kunit = share_or_next_material_sampler_index_Cube(textures[j]);//returns index into shader samplerCube texterUnitCube[kunit]
 					else
 						kunit = share_or_next_material_sampler_index_2D(textures[j]);//returns index into shader sampler2D texterUnit[kunit]
@@ -7144,7 +7144,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 					mp->source[nt] = sources[j];
 					mp->mode[nt] = modes[j];
 					mp->func[nt] = funcs[j];
-					if (mp->samplr[iuse] == 1) {
+					if (mp->samplr[nt] == 1) {
 						iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
 						glUniform1i(me->textureUnitCube[kunit], iunit);
 					}
@@ -7156,12 +7156,12 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 					glUniform1i(me->myMaterialBackMode[nt], mp->mode[nt]);
 					glUniform1i(me->myMaterialBackSource[nt], mp->source[nt]);
 					glUniform1i(me->myMaterialBackFunc[nt], mp->func[nt]);
-					glUniform1i(me->myMaterialBackCmap[nt], mp->cmap[iuse]);
+					glUniform1i(me->myMaterialBackSampler[nt], mp->samplr[nt]);
+					glUniform1i(me->myMaterialBackCmap[nt], mp->cmap[iuse]); // programmer please verify iuse is correct, or nt?
 					nt++;
 				}
 				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 			}
-			glUniform1i(me->myMaterialBackSampler[iuse], mp->samplr[iuse]);
 			GLUNIFORM1I(me->myMaterialBackCindex[iuse], mp->cindex[iuse]);
 			GLUNIFORM1I(me->myMaterialBackTcount[iuse], mp->tcount[iuse]);
 			GLUNIFORM1I(me->myMaterialBackTstart[iuse], mp->tstart[iuse]);

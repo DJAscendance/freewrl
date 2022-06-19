@@ -428,6 +428,19 @@ int isTex3D(struct X3D_Node *node);
 
 
 int is_cubeMap(struct X3D_Node* node) {
+	int iret = FALSE;
+	if (node) {
+		switch (node->_nodeType) {
+		case NODE_ComposedCubeMapTexture:
+		case NODE_ImageCubeMapTexture:
+		case NODE_GeneratedCubeMapTexture:
+			iret = TRUE;
+			break;
+		}
+	}
+	return iret;
+}
+int is_or_has_cubeMap(struct X3D_Node* node) {
 	int iret = 0;
 	if (node) {
 		switch (node->_nodeType) {
@@ -534,7 +547,7 @@ int find_or_make_combo(char* trans_name, char* coord_name, char** coord_name_lis
 }
 
 
-int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height);
+int getTextureDescriptors(struct X3D_Node* textureNode, int* textures, int* modes, int* sources, int* funcs, int* width, int* height, int* samplr);
 GLint tunit(int index);
 void textureTransform_start() {
 	int c;
@@ -781,9 +794,9 @@ void textureTransform_start() {
 				struct matpropstruct* myap = getAppearanceProperties();
 				struct fw_MaterialParameters* mp;
 
-				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4];
+				int textures[4], modes[4], sources[4], funcs[4], width[4], height[4], samplr[4];
 				GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
-				int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height);
+				int ntdesc = getTextureDescriptors(tnode, textures, modes, sources, funcs, width, height,samplr);
 				// https://www.web3d.org/documents/specifications/19775-1/V4.0/Part01/components/shape.html#CoexistenceMaterialTexturesWithAppearanceTexture
 				// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient 
 				//material.type: 0 NONE 1 UNLIT 2 DEFUSE/SPECULAR 3 PHYSICAL/PBR
@@ -793,7 +806,6 @@ void textureTransform_start() {
 				else if (mp->type == 2) iuse = 3; // if diffuse/specular Material put appearance textures in diffuse iuse
 				else if (mp->type == 3) iuse = 3; // if PhysicalMaterial (PBR) put appearance textures in base iuse 
 				int nt = mp->nt;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
-				mp->samplr[iuse] = is_cubeMap(tnode);
 				mp->tcount[iuse] += ntdesc;
 				mp->tstart[iuse] = nt;
 				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
@@ -801,7 +813,8 @@ void textureTransform_start() {
 				for (int j = 0; j < ntdesc; j++) {
 					int kunit, iunit;
 					kunit = iunit = 0;
-					if (mp->samplr[iuse] == 1) {
+					mp->samplr[nt] = samplr[j];
+					if (mp->samplr[nt] == 1) {
 						if (0) {
 							GLenum target;
 							printf("%s ", stringNodeType(tnode->_nodeType));
@@ -834,7 +847,7 @@ void textureTransform_start() {
 					//	mp->cmap[nt] = immap[j];
 					//mp->cmap[nt] = icombo[j][0]; // immap[j]; //assigned above? or is this different?
 					glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
-					if (mp->samplr[iuse] == 1) {
+					if (mp->samplr[nt] == 1) {
 						iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
 						glUniform1i(me->textureUnitCube[kunit], iunit);
 					}
@@ -843,10 +856,13 @@ void textureTransform_start() {
 						glUniform1i(me->textureUnit[kunit], iunit);
 					}
 					mp->binding[nt] = iunit; //for debugging around here (already sent to shader)
+					//printf("textureUnit(Cube)[%d]=%d ogl %d samplr %d\n", kunit, iunit,textures[j], samplr[j]);
+
 					glUniform1i(me->myMaterialTindex[nt], mp->tindex[nt]);
 					glUniform1i(me->myMaterialMode[nt], mp->mode[nt]);
 					glUniform1i(me->myMaterialSource[nt], mp->source[nt]);
 					glUniform1i(me->myMaterialFunc[nt], mp->func[nt]);
+					glUniform1i(me->myMaterialSampler[nt], mp->samplr[nt]);
 					nt++;
 				}
 				mp->nt = nt;
@@ -854,7 +870,6 @@ void textureTransform_start() {
 				//printf("sampler type samplr[%d]=%d start[%d]=%d ", iuse, mp->samplr[iuse], iuse, mp->tstart[iuse]); //samplr 0=2D 1=cube
 				//something about the first sub-texture in the multitexture..
 				//printf("textureUnit(Cube)[%d]=%d\n", mp->tindex[mp->tstart[iuse]], mp->binding[mp->tstart[iuse]] );
-				glUniform1i(me->myMaterialSampler[iuse], mp->samplr[iuse]);
 				GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
 				GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
 				GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);

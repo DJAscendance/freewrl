@@ -1376,6 +1376,10 @@ void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture* node) {
 		else {
 			gglobal()->RenderFuncs.textureStackTop = 0;
 		}
+		if (0) {
+			set_debug_quad(5, tti->OpenGLTexture);
+		}
+
 	}
 }
 

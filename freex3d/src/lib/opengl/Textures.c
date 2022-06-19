@@ -1415,12 +1415,14 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 			case NODE_PixelTexture:
 			case NODE_ImageTexture :
 				/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
-				loadTextureNode (X3D_NODE(nt),paramPtr);
+				//loadTextureNode (X3D_NODE(nt),paramPtr);
+				render_node(X3D_NODE(nt));
 				break;
 			case NODE_ImageCubeMapTexture:
 			case NODE_ComposedCubeMapTexture:
 			case NODE_GeneratedCubeMapTexture:
-				loadTextureNode(X3D_NODE(nt), paramPtr);
+				//loadTextureNode(X3D_NODE(nt), paramPtr);
+				render_node(X3D_NODE(nt));
 				break;
 
 			case NODE_MultiTexture:
@@ -1446,10 +1448,11 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 		printf ("loadMultiTexture, finished with texture %d\n",count);
 #endif
 	}
+	tg->RenderFuncs.texturenode = (void*)node;
 	//tg->RenderFuncs.multitexturenode = (void*)node;
 }
 
-int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height){
+int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height, int *samplr){
 	int ntexture = 0;
 	if( textureNode == NULL) return 0;
 	if(textureNode->_nodeType == NODE_MultiTexture){
@@ -1467,6 +1470,7 @@ int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *mode
 			modes[i] = xparam[i].multitex_mode[0] + 100*xparam[i].multitex_mode[1];
 			sources[i] = xparam[i].multitex_source[0] + 100*xparam[i].multitex_source[1];
 			funcs[i] = xparam[i].multitex_function;
+			samplr[i] = is_cubeMap(pt->texture.p[i]);
 		}
 	}else{
 		//single texture, use web3d default texture descriptor
@@ -1480,6 +1484,7 @@ int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *mode
 		iret = getTextureSizeFromTextureNode(textureNode,ixyz);
 		width[0] = ixyz[0];
 		height[0] = ixyz[1];
+		samplr[0] = is_cubeMap(textureNode);
 	}
 	return ntexture;
 }
@@ -1510,46 +1515,46 @@ DEF_FINDFIELD(TEXTURECOMPRESSIONKEYWORDS)
 
 void unpackImageCubeMap6 (textureTableIndexStruct_s* me);
 void move_texture_to_opengl(textureTableIndexStruct_s* me) {
-	int rx,ry,rz,sx,sy,sz;
-	int x,y,z;
+	int rx, ry, rz, sx, sy, sz;
+	int x, y, z;
 	GLint iformat;
 	GLenum format;
 
 	/* default texture properties; can be changed by a TextureProperties node */
-	float anisotropicDegree=1.0f;
+	float anisotropicDegree = 1.0f;
 	int borderWidth;
 
-        GLint Trc,Src,Rrc;
-        GLint minFilter, magFilter;
-        GLint compression;
-        int generateMipMaps;
+	GLint Trc, Src, Rrc;
+	GLint minFilter, magFilter;
+	GLint compression;
+	int generateMipMaps;
 
-	unsigned char *mytexdata;
+	unsigned char* mytexdata;
 
 	// JAS - if multi-threading using a creation program,
 	// we can have issues sending textures here, so
 	// single thread this.
-	#ifdef PATH_PLANNER
+#ifdef PATH_PLANNER
 	pthread_mutex_t gl_mutex1 = PTHREAD_MUTEX_INITIALIZER;
-	#endif //PATH_PLANNER
+#endif //PATH_PLANNER
 
 	/* for getting repeatS and repeatT info. */
-	struct X3D_PixelTexture *pt = NULL;
-	struct X3D_MovieTexture *mt = NULL;
-	struct X3D_ImageTexture *it = NULL;
-	struct X3D_PixelTexture3D *pt3d = NULL;
+	struct X3D_PixelTexture* pt = NULL;
+	struct X3D_MovieTexture* mt = NULL;
+	struct X3D_ImageTexture* it = NULL;
+	struct X3D_PixelTexture3D* pt3d = NULL;
 
-	struct X3D_TextureProperties *tpNode = NULL;
+	struct X3D_TextureProperties* tpNode = NULL;
 	int haveValidTexturePropertiesNode;
 	GLfloat texPri;
 	struct SFColorRGBA borderColour;
-	s_renderer_capabilities_t *rdr_caps;
+	s_renderer_capabilities_t* rdr_caps;
 
-	#ifdef PATH_PLANNER
-	pthread_mutex_lock( &gl_mutex1 );
-	#endif //PATH_PLANNER
+#ifdef PATH_PLANNER
+	pthread_mutex_lock(&gl_mutex1);
+#endif //PATH_PLANNER
 
-    ttglobal tg = gglobal();
+	ttglobal tg = gglobal();
 	rdr_caps = tg->display.rdr_caps;
 
 
@@ -1557,35 +1562,35 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	Src = FALSE; Trc = FALSE; Rrc = FALSE;
 	tpNode = NULL;
 	haveValidTexturePropertiesNode = FALSE;
-	texPri=0.0f;
-	borderColour.c[0]=0.0f;borderColour.c[1]=0.0f;borderColour.c[2]=0.0f;borderColour.c[3]=0.0f;
+	texPri = 0.0f;
+	borderColour.c[0] = 0.0f; borderColour.c[1] = 0.0f; borderColour.c[2] = 0.0f; borderColour.c[3] = 0.0f;
 	compression = GL_FALSE;
 	borderWidth = 0;
 	mytexdata = NULL;
 
-    /* did this node get killed on the way here? */
-    if (!checkNode(me->scenegraphNode, __FILE__,__LINE__)) {
-        ConsoleMessage ("main node disappeared, ignoring texture\n");
-        me->status = TEXTURE_INVALID;
+	/* did this node get killed on the way here? */
+	if (!checkNode(me->scenegraphNode, __FILE__, __LINE__)) {
+		ConsoleMessage("main node disappeared, ignoring texture\n");
+		me->status = TEXTURE_INVALID;
 
-	#ifdef PATH_PLANNER
-	pthread_mutex_unlock( &gl_mutex1 );
-	#endif //PATH_PLANNER
+#ifdef PATH_PLANNER
+		pthread_mutex_unlock(&gl_mutex1);
+#endif //PATH_PLANNER
 
-        return;
-    }
+		return;
+	}
 	/* printf ("move_texture_to_opengl, node of type %s\n",stringNodeType(me->scenegraphNode->_nodeType));  */
 
 	/* is this texture invalid and NOT caught before here? */
 	/* this is the same as the defaultBlankTexture; the following code should NOT be executed */
 	if (me->texdata == NULL) {
-		char buff[] = {0x70, 0x70, 0x70, 0xff} ; /* same format as ImageTextures - GL_BGRA or GL_RGBA here */
+		char buff[] = { 0x70, 0x70, 0x70, 0xff }; /* same format as ImageTextures - GL_BGRA or GL_RGBA here */
 		me->x = 1;
 		me->y = 1;
 		me->z = 1;
 		me->hasAlpha = FALSE;
-		me->texdata = MALLOC(unsigned char *, 4);
-		memcpy (me->texdata, buff, 4);
+		me->texdata = MALLOC(unsigned char*, 4);
+		memcpy(me->texdata, buff, 4);
 	}
 
 	/* do we need to convert this to an OpenGL texture stream?*/
@@ -1594,50 +1599,57 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* we need to get parameters. */
 	if (me->OpenGLTexture == TEXTURE_INVALID) {
-/* 		me->OpenGLTexture = MALLOC (GLuint *, sizeof (GLuint) * me->frames); */
-        if ((getAppearanceProperties()->cubeFace==0) || (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X)) {
-                FW_GL_GENTEXTURES (1, &me->OpenGLTexture);
-        }
+		/* 		me->OpenGLTexture = MALLOC (GLuint *, sizeof (GLuint) * me->frames); */
+		if ((getAppearanceProperties()->cubeFace == 0) || (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_POSITIVE_X)) {
+			FW_GL_GENTEXTURES(1, &me->OpenGLTexture);
+		}
 
 #ifdef TEXVERBOSE
-		printf ("just glGend texture for block %p is %u, type %s\n",
-			me, me->OpenGLTexture,stringNodeType(me->nodeType));
+		printf("just glGend texture for block %p is %u, type %s\n",
+			me, me->OpenGLTexture, stringNodeType(me->nodeType));
 #endif
 
 	}
 
 	/* get the repeatS and repeatT info from the scenegraph node */
 	if (me->nodeType == NODE_ImageTexture) {
-		it = (struct X3D_ImageTexture *) me->scenegraphNode;
+		it = (struct X3D_ImageTexture*)me->scenegraphNode;
 		Src = it->repeatS; Trc = it->repeatT;
 		tpNode = X3D_TEXTUREPROPERTIES(it->textureProperties);
-	} else if (me->nodeType == NODE_PixelTexture) {
-		pt = (struct X3D_PixelTexture *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_PixelTexture) {
+		pt = (struct X3D_PixelTexture*)me->scenegraphNode;
 		Src = pt->repeatS; Trc = pt->repeatT;
 		tpNode = X3D_TEXTUREPROPERTIES(pt->textureProperties);
-	} else if (me->nodeType == NODE_MovieTexture) {
-		mt = (struct X3D_MovieTexture *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_MovieTexture) {
+		mt = (struct X3D_MovieTexture*)me->scenegraphNode;
 		Src = mt->repeatS; Trc = mt->repeatT;
-		tpNode =X3D_TEXTUREPROPERTIES(mt->textureProperties);
-	} else if (me->nodeType == NODE_PixelTexture3D) {
-		pt3d = (struct X3D_PixelTexture3D *) me->scenegraphNode;
+		tpNode = X3D_TEXTUREPROPERTIES(mt->textureProperties);
+	}
+	else if (me->nodeType == NODE_PixelTexture3D) {
+		pt3d = (struct X3D_PixelTexture3D*)me->scenegraphNode;
 		Src = pt3d->repeatS; Trc = pt3d->repeatT; Rrc = pt3d->repeatR;
 		tpNode = X3D_TEXTUREPROPERTIES(pt3d->textureProperties);
-	} else if (me->nodeType == NODE_ImageTexture3D) {
-		struct X3D_ImageTexture3D * it3d;
-		it3d = (struct X3D_ImageTexture3D *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_ImageTexture3D) {
+		struct X3D_ImageTexture3D* it3d;
+		it3d = (struct X3D_ImageTexture3D*)me->scenegraphNode;
 		Src = it3d->repeatS; Trc = it3d->repeatT; Rrc = it3d->repeatR;
 		tpNode = X3D_TEXTUREPROPERTIES(it3d->textureProperties);
-	} else if (me->nodeType == NODE_ComposedTexture3D) {
-		struct X3D_ComposedTexture3D * ct3d;
-		ct3d = (struct X3D_ComposedTexture3D *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_ComposedTexture3D) {
+		struct X3D_ComposedTexture3D* ct3d;
+		ct3d = (struct X3D_ComposedTexture3D*)me->scenegraphNode;
 		Src = ct3d->repeatS; Trc = ct3d->repeatT; Rrc = ct3d->repeatR;
 		tpNode = X3D_TEXTUREPROPERTIES(ct3d->textureProperties);
-	} else if (me->nodeType == NODE_ImageCubeMapTexture) {
-		struct X3D_ImageCubeMapTexture *mi = (struct X3D_ImageCubeMapTexture *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_ImageCubeMapTexture) {
+		struct X3D_ImageCubeMapTexture* mi = (struct X3D_ImageCubeMapTexture*)me->scenegraphNode;
 		tpNode = X3D_TEXTUREPROPERTIES(mi->textureProperties);
-	} else if (me->nodeType == NODE_GeneratedCubeMapTexture) {
-		struct X3D_GeneratedCubeMapTexture *mi = (struct X3D_GeneratedCubeMapTexture *) me->scenegraphNode;
+	}
+	else if (me->nodeType == NODE_GeneratedCubeMapTexture) {
+		struct X3D_GeneratedCubeMapTexture* mi = (struct X3D_GeneratedCubeMapTexture*)me->scenegraphNode;
 		tpNode = X3D_TEXTUREPROPERTIES(mi->textureProperties);
 	}
 	//texure3D faked via texture2D (in non-extended GLES2)
@@ -1651,19 +1663,20 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 	/* do we have a TextureProperties node? */
 	if (tpNode) {
 		if (tpNode->_nodeType != NODE_TextureProperties) {
-			ConsoleMessage ("have a %s as a textureProperties node",stringNodeType(tpNode->_nodeType));
-		} else {
+			ConsoleMessage("have a %s as a textureProperties node", stringNodeType(tpNode->_nodeType));
+		}
+		else {
 			haveValidTexturePropertiesNode = TRUE;
-			generateMipMaps = tpNode->generateMipMaps?GL_TRUE:GL_FALSE;
+			generateMipMaps = tpNode->generateMipMaps ? GL_TRUE : GL_FALSE;
 			texPri = tpNode->texturePriority;
-			if ((texPri < 0.0) || (texPri>1.0)) {
+			if ((texPri < 0.0) || (texPri > 1.0)) {
 				texPri = 0.0f;
-				ConsoleMessage ("invalid texturePriority of %f",tpNode->texturePriority);
+				ConsoleMessage("invalid texturePriority of %f", tpNode->texturePriority);
 			}
-			memcpy(&borderColour,&(tpNode->borderColor),sizeof(struct SFColorRGBA));
+			memcpy(&borderColour, &(tpNode->borderColor), sizeof(struct SFColorRGBA));
 
 			anisotropicDegree = tpNode->anisotropicDegree;
-			if ((anisotropicDegree < 1.0) || (anisotropicDegree>rdr_caps->anisotropicDegree)) {
+			if ((anisotropicDegree < 1.0) || (anisotropicDegree > rdr_caps->anisotropicDegree)) {
 				/* we can be quiet here
 				   ConsoleMessage ("anisotropicDegree error %f, must be between 1.0 and %f",anisotropicDegree, gglobal()->display.rdr_caps.anisotropicDegree);
 				*/
@@ -1671,60 +1684,60 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			}
 
 			borderWidth = tpNode->borderWidth;
-			if (borderWidth < 0) borderWidth=0; if (borderWidth>1) borderWidth = 1;
+			if (borderWidth < 0) borderWidth = 0; if (borderWidth > 1) borderWidth = 1;
 
 			// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#t-TextureMagnificationModes
 
 			switch (findFieldInTEXTUREMAGNIFICATIONKEYWORDS(tpNode->magnificationFilter->strptr)) {
-				case TMAG_AVG_PIXEL:
-					magFilter = GL_LINEAR; break; // GL_NEAREST; break;
-				case TMAG_DEFAULT: magFilter = GL_LINEAR; break;
-				case TMAG_FASTEST: magFilter = GL_LINEAR; break;  /* DEFAULT */
-				case TMAG_NEAREST_PIXEL: magFilter = GL_NEAREST; break;
-				case TMAG_NICEST: magFilter = GL_NEAREST; break;
-				default: magFilter = GL_NEAREST; ConsoleMessage ("unknown magnification filter %s",
-					tpNode->magnificationFilter->strptr);
+			case TMAG_AVG_PIXEL:
+				magFilter = GL_LINEAR; break; // GL_NEAREST; break;
+			case TMAG_DEFAULT: magFilter = GL_LINEAR; break;
+			case TMAG_FASTEST: magFilter = GL_LINEAR; break;  /* DEFAULT */
+			case TMAG_NEAREST_PIXEL: magFilter = GL_NEAREST; break;
+			case TMAG_NICEST: magFilter = GL_NEAREST; break;
+			default: magFilter = GL_NEAREST; ConsoleMessage("unknown magnification filter %s",
+				tpNode->magnificationFilter->strptr);
 			}
 
 			/* minFilter depends on Mipmapping */
 			if (generateMipMaps) switch (findFieldInTEXTUREMINIFICATIONKEYWORDS(tpNode->minificationFilter->strptr)) {
-				case TMIN_AVG_PIXEL: minFilter = GL_NEAREST; break;
-				case TMIN_AVG_PIXEL_AVG_MIPMAP: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
-				case TMIN_AVG_PIXEL_NEAREST_MIPMAP: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
-				case TMIN_DEFAULT: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
-				case TMIN_FASTEST: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
-				case TMIN_NICEST: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
-				case TMIN_NEAREST_PIXEL: minFilter = GL_NEAREST; break;
-				case TMIN_NEAREST_PIXEL_NEAREST_MIPMAP: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
-				default: minFilter = GL_NEAREST_MIPMAP_NEAREST;
-					ConsoleMessage ("unknown minificationFilter of %s",
-						tpNode->minificationFilter->strptr);
+			case TMIN_AVG_PIXEL: minFilter = GL_NEAREST; break;
+			case TMIN_AVG_PIXEL_AVG_MIPMAP: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+			case TMIN_AVG_PIXEL_NEAREST_MIPMAP: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+			case TMIN_DEFAULT: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
+			case TMIN_FASTEST: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
+			case TMIN_NICEST: minFilter = GL_NEAREST_MIPMAP_NEAREST; break;
+			case TMIN_NEAREST_PIXEL: minFilter = GL_NEAREST; break;
+			case TMIN_NEAREST_PIXEL_NEAREST_MIPMAP: minFilter = GL_NEAREST_MIPMAP_LINEAR; break;
+			default: minFilter = GL_NEAREST_MIPMAP_NEAREST;
+				ConsoleMessage("unknown minificationFilter of %s",
+					tpNode->minificationFilter->strptr);
 			}
 			else switch (findFieldInTEXTUREMINIFICATIONKEYWORDS(tpNode->minificationFilter->strptr)) {
-				case TMIN_AVG_PIXEL:
-				case TMIN_AVG_PIXEL_AVG_MIPMAP:
-				case TMIN_AVG_PIXEL_NEAREST_MIPMAP:
-				case TMIN_DEFAULT:
-				case TMIN_FASTEST:
-				case TMIN_NICEST:
-				case TMIN_NEAREST_PIXEL: minFilter = GL_NEAREST; break;
-				case TMIN_NEAREST_PIXEL_NEAREST_MIPMAP: minFilter = GL_LINEAR; break;
-				default: minFilter = GL_NEAREST;
-					ConsoleMessage ("unknown minificationFilter of %s",
-						tpNode->minificationFilter->strptr);
+			case TMIN_AVG_PIXEL:
+			case TMIN_AVG_PIXEL_AVG_MIPMAP:
+			case TMIN_AVG_PIXEL_NEAREST_MIPMAP:
+			case TMIN_DEFAULT:
+			case TMIN_FASTEST:
+			case TMIN_NICEST:
+			case TMIN_NEAREST_PIXEL: minFilter = GL_NEAREST; break;
+			case TMIN_NEAREST_PIXEL_NEAREST_MIPMAP: minFilter = GL_LINEAR; break;
+			default: minFilter = GL_NEAREST;
+				ConsoleMessage("unknown minificationFilter of %s",
+					tpNode->minificationFilter->strptr);
 			}
 
 			switch (findFieldInTEXTURECOMPRESSIONKEYWORDS(tpNode->textureCompression->strptr)) {
-				case TC_DEFAULT: compression = GL_NONE; break;
-				case TC_FASTEST: compression = GL_FASTEST; break; /* DEFAULT */
-				case TC_HIGH: compression = GL_FASTEST; break;
-				case TC_LOW: compression = GL_NONE; break;
-				case TC_MEDIUM: compression = GL_NICEST; break;
-				case TC_NICEST: compression = GL_NICEST; break;
+			case TC_DEFAULT: compression = GL_NONE; break;
+			case TC_FASTEST: compression = GL_FASTEST; break; /* DEFAULT */
+			case TC_HIGH: compression = GL_FASTEST; break;
+			case TC_LOW: compression = GL_NONE; break;
+			case TC_MEDIUM: compression = GL_NICEST; break;
+			case TC_NICEST: compression = GL_NICEST; break;
 
-				default: compression = GL_NEAREST_MIPMAP_NEAREST;
-					ConsoleMessage ("unknown textureCompression of %s",
-						tpNode->textureCompression->strptr);
+			default: compression = GL_NEAREST_MIPMAP_NEAREST;
+				ConsoleMessage("unknown textureCompression of %s",
+					tpNode->textureCompression->strptr);
 			}
 
 			BOUNDARY_TO_GL(S);
@@ -1744,7 +1757,7 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 		generateMipMaps = GL_TRUE;
 
-		if(me->x > 0 && me->y > 0)
+		if (me->x > 0 && me->y > 0)
 		{
 			// experimental code to deal with oblong texture images
 			// The 'cause' of blurry oblong textures with GLES2 is the anisotropic
@@ -1758,19 +1771,20 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 			// scene authors need to make their repeating textures (brick, siding,
 			// shingles etc) squarish to get mipmapping and avoid moire/scintilation
 			float ratio = 1.0f;
-			if(me->x < me->y*me->z) ratio = (float)(me->y*me->z) / (float)me->x;
-			else ratio = (float)me->x / (float)(me->y*me->z);
-			if(ratio > 2.0f) generateMipMaps = GL_FALSE;
+			if (me->x < me->y * me->z) ratio = (float)(me->y * me->z) / (float)me->x;
+			else ratio = (float)me->x / (float)(me->y * me->z);
+			if (ratio > 2.0f) generateMipMaps = GL_FALSE;
 		}
 
 		/* choose smaller images to be NEAREST, larger ones to be LINEAR */
-		if ((me->x<=256) || ((me->y*me->z)<=256)) {
+		if ((me->x <= 256) || ((me->y * me->z) <= 256)) {
 			minFilter = GL_NEAREST_MIPMAP_NEAREST;
-			if(!generateMipMaps) minFilter = GL_NEAREST;
+			if (!generateMipMaps) minFilter = GL_NEAREST;
 			magFilter = GL_NEAREST;
-		} else {
+		}
+		else {
 			minFilter = GL_LINEAR_MIPMAP_NEAREST;
-			if(!generateMipMaps) minFilter = GL_LINEAR;
+			if (!generateMipMaps) minFilter = GL_LINEAR;
 			magFilter = GL_LINEAR;
 		}
 	}
@@ -1785,8 +1799,8 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	if (getAppearanceProperties()->cubeFace != 0) {
 		//this is a single cubmap face pixeltexture tti (ie from __subTextures in ImageCubemap)
-		unsigned char *dest = me->texdata;
-		uint32 *sp;
+		unsigned char* dest = me->texdata;
+		uint32* sp;
 
 		int cx, itype;
 
@@ -1815,26 +1829,26 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		rx = me->x;
 		ry = me->y;
 		dest = me->texdata;
-		if(1){
+		if (1) {
 			//flip cubemap textures to be y-down following opengl specs table 3-19
 			//'renderman' convention
 			//stack method: row chunks at a time
 			uint32 tp[512];
 			int cy, cyy, icsize;
-			sp = (uint32 *) me->texdata;
-			for (cy=0; cy<ry/2; cy++) {
-				cyy = ry - cy -1;
-				for(cx=0;cx<rx;cx+=512){
-					icsize = min(512,rx-cx-1)*4;
-					memcpy(tp,&sp[cy*rx + cx],icsize);
-					memcpy(&sp[cy*rx + cx],&sp[cyy*rx + cx],icsize);
-					memcpy(&sp[cyy*rx + cx],tp,icsize);
+			sp = (uint32*)me->texdata;
+			for (cy = 0; cy < ry / 2; cy++) {
+				cyy = ry - cy - 1;
+				for (cx = 0; cx < rx; cx += 512) {
+					icsize = min(512, rx - cx - 1) * 4;
+					memcpy(tp, &sp[cy * rx + cx], icsize);
+					memcpy(&sp[cy * rx + cx], &sp[cyy * rx + cx], icsize);
+					memcpy(&sp[cyy * rx + cx], tp, icsize);
 				}
 			}
 			//printf("__flipping__\n"); //are we in here on every frame? yes, for generatedcubemaptexture, no for other cubemaps
 		}
 		generateMipMaps = 0;
-		myTexImage2D(generateMipMaps, getAppearanceProperties()->cubeFace, 0, iformat,  rx, ry, 0, format, itype, dest);
+		myTexImage2D(generateMipMaps, getAppearanceProperties()->cubeFace, 0, iformat, rx, ry, 0, format, itype, dest);
 
 		/* last thing to do at the end of the setup for the 6th face */
 		//if (getAppearanceProperties()->cubeFace == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) {
@@ -1844,38 +1858,46 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		//	glEnable(GL_TEXTURE_GEN_R);
 		//}
 
-	} else {
+	}
+	else {
+		if (me->nodeType == NODE_ImageCubeMapTexture || me->nodeType == NODE_ComposedCubeMapTexture) {
+			render_node(me->scenegraphNode);
+			return; //June 2022 change, these nodes now load themselves on render_
+		}
+		if (me->nodeType == NODE_GeneratedCubeMapTexture) {
+			me->status = TEX_LOADED;
+		}
+		//if (me->nodeType == NODE_ImageCubeMapTexture) {
+		//	if(me->z == 1){
+		//		/* if we have an single 2D image, ImageCubeMap, we have most likely got a png map;
+		//		   ________
+		//		  |	 T    | - Top
+		//		  |L F R B| - Left, Front, Right, Back
+		//		  |__D____| - Down(bottom)
+		//			let the  render_ImageCubeMapTexture code unpack the maps from this one png */
+		//		/* this is ok - what is happening is that we have one image, that needs to be
+		//			split up into each face */
+		//		/* this should print if we are actually working ok
+		//		if (me->status != TEX_LOADED) {
+		//			printf ("have ImageCubeMapTexture, but status != TEX_LOADED\n");
+		//		}
+		//		*/
 
-		if (me->nodeType == NODE_ImageCubeMapTexture) {
-			if(me->z == 1){
-				/* if we have an single 2D image, ImageCubeMap, we have most likely got a png map;
-				   ________
-				  |	 T    | - Top
-				  |L F R B| - Left, Front, Right, Back
-				  |__D____| - Down(bottom)
-					let the  render_ImageCubeMapTexture code unpack the maps from this one png */
-				/* this is ok - what is happening is that we have one image, that needs to be
-					split up into each face */
-				/* this should print if we are actually working ok
-				if (me->status != TEX_LOADED) {
-					printf ("have ImageCubeMapTexture, but status != TEX_LOADED\n");
-				}
-				*/
-
-				/* call the routine in Component_CubeMapTexturing.c to split this baby apart */
-				unpackImageCubeMap(me);
-				me->status = TEX_LOADED; /* finito */
-			}else if(me->z == 6){
-				//likely a .DDS (MS invention) or web3dit (dug9 invention)
-				//order of images: +x,-x,+y,-y,+z,-z (or R,L,F,B,T,D)
-				unpackImageCubeMap6(me);
-				me->status = TEX_LOADED; /* finito */
-			}
-			//now the __subTextures individual face textures will show as single faces above
-		} else if(me->nodeType == NODE_GeneratedCubeMapTexture){
-			//already unpacked into 6 separate PixelTexture tti->texdata during cubemap generation
-			me->status = TEX_LOADED; /* finito */
-		} else {
+		//		/* call the routine in Component_CubeMapTexturing.c to split this baby apart */
+		//		unpackImageCubeMap(me);
+		//		me->status = TEX_LOADED; /* finito */
+		//	}else if(me->z == 6){
+		//		//likely a .DDS (MS invention) or web3dit (dug9 invention)
+		//		//order of images: +x,-x,+y,-y,+z,-z (or R,L,F,B,T,D)
+		//		unpackImageCubeMap6(me);
+		//		me->status = TEX_LOADED; /* finito */
+		//	}
+		//	//now the __subTextures individual face textures will show as single faces above
+		//} else if(me->nodeType == NODE_GeneratedCubeMapTexture){
+		//	//already unpacked into 6 separate PixelTexture tti->texdata during cubemap generation
+		//	me->status = TEX_LOADED; /* finito */
+		// }
+		else {
 			int npot;
 			/* a pointer to the tex data. We increment the pointer for movie texures */
 			mytexdata = me->texdata;

@@ -198,7 +198,7 @@ void print_bound_textures(char *str){
 int get_bound_image(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
-int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height);
+int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height, int *samplr);
 void resend_textureprojector_matrix()
 {
 	//called from render_shape to refresh uniform before shade draw
@@ -270,7 +270,7 @@ void resend_textureprojector_matrix()
 			int sources[4];
 			int funcs[4];
 			int textures[4];
-			int width[4], height[4];
+			int width[4], height[4], samplr[4];
 
 			int toffset = 4;
 			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
@@ -278,7 +278,7 @@ void resend_textureprojector_matrix()
 			render_node(projrep->texture);
 			PRINT_GL_ERROR_IF_ANY("MIDDLE resend_textureprojector_matrix");
 
-			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height);
+			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height, samplr);
 			GLUNIFORM1I(me->ntdesc[i],ntdesc);
 			for(int j=0;j<ntdesc;j++,kdesc++){
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D

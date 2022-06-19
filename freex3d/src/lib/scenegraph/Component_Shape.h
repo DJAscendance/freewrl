@@ -175,11 +175,11 @@ struct fw_MaterialParameters {
 	int source[10]; //multitexture modulate mode
 	int func[10]; //multitexture modulate mode
 	int cmap[10]; //index of appropriate varying vec3 texCoord[cmap] to use in frag shader
+	int samplr[10]; // 0=texture2D 1=cubeMap sampler (could have SH sphereical harmonic, cubeShadow, other??) 
 	int nt; // number of single texture maps 0 if none
 	//// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
 	struct X3D_Node *textures[7]; //emissive,normal,[occlusion,{diffuse,ambient,specular,shininess}, or {base,smetallic}]
-	int samplr[7]; // 0=texture2D 1=cubeMap sampler (could have SH sphereical harmonic, cubeShadow, other??) 
 	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
 	int tstart[7]; // where in tindex to start looping
 	int cindex[7]; //texture coordinate channel
