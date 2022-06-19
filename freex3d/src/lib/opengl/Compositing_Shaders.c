@@ -3132,7 +3132,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
     int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
     if(mat.samplr[mat.tstart[iuse]]==1) \n\
-      finalFrag = vec4(.5) * texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
+      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
     else \n\
     #endif //CUB \n\
      finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
