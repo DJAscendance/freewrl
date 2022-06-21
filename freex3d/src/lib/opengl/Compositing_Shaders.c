@@ -994,7 +994,7 @@ void main(void) \n\
       } \n\
 	  fw_TexCoord[i] = texcoord3; \n\
     } else { \n\
-	   ttrans = fw_TextureMatrix[itmap]; \n\
+	   if(itmap > -1) ttrans = fw_TextureMatrix[itmap]; \n\
        //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
        fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
     } \n\
