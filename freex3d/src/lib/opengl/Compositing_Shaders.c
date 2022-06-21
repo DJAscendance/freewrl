@@ -512,9 +512,9 @@ static const GLchar *genericVertexGLES2 = "\
 uniform mat4 fw_ModelViewMatrix; \n\
 uniform mat4 fw_ProjectionMatrix; \n\
 uniform mat3 fw_NormalMatrix; \n\
-#ifdef CUB \n\
+//#ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
-#endif //CUB \n\
+//#endif //CUB \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
 #if defined(LINETYPE) && defined(FULL) \n\
@@ -543,6 +543,7 @@ attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
 uniform int fw_tmap[6]; \n\
+uniform int fw_tgen[6]; \n\
 uniform int fw_cmap[6]; \n\
 uniform int fw_ntexcombo; \n\
 uniform int flipuv; \n\
@@ -557,20 +558,22 @@ varying vec3 fw_TexCoord[6]; \n\
 #ifdef TEX3D \n\
 uniform int tex3dUseVertex; \n\
 #endif //TEX3D \n\
-#ifdef TGEN \n\
- #define TCGT_CAMERASPACENORMAL    0  \n\
- #define TCGT_CAMERASPACEPOSITION    1 \n\
- #define TCGT_CAMERASPACEREFLECTION    2 \n\
- #define TCGT_COORD    3 \n\
- #define TCGT_COORD_EYE    4 \n\
- #define TCGT_NOISE    5 \n\
- #define TCGT_NOISE_EYE    6 \n\
- #define TCGT_SPHERE    7 \n\
- #define TCGT_SPHERE_LOCAL    8 \n\
- #define TCGT_SPHERE_REFLECT    9 \n\
- #define TCGT_SPHERE_REFLECT_LOCAL    10 \n\
- uniform int fw_textureCoordGenType; \n\
-#endif //TGEN \n\
+//#ifdef TGEN \n\
+#define TCGT_CAMERASPACENORMAL    0\n \
+#define TCGT_CAMERASPACEPOSITION    1\n \
+#define TCGT_CAMERASPACEREFLECTION    2\n \
+#define TCGT_CAMERASPACEREFLECTIONVECTOR    3\n \
+#define TCGT_COORD    4\n \
+#define TCGT_COORD_EYE    5\n \
+#define TCGT_NOISE    6\n \
+#define TCGT_NOISE_EYE    7\n \
+#define TCGT_REGULAR    8\n \
+#define TCGT_SPHERE    9\n \
+#define TCGT_SPHERE_LOCAL    10\n \
+#define TCGT_SPHERE_REFLECT    11\n \
+#define TCGT_SPHERE_REFLECT_LOCAL    12\n \
+uniform int fw_textureCoordGenType; \n\
+//#endif //TGEN \n\
 //#endif //TEX \n\
 #ifdef FILL \n\
 varying vec2 hatchPosition; \n\
@@ -952,20 +955,51 @@ void main(void) \n\
   // loop over output (transformed) texcoord \n\
   //for(int i=0;i<fw_ntexcombo;i++){ \n\
   for(int i=0;i<6;i++){ \n\
-    int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; \n\
-    int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; \n\
+    int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; //programmer: should it be >= ? \n\
+    int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; //ditto \n\
     //spec rules: not enough transforms use identity, not enough coords use last ones\n\
     ttrans = mat4(1.0); \n\
 	if(icmap < 0) icmap = min(i,nTexCoordChannels-1); \n\
     tc = tcoord[max(icmap,0)]; \n\
     //if(i < nTexMatrix) ttrans = fw_TextureMatrix[i]; \n\
-    if(itmap > -1) ttrans = fw_TextureMatrix[itmap]; \n\
-    //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
-    fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+    if(itmap > -1 && fw_tgen[itmap] != TCGT_REGULAR) { \n\
+      vec3 vertexNorm; \n\
+      vec4 vertexPos; \n\
+      int tgen_type = fw_tgen[itmap]; \n\
+	  vec3 texcoord3 = tc.xyz; \n\
+      vertexNorm = normalize(fw_NormalMatrix * fw_Normal); \n\
+      vertexPos = fw_ModelViewMatrix * fw_Vertex; \n\
+      /* sphereEnvironMapping Calculation */  \n\
+      vec3 u=normalize(vec3(vertexPos)); /* u is normalized position, used below more than once */ \n\
+      vec3 r= reflect(u,vertexNorm); \n\
+      if (tgen_type==TCGT_SPHERE) { /* TCGT_SPHERE  GL_SPHERE_MAP OpenGL Equiv */ \n\
+        float m=2.0 * sqrt(r.x*r.x + r.y*r.y + (r.z*1.0)*(r.z*1.0)); \n\
+        texcoord3 = vec3(r.x/m+0.5,r.y/m+0.5,0.0); \n\
+      }else if (tgen_type==TCGT_CAMERASPACENORMAL) { \n\
+        /* GL_REFLECTION_MAP used for sampling cubemaps */ \n\
+        float dotResult = 2.0 * dot(u,r); \n\
+        texcoord3 = vec3(u-r)*dotResult; \n\
+      }else if (tgen_type==TCGT_COORD) { \n\
+        /* 3D textures can use coords in 0-1 range */ \n\
+        texcoord3 = fw_Vertex.xyz; //xyz; \n\
+      } else if(tgen_type == TCGT_CAMERASPACEREFLECTIONVECTOR || tgen_type == TCGT_CAMERASPACEREFLECTION){ \n\
+        vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
+        vec3 uu = normalize( vec4(vertex_object + camera).xyz ); \n\
+        vec3 vv = normalize(fw_Normal); \n\
+        texcoord3 = normalize(reflect(uu,vv)); //computed in object space \n\
+        texcoord3.st = -texcoord3.st; //helps with renderman cubemap convention \n\
+      } else { /* default usage - like default CubeMaps */ \n\
+        vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */  \n\
+        texcoord3 =    normalize(reflect(u,vertexNorm)); \n\
+      } \n\
+	  fw_TexCoord[i] = texcoord3; \n\
+    } else { \n\
+	   ttrans = fw_TextureMatrix[itmap]; \n\
+       //if(i < nTexCoordChannels) tc = tcoord[i]; \n\
+       fw_TexCoord[i] = dehomogenize(ttrans, tc); \n\
+    } \n\
   } \n\
-  //fw_TexCoord[0] = dehomogenize(fw_TextureMatrix[fw_tmap[1]], tcoord[0]); \n\
-  //fw_TexCoord[1] = dehomogenize(fw_TextureMatrix[fw_tmap[0]], tcoord[1]); \n\
-  #ifdef CUB \n\
+  #ifdef CUB_OLD \n\
   //cubemap \n\
   vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
   //vec3 u = normalize( vec4(castle_vertex_eye - camera).xyz ); \n\
@@ -974,7 +1008,7 @@ void main(void) \n\
   fw_TexCoord[0] = normalize(reflect(u,v)); //computed in object space \n\
   fw_TexCoord[0].st = -fw_TexCoord[0].st; //helps with renderman cubemap convention \n\
   //for(int i=1;i<6;i++) fw_TexCoord[i] = fw_TexCoord[0]; //programmer: please integrate with multitexture (trans+coord) above\n\
-  #endif //CUB \n\
+  #endif //CUB_OLD \n\
   #ifdef FILL \n\
   hatchPosition = fw_TexCoord[0].xy; \n\
   #endif //FILL \n\

@@ -3965,6 +3965,14 @@ EXPOSED_FIELD(TextureTransform3D,translation,sfvec3f,translation,FIELDTYPE_SFVec
 EXPOSED_FIELD(TextureTransform3D,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(TextureTransform3D)
 
+/* TextureTransformGenerator node */
+BEGIN_NODE(TextureTransformGenerator)
+EXPOSED_FIELD(TextureTransformGenerator,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(TextureTransformGenerator,mapping,sfstring,mapping,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(TextureTransformGenerator,mode,sfstring,mode,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(TextureTransformGenerator,parameter,mffloat,parameter,FIELDTYPE_MFFloat,UNCA_NONE)
+END_NODE(TextureTransformGenerator)
+
 /* TextureTransformMatrix3D node */
 BEGIN_NODE(TextureTransformMatrix3D)
 EXPOSED_FIELD(TextureTransformMatrix3D,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

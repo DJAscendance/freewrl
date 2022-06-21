@@ -393,33 +393,34 @@ typedef int indexT;
 #define NODE_TextureProperties	317
 #define NODE_TextureTransform	318
 #define NODE_TextureTransform3D	319
-#define NODE_TextureTransformMatrix3D	320
-#define NODE_Tile	321
-#define NODE_TimeSensor	322
-#define NODE_TimeTrigger	323
-#define NODE_ToneMappedVolumeStyle	324
-#define NODE_TouchSensor	325
-#define NODE_TrackingSensor	326
-#define NODE_Transform	327
-#define NODE_TransformSensor	328
-#define NODE_TransmitterPdu	329
-#define NODE_TriangleFanSet	330
-#define NODE_TriangleSet	331
-#define NODE_TriangleSet2D	332
-#define NODE_TriangleStripSet	333
-#define NODE_TwoSidedMaterial	334
-#define NODE_UniversalJoint	335
-#define NODE_UnlitMaterial	336
-#define NODE_Viewpoint	337
-#define NODE_ViewpointGroup	338
-#define NODE_Viewport	339
-#define NODE_VisibilitySensor	340
-#define NODE_VolumeData	341
-#define NODE_VolumeEmitter	342
-#define NODE_VolumePickSensor	343
-#define NODE_WaveShaperNode	344
-#define NODE_WindPhysicsModel	345
-#define NODE_WorldInfo	346
+#define NODE_TextureTransformGenerator	320
+#define NODE_TextureTransformMatrix3D	321
+#define NODE_Tile	322
+#define NODE_TimeSensor	323
+#define NODE_TimeTrigger	324
+#define NODE_ToneMappedVolumeStyle	325
+#define NODE_TouchSensor	326
+#define NODE_TrackingSensor	327
+#define NODE_Transform	328
+#define NODE_TransformSensor	329
+#define NODE_TransmitterPdu	330
+#define NODE_TriangleFanSet	331
+#define NODE_TriangleSet	332
+#define NODE_TriangleSet2D	333
+#define NODE_TriangleStripSet	334
+#define NODE_TwoSidedMaterial	335
+#define NODE_UniversalJoint	336
+#define NODE_UnlitMaterial	337
+#define NODE_Viewpoint	338
+#define NODE_ViewpointGroup	339
+#define NODE_Viewport	340
+#define NODE_VisibilitySensor	341
+#define NODE_VolumeData	342
+#define NODE_VolumeEmitter	343
+#define NODE_VolumePickSensor	344
+#define NODE_WaveShaperNode	345
+#define NODE_WindPhysicsModel	346
+#define NODE_WorldInfo	347
 
 
 /* Table of built-in fieldIds */
@@ -2732,27 +2733,31 @@ extern const int TEXTURECOORDINATEGENERATOR_COUNT;
 #define TCGT_CAMERASPACENORMAL    0
 #define TCGT_CAMERASPACEPOSITION    1
 #define TCGT_CAMERASPACEREFLECTION    2
-#define TCGT_COORD    3
-#define TCGT_COORD_EYE    4
-#define TCGT_NOISE    5
-#define TCGT_NOISE_EYE    6
-#define TCGT_SPHERE    7
-#define TCGT_SPHERE_LOCAL    8
-#define TCGT_SPHERE_REFLECT    9
-#define TCGT_SPHERE_REFLECT_LOCAL    10
+#define TCGT_CAMERASPACEREFLECTIONVECTOR    3
+#define TCGT_COORD    4
+#define TCGT_COORD_EYE    5
+#define TCGT_NOISE    6
+#define TCGT_NOISE_EYE    7
+#define TCGT_REGULAR    8
+#define TCGT_SPHERE    9
+#define TCGT_SPHERE_LOCAL    10
+#define TCGT_SPHERE_REFLECT    11
+#define TCGT_SPHERE_REFLECT_LOCAL    12
 
 #define TEXTURECOORDINATEGENERATORDefs " \
 #define TCGT_CAMERASPACENORMAL    0\n \
 #define TCGT_CAMERASPACEPOSITION    1\n \
 #define TCGT_CAMERASPACEREFLECTION    2\n \
-#define TCGT_COORD    3\n \
-#define TCGT_COORD_EYE    4\n \
-#define TCGT_NOISE    5\n \
-#define TCGT_NOISE_EYE    6\n \
-#define TCGT_SPHERE    7\n \
-#define TCGT_SPHERE_LOCAL    8\n \
-#define TCGT_SPHERE_REFLECT    9\n \
-#define TCGT_SPHERE_REFLECT_LOCAL    10\n \
+#define TCGT_CAMERASPACEREFLECTIONVECTOR    3\n \
+#define TCGT_COORD    4\n \
+#define TCGT_COORD_EYE    5\n \
+#define TCGT_NOISE    6\n \
+#define TCGT_NOISE_EYE    7\n \
+#define TCGT_REGULAR    8\n \
+#define TCGT_SPHERE    9\n \
+#define TCGT_SPHERE_LOCAL    10\n \
+#define TCGT_SPHERE_REFLECT    11\n \
+#define TCGT_SPHERE_REFLECT_LOCAL    12\n \
 ";
 const char *stringMULTITEXTURESOURCEType(int st);
 
@@ -12687,6 +12692,29 @@ struct X3D_TextureTransform3D {
 	struct Uni_String *mapping;
 };
 extern struct X3D_Virt virt_TextureTransform3D;
+/***********************/
+struct X3D_TextureTransformGenerator {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       char * _fieldchange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_GeomRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	struct Uni_String *mapping;
+	struct Uni_String *mode;
+	struct Multi_Float parameter;
+};
+extern struct X3D_Virt virt_TextureTransformGenerator;
 /***********************/
 struct X3D_TextureTransformMatrix3D {
        int _nodeType; /* unique integer for each type */ 

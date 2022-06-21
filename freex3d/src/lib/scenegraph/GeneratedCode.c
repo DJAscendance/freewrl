@@ -2358,10 +2358,12 @@ const int MULTITEXTURESOURCE_COUNT = ARR_SIZE(MULTITEXTURESOURCE);
 	"CAMERASPACENORMAL",
 	"CAMERASPACEPOSITION",
 	"CAMERASPACEREFLECTION",
+	"CAMERASPACEREFLECTIONVECTOR",
 	"COORD",
 	"COORD-EYE",
 	"NOISE",
 	"NOISE-EYE",
+	"REGULAR",
 	"SPHERE",
 	"SPHERE-LOCAL",
 	"SPHERE-REFLECT",
@@ -2884,6 +2886,7 @@ const char *NODES[] = {
 	"TextureProperties",
 	"TextureTransform",
 	"TextureTransform3D",
+	"TextureTransformGenerator",
 	"TextureTransformMatrix3D",
 	"Tile",
 	"TimeSensor",
@@ -3233,6 +3236,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_textureProperties,0,0,0,0,0,0},
+{FIELDNAMES_textureTransform,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
 {FIELDNAMES_textureTransform,0,0,0,0,0,0},
@@ -4262,6 +4266,8 @@ struct X3D_Virt virt_TextureTransform = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NUL
 
 struct X3D_Virt virt_TextureTransform3D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+struct X3D_Virt virt_TextureTransformGenerator = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 struct X3D_Virt virt_TextureTransformMatrix3D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void prep_Tile(struct X3D_Tile *);
@@ -4670,6 +4676,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_TextureProperties,
 	 &virt_TextureTransform,
 	 &virt_TextureTransform3D,
+	 &virt_TextureTransformGenerator,
 	 &virt_TextureTransformMatrix3D,
 	 &virt_Tile,
 	 &virt_TimeSensor,
@@ -9153,6 +9160,13 @@ const int OFFSETS_TextureTransform3D[] = {
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureTransform3D, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_TextureTransformGenerator[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureTransformGenerator, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_TextureTransformGenerator, mapping),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_mode, (int) offsetof (struct X3D_TextureTransformGenerator, mode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_parameter, (int) offsetof (struct X3D_TextureTransformGenerator, parameter),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_TextureTransformMatrix3D[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_TextureTransformMatrix3D, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_matrix, (int) offsetof (struct X3D_TextureTransformMatrix3D, matrix),  (int) FIELDTYPE_SFMatrix4f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -9910,6 +9924,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_TextureProperties,
 	OFFSETS_TextureTransform,
 	OFFSETS_TextureTransform3D,
+	OFFSETS_TextureTransformGenerator,
 	OFFSETS_TextureTransformMatrix3D,
 	OFFSETS_Tile,
 	OFFSETS_TimeSensor,
@@ -10517,6 +10532,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_TextureProperties : {tmp = MALLOC (struct X3D_TextureProperties *, size = sizeof (struct X3D_TextureProperties)); break;}
 		case NODE_TextureTransform : {tmp = MALLOC (struct X3D_TextureTransform *, size = sizeof (struct X3D_TextureTransform)); break;}
 		case NODE_TextureTransform3D : {tmp = MALLOC (struct X3D_TextureTransform3D *, size = sizeof (struct X3D_TextureTransform3D)); break;}
+		case NODE_TextureTransformGenerator : {tmp = MALLOC (struct X3D_TextureTransformGenerator *, size = sizeof (struct X3D_TextureTransformGenerator)); break;}
 		case NODE_TextureTransformMatrix3D : {tmp = MALLOC (struct X3D_TextureTransformMatrix3D *, size = sizeof (struct X3D_TextureTransformMatrix3D)); break;}
 		case NODE_Tile : {tmp = MALLOC (struct X3D_Tile *, size = sizeof (struct X3D_Tile)); break;}
 		case NODE_TimeSensor : {tmp = MALLOC (struct X3D_TimeSensor *, size = sizeof (struct X3D_TimeSensor)); break;}
@@ -16142,6 +16158,16 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->scale.c[0] = 1.0f;tmp2->scale.c[1] = 1.0f;tmp2->scale.c[2] = 1.0f;
 			tmp2->translation.c[0] = 0.0f;tmp2->translation.c[1] = 0.0f;tmp2->translation.c[2] = 0.0f;
 			tmp2->mapping = newASCIIString("");
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_TextureTransformGenerator : {
+			struct X3D_TextureTransformGenerator * tmp2;
+			tmp2 = (struct X3D_TextureTransformGenerator *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->mapping = newASCIIString("");
+			tmp2->mode = newASCIIString("IDENTITY");
+			tmp2->parameter.n=0; tmp2->parameter.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -22159,6 +22185,19 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
 		    break;
 		}
+		case NODE_TextureTransformGenerator : {
+			struct X3D_TextureTransformGenerator *tmp;
+			tmp = (struct X3D_TextureTransformGenerator *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," mapping (SFString) \t%s\n",tmp->mapping->strptr);
+			spacer fprintf (fp," mode (SFString) \t%s\n",tmp->mode->strptr);
+			spacer fprintf (fp," parameter (MFFloat):\n");
+			for (i=0; i<tmp->parameter.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->parameter.p[i]); }
+		    break;
+		}
 		case NODE_TextureTransformMatrix3D : {
 			struct X3D_TextureTransformMatrix3D *tmp;
 			tmp = (struct X3D_TextureTransformMatrix3D *) node;
@@ -23062,6 +23101,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_TextureProperties: return X3DSFNode; break;
 	case NODE_TextureTransform: return X3DTextureTransformNode; break;
 	case NODE_TextureTransform3D: return X3DTextureTransformNode; break;
+	case NODE_TextureTransformGenerator: return X3DTextureTransformNode; break;
 	case NODE_TextureTransformMatrix3D: return X3DTextureTransformNode; break;
 	case NODE_Tile: return X3DGroupingNode; break;
 	case NODE_TimeSensor: return X3DSensorNode; break;

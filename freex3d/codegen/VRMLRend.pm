@@ -178,6 +178,7 @@ our %defaultContainerType = (
 	TextureCoordinate 	=>["texCoord"],
 	TextureCoordinateGenerator  =>["texCoord"],
 	TextureTransform 	=>["textureTransform"],
+	TextureTransformGenerator =>["textureTransform"],
 	TextureProperties	=>["textureProperties"],
 	TimeSensor 		=>["children"],
 	TouchSensor 		=>["children"],
@@ -1351,6 +1352,7 @@ our %MultiTextureModeC = map {($_=>1)} qw/
 /;
 
 our %TextureCoordGenModeC = map {($_=>1)} qw/
+      REGULAR
 	SPHERE-REFLECT-LOCAL
 	SPHERE-REFLECT
 	SPHERE-LOCAL
@@ -1358,6 +1360,7 @@ our %TextureCoordGenModeC = map {($_=>1)} qw/
 	CAMERASPACENORMAL
 	CAMERASPACEPOSITION
 	CAMERASPACEREFLECTION
+	CAMERASPACEREFLECTIONVECTOR
 	COORD-EYE
 	COORD
 	NOISE-EYE

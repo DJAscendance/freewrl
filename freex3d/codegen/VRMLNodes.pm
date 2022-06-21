@@ -1533,6 +1533,15 @@ our %Nodes = (
 		translation => ["SFVec2f", [0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DTextureTransformNode"),
 
+      #NOT in specifications, 2022 experiment to duplicate TextureCoordinateGenerator functionality as TextureTransform
+	"TextureTransformGenerator" => new VRML::NodeType("TextureTransform", [
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		mapping => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		mode => ["SFString","IDENTITY","inputOutput",0,"UNCA_NONE"],#ff
+		parameter => ["MFFloat", [], "inputOutput", 0,"UNCA_NONE"],#ff
+	],"X3DTextureTransformNode"),
+
+
 	###################################################################################
 
 	#	Chapter 19:		Interpolation Component

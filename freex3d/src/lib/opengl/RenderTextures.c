@@ -337,23 +337,31 @@ void textureTransform_end(void) {
 }
 
 /* did we have a TextureTransform in the Appearance node? */
-void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap) {
+void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap, int *igen) {
 	*tmap = NULL;
+	*igen = TCGT_REGULAR;
 	/* is this a simple TextureTransform? */
 	if (textureNode->_nodeType == NODE_TextureTransform) {
 		//ConsoleMessage ("do_textureTransform, node is indeed a NODE_TextureTransform");
-		struct X3D_TextureTransform  *ttt = (struct X3D_TextureTransform *) textureNode;
+		struct X3D_TextureTransform* ttt = (struct X3D_TextureTransform*)textureNode;
 		*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
 		/*  Render transformations according to spec.*/
 		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#TextureTransform
 		//specs say 'translate, rotate, then scale'
-		FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), 0);		/*  5*/
-		FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),1);			/*  4*/
-		FW_GL_ROTATE_RADIANS(ttt->rotation,0,0,1);					/*  3*/
-		FW_GL_TRANSLATE_F(((ttt->center).c[0]),((ttt->center).c[1]), 0);		/*  2*/
+		FW_GL_TRANSLATE_F(-((ttt->center).c[0]), -((ttt->center).c[1]), 0);		/*  5*/
+		FW_GL_SCALE_F(((ttt->scale).c[0]), ((ttt->scale).c[1]), 1);			/*  4*/
+		FW_GL_ROTATE_RADIANS(ttt->rotation, 0, 0, 1);					/*  3*/
+		FW_GL_TRANSLATE_F(((ttt->center).c[0]), ((ttt->center).c[1]), 0);		/*  2*/
 		FW_GL_TRANSLATE_F(((ttt->translation).c[0]), ((ttt->translation).c[1]), 0);	/*  1*/
-	/* is this a MultiTextureTransform? */
+	} else if (textureNode->_nodeType == NODE_TextureTransformGenerator) {
+		struct X3D_TextureTransformGenerator* ttg = (struct X3D_TextureTransformGenerator*)textureNode;
+		*tmap = ttg->mapping ? ttg->mapping->strptr : NULL;
+		*igen = findFieldInARR((ttg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);
+		//any matrix prep that would simplify GPU / vertex shader side?
+		//any clock-time animations?
+		//any routed parameter[] updates?
 	} else  if (textureNode->_nodeType == NODE_MultiTextureTransform) {
+		/* is this a MultiTextureTransform? */
 		struct X3D_MultiTextureTransform *mtt = (struct X3D_MultiTextureTransform *) textureNode;
 		if (ttnum < mtt->textureTransform.n) {
 			struct X3D_TextureTransform *ttt = (struct X3D_TextureTransform *) mtt->textureTransform.p[ttnum];
@@ -362,16 +370,23 @@ void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap)
 				*tmap = ttt->mapping ? ttt->mapping->strptr : NULL;
 
 				/*  Render transformations according to spec.*/
-				FW_GL_TRANSLATE_F(-((ttt->center).c[0]),-((ttt->center).c[1]), 0);		/*  5*/
-				FW_GL_SCALE_F(((ttt->scale).c[0]),((ttt->scale).c[1]),1);			/*  4*/
-				FW_GL_ROTATE_RADIANS(ttt->rotation,0,0,1);					/*  3*/
-				FW_GL_TRANSLATE_F(((ttt->center).c[0]),((ttt->center).c[1]), 0);		/*  2*/
+				FW_GL_TRANSLATE_F(-((ttt->center).c[0]), -((ttt->center).c[1]), 0);		/*  5*/
+				FW_GL_SCALE_F(((ttt->scale).c[0]), ((ttt->scale).c[1]), 1);			/*  4*/
+				FW_GL_ROTATE_RADIANS(ttt->rotation, 0, 0, 1);					/*  3*/
+				FW_GL_TRANSLATE_F(((ttt->center).c[0]), ((ttt->center).c[1]), 0);		/*  2*/
 				FW_GL_TRANSLATE_F(((ttt->translation).c[0]), ((ttt->translation).c[1]), 0);	/*  1*/
+			} else if(ttt->_nodeType == NODE_TextureTransformGenerator){
+				struct X3D_TextureTransformGenerator* ttg = (struct X3D_TextureTransformGenerator*)ttt;
+				*tmap = ttg->mapping ? ttg->mapping->strptr : NULL;
+				*igen = findFieldInARR((ttg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);
+				//any matrix prep that would simplify GPU / vertex shader side?
+				//any clock-time animations?
+				//any routed parameter[] updates?
 			} else {
 				static int once = 0;
 				if(!once){
-					printf ("MultiTextureTransform expected a textureTransform for texture %d, got %d \n",
-					ttnum, ttt->_nodeType);
+					printf ("MultiTextureTransform expected a textureTransform for texture %d, got %d %s \n",
+					ttnum, ttt->_nodeType, stringNodeType(ttt->_nodeType));
 					once = 1;
 				}
 			}
@@ -406,17 +421,17 @@ void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap)
 	} else {
 		static int once = 0;
 		if(!once){
-			printf ("expected a textureTransform node, got %d\n",textureNode->_nodeType);
+			printf ("expected a textureTransform node, got %d %s\n",textureNode->_nodeType, stringNodeType(textureNode->_nodeType));
 			once = 1;
 		}
 	}
 
 	//FW_GL_MATRIX_MODE(GL_MODELVIEW);
 }
-void do_textureTransform(struct X3D_Node* textureNode, int ttnum) {
-	char *tmap;
-	do_textureTransform0(textureNode, ttnum, &tmap);
-}
+//void do_textureTransform(struct X3D_Node* textureNode, int ttnum) {
+//	char *tmap;
+//	do_textureTransform0(textureNode, ttnum, &tmap);
+//}
 /***********************************************************************************/
 int isMultiTexture(struct X3D_Node *node){
 	int ret = FALSE;
@@ -558,6 +573,7 @@ void textureTransform_start() {
 	s_shader_capabilities_t* me;
 	struct X3D_Node* tnode;
 	int itmap[MAX_MULTITEXTURE];
+	int igen[MAX_MULTITEXTURE];
 	int icombo[MAX_MULTITEXTURE + 2][2];
 	int immap[MAX_MULTITEXTURE];
 
@@ -651,6 +667,7 @@ void textureTransform_start() {
 		//unconditionally load any supplied texture transforms
 		for (int i = 0; i < MAX_MULTITEXTURE; i++) {
 			tmap[i] = NULL;
+			igen[i] = TCGT_REGULAR;
 		}
 		struct X3D_Node* tt = getThis_textureTransform();
 		int ntrans = 0;
@@ -659,6 +676,7 @@ void textureTransform_start() {
 			case NODE_TextureTransform:
 			case NODE_TextureTransform3D:
 			case NODE_TextureTransformMatrix3D:
+			case NODE_TextureTransformGenerator:
 				ntrans = 1;
 				break;
 			case NODE_MultiTextureTransform:
@@ -670,7 +688,7 @@ void textureTransform_start() {
 			for (int i = 0; i < ntrans; i++) {
 				FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 				FW_GL_LOAD_IDENTITY();
-				do_textureTransform0(tt, i, &tmap[i]);
+				do_textureTransform0(tt, i, &tmap[i], &igen[i]);
 			}
 		}
 		//add any computed 3D texture matrices
@@ -710,16 +728,18 @@ void textureTransform_start() {
 					//printf("default tt\n");
 					FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 					FW_GL_LOAD_IDENTITY();
+					igen[ntrans] = TCGT_REGULAR;
 					ntrans++;
 					FW_GL_SCALE_F(bmax[0], bmax[1], bmax[2]);
 					FW_GL_TRANSLATE_F(-bmin[0], -bmin[1], -bmin[2]);
 				}
 			}
 		}
-		glUniform1i(me->nTexMatrix, ntrans);
+		glUniform1i(me->nTexMatrix, ntrans); //see also sendMatricesToShader and 	FW_GL_MATRIX_MODE(GL_TEXTURE); above
+		for (int ig = 0; ig < MAX_MULTITEXTURE; ig++)
+			glUniform1i(me->tgen[ig], igen[ig]);
 
 		//Step 3 go over appearance and/or material textures, and generate up to 1 combo (texcoord,textrans) for each
-
 		//pair appearance.textures with texture coordinates
 		int ntextures = tg->RenderFuncs.textureStackTop;
 		// defaults for appearance.multitexture:
@@ -846,7 +866,7 @@ void textureTransform_start() {
 					//if(oldway) 
 					//	mp->cmap[nt] = immap[j];
 					//mp->cmap[nt] = icombo[j][0]; // immap[j]; //assigned above? or is this different?
-					glUniform1i(me->myMaterialCmap[nt], mp->cmap[iuse]);
+					glUniform1i(me->myMaterialCmap[nt], mp->cmap[nt]); //would be mp->cmap[iuse] in material?
 					if (mp->samplr[nt] == 1) {
 						iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
 						glUniform1i(me->textureUnitCube[kunit], iunit);
