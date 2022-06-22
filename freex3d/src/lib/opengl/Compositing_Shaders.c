@@ -511,7 +511,7 @@ static const GLchar *genericVertexGLES2 = "\
  \n\
 uniform mat4 fw_ModelViewMatrix; \n\
 uniform mat4 fw_ProjectionMatrix; \n\
-uniform mat3 fw_NormalMatrix; \n\
+uniform mat4 fw_NormalMatrix; \n\
 //#ifdef CUB \n\
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 //#endif //CUB \n\
@@ -788,7 +788,7 @@ void main(void) \n\
 	castle_vertex_eye = particle_eye + pscal*vertex_object; \n\
   } \n\
   #endif //PARTICLE \n\
-  castle_normal_eye = normalize(fw_NormalMatrix * normal_object); \n\
+  castle_normal_eye = normalize( (fw_NormalMatrix * vec4(normal_object,1.0)).xyz); \n\
   \n\
   /* PLUG: vertex_eye_space (castle_vertex_eye, castle_normal_eye) */ \n\
    \n\
@@ -923,7 +923,7 @@ void main(void) \n\
     vec3 vertexNorm; \n\
     vec4 vertexPos; \n\
 	vec3 texcoord3 = texcoord.xyz; \n\
-    vertexNorm = normalize(fw_NormalMatrix * fw_Normal); \n\
+    vertexNorm = normalize((fw_NormalMatrix * vec4(fw_Normal,1.0)).xyz); \n\
     vertexPos = fw_ModelViewMatrix * fw_Vertex; \n\
     /* sphereEnvironMapping Calculation */  \n\
     vec3 u=normalize(vec3(vertexPos)); /* u is normalized position, used below more than once */ \n\
@@ -967,21 +967,29 @@ void main(void) \n\
       vec4 vertexPos; \n\
       int tgen_type = fw_tgen[itmap]; \n\
 	  vec3 texcoord3 = tc.xyz; \n\
-      vertexNorm = normalize(fw_NormalMatrix * fw_Normal); \n\
+      vertexNorm = normalize((fw_NormalMatrix * vec4(fw_Normal,1.0)).xyz); \n\
       vertexPos = fw_ModelViewMatrix * fw_Vertex; \n\
       /* sphereEnvironMapping Calculation */  \n\
       vec3 u=normalize(vec3(vertexPos)); /* u is normalized position, used below more than once */ \n\
       vec3 r= reflect(u,vertexNorm); \n\
       if (tgen_type==TCGT_SPHERE) { /* TCGT_SPHERE  GL_SPHERE_MAP OpenGL Equiv */ \n\
-        float m=2.0 * sqrt(r.x*r.x + r.y*r.y + (r.z*1.0)*(r.z*1.0)); \n\
+        float m=2.0 * sqrt(dot(r,r)); \n\
         texcoord3 = vec3(r.x/m+0.5,r.y/m+0.5,0.0); \n\
+      }else if (tgen_type==TCGT_SPHERE_LOCAL) { \n\
+		vec3 ul=normalize(fw_Vertex.xyz); /* u is normalized position, used below more than once */ \n\
+		vec3 rl= reflect(ul,fw_Normal); \n\
+        float m=2.0 * sqrt(dot(rl,rl)); \n\
+        texcoord3 = vec3(rl.x/m+0.5,rl.y/m+0.5,0.0); \n\
       }else if (tgen_type==TCGT_CAMERASPACENORMAL) { \n\
-        /* GL_REFLECTION_MAP used for sampling cubemaps */ \n\
-        float dotResult = 2.0 * dot(u,r); \n\
-        texcoord3 = vec3(u-r)*dotResult; \n\
+        texcoord3 = vertexNorm*2.0 -1.0; \n\
+      }else if (tgen_type==TCGT_CAMERASPACEPOSITION) { \n\
+        texcoord3 = normalize(vertexPos.xyz)*2.0 -1.0; \n\
       }else if (tgen_type==TCGT_COORD) { \n\
         /* 3D textures can use coords in 0-1 range */ \n\
-        texcoord3 = fw_Vertex.xyz; //xyz; \n\
+        texcoord3 = normalize(fw_Vertex.xyz)*2.0 - 1.0; //xyz; \n\
+      }else if (tgen_type==TCGT_COORD_EYE) { \n\
+        /* 3D textures can use coords in 0-1 range */ \n\
+        texcoord3 = normalize(vertexPos.xyz)*2.0 - 1.0; //xyz; \n\
       } else if(tgen_type == TCGT_CAMERASPACEREFLECTIONVECTOR || tgen_type == TCGT_CAMERASPACEREFLECTION){ \n\
         vec4 camera = fw_ModelViewInverseMatrix * vec4(0.0,0.0,0.0,1.0); \n\
         vec3 uu = normalize( vec4(vertex_object + camera).xyz ); \n\

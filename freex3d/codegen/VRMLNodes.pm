@@ -1537,7 +1537,7 @@ our %Nodes = (
 	"TextureTransformGenerator" => new VRML::NodeType("TextureTransform", [
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		mapping => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
-		mode => ["SFString","IDENTITY","inputOutput",0,"UNCA_NONE"],#ff
+		mode => ["SFString","REGULAR","inputOutput",0,"UNCA_NONE"],#ff
 		parameter => ["MFFloat", [], "inputOutput", 0,"UNCA_NONE"],#ff
 	],"X3DTextureTransformNode"),
 

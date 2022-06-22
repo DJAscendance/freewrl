@@ -6801,82 +6801,25 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 			}
 		}
 	}
-
-	if( ModelViewInverseMatrix != -1){
-		//send in the inverse of the modelview matrix
-		//- handy for cube-map texturing
-		float spvali[16];
-		int ii; //,jj;
-		float *spi;
-		double *dpi, *dpp;
+	if (ModelViewInverseMatrix != -1 || NormalMatrix != -1) {
+		double*  dpp;
 		GLDOUBLE inverseMV[16];
-		//GLDOUBLE transInverseMV[16];
 		GLDOUBLE MV[16];
+		float spvali[16];
 
 		dpp = p->FW_ModelView[p->modelviewTOS];
-		memcpy(MV,dpp,sizeof(GLDOUBLE)*16);
-		matinverse (inverseMV,MV);
-		dpi = inverseMV;
-		spi = spvali;
-		for (ii=0; ii<16; ii++) {
-			*spi = (float) *dpi;
-			spi ++; dpi ++;
+		memcpy(MV, dpp, sizeof(GLDOUBLE) * 16);
+		matinverse(inverseMV, MV);
+		double2float(spvali, inverseMV, 16);
+
+		if( ModelViewInverseMatrix != -1){
+			GLUNIFORMMATRIX4FV(ModelViewInverseMatrix,1,GL_FALSE,spvali);
 		}
-		GLUNIFORMMATRIX4FV(ModelViewInverseMatrix,1,GL_FALSE,spvali);
-	}
-	/* send in the NormalMatrix */
-	/* Uniform mat3  gl_NormalMatrix;  transpose of the inverse of the upper
-			  leftmost 3x3 of gl_ModelViewMatrix */
-	if (NormalMatrix != -1) {
-		float normMat[9];
-		dp = p->FW_ModelView[p->modelviewTOS];
-
-		if(1){
-			//trying to find another .01 FPS
-			//switch from 4x4 double to 3x3 float inverse
-			float ftemp[9];
-			/* convert GLDOUBLE to float */
-			for (i=0; i<3; i++)
-				for(j=0;j<3;j++)
-					spval[i*3 +j] = (float) dp[i*4 + j];
-
-			matrix3x3_inverse_float(spval, ftemp);
-			//transpose
-			for (i = 0; i < 3; i++)
-				for (j = 0; j < 3; j++)
-					normMat[i*3 +j] = ftemp[j*3 + i];
-
+		/* send in the NormalMatrix */
+		if (NormalMatrix != -1) {
+			//mat4 normalMatrix = transpose (inverse (modelView));
+			GLUNIFORMMATRIX4FV(NormalMatrix, 1, GL_TRUE, spvali);
 		}
-		if(0){
-		GLDOUBLE inverseMV[16];
-		GLDOUBLE transInverseMV[16];
-		GLDOUBLE MV[16];
-		memcpy(MV,dp,sizeof(GLDOUBLE)*16);
-
-		matinverse (inverseMV,MV);
-		mattranspose(transInverseMV,inverseMV);
-		/* get the 3x3 normal matrix from this guy */
-		normMat[0] = (float) transInverseMV[0];
-		normMat[1] = (float) transInverseMV[1];
-		normMat[2] = (float) transInverseMV[2];
-
-		normMat[3] = (float) transInverseMV[4];
-		normMat[4] = (float) transInverseMV[5];
-		normMat[5] = (float) transInverseMV[6];
-
-		normMat[6] = (float) transInverseMV[8];
-		normMat[7] = (float) transInverseMV[9];
-		normMat[8] = (float) transInverseMV[10];
-		}
-/*
-printf ("NormalMatrix: \n \t%4.3f %4.3f %4.3f\n \t%4.3f %4.3f %4.3f\n \t%4.3f %4.3f %4.3f\n",
-normMat[0],normMat[1],normMat[2],
-normMat[3],normMat[4],normMat[5],
-normMat[6],normMat[7],normMat[8]);
-*/
-		profile_start("sendmtx");
-		GLUNIFORMMATRIX3FV(NormalMatrix,1,GL_FALSE,normMat);
-		profile_end("sendmtx");
 	}
 
 }

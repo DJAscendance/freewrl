@@ -691,6 +691,12 @@ void textureTransform_start() {
 				do_textureTransform0(tt, i, &tmap[i], &igen[i]);
 			}
 		}
+		if (is_cubeMap(tnode) && !ntrans) {
+			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+			FW_GL_LOAD_IDENTITY();
+			igen[ntrans] = TCGT_CAMERASPACEREFLECTIONVECTOR;
+			ntrans++;
+		}
 		//add any computed 3D texture matrices
 		if (isTex3D(tnode) && !ntrans) {
 			if (tg->RenderFuncs.shapenode) {

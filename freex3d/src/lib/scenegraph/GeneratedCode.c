@@ -16166,7 +16166,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_TextureTransformGenerator *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->mapping = newASCIIString("");
-			tmp2->mode = newASCIIString("IDENTITY");
+			tmp2->mode = newASCIIString("REGULAR");
 			tmp2->parameter.n=0; tmp2->parameter.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
