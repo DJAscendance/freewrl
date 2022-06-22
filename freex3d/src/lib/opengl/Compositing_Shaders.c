@@ -1102,7 +1102,9 @@ void main(void) \n\
         /* 3D textures can use coords in 0-1 range */ \n\
         texcoord3 = normalize(vertexPos.xyz)*2.0 - 1.0; //xyz; \n\
       }else if (tgen_type==TCGT_NOISE) { \n\
-        texcoord3 = normalize(fw_Vertex.xyz * snoise(fw_Vertex.xyz))*2.0 - 1.0; //xyz; \n\
+        vec3 uu = fw_Vertex.xyz; \n\
+		uu.z *= snoise(uu); \n\
+        texcoord3 = normalize(uu)*2.0 - 1.0; //xyz; \n\
       }else if (tgen_type==TCGT_NOISE_EYE) { \n\
         texcoord3 = normalize(vertexPos.xyz * snoise(vertexPos.xyz))*2.0 - 1.0; //xyz; \n\
       } else if(tgen_type == TCGT_CAMERASPACEREFLECTIONVECTOR || tgen_type == TCGT_CAMERASPACEREFLECTION){ \n\
