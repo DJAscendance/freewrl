@@ -425,10 +425,13 @@ typedef struct s_shader_capabilities{
 	GLint NormalMatrix;
 	GLint ModelViewInverseMatrix;
 	GLint TextureMatrix[MAX_MULTITEXTURE];
-	GLint tgen[MAX_MULTITEXTURE+2];
 	GLint nTexMatrix;
 	GLint tmap[MAX_MULTITEXTURE+2];
 	GLint cmap[MAX_MULTITEXTURE + 2];
+	GLint tgen[MAX_MULTITEXTURE + 2];
+	GLint parameter_n;
+	GLint parameter[7];
+
 	GLint ntexcombo;
 	GLint Vertices;
 	GLint Normals;

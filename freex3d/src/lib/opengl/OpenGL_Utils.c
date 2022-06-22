@@ -3105,6 +3105,14 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->tgen[3] = GET_UNIFORM(myProg, "fw_tgen[3]");
 	me->tgen[4] = GET_UNIFORM(myProg, "fw_tgen[4]");
 	me->tgen[5] = GET_UNIFORM(myProg, "fw_tgen[5]");
+	me->parameter_n = GET_UNIFORM(myProg, "fw_parameter_n");
+	me->parameter[0] = GET_UNIFORM(myProg, "fw_parameter[0]");
+	me->parameter[1] = GET_UNIFORM(myProg, "fw_parameter[1]");
+	me->parameter[2] = GET_UNIFORM(myProg, "fw_parameter[2]");
+	me->parameter[3] = GET_UNIFORM(myProg, "fw_parameter[3]");
+	me->parameter[4] = GET_UNIFORM(myProg, "fw_parameter[4]");
+	me->parameter[5] = GET_UNIFORM(myProg, "fw_parameter[5]");
+	me->parameter[6] = GET_UNIFORM(myProg, "fw_parameter[6]");
 
 	me->cmap[0] = GET_UNIFORM(myProg, "fw_cmap[0]");
 	me->cmap[1] = GET_UNIFORM(myProg, "fw_cmap[1]");

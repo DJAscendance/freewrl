@@ -543,9 +543,11 @@ attribute vec4 fw_MultiTexCoord2; \n\
 attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
 uniform int fw_tmap[6]; \n\
-uniform int fw_tgen[6]; \n\
 uniform int fw_cmap[6]; \n\
 uniform int fw_ntexcombo; \n\
+uniform int fw_tgen[6]; \n\
+uniform float fw_parameter[7]; \n\
+uniform int fw_parameter_n; \n\
 uniform int flipuv; \n\
 vec4 yupuv(in vec4 uv){ \n\
   //gltf uv are y-down, so we flag and send the flag here \n\
@@ -996,9 +998,21 @@ void main(void) \n\
         vec3 vv = normalize(fw_Normal); \n\
         texcoord3 = normalize(reflect(uu,vv)); //computed in object space \n\
         texcoord3.st = -texcoord3.st; //helps with renderman cubemap convention \n\
+      } else if(tgen_type == TCGT_SPHERE_REFLECT) {  \n\
+        vec3 uu=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */  \n\
+        if(fw_parameter_n == 1){ \n\
+          float eta = 1.0/fw_parameter[0]; \n\
+          texcoord3 = normalize(refract(uu,vertexNorm, eta)); \n\
+        }else \n\
+          texcoord3 = normalize(reflect(uu,vertexNorm)); \n\
+      } else if(tgen_type == TCGT_SPHERE_REFLECT_LOCAL) {  \n\
+        vec3 vlocal = vec3(fw_parameter[1],fw_parameter[2],fw_parameter[3]);\n\
+        vec3 uu=normalize(vec3(vlocal - fw_Vertex.xyz));  \n\
+        float eta = 1.0/(fw_parameter[0]+.001); \n\
+        texcoord3 = normalize(refract(uu,fw_Normal, eta)); \n\
       } else { /* default usage - like default CubeMaps */ \n\
-        vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */  \n\
-        texcoord3 =    normalize(reflect(u,vertexNorm)); \n\
+        vec3 uu=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */  \n\
+        texcoord3 = normalize(reflect(uu,vertexNorm)); \n\
       } \n\
 	  fw_TexCoord[i] = texcoord3; \n\
     } else { \n\

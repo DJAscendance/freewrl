@@ -337,7 +337,7 @@ void textureTransform_end(void) {
 }
 
 /* did we have a TextureTransform in the Appearance node? */
-void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap, int *igen) {
+void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap, int *igen, int *parameter_n, float *parameter) {
 	*tmap = NULL;
 	*igen = TCGT_REGULAR;
 	/* is this a simple TextureTransform? */
@@ -379,6 +379,8 @@ void do_textureTransform0 (struct X3D_Node *textureNode, int ttnum, char **tmap,
 				struct X3D_TextureTransformGenerator* ttg = (struct X3D_TextureTransformGenerator*)ttt;
 				*tmap = ttg->mapping ? ttg->mapping->strptr : NULL;
 				*igen = findFieldInARR((ttg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);
+				*parameter_n = ttg->parameter.n;
+				memcpy(parameter, ttg->parameter.p, ttg->parameter.n * sizeof(float));
 				//any matrix prep that would simplify GPU / vertex shader side?
 				//any clock-time animations?
 				//any routed parameter[] updates?
@@ -574,6 +576,8 @@ void textureTransform_start() {
 	struct X3D_Node* tnode;
 	int itmap[MAX_MULTITEXTURE];
 	int igen[MAX_MULTITEXTURE];
+	int parameter_n;
+	float parameter[7];
 	int icombo[MAX_MULTITEXTURE + 2][2];
 	int immap[MAX_MULTITEXTURE];
 
@@ -599,6 +603,7 @@ void textureTransform_start() {
 		icombo[i][0] = icombo[i][1] = -1; //[0] index of texcoord ie 0 = TEXCOORD_0, -1 means 0, [1] index of textrans, -1 means idenity
 	}
 	ncombo = 1; // de-minimus for shapeless things
+	parameter_n = 0;
 	//printf ("passedInGenTex, B\n");
 	isStrict = 1;  //web3d specs say if its a multitexture, 
 		//and you give it a single textureTransform instead of multitexturetransform 
@@ -688,7 +693,7 @@ void textureTransform_start() {
 			for (int i = 0; i < ntrans; i++) {
 				FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 				FW_GL_LOAD_IDENTITY();
-				do_textureTransform0(tt, i, &tmap[i], &igen[i]);
+				do_textureTransform0(tt, i, &tmap[i], &igen[i], & parameter_n, parameter);
 			}
 		}
 		if (is_cubeMap(tnode) && !ntrans) {
@@ -744,7 +749,10 @@ void textureTransform_start() {
 		glUniform1i(me->nTexMatrix, ntrans); //see also sendMatricesToShader and 	FW_GL_MATRIX_MODE(GL_TEXTURE); above
 		for (int ig = 0; ig < MAX_MULTITEXTURE; ig++)
 			glUniform1i(me->tgen[ig], igen[ig]);
-
+		// ideally parameters would be 1:1 with texture stage / single texture. For now, allow one stage of multitexture to have refraction parameters.
+		glUniform1i(me->parameter_n, parameter_n);
+		for (int ig = 0; ig < parameter_n; ig++)
+			glUniform1f(me->parameter[ig], parameter[ig]);
 		//Step 3 go over appearance and/or material textures, and generate up to 1 combo (texcoord,textrans) for each
 		//pair appearance.textures with texture coordinates
 		int ntextures = tg->RenderFuncs.textureStackTop;
