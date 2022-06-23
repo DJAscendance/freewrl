@@ -908,6 +908,7 @@ void main(void) \n\
   //default unlits in case we dont set them \n\
   castle_UnlitColor = vec4(1.0,1.0,1.0,1.0); \n\
   castle_MaterialDiffuseAlpha = 1.0; \n\
+  castle_Color = castle_UnlitColor; \n\
   #ifdef LIT \n\
 #ifdef PHONG \n\
   castle_ColorES = vec3(0.0); \n\
@@ -1656,135 +1657,18 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 //GETTERS \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
 // material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-vec4 sample_map0(int iunit, bool apply_gamma){ \n\
-	int index = mat.tindex[mat.tstart[iunit]]; \n\
-	//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
-	//vec2 tc = fw_TexCoord[mat.cmap[iunit]].xy; \n\
-    vec2 tc = fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy; \n\
-	vec4 nc = vec4(0); \n\
-	#if __VERSION__ >= 400 \n\
-      nc = texture2D(textureUnit[mat.tindex[mat.tstart[iunit]]],fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy); \n\
-    #elif __VERSION__ >= 330 \n\
-	switch(index) { \n\
-		case 0: nc = texture2D(textureUnit[0],tc); break; \n\
-		case 1: nc = texture2D(textureUnit[1],tc); break; \n\
-		case 2: nc = texture2D(textureUnit[2],tc); break; \n\
-		case 3: nc = texture2D(textureUnit[3],tc); break; \n\
-		case 4: nc = texture2D(textureUnit[4],tc); break; \n\
-		case 5: nc = texture2D(textureUnit[5],tc); break; \n\
-		case 6: nc = texture2D(textureUnit[6],tc); break; \n\
-		case 7: nc = texture2D(textureUnit[7],tc); break; \n\
-        #if !defined(SHADOW) && !defined(CUB) \n\
-		case 8: nc = texture2D(textureUnit[8],tc); break; \n\
-		case 9: nc = texture2D(textureUnit[9],tc); break; \n\
-		case 10: nc = texture2D(textureUnit[10],tc); break; \n\
-		case 11: nc = texture2D(textureUnit[11],tc); break; \n\
-		case 12: nc = texture2D(textureUnit[12],tc); break; \n\
-		case 13: nc = texture2D(textureUnit[13],tc); break; \n\
-		case 14: nc = texture2D(textureUnit[14],tc); break; \n\
-		case 15: nc = texture2D(textureUnit[15],tc); break; \n\
-        #endif //SHADOW \n\
-		default: break; \n\
-	} \n\
-	#else //__VERSION__ < 330 \n\
-		//glsl 1.20 that goes with opengl 2.1 has trouble with switch \n\
-		if(index < 8){ \n\
-			if(index < 4){ \n\
-				if(index < 2){ \n\
-					if(index == 1) \n\
-						nc = texture2D(textureUnit[1],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[0],tc); \n\
-				}else{ \n\
-					if(index == 3) \n\
-						nc = texture2D(textureUnit[3],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[2],tc); \n\
-				} \n\
-			}else{\n\
-				if(index < 6) { \n\
-					if(index == 5) \n\
-						nc = texture2D(textureUnit[5],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[4],tc); \n\
-				}else{ \n\
-					if(index == 7) \n\
-						nc = texture2D(textureUnit[7],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[6],tc); \n\
-				} \n\
-			}\n\
-		}\n\
-        #if !defined(SHADOW) && !defined(CUB) \n\
-        else{ \n\
-			if(index < 12){\n\
-				if(index < 10){ \n\
-					if(index == 9) \n\
-						nc = texture2D(textureUnit[9],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[8],tc); \n\
-				}else{ \n\
-					if(index == 11) \n\
-						nc = texture2D(textureUnit[11],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[10],tc); \n\
-				} \n\
-			}else{ \n\
-				if(index < 14) { \n\
-					if(index == 13) \n\
-						nc = texture2D(textureUnit[13],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[12],tc); \n\
-				}else{ \n\
-					if(index == 15) \n\
-						nc = texture2D(textureUnit[15],tc); \n\
-					else \n\
-						nc = texture2D(textureUnit[14],tc); \n\
-				} \n\
-			} \n\
-		} \n\
-        #endif //SHADOW \n\
-	#endif //__VERSION__ \n\
-	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
-	return nc; \n\
-} \n\
-vec4 sample_map(int iunit, bool apply_gamma){ \n\
+vec4 sample_map(int iuse, bool apply_gamma){ \n\
 	vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
-	//#ifdef MTEX //not working \n\
-	//vec4 nc = vec4(0.0,0.0,0.0,1.0); \n\
-	int ndesc = mat.tcount[iunit]; \n\
-    if(ndesc > 1){ //multitex \n\
-		int istart = mat.tstart[iunit];\n\
-		//// vec4 prev = nc; \n\
-		//int index = mat.tindex[mat.tstart[iunit]]; \n\
-		//vec2 tc = fw_TexCoord[mat.cindex[iunit]].xy; \n\
-		vec4 prev = nc; \n\
-		int k=istart; \n\
-		//vec2 ptex = fw_TexCoord[mat.cindex[iunit]].xy; \n\
-		vec2 ptex = fw_TexCoord[mat.cmap[mat.tstart[iunit]]].xy; \n\
-		for(int j=0;j<ndesc;j++,k++){ \n\
-            //if(j==ndesc) break; \n\
-			int kk = mat.tindex[k]; \n\
-			int modea = int(mat.mode[k] / 100); \n\
-			int mode = mat.mode[k] - 100*modea; \n\
-            //vec4 cur = sample_map0(kk,false); \n\
-            vec4 cur = texture2D(textureUnit[kk],ptex); \n\
-            #ifdef MTEX \n\
-			finalColCalcB(prev, mode, modea, mat.func[k], cur); \n\
-			#else //MTEX \n\
-            prev = cur; \n\
-		    #endif //MTEX \n\
-            //prev = cur; \n\
-			//vec4 ncc = texture2D(textureUnit[kk],ptex.xy); \n\
-			//prev.rgb = clamp(prev.rgb + ncc.rgb,0.0,1.0); \n\
-		} \n\
-		//prev = vec4(0.5,1.0,0.5,1.0); \n\
-		nc = prev; \n\
-	//#else //MTEX \n\
-    } else { //MTEX \n\
-      nc = sample_map0(iunit, apply_gamma); \n\
-    } //MTEX \n\
-	//#endif //MTEX \n\
+	int tex_index = mat.tindex[mat.tstart[iuse]]; \n\
+    int coord_index = mat.cmap[mat.tstart[iuse]]; \n\
+    int samplr = mat.samplr[mat.tstart[iuse]]; \n\
+    #ifdef CUB \n\
+    if(samplr == 1) \n\
+      nc = texture(textureUnitCube[tex_index], fw_TexCoord[coord_index].xyz); \n\
+    else \n\
+    #endif //CUB \n\
+      nc = texture2D(textureUnit[tex_index],fw_TexCoord[coord_index].st); \n\
+	if(apply_gamma) nc = SRGBtoLINEAR(nc); \n\
 	return nc; \n\
 } \n\
 vec3 getNormal(){ \n\
@@ -1853,15 +1737,15 @@ float getOcclusion(){ \n\
 	} \n\
 	return occ; \n\
 } \n\
-vec3 getDiffuse(){ \n\
-	vec3 D = mat.diffuse; \n\
-	int diffuse_image = 3; \n\
-	if(mat.type == 2 && mat.tcount[diffuse_image] > 0){ \n\
-		vec4 dc = sample_map(diffuse_image,true); \n\
-		D.rgb *= dc.rgb; \n\
-	} \n\
-	return D; \n\
-} \n\
+//vec3 getDiffuse(){ \n\
+//	vec3 D = mat.diffuse; \n\
+//	int diffuse_image = 3; \n\
+//	if(mat.type == 2 && mat.tcount[diffuse_image] > 0){ \n\
+//		vec4 dc = sample_map(diffuse_image,true); \n\
+//		D.rgb *= dc.rgb; \n\
+//	} \n\
+//	return D; \n\
+//} \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
 	int shininess_image = 4; \n\
@@ -1889,15 +1773,15 @@ float getAmbient(){ \n\
 	} \n\
 	return amb; \n\
 } \n\
-vec3 getBaseColor(){ \n\
-	vec3 B = mat.baseColor; \n\
-	int base_image = 3; \n\
-	if(mat.type == 3 && mat.tcount[base_image] > 0){ \n\
-		vec4 bc = sample_map(base_image,true); \n\
-		B.rgb *= bc.rgb; \n\
-	} \n\
-	return B; \n\
-} \n\
+//vec3 getBaseColor(){ \n\
+//	vec3 B = mat.baseColor; \n\
+//	int base_image = 3; \n\
+//	if(mat.type == 3 && mat.tcount[base_image] > 0){ \n\
+//		vec4 bc = sample_map(base_image,true); \n\
+//		B.rgb *= bc.rgb; \n\
+//	} \n\
+//	return B; \n\
+//} \n\
 float getMetallic(){ \n\
 	float met = mat.metallic; \n\
 	int metallic_image = 4; \n\
@@ -1924,17 +1808,57 @@ vec4 getVertexColor() { \n\
 	#endif //CPV \n\
 	return color; \n\
 } \n\
-vec4 getDiffuseOrBase(){ \n\
-	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
-} \n\
-vec4 getDiffuseFactor() { \n\
+//vec4 getDiffuseOrBase(){ \n\
+//	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
+//} \n\
+//vec4 getDiffuseFactor() { \n\
+//	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
+//	// table 17-2, 17-3 logic here \n\
+//	// function returns ODrgb (lit) or Irgb (unlit) \n\
+//	// MODT - freewrl out-of-spec option: alwasy modulate texture with diffuse \n\
+//	// MODC - illuminance texture, modulate texture with any CPV/CPF or mat.diffuse if no CPV \n\
+//	// MODA - texture has no interesting alpha, use material.diffuse.a \n\
+//	vec4 dcolor = vec4(1.0); \n\
+//	float mixcpv = 0.0; \n\
+//	#ifdef CPV \n\
+//	mixcpv = 1.0; \n\
+//	#endif //CPV \n\
+//	#ifdef TEX \n\
+//		#ifndef MODC \n\
+//		mixcpv = 0.0; \n\
+//		#endif //MODC \n\
+//	#endif //TEX \n\
+//	vec4 IC = getVertexColor(); \n\
+//	vec4 D = getDiffuseOrBase(); \n\
+//	dcolor *= mix(D,IC,mixcpv); \n\
+//	#ifdef TEX \n\
+//    int iuse = mat.type < 2 ? 1 : 3; \n\
+//    if(mat.tcount[iuse] > 0){ \n\
+//        //appearance level textures (vs material level) \n\
+//		vec3 N = getNormal(); \n\
+//		vec4 tcolor = vec4(1.0); \n\
+//		#if defined(MODT) || defined(MODC) \n\
+//			tcolor.rgb = dcolor.rgb; \n\
+//		#endif //MODT || MODC \n\
+//		/* PLUG: texture_apply (tcolor, iuse) */ \n\
+//		dcolor.rgb = tcolor.rgb; \n\
+//		#ifdef MODA \n\
+//			dcolor.a *= tcolor.a; \n\
+//		#else //MODA \n\
+//			dcolor.a = tcolor.a; \n\
+//		#endif //MODA \n\
+//	} \n\
+//	#endif //TEX \n\
+//	return dcolor; \n\
+//} \n\
+vec4 getMainColor(in vec4 fragColor, in int iuse) { \n\
 	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
 	// table 17-2, 17-3 logic here \n\
 	// function returns ODrgb (lit) or Irgb (unlit) \n\
 	// MODT - freewrl out-of-spec option: alwasy modulate texture with diffuse \n\
 	// MODC - illuminance texture, modulate texture with any CPV/CPF or mat.diffuse if no CPV \n\
 	// MODA - texture has no interesting alpha, use material.diffuse.a \n\
-	vec4 dcolor = vec4(1.0); \n\
+	vec4 dcolor = fragColor; \n\
 	float mixcpv = 0.0; \n\
 	#ifdef CPV \n\
 	mixcpv = 1.0; \n\
@@ -1945,18 +1869,15 @@ vec4 getDiffuseFactor() { \n\
 		#endif //MODC \n\
 	#endif //TEX \n\
 	vec4 IC = getVertexColor(); \n\
-	vec4 D = getDiffuseOrBase(); \n\
-	dcolor *= mix(D,IC,mixcpv); \n\
+	dcolor *= mix(dcolor,IC,mixcpv); \n\
 	#ifdef TEX \n\
-    int iuse = mat.type < 2 ? 1 : 3; \n\
     if(mat.tcount[iuse] > 0){ \n\
         //appearance level textures (vs material level) \n\
-		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
 		#if defined(MODT) || defined(MODC) \n\
 			tcolor.rgb = dcolor.rgb; \n\
 		#endif //MODT || MODC \n\
-		/* PLUG: texture_apply (tcolor, N) */ \n\
+		/* PLUG: texture_apply (tcolor, iuse) */ \n\
 		dcolor.rgb = tcolor.rgb; \n\
 		#ifdef MODA \n\
 			dcolor.a *= tcolor.a; \n\
@@ -1981,12 +1902,11 @@ vec4 getGouraudColor() { \n\
 	//if(textureCount > 0){ \n\
     int iuse = mat.type < 2 ? 1 : 3; \n\
     if(mat.tcount[iuse] > 0){ \n\
-		vec3 N = getNormal(); \n\
 		vec4 tcolor = vec4(1.0); \n\
 		#if defined(MODT) || defined(MODC) \n\
 			tcolor.rgb = dcolor.rgb; \n\
 		#endif //MODT || MODC \n\
-		/* PLUG: texture_apply (tcolor, N) */ \n\
+		/* PLUG: texture_apply (tcolor, iuse) */ \n\
 		dcolor.rgb = tcolor.rgb; \n\
 		#ifdef MODA \n\
 			dcolor.a *= tcolor.a; \n\
@@ -2034,7 +1954,7 @@ void main(void) \n\
 			if(mat.tcount[iuse] > 0){ \n\
 				vec3 N = getNormal(); \n\
 				vec4 tcolor = vec4(1); \n\
-				/* PLUG: texture_apply (tcolor, N) */ \n\
+				/* PLUG: texture_apply (tcolor, iuse) */ \n\
 				if(u_pointColorMode == 1) dcolor.a = tcolor.a; \n\
 				if(u_pointColorMode == 2) dcolor = tcolor; \n\
 				if(u_pointColorMode == 3) { \n\
@@ -2059,23 +1979,26 @@ void main(void) \n\
 	//fragment_color =  diffuseFactor; \n\
 //STEP0 GOURAUD \n\
 	#ifndef PHONG \n\
+    // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
     //if(mat.type == 0){ \n\
-        // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
         // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
 		fragment_color = getGouraudColor(); \n\
     //} \n\
 	#endif //not PHONG \n\
 //STEP1 EMISSIVE \n\
 	#ifdef PHONG \n\
+    // commandline freewrl --shadingStyle 2 (Phong, default if not specified) invokes this \n\
     if(mat.type == 0){ \n\
-        // commandline freewrl --shadingStyle 1 (Gouraud) invokes this \n\
         // as of June 2022 Background still going through here and mat.type = MAT_NONE is default in freewrl \n\
 		fragment_color = getGouraudColor(); \n\
     } \n\
 	if(mat.type == 1) { \n\
         //MAT_UNLIT - no lighting \n\
-		fragment_color.rgb = getEmissive(); \n\
-		fragment_color.a = getAlpha(); \n\
+		//fragment_color.rgb = getEmissive(); \n\
+		//fragment_color.a = getAlpha(); \n\
+        int iuse = 1; \n\
+        vec4 apriori = vec4(mat.emissive, 1.0-mat.transparency); \n\
+		fragment_color = getMainColor(apriori,iuse); // getEmissive(); \n\
         //if the shape is using TextureCoordinateGenerator with some modes (CAMERASPACENORMAL, CAMERASPACEREFLECTIONVECTOR) \n\
         // .. then the shader code may need access to normals (where?) \n\
         // .. but not use here for lighting \n\
@@ -2091,7 +2014,10 @@ void main(void) \n\
         fragment_color.a = getAlpha(); \n\
 		float shiny = getShininess(); \n\
 		float amby = getAmbient(); \n\
-		vec3 diffy = getDiffuseFactor().rgb; //diffuseFactor.rgb; //\n\
+        vec4 apriori = vec4(mat.diffuse,1.0-mat.transparency); \n\
+        int iuse = 3; \n\
+        fragment_color = getMainColor(apriori,iuse); \n\
+		vec3 diffy = fragment_color.rgb; //getDiffuseFactor().rgb; //diffuseFactor.rgb; //\n\
 		vec3 specy = getSpecular(); \n\
 		vec3 normy = getNormal(); \n\
 		float occy = getOcclusion(); \n\
@@ -2107,7 +2033,10 @@ void main(void) \n\
 		#ifdef LITE \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
-		vec3 baseColor = getBaseColor(); \n\
+        vec4 apriori = vec4(mat.diffuse,1.0-mat.transparency); \n\
+        int iuse = 3; \n\
+        fragment_color = getMainColor(apriori,iuse); \n\
+        vec3 baseColor = fragment_color.rgb; // getBaseColor(); \n\
 		//unlit \n\
 		vec3 specularColor= vec3(0.0); \n\
 	    vec3 f0 = vec3(0.04); \n\
@@ -3252,10 +3181,9 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 
 */
 static const GLchar *plug_fragment_texture_apply =	"\
-void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
+void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
  \n\
   #ifdef MTEX \n\
-  int iuse = mat.type < 2? 1 : 3; \n\
   int ndesc = mat.tcount[iuse]; \n\
   int k = mat.tstart[iuse]; \n\
   if(ndesc > 1){ //multitex \n\
@@ -3290,7 +3218,6 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
     } \n\
   } else { \n\
     /* ONE TEXTURE */ \n\
-    int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
     if(mat.samplr[mat.tstart[iuse]]==1) \n\
       finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
@@ -3300,7 +3227,6 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
   } \n\
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
-    int iuse = mat.type < 2? 1 : 3; \n\
     #ifdef CUB \n\
     if(mat.samplr[mat.tstart[iuse]]==1) \n\
       finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
