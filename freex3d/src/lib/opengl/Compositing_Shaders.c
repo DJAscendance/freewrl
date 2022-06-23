@@ -24,7 +24,7 @@
 	http://castle-engine.sourceforge.net/compositing_shaders.php
 
 	In the starting default/base shader, structured for web3d lighting model, with PLUG deckarations:
-		...  PLUG: texture_apply (fragment_color, normal_eye_fragment) 
+		...  PLUG: texture_apply (fragment_color, iuse) 
 		7
 	In an additive effect shader:
         void PLUG_texture_color(inout vec4 texture_color,
@@ -1656,8 +1656,9 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 // << PhYSICAL LIGHTING \n\
 //GETTERS \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
-// material.maps: iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+// material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
 vec4 sample_map(int iuse, bool apply_gamma){ \n\
+    //simpler than texture_apply, just for 1 texture \n\
 	vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
 	int tex_index = mat.tindex[mat.tstart[iuse]]; \n\
     int coord_index = mat.cmap[mat.tstart[iuse]]; \n\
@@ -1737,15 +1738,6 @@ float getOcclusion(){ \n\
 	} \n\
 	return occ; \n\
 } \n\
-//vec3 getDiffuse(){ \n\
-//	vec3 D = mat.diffuse; \n\
-//	int diffuse_image = 3; \n\
-//	if(mat.type == 2 && mat.tcount[diffuse_image] > 0){ \n\
-//		vec4 dc = sample_map(diffuse_image,true); \n\
-//		D.rgb *= dc.rgb; \n\
-//	} \n\
-//	return D; \n\
-//} \n\
 float getShininess() { \n\
 	float S = mat.shininess; \n\
 	int shininess_image = 4; \n\
@@ -1773,15 +1765,6 @@ float getAmbient(){ \n\
 	} \n\
 	return amb; \n\
 } \n\
-//vec3 getBaseColor(){ \n\
-//	vec3 B = mat.baseColor; \n\
-//	int base_image = 3; \n\
-//	if(mat.type == 3 && mat.tcount[base_image] > 0){ \n\
-//		vec4 bc = sample_map(base_image,true); \n\
-//		B.rgb *= bc.rgb; \n\
-//	} \n\
-//	return B; \n\
-//} \n\
 float getMetallic(){ \n\
 	float met = mat.metallic; \n\
 	int metallic_image = 4; \n\
@@ -1808,49 +1791,6 @@ vec4 getVertexColor() { \n\
 	#endif //CPV \n\
 	return color; \n\
 } \n\
-//vec4 getDiffuseOrBase(){ \n\
-//	return vec4(getBaseColor()*getDiffuse(),getAlpha()); \n\
-//} \n\
-//vec4 getDiffuseFactor() { \n\
-//	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
-//	// table 17-2, 17-3 logic here \n\
-//	// function returns ODrgb (lit) or Irgb (unlit) \n\
-//	// MODT - freewrl out-of-spec option: alwasy modulate texture with diffuse \n\
-//	// MODC - illuminance texture, modulate texture with any CPV/CPF or mat.diffuse if no CPV \n\
-//	// MODA - texture has no interesting alpha, use material.diffuse.a \n\
-//	vec4 dcolor = vec4(1.0); \n\
-//	float mixcpv = 0.0; \n\
-//	#ifdef CPV \n\
-//	mixcpv = 1.0; \n\
-//	#endif //CPV \n\
-//	#ifdef TEX \n\
-//		#ifndef MODC \n\
-//		mixcpv = 0.0; \n\
-//		#endif //MODC \n\
-//	#endif //TEX \n\
-//	vec4 IC = getVertexColor(); \n\
-//	vec4 D = getDiffuseOrBase(); \n\
-//	dcolor *= mix(D,IC,mixcpv); \n\
-//	#ifdef TEX \n\
-//    int iuse = mat.type < 2 ? 1 : 3; \n\
-//    if(mat.tcount[iuse] > 0){ \n\
-//        //appearance level textures (vs material level) \n\
-//		vec3 N = getNormal(); \n\
-//		vec4 tcolor = vec4(1.0); \n\
-//		#if defined(MODT) || defined(MODC) \n\
-//			tcolor.rgb = dcolor.rgb; \n\
-//		#endif //MODT || MODC \n\
-//		/* PLUG: texture_apply (tcolor, iuse) */ \n\
-//		dcolor.rgb = tcolor.rgb; \n\
-//		#ifdef MODA \n\
-//			dcolor.a *= tcolor.a; \n\
-//		#else //MODA \n\
-//			dcolor.a = tcolor.a; \n\
-//		#endif //MODA \n\
-//	} \n\
-//	#endif //TEX \n\
-//	return dcolor; \n\
-//} \n\
 vec4 getMainColor(in vec4 fragColor, in int iuse) { \n\
 	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#Lightingoff \n\
 	// table 17-2, 17-3 logic here \n\
@@ -1897,9 +1837,6 @@ vec4 getGouraudColor() { \n\
 		dcolor = cpv_Color; \n\
 	#endif //CPV \n\
 	#ifdef TEX \n\
-    //Q. do we need this, or is everyone including background using emissive texture and emissive color? \n\
-    //A. command line freewrl --shadingStyle 1  will invoke this texture + gouraud \n\
-	//if(textureCount > 0){ \n\
     int iuse = mat.type < 2 ? 1 : 3; \n\
     if(mat.tcount[iuse] > 0){ \n\
 		vec4 tcolor = vec4(1.0); \n\
@@ -3087,7 +3024,7 @@ vec4 texture3Demu( sampler2D sampler, in vec3 texcoord3){ \n\
 void PLUG_texture3D( inout vec4 sample, in vec3 texcoord3 ){ \n\
 	sample = texture3Demu(fw_Texture_unit0,texcoord3); \n\
 } \n\
-void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
+void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
 	vec4 sample; \n\
 	sample = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
@@ -3098,7 +3035,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 
 
 static const GLchar *plug_fragment_texture3Dlayer_apply =	"\
-void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n\
+void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
   #ifdef TEX3DLAY \n\
   vec3 texcoord = fw_TexCoord[0]; \n\
@@ -3137,7 +3074,7 @@ void PLUG_texture_apply (inout vec4 finalFrag, in vec3 normal_eye_fragment ){ \n
 
 //MULTITEXTURE
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture
-  /* PLUG: texture_apply (fragment_color, normal_eye_fragment) */
+  /* PLUG: texture_apply (fragment_color, in int iuse) */
 /*
  mat.
 	int tindex[10]; \n\
