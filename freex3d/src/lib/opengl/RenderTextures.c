@@ -698,6 +698,7 @@ void textureTransform_start() {
 		}
 		struct X3D_Node* tt = getThis_textureTransform();
 		int ntrans = 0;
+		int ntrans_specified = 0;
 		if (tt != NULL) {
 			switch (tt->_nodeType) {
 			case NODE_TextureTransform:
@@ -719,6 +720,7 @@ void textureTransform_start() {
 
 			}
 		}
+		ntrans_specified = ntrans;
 		int ngen = 0;
 		for (int ig = 0; ig < ntrans; ig++) if (igen[ig] != TCGT_REGULAR) ngen++;
 		//printf("ntrans %d ngen %d is_or_has_cubemap %d\n", ntrans, ngen, is_or_has_cubeMap(tnode));
@@ -805,12 +807,13 @@ void textureTransform_start() {
 					p = mnode->texture.p;
 					n = mnode->texture.n;
 				}
-				int itrans = -1;
-				int icoord = -1;
 				for (int i = 0; i < n; i++) {
 					int jsamplr = is_cubeMap(p[i]) ? 1 : isTex3D(p[i]) ? 2 : 0;
-					itrans = next_or_last_sampler_compatible_trans(itrans, ntrans, jsamplr, igen);
-					icoord = min(i, ntcoord - 1);  //next_or_last_sampler_compatible_coord(icoord, ntcoord, jsamplr);
+					int itrans = i > ntrans_specified - 1 ? -1 : i; // min(i, ntrans - 1);
+					if (itrans == -1) {
+						itrans = next_or_last_sampler_compatible_trans(i-1, ntrans, jsamplr, igen);
+					}
+					int icoord = min(i, ntcoord - 1);  //next_or_last_sampler_compatible_coord(icoord, ntcoord, jsamplr);
 					int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
 					matprop->fw_FrontMaterial.cmap[i] = jcombo;
 				}
@@ -844,7 +847,6 @@ void textureTransform_start() {
 			}
 		}
 		for (int i = 0; i < ncombo; i++) {
-			//itmap[i] = i;
 			//printf("icmap[%d] = %d uniform %d\n", i, icombo[i][0], me->cmap[i]);
 			//printf("itmap[%d] = %d uniform %d\n", i, icombo[i][1], me->tmap[i]);
 			glUniform1i(me->cmap[i], icombo[i][0]);
