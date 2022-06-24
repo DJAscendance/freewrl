@@ -1657,12 +1657,12 @@ vec3 LINEARtoSRGB(vec3 color) \n\
 //GETTERS \n\
 fw_MaterialParameters mat = fw_FrontMaterial; \n\
 // material.maps: iuse [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
-vec4 sample_map(int iuse, bool apply_gamma){ \n\
+vec4 sample_map(in int iuse, in int istage, in bool apply_gamma){ \n\
     //simpler than texture_apply, just for 1 texture \n\
 	vec4 nc = vec4(1.0,1.0,1.0,1.0); \n\
-	int tex_index = mat.tindex[mat.tstart[iuse]]; \n\
-    int coord_index = mat.cmap[mat.tstart[iuse]]; \n\
-    int samplr = mat.samplr[mat.tstart[iuse]]; \n\
+	int tex_index = mat.tindex[mat.tstart[iuse]+istage]; \n\
+    int coord_index = mat.cmap[mat.tstart[iuse]+istage]; \n\
+    int samplr = mat.samplr[mat.tstart[iuse]+istage]; \n\
     #ifdef CUB \n\
     if(samplr == 1) \n\
       nc = texture(textureUnitCube[tex_index], fw_TexCoord[coord_index].xyz); \n\
@@ -1693,7 +1693,7 @@ vec3 getNormal(){ \n\
 		vec3 b = normalize(cross(N, t)); \n\
 		mat3 tbn = mat3(t, b, N); \n\
 		//vec4 nc = texture2D(textureUnit[mat.tindex[mat.tstart[0]]],fw_TexCoord[mat.cindex[normal_image]].xy); \n\
-		vec4 nc = sample_map(normal_image,false); \n\
+		vec4 nc = sample_map(normal_image,0,false); \n\
 		vec3 ncn = normalize(vec3(nc.x * 2.0 - 1.0, nc.y*2.0 -1.0, nc.z)); //-1 to 1, -1 to 1, 0 to 1 \n\
         vec3 ncns = normalize(ncn*vec3(mat.normalScale,mat.normalScale,1.0)); \n\
 		//normal.xyz = normalize((textureSample(normalTexture).rgb * vec3(2,2,2) - vec3(1,1,1)) * vec3(normalScale, normalScale, 1)) \n\
@@ -1708,7 +1708,7 @@ vec3 getEmissive(){ \n\
 	vec3 E = mat.emissive; \n\
 	int emissive_image = 1; \n\
 	if(mat.type > 0 && mat.tcount[emissive_image] > 0){ \n\
-		vec4 ec = sample_map(emissive_image,true); \n\
+		vec4 ec = sample_map(emissive_image,0,false); \n\
 		E.rgb *= ec.rgb; \n\
 	} \n\
 	return E; \n\
@@ -1720,7 +1720,7 @@ float getAlpha(){ \n\
 		int transparency_image = 3; //diffuse or base image \n\
 		if(mat.type == 1) transparency_image = 1; //emissive image \n\
 		if(mat.tcount[transparency_image] > 0) { \n\
-			vec4 dc = sample_map(transparency_image,false); \n\
+			vec4 dc = sample_map(transparency_image,0,false); \n\
 			A *= dc.a; \n\
 		} \n\
 	} \n\
@@ -1732,7 +1732,7 @@ float getOcclusion(){ \n\
 		int occlusion_image = 2; \n\
 		if(mat.tcount[occlusion_image] > 0) { \n\
 			occ = mat.occlusion; //occlusionStrength  \n\
-			vec4 oc = sample_map(occlusion_image,false); \n\
+			vec4 oc = sample_map(occlusion_image,0,false); \n\
 			occ *= oc.r; //only the red \n\
 		} \n\
 	} \n\
@@ -1742,7 +1742,7 @@ float getShininess() { \n\
 	float S = mat.shininess; \n\
 	int shininess_image = 4; \n\
 	if(mat.type == 2 && mat.tcount[shininess_image] > 0){ \n\
-		vec4 sc = sample_map(shininess_image,false); \n\
+		vec4 sc = sample_map(shininess_image,0,false); \n\
 		S *= sc.a; \n\
 	} \n\
 	return S; \n\
@@ -1751,7 +1751,7 @@ vec3 getSpecular() { \n\
 	vec3 S = mat.specular; \n\
 	int specular_image = 5; \n\
 	if(mat.type == 2 && mat.tcount[specular_image] > 0){ \n\
-		vec4 sc = sample_map(specular_image,true); \n\
+		vec4 sc = sample_map(specular_image,0,false); \n\
 		S.rgb *= sc.rgb; \n\
 	} \n\
 	return S; \n\
@@ -1760,7 +1760,7 @@ float getAmbient(){ \n\
 	float amb = mat.ambient; \n\
 	int ambient_image = 6; \n\
 	if(mat.type == 2 && mat.tcount[ambient_image] > 0){ \n\
-		vec4 ac = sample_map(ambient_image,true); \n\
+		vec4 ac = sample_map(ambient_image,0,false); \n\
 		amb *= ac.r; \n\
 	} \n\
 	return amb; \n\
@@ -1769,7 +1769,7 @@ float getMetallic(){ \n\
 	float met = mat.metallic; \n\
 	int metallic_image = 4; \n\
 	if(mat.type == 3 && mat.tcount[metallic_image] > 0){ \n\
-		vec4 mr = sample_map(metallic_image,false); \n\
+		vec4 mr = sample_map(metallic_image,0,false); \n\
 		met *= mr.b; \n\
 	} \n\
 	return met; \n\
@@ -1778,7 +1778,7 @@ float getRoughness(){ \n\
 	float rou = mat.roughness; \n\
 	int roughness_image = 4; //same as metallic \n\
 	if(mat.type == 3 && mat.tcount[roughness_image] > 0){ \n\
-		vec4 mr = sample_map(roughness_image,false); \n\
+		vec4 mr = sample_map(roughness_image,0,false); \n\
 		rou *= mr.g; \n\
 	} \n\
 	return rou; \n\
@@ -3142,35 +3142,19 @@ void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
           else if(iasource == MTSRC_SPECULAR) source.a = 1.0; \n\
           else if(iasource == MTSRC_FACTOR) source.a = mt_Color.a; \n\
         } \n\
-        vec4 cur; \n\
-        #ifdef CUB \n\
-        if(mat.samplr[k]==1){ \n\
-          cur = texture(textureUnitCube[mat.tindex[k]], fw_TexCoord[mat.cmap[k]]); \n\
-        }else \n\
-        #endif //CUB \n\
-          cur = texture2D(textureUnit[mat.tindex[k]], fw_TexCoord[mat.cmap[k]].xy); \n\
+        vec4 cur = sample_map(iuse,j,false); \n\
         finalColCalcB(source,mode,modea,mat.func[k], cur); \n\
         finalFrag = source; \n\
       } \n\
     } \n\
   } else { \n\
     /* ONE TEXTURE */ \n\
-    #ifdef CUB \n\
-    if(mat.samplr[mat.tstart[iuse]]==1) \n\
-      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
-    else \n\
-    #endif //CUB \n\
-     finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
+    finalFrag = sample_map(iuse,0,false) * finalFrag; \n\
   } \n\
   #else //MTEX \n\
     /* ONE TEXTURE */ \n\
-    #ifdef CUB \n\
-    if(mat.samplr[mat.tstart[iuse]]==1) \n\
-      finalFrag = texture(textureUnitCube[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]]) * finalFrag; \n\
-    else \n\
-    #endif //CUB \n\
-     finalFrag = texture2D(textureUnit[mat.tindex[mat.tstart[iuse]]], fw_TexCoord[mat.cmap[mat.tstart[iuse]]].xy) * finalFrag; \n\
-#endif //MTEX \n\
+    finalFrag = sample_map(iuse,0,false) * finalFrag; \n\
+  #endif //MTEX \n\
   \n\
 }\n";
 
