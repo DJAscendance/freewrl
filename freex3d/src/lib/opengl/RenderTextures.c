@@ -459,32 +459,30 @@ int is_cubeMap(struct X3D_Node* node) {
 	return iret;
 }
 int is_or_has_cubeMap(struct X3D_Node* node) {
-	int iret = 0;
-	if (node) {
-		switch (node->_nodeType) {
+	int ret = FALSE;
+	if (!node) return ret;
+	struct X3D_Node** p;
+	p = &node;
+	int n = 1;
+	if (node->_nodeType == NODE_MultiTexture) {
+		struct X3D_MultiTexture* mnode = (struct X3D_MultiTexture*)node;
+		p = mnode->texture.p;
+		n = mnode->texture.n;
+	}
+	for (int i = 0; i < n; i++) {
+		switch (p[i]->_nodeType) {
 		case NODE_ComposedCubeMapTexture:
 		case NODE_ImageCubeMapTexture:
 		case NODE_GeneratedCubeMapTexture:
-			iret = TRUE;
+			ret = TRUE;
 			break;
-		case NODE_MultiTexture:
-		{
-			struct X3D_MultiTexture* mt = (struct X3D_MultiTexture*)node;
-			if (mt->texture.n) {
-				iret = is_cubeMap(mt->texture.p[0]);
-			}
-			break;
-		}
 		default:
-			iret = FALSE;
 			break;
 		}
-
 	}
-	return iret;
+	return ret;
 }
-
-
+int is_or_has_Tex3D(struct X3D_Node* node);
 char* trans_name_from_texture_mapping(char* mmap, char* scratch) {
 	char* aret = NULL;
 	if (mmap) {
@@ -562,6 +560,26 @@ int find_or_make_combo(char* trans_name, char* coord_name, char** coord_name_lis
 	//	(* ncombo)++;
 	//}
 	return iret; //this will be the index into frag shader fw_TexCoord[iret] for a given texture.
+}
+int next_or_last_sampler_compatible_trans(int lasttrans, int ntrans, int jsamplr, int* igen) {
+	int itrans = -1;
+	//find the prior compatible if any
+	for (int i = 0; i < lasttrans + 1; i++){
+		if (jsamplr == 0 && igen[i] == TCGT_REGULAR) itrans = i;
+		if (jsamplr == 1 && igen[i] != TCGT_REGULAR) itrans = i;
+	}
+	//over-ride with the next compatible if any
+	for (int i = lasttrans + 1; i < ntrans; i++) {
+		if (jsamplr == 1 && igen[i] != TCGT_REGULAR) {
+			itrans = i;
+			break;
+		}
+		if (jsamplr == 0 && igen[i] == TCGT_REGULAR) {
+			itrans = i;
+			break;
+		}
+	}
+	return itrans;
 }
 
 
@@ -701,14 +719,18 @@ void textureTransform_start() {
 
 			}
 		}
-		if (is_cubeMap(tnode) && !ntrans) {
+		int ngen = 0;
+		for (int ig = 0; ig < ntrans; ig++) if (igen[ig] != TCGT_REGULAR) ngen++;
+		//printf("ntrans %d ngen %d is_or_has_cubemap %d\n", ntrans, ngen, is_or_has_cubeMap(tnode));
+		if (is_or_has_cubeMap(tnode) && !ngen) {
 			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 			FW_GL_LOAD_IDENTITY();
 			igen[ntrans] = TCGT_CAMERASPACEREFLECTIONVECTOR;
 			ntrans++;
+			//printf("adding igen for cubemap \n");
 		}
 		//add any computed 3D texture matrices
-		if (isTex3D(tnode) && !ntrans) {
+		if (is_or_has_Tex3D(tnode) && !ngen) {
 			if (tg->RenderFuncs.shapenode) {
 				//_if_ no TextureTransform3D was explicitly specified for Texture3D, 
 				//_and_ no textureCoordinate3D or textureCoordinate4D was explicilty specified with the goem node
@@ -766,11 +788,32 @@ void textureTransform_start() {
 		ncombo = 0;
 		if (tnode && X3D_APPEARANCE(sn->appearance)->texture == tnode) {
 			//texture is coming from appearance.texture
-			for (int i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
-				int itrans = min(i, ntrans - 1);
-				int icoord = min(i, ntcoord - 1);
-				int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
-				matprop->fw_FrontMaterial.cmap[i] = jcombo;
+			if (0) {
+				for (int i = 0; i < tg->RenderFuncs.textureStackTop; i++) {
+					int itrans = min(i, ntrans - 1);
+					int icoord = min(i, ntcoord - 1);
+					int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
+					matprop->fw_FrontMaterial.cmap[i] = jcombo;
+				}
+			}
+			else {
+				struct X3D_Node** p;
+				int n = 1;
+				p = &tnode;
+				if (tnode->_nodeType == NODE_MultiTexture) {
+					struct X3D_MultiTexture* mnode = (struct X3D_MultiTexture*)tnode;
+					p = mnode->texture.p;
+					n = mnode->texture.n;
+				}
+				int itrans = -1;
+				int icoord = -1;
+				for (int i = 0; i < n; i++) {
+					int jsamplr = is_cubeMap(p[i]) ? 1 : isTex3D(p[i]) ? 2 : 0;
+					itrans = next_or_last_sampler_compatible_trans(itrans, ntrans, jsamplr, igen);
+					icoord = min(i, ntcoord - 1);  //next_or_last_sampler_compatible_coord(icoord, ntcoord, jsamplr);
+					int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
+					matprop->fw_FrontMaterial.cmap[i] = jcombo;
+				}
 			}
 		}
 		else {

@@ -178,7 +178,29 @@ int isTex3D(struct X3D_Node *node){
 	}
 	return ret;
 }
-
+int is_or_has_Tex3D(struct X3D_Node* node) {
+	int ret = FALSE;
+	if (!node) return ret;
+	struct X3D_Node** p;
+	p = &node;
+	int n = 1;
+	if (node->_nodeType == NODE_MultiTexture) {
+		struct X3D_MultiTexture* mnode = (struct X3D_MultiTexture*)node;
+		p = mnode->texture.p;
+		n = mnode->texture.n;
+	}
+	for (int i = 0; i < n; i++) {
+		switch (p[i]->_nodeType) {
+			case NODE_PixelTexture3D:
+			case NODE_ComposedTexture3D:
+			case NODE_ImageTexture3D:
+				ret = TRUE; break;
+			default:
+				break;
+		}
+	}
+	return ret;
+}
 void render_PixelTexture3D (struct X3D_PixelTexture3D *node) {
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
