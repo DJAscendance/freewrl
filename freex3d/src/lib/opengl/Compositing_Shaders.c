@@ -3403,7 +3403,6 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
       vec3 pc = lightCoord.xyz; \n\
       pc.yz = -pc.yz; \n\
 	  vec3 nc = normalize(pc); \n\
-      //nc.x = -nc.x; \n\
       closestDepth = texture(textureUnitCube[fw_LightSource[ilight].depthmap], nc).r; \n\
       currentDepth = local3D2cubedepth(pc,.1,fw_LightSource[ilight].lightRadius); \n\
     }else{ \n\
@@ -3413,6 +3412,8 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	  closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
 	  // get depth of current fragment from light's perspective \n\
 	  currentDepth = projCoords.z; \n\
+      if (projCoords.z > 1.0) \n\
+		currentDepth = 1.0; \n\
     } \n\
 	// calculate bias (based on depth map resolution and slope) \n\
 	vec3 normal = normalize(projNorm-projCoords); \n\
@@ -3426,6 +3427,7 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
     //shadow = (currentDepth - bias - closestDepth)*100.0; \n\
     //shadow = currentDepth; \n\
+    //shadow = 0.0; \n\
     //shadow = closestDepth; \n\
 #ifdef PCF \n\
 	shadow = 0.0; \n\
@@ -3441,8 +3443,8 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	shadow /= 9.0; \n\
 #endif //PCF \n\
 	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
-	if (projCoords.z > 1.0) \n\
-		shadow = 0.0; \n\
+	//if (projCoords.z > 1.0) \n\
+	//	shadow = 0.0; \n\
 	return shadow; \n\
 } \n\
 #endif //SHADOW \n\
