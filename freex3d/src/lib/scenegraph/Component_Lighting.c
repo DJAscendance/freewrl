@@ -124,40 +124,7 @@ int lightTable_node_use_count(struct X3D_Node *node) {
 	return count;
 }
 
-/*
-//SHADOW TABLE
-void shadowTable_clear() {
-	//called once per frame, before the search for global=true projectors
-	//will clear any global=true shadow lights from last frame
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	clearStack(p->genshadow_stack);
-}
-void shadowTable_push(usehit ptuple) {
-	//called when we find a global=true, on=true shadow light, and
-	//called in sib_prep for a global=false, on=false shadow light
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	//we need a deep copy because the light node can't hold it
-	// because it can be DEF/USED with different transform each use
-	stack_push(usehit, p->genshadow_stack, ptuple);
 
-}
-void shadowTable_pop() {
-	//called in sib_fin for a global=false, on=true shadow light
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	if (p->genshadow_stack->n < 1)
-		printf("ouch from shadowTable_pop()\n");
-	stack_pop(usehit, p->genshadow_stack);
-
-}
-int shadowTable_count() {
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	return p->genshadow_stack->n;
-}
-usehit* shadowTable_item(int i) {
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	return vector_get_ptr(usehit, p->genshadow_stack, i);
-}
-*/
 // a specialization of InternalRep - see PolyRep.h
 struct X3D_LightRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
@@ -249,32 +216,6 @@ void compile_DirectionalLight (struct X3D_DirectionalLight *node) {
 
     MARK_NODE_COMPILED;
 }
-/*
-enum {
-	LIGHT_DIRECTION = 1,
-	LIGHT_POSITION = 2,
-	LIGHT_COLOR = 3,
-	LIGHT_INTENSITY = 4,
-	LIGHT_AMBIENT = 5,
-};
-*/
-//void compile_shadowMap(struct X3D_Node* node);
-//void render_shadowMap(struct X3D_Node* node);
-/*
-void render_DirectionalLight (struct X3D_DirectionalLight *node) {
-	// if we are doing global lighting, is this one for us?
-	RETURN_IF_LIGHT_STATE_NOT_US
-    COMPILE_IF_REQUIRED;
-
-	if(node->on) {
-		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-		usehit uhit;
-		uhit.node = X3D_NODE(node);
-		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-		lightTable_push(uhit);
-	}
-}
-*/
 void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE* m);
 void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLight* node) {
 
@@ -347,10 +288,6 @@ void render_DirectionalLight0(struct X3D_Node* parent, struct X3D_DirectionalLig
 				mattranslate4d(mate, float2double(dcenter, center, 3));
 				matscale4d(mate, float2double(dsize, size, 3));
 				//printmatrix2(mate, "center and size mat in lightview space");
-				//matinverseAFFINE(matviewInv, lightrep->matview);
-				//matmultiplyAFFINE(matev, matviewInv, mate);
-				//printmatrix2(matev, "invcenter and size in lightview space");
-				//matinverseAFFINE(matevinv, matev);
 
 				//printmatrix2(matevinv, "center and size in light space");
 				matcopy(uhit.extra, mate);
@@ -396,7 +333,6 @@ void push_headlight() {
 		RETURN_IF_LIGHT_STATE_NOT_US
 		usehit uhit;
 		uhit.node = X3D_NODE(headlight);
-		//fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 		matidentity4d(uhit.mvm);
 		lightTable_push(uhit);
 	}
@@ -409,21 +345,6 @@ void render_headlight() {
 }
 
 
-//void compile_PointLight_shadowMap(struct X3D_PointLight* node);
-//void render_PointLight_shadowMap(struct X3D_PointLight* node);
-
-void compile_PointLight_OLD (struct X3D_PointLight *node) {
-    int i;
-
-	//if (node->global && node->shadows) compile_PointLight_shadowMap(node);
-
-
-    //ConsoleMessage("compile_PointLight, loc %f %f %f %f",node->_loc.c[0],node->_loc.c[1],node->_loc.c[2],node->_loc.c[3]);
-
-    
-    MARK_NODE_COMPILED;
-    
-}
 void compile_PointLight(struct X3D_PointLight* node) {
 	if (node->shadows) {
 		//prepare local view matrix (from node.location, which isn't included in modelview matrix)
@@ -444,23 +365,8 @@ void compile_PointLight(struct X3D_PointLight* node) {
 		matidentity4d(lightrep->matproj);
 	}
 	MARK_NODE_COMPILED;
-
 }
 
-void render_PointLight_OLD (struct X3D_PointLight *node) {
-
-	/* if we are doing global lighting, is this one for us? */
-	RETURN_IF_LIGHT_STATE_NOT_US
-    COMPILE_IF_REQUIRED;
-
-	if(node->on) {
-		//both global on VF_GlobalLight on children->render, and local on prep_sibAffectors come in here
-		usehit uhit;
-		uhit.node = X3D_NODE(node);
-		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-		lightTable_push(uhit);
-	}
-}
 void generate_shadowmap_cube(usehit uhit, int index);
 void render_PointLight0(struct X3D_Node* parent, struct X3D_PointLight* node) {
 	float ft;
@@ -478,26 +384,8 @@ void render_PointLight0(struct X3D_Node* parent, struct X3D_PointLight* node) {
 		fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
 		if (node->shadows) {
 			int nuse = lightTable_node_use_count(X3D_NODE(node));
-			//shadowTable_push(uhit);
-			//render_shadowMap(X3D_NODE(node));
 			uhit.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 			generate_shadowmap_cube(uhit, uhit.ivalue);
-			//if(gcm_method()) {
-			//	/* we have the 6 faces from the image, just go through and render them as a cube */
-			//	struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-			//	struct X3D_GeneratedCubeMapTexture *cubtex = 
-			//		(struct X3D_GeneratedCubeMapTexture*) vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);
-			//	if (cubtex->__subTextures.n == 0) return; /* not generated yet - see changed_ImageCubeMapTexture */
-
-			//	for (int count = 0; count < 6; count++) {
-
-			//		/* set up the appearanceProperties to indicate a CubeMap */
-			//		getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
-
-			//		/* go through these, back, front, top, bottom, right left */
-			//		render_node(cubtex->__subTextures.p[count]);
-			//	}
-			//}
 			/* Finished rendering CubeMap, set it back for normal textures */
 			getAppearanceProperties()->cubeFace = 0;
 
@@ -516,19 +404,6 @@ void prep_PointLight (struct X3D_PointLight *node) {
 	/* this will be a global light here... */
 	render_PointLight(node);
 }
-
-//void mesa_Frustum(double left, double right, double bottom, double top, double nearZ, double farZ, double* m);
-//double * perspective_projection_matrix(double fovy_radians, double aspect, double zNear, double zFar, double* matrix) {
-//	double xmin, xmax, ymin, ymax;
-//
-//	ymax = zNear * tan(fovy_radians);
-//	ymin = -ymax;
-//	xmin = ymin * aspect;
-//	xmax = ymax * aspect;
-//
-//	mesa_Frustum(xmin, xmax, ymin, ymax, zNear, zFar, matrix);
-//	return matrix;
-//}
 
 
 /* 
@@ -586,17 +461,13 @@ struct LightPose {
 */
 void compile_SpotLight (struct X3D_SpotLight *node) {
 	if (node->shadows) {
-		//compile_shadowMap(X3D_NODE(node)); //prepares fbo buffer and texture
 		//prepare local view matrix (from node.location, node.direction which aren't included in modelview matrix)
 		// and projection matrix, both of which are stable / same between DEF and USE instances of a spotlight
 		node->_intern = set_LightRep(node->_intern);
 		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		//perspective_projection_matrix(node->cutOffAngle*2.0, 1.0, .1, 10000.0, lightrep->matproj);
 		projPerspective(node->cutOffAngle * (180.0 / PI) * 2.0, 1.0, .5, (double)node->radius, lightrep->matproj);
 		set_debug_quad_near_farplane(.5f, node->radius);
 
-		//lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 		//for up vector in theory we need a few cross products to ensure its at least orthogonal to direction
 		//- up is somewhat arbitrary -spotlight is symmetrical about direction vector-
 		//  but must be consistent between depth texture rendering and shader sampling
@@ -648,23 +519,7 @@ void compile_SpotLight (struct X3D_SpotLight *node) {
 	*/
     MARK_NODE_COMPILED;
 }
-//void shadow_Light(struct X3D_Node* parent, struct X3D_Node* node) {
-//	usehit uhit;
-//	COMPILE_IF_REQUIRED;
-//
-//	uhit.node = X3D_NODE(node);
-//	uhit.userdata = parent; //will render_hier(parent,..) in generate_globalShadowMaps()
-//	fw_glGetDoublev(GL_MODELVIEW_MATRIX, uhit.mvm);
-//	//lightTable_push(uhit);
-//	if (node->_nodeType == NODE_SpotLight) {
-//		struct X3D_SpotLight* light = X3D_SPOTLIGHT(node);
-//		if (light->shadows) {
-//			//shadowTable_push(uhit);
-//			generate_shadowmap_2D(uhit, 0);
-//			//render_shadowMap(X3D_NODE(node));
-//		}
-//	}
-//}
+
 
 void render_SpotLight0(struct X3D_Node *parent, struct X3D_SpotLight *node) {
 	float ft;
@@ -768,8 +623,7 @@ void sib_fin_Light(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
 // see https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping 
 // for Phase I generate shadow map and Phase II use shadow map 
 //
-#define SHADOWMAPS 1
-#ifdef SHADOWMAPS
+
 #include "Component_Shape.h"
 #include "../opengl/Textures.h"
 void pushnset_framebuffer(int ibuffer);
@@ -813,24 +667,14 @@ struct X3D_Node * make_depth_buffer(int width, int height) {
 			glGenFramebuffers(1, &tti->ifbobuffer);
 			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 
-			//glGenRenderbuffers(1, &tti->idepthbuffer);
-			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
-			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
-
 			glGenTextures(1, &tti->OpenGLTexture);
 			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
 			glDrawBuffer(GL_NONE);
 			glReadBuffer(GL_NONE);
@@ -859,31 +703,12 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 
 		int i;
 		struct textureTableIndexStruct* tti;
-		//if (gcm_method()) {
-		//	//FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
-		//	cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
-		//	for (i = 0; i < 6; i++) {
-		//		struct X3D_PixelTexture* pt;
-		//		pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
-		//		tti = getTableIndex(pt->__textureTableIndex);
-		//		tti->idepthbuffer = 1;
-		//		tti->x = width;
-		//		tti->y = height;
-		//		tti->status = TEX_LOADED;
-		//		glGenTextures(1, &tti->OpenGLTexture);
-		//		glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-		//		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-		//		cubetex->__subTextures.p[i] = X3D_NODE(pt);
-		//	}
-		//	cubetex->__subTextures.n = 6;
-		//}
 		tti = getTableIndex(cubetex->__textureTableIndex);
 		tti->status = TEX_LOADED; // I found I didn't need - yet TEX_NEEDSBINDING; //
 		tti->x = width;
 		tti->y = height;
 		tti->z = 1;
 		tti->idepthbuffer = 1;
-		//loadTextureNode(X3D_NODE(cubetex), NULL); 
 		GLuint status;
 		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
 			int j;
@@ -891,48 +716,6 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 			// https://learnopengl.com/Advanced-OpenGL/Cubemaps - doesn't show 'dynamic' cubemaps, but create with images, not renderbuffers, so can sample in shader
 			// https://learnopengl.com/Advanced-OpenGL/Framebuffers 
 
-			//if (gcm_method()) {
-			//	glGenFramebuffers(1, &tti->ifbobuffer);
-			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
-
-			//	glGenTextures(1, &tti->OpenGLTexture);
-			//	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-			//	glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-
-			//	//created above in textures.c //glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-			//	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-
-			//	//glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-			//	glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
-			//	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 2");
-			//	for (int i = 0; i < 6; i++) {
-			//		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-			//	}
-			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 3");
-
-			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			//	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 4");
-
-			//	//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-			//	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			//	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tti->OpenGLTexture, 0);
-
-
-			//	PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 5");
-
-			//	glDrawBuffer(GL_NONE);
-			//	glReadBuffer(GL_NONE);
-			//	status = glCheckNamedFramebufferStatus(tti->ifbobuffer, GL_FRAMEBUFFER);
-
-			//	popnset_framebuffer(); //tti->ifbobuffer);
-			//	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-			//}
-			//else 
 			{
 				glGenTextures(1, &tti->OpenGLTexture);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
@@ -942,10 +725,6 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 				// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml 
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT); //DEFAULT, no need for this line
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE);
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE); //used with samplerCubeShadow which we aren't using
-				//glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 				for (size_t i = 0; i < 6; ++i) {
 					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 				}
@@ -953,7 +732,6 @@ struct X3D_Node* make_depth_buffer_cube(int width, int height) {
 				pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
 				PRINT_GL_ERROR_IF_ANY("make_depth_buffer_cube 1");
 				glDrawBuffer(GL_NONE);
-				//glReadBuffer(GL_NONE);
 				glViewport(0, 0, width, height);
 
 				//bind one tex now for fun, and to check FBO completeness, but will bind in iteration loop during depth rendering generate_shadowmap_cube
@@ -1017,313 +795,8 @@ int make_or_get_depth_buffer(int index, struct X3D_Node* node) {
 	stack_push(struct X3D_Node*, lightrep->depth_buffer_stack, X3D_NODE(depth_buffer_texture));
 	return vectorSize(lightrep->depth_buffer_stack) - 1;
 }
-//void compile_shadowMap(struct X3D_Node* node) {}
-//void render_shadowMap(struct X3D_Node* node) {}
-/*
-void compile_shadowMap(struct X3D_Node* node) {
-	node->_intern = set_LightRep(node->_intern);
-	struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-	//need a generic texture to hold results
-	if (!lightrep->depthTexture)
-		lightrep->depthTexture = createNewX3DNode(NODE_PixelTexture);
-	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)lightrep->depthTexture;
-	PRINT_GL_ERROR_IF_ANY("compile_shadowMap START");
-	//if (tex->__subTextures.n == 0) 
-	{
-
-		int i;
-		struct textureTableIndexStruct* tti;
-
-		tti = getTableIndex(tex->__textureTableIndex);
-		tti->status = TEX_LOADED; // TEX_NEEDSBINDING; //I found I didn't need - yet
-		tti->idepthbuffer = 1;
-		tti->x = tti->y = lightrep->size;
-		//tti->z = 6;
-//		loadTextureNode(X3D_NODE(tex), NULL);
-		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
-			int j, isize;
-			isize = lightrep->size; //node->size is initializeOnly, we will ignore any change during run
-			tti->x = isize; //by storing and retrieving initial size from here
-			tti->y = isize;
-			// https://www.opengl.org/wiki/Framebuffer_Object
-
-			glGenFramebuffers(1, &tti->ifbobuffer);
-			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-
-			//glGenRenderbuffers(1, &tti->idepthbuffer);
-			//glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			//glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
-			//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
-
-			glGenTextures(1, &tti->OpenGLTexture);
-			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-			lightrep->idepthtexture = tti->OpenGLTexture;
-			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, isize, isize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glDrawBuffer(GL_NONE);
-			glReadBuffer(GL_NONE);
-			popnset_framebuffer(); //tti->ifbobuffer);
-		}
-
-	}
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps END");
 
 
-	MARK_NODE_COMPILED
-
-}
-
-void render_shadowMap(struct X3D_Node* node) {
-	int count, iface;
-
-	COMPILE_IF_REQUIRED
-		PRINT_GL_ERROR_IF_ANY("render_PointLight_shadowMaps START");
-
-	//if (!strcmp(node->update->strptr, "ALWAYS") || !strcmp(node->update->strptr, "NEXT_FRAME_ONLY")) {
-	{
-		ttrenderstate rs;
-		rs = renderstate();
-		//if (rs->render_geom && !rs->render_depth) 
-		{
-			//add (node,modelviewmatrix) for next frame
-			//programmer: please clear the genshadow stack once per frame
-			int i, isAdded;
-			usehit uhit;
-			ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-			//check if already added, only add once for simplification
-			isAdded = FALSE;
-			for (i = 0; i < vectorSize(p->genshadow_stack); i++) {
-				uhit = vector_get(usehit, p->genshadow_stack, i);
-				if (uhit.node == X3D_NODE(node)) {
-					isAdded = TRUE;
-					break;
-				}
-			}
-			if (!isAdded) {
-				double modelviewMatrix[16], mvmInverse[16];
-				double worldmatrix[16], viewmatrix[16], saveView[16], savePosOri[16]; //bothinverse[16], 
-				usehit uhit;
-				//GL_GET_MODELVIEWMATRIX
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-				get_view_matrix(savePosOri, saveView);
-				matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
-				//matinverseAFFINE(bothinverse,viewmatrix);
-				matinverseAFFINE(mvmInverse, modelviewMatrix);
-
-				//matmultiplyAFFINE(worldmatrix,bothinverse,modelviewMatrix);
-				//matmultiplyAFFINE(worldmatrix,modelviewMatrix,bothinverse);
-
-				matmultiplyAFFINE(worldmatrix, viewmatrix, mvmInverse);
-
-				//strip viewmatrix - will happen when we invert one of the USEUSE pair, and multiply
-				uhit.node = X3D_NODE(node);
-				//memcpy(uhit.mvm,modelviewMatrix,16*sizeof(double)); //deep copy
-				memcpy(uhit.mvm, worldmatrix, 16 * sizeof(double)); //deep copy
-				vector_pushBack(usehit, p->genshadow_stack, uhit);  //fat elements do another deep copy
-				//if (!strcmp(node->update->strptr, "NEXT_FRAME_ONLY")) {
-				//	//set back to NONE
-				//	freeASCIIString(node->update);
-				//	node->update = newASCIIString("NONE");
-				//	//not sure why, but I don't seem to need to mark event
-				//	//MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_PointLight, update));
-				//	//printf("MARK_EVENT\n");
-				//}
-			}
-
-		}
-	}
-	//render what we have now for debugging?
-	if(0) {
-		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-		struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)lightrep->depthTexture;
-		render_node(X3D_NODE(tex));
-	}
-	// Finished rendering CubeMap, set it back for normal textures 
-	PRINT_GL_ERROR_IF_ANY("render_PointLight_shadowMaps END");
-
-}
-
-*/
-
-/*
-// called from the scene traversal, linked in GeneratedCode.c
-void compile_PointLight_shadowMap(struct X3D_PointLight* node) {
-	node->_intern = set_LightRep(node->_intern);
-	struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-	//need a generic cubemap texture to hold results
-	if (!lightrep->depthTexture)
-		lightrep->depthTexture = createNewX3DNode(NODE_GeneratedCubeMapTexture); 
-	struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)lightrep->depthTexture;
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps START");
-	if (cubetex->__subTextures.n == 0) {
-
-		int i;
-		struct textureTableIndexStruct* tti;
-
-		FREE_IF_NZ(cubetex->__subTextures.p); // should be NULL, checking 
-		cubetex->__subTextures.p = MALLOC(struct X3D_Node**, 6 * sizeof(struct X3D_PixelTexture*));
-		for (i = 0; i < 6; i++) {
-			struct X3D_PixelTexture* pt;
-			pt = (struct X3D_PixelTexture*)createNewX3DNode(NODE_PixelTexture);
-			cubetex->__subTextures.p[i] = X3D_NODE(pt);
-			if (node->_executionContext)
-				add_node_to_broto_context(X3D_PROTO(node->_executionContext), X3D_NODE(cubetex->__subTextures.p[i]));
-			//tti = getTableIndex(pt->__textureTableIndex);
-			//tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
-			//tti->z = 6;
-
-		}
-		cubetex->__subTextures.n = 6;
-		tti = getTableIndex(cubetex->__textureTableIndex);
-		tti->status = TEX_NEEDSBINDING; //I found I didn't need - yet
-		tti->x = tti->y = lightrep->size;
-		//tti->z = 6;
-		loadTextureNode(X3D_NODE(cubetex), NULL);
-		if (tti->ifbobuffer == 0 && haveFrameBufferObject()) {
-			int j, isize;
-			isize = lightrep->size; //node->size is initializeOnly, we will ignore any change during run
-			tti->x = isize; //by storing and retrieving initial size from here
-			// https://www.opengl.org/wiki/Framebuffer_Object
-			glGenFramebuffers(1, &tti->ifbobuffer);
-			pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-
-			glGenRenderbuffers(1, &tti->idepthbuffer);
-			glBindRenderbuffer(GL_RENDERBUFFER, tti->idepthbuffer);
-			glRenderbufferStorage(GL_RENDERBUFFER, FW_GL_DEPTH_COMPONENT, isize, isize);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, tti->idepthbuffer);
-
-			for (j = 0; j < cubetex->__subTextures.n; j++) {  //should be 6
-				//textureTableIndexStruct_s* ttip;
-				//struct X3D_PixelTexture * nodep;
-				//nodep = (struct X3D_PixelTexture *)node->__subTextures.p[j];
-				//ttip = getTableIndex(nodep->__textureTableIndex);
-				//glGenTextures(1,&ttip->OpenGLTexture);
-				//glBindTexture(GL_TEXTURE_2D, ttip->OpenGLTexture);
-
-				//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA , GL_UNSIGNED_BYTE, 0);
-				//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+j, GL_TEXTURE_2D, ttip->OpenGLTexture, 0);
-			}
-			glGenTextures(1, &tti->OpenGLTexture);
-			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
-			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, isize, isize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, isize, isize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			//glBindFramebuffer(GL_FRAMEBUFFER, tti->ifbobuffer); already bound with pushnset_framebuffer
-			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tti->OpenGLTexture, 0);
-			glDrawBuffer(GL_NONE);
-			glReadBuffer(GL_NONE);
-			popnset_framebuffer(); //tti->ifbobuffer);
-		}
-
-	}
-	PRINT_GL_ERROR_IF_ANY("compile_PointLight_shadowMaps END");
-
-	// tell the whole system to re-create the data for these sub-children 
-	//node->__regenSubTextures = TRUE;
-
-	MARK_NODE_COMPILED
-	
-}
-*/
-/*
-// called from the scene traversal render_PointLight
-void render_PointLight_shadowMap(struct X3D_PointLight* node) {
-	int count, iface;
-
-	COMPILE_IF_REQUIRED
-	PRINT_GL_ERROR_IF_ANY("render_PointLight_shadowMaps START");
-
-	//if (!strcmp(node->update->strptr, "ALWAYS") || !strcmp(node->update->strptr, "NEXT_FRAME_ONLY")) {
-	{
-		ttrenderstate rs;
-		rs = renderstate();
-		//if (rs->render_geom && !rs->render_depth) 
-		{
-			//add (node,modelviewmatrix) for next frame
-			//programmer: please clear the genshadow stack once per frame
-			int i, isAdded;
-			usehit uhit;
-			ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-			//check if already added, only add once for simplification
-			isAdded = FALSE;
-			for (i = 0; i < vectorSize(p->genshadow_stack); i++) {
-				uhit = vector_get(usehit, p->genshadow_stack, i);
-				if (uhit.node == X3D_NODE(node)) {
-					isAdded = TRUE;
-					break;
-				}
-			}
-			if (!isAdded) {
-				double modelviewMatrix[16], mvmInverse[16];
-				double worldmatrix[16], viewmatrix[16], saveView[16], savePosOri[16]; //bothinverse[16], 
-				usehit uhit;
-				//GL_GET_MODELVIEWMATRIX
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-				get_view_matrix(savePosOri, saveView);
-				matmultiplyAFFINE(viewmatrix, saveView, savePosOri);
-				//matinverseAFFINE(bothinverse,viewmatrix);
-				matinverseAFFINE(mvmInverse, modelviewMatrix);
-
-				//matmultiplyAFFINE(worldmatrix,bothinverse,modelviewMatrix);
-				//matmultiplyAFFINE(worldmatrix,modelviewMatrix,bothinverse);
-
-				matmultiplyAFFINE(worldmatrix, viewmatrix, mvmInverse);
-
-				//strip viewmatrix - will happen when we invert one of the USEUSE pair, and multiply
-				uhit.node = X3D_NODE(node);
-				//memcpy(uhit.mvm,modelviewMatrix,16*sizeof(double)); //deep copy
-				memcpy(uhit.mvm, worldmatrix, 16 * sizeof(double)); //deep copy
-				vector_pushBack(usehit, p->genshadow_stack, uhit);  //fat elements do another deep copy
-				//if (!strcmp(node->update->strptr, "NEXT_FRAME_ONLY")) {
-				//	//set back to NONE
-				//	freeASCIIString(node->update);
-				//	node->update = newASCIIString("NONE");
-				//	//not sure why, but I don't seem to need to mark event
-				//	//MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_PointLight, update));
-				//	//printf("MARK_EVENT\n");
-				//}
-			}
-
-		}
-	}
-	//render what we have now for debugging?
-	{
-		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-		struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)lightrep->depthTexture;
-		// we have the 6 faces from the image, just go through and render them as a cube 
-		if (cubetex->__subTextures.n == 0) return; // not generated yet  
-
-		for (count = 0; count < 6; count++) {
-
-			// set up the appearanceProperties to indicate a CubeMap 
-			getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + count;
-
-			// go through these, back, front, top, bottom, right left 
-			iface = count;
-			render_node(cubetex->__subTextures.p[iface]);
-		}
-	}
-	// Finished rendering CubeMap, set it back for normal textures 
-	getAppearanceProperties()->cubeFace = 0;
-	PRINT_GL_ERROR_IF_ANY("render_PointLight_shadowMaps END");
-
-}
-*/
 
 
 // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping  
@@ -1366,7 +839,14 @@ static struct debug_quad {
 	float near_plane, far_plane;
 } debug_quad = { -1,0,1.0f,15.0f };
 void set_debug_quad(int which_debug_shader, int textureID) {
-	// which_debug_shader - flag to indicate which quad shader 0=turn off debug quad 1-normal texture 2=ortho depth 3=perspective depth
+	// which_debug_shader - flag to indicate which quad shader 
+	//  0=turn off debug quad 
+	//  1-normal texture 
+	//  2=ortho depth 
+	//  3=perspective depth
+	//  4=cubemap color
+	//  5=cubemap depth latitude, longitude method
+	//  6=cubemap depth Tee method
 	// textureID - opengl texture number
 	debug_quad.textureID = textureID;
 	debug_quad.which_debug_shader = which_debug_shader;
@@ -1393,12 +873,6 @@ void render_debug_quad() {
 		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
 		glUniform1f(ia, debug_quad.far_plane);
 	}
-	//if (debug_quad.which_debug_shader == 4) {
-	//	ia = glGetUniformLocation(scap->myShaderProgram, "depthunit");
-	//	glUniform1i(ia, 15);
-	//	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnitCube[15]"); //challenge test for arrays of cubemaps
-	//}
-	//else
 	ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
 	glUniform1i(ia, 0);
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad before ActiveTexture");
@@ -1407,7 +881,6 @@ void render_debug_quad() {
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad before enable CUBE_MAP");
 
 	if (debug_quad.which_debug_shader > 3) {
-//		glEnable(GL_TEXTURE_CUBE_MAP);
 		PRINT_GL_ERROR_IF_ANY("render_debug_quad before bind CUBE_MAP");
 		glBindTexture(GL_TEXTURE_CUBE_MAP, debug_quad.textureID);
 	}
@@ -1420,7 +893,6 @@ void render_debug_quad() {
 
 	if (debug_quad.which_debug_shader > 3) {
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-//		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad END");
 }
@@ -1493,16 +965,12 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	tti = getTableIndex(cubetex->__textureTableIndex);
 	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before cube 6 loop");
 
-	//isize = tti->x; //set in compile_
 	pushnset_framebuffer(tti->ifbobuffer); //binds framebuffer. we push here, in case higher up we are already rendering the whole scene to an fbo
-	//GLuint attachments [1] = {GL_DEPTH_ATTACHMENT};
-	//glDrawBuffers(1,attachments); //'draw' is implied in GL_RENDERBUFFER above
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 
 	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after drawBuffers");
 
-	//glReadBuffer(GL_COLOR_ATTACHMENT0); //'read' is implied in GL_RENDERBUFFER
 	pushnset_viewport(vp); //something to push so we can pop-and-set below, so any mainloop GL_BACK viewport is restored
 	glViewport(0, 0, tti->x, tti->y); //viewport we want 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
@@ -1519,8 +987,6 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	//method: we draw each face to a single framebuffer texture, 
 	// and readpixels back into 6 PixelTexture tti->texdata, so its a bit like ImageCubeMap except 
 	// we skip the steps of creating and reading back PixelTexture->image.p into texdata
-	//glBindTexture(GL_TEXTURE_CUBE_MAP, tti->OpenGLTexture);
-//glEnable(GL_TEXTURE_CUBE_MAP);
 	glEnable(GL_TEXTURE_GEN_S);
 	glEnable(GL_TEXTURE_GEN_T);
 	glEnable(GL_TEXTURE_GEN_R);
@@ -1533,23 +999,14 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		GLuint pixelType;
 		int bytesPerPixel;
 		PRINT_GL_ERROR_IF_ANY("generate_cube shadow before glFramebufferTexture2D");
-		if(!gcm_method())
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->OpenGLTexture, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->OpenGLTexture, 0);
 		// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glFramebufferTexture.xhtml
-		//glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, 0);
-		//glNamedFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + j, tti->ifbobuffer, 0);
-		//if (gcm_method()) {
-		//	nodep = (struct X3D_PixelTexture*)cubetex->__subTextures.p[j];
-		//	ttip = getTableIndex(nodep->__textureTableIndex);
-		//}
 		PRINT_GL_ERROR_IF_ANY("generate_cube shadow after glFramebufferTexture2D");
-		//getAppearanceProperties()->cubeFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X + j;
 		FW_GL_CLEAR(GL_DEPTH_BUFFER_BIT);
-		//glClear(GL_DEPTH_BUFFER_BIT);
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 1");
 
 		//set viewpoint matrix for side
-		if(1){
+		{
 			double world2light[16], world2lightview[16], mvm[16];
 			double savePosOri[16], saveView[16], viewmatrix[16], mvmInverse[16], matrotside[16], world2lightviewside[16];
 			double matproj[16];
@@ -1577,23 +1034,6 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 
 			fw_glSetDoublev(GL_MODELVIEW_MATRIX, world2lightviewside);
 		}
-		else {
-
-			//setup_projection(); 
-			FW_GL_MATRIX_MODE(GL_PROJECTION);
-			FW_GL_LOAD_IDENTITY();
-			//fw_gluPerspective(90.0, 1.0, .1,10000.0);
-			fw_gluPerspective_2(0.0, 90.0, 1.0, .1, 15.0);
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 3");
-
-			FW_GL_MATRIX_MODE(GL_MODELVIEW);
-			FW_GL_LOAD_IDENTITY();
-			PRINT_GL_ERROR_IF_ANY("generate_shadowMaps GL calls 5");
-
-			fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
-			fw_glRotated(sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
-			fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
-		}
 		/*  4. Nodes (not the blended ones)*/
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps before render_hier");
 
@@ -1602,32 +1042,6 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		profile_end("hier_geom");
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after render_hier");
 
-		//if (gcm_method()) {
-		//	//if you can figure out how to use regular texture in cubemap, then there may be a shortcut
-		//	//for now, we'll pull the fbo pixels back into cpu space and put them in pixeltexture
-		//	pixelType = GL_DEPTH_COMPONENT; // GL_RGBA;
-		//	bytesPerPixel = sizeof(float); // 4;
-		//	if (!ttip->texdata || ttip->x != tti->x) {
-		//		FREE_IF_NZ(ttip->texdata);
-		//		ttip->texdata = MALLOC(GLvoid*, bytesPerPixel * tti->x * tti->y);
-		//	}
-
-		//	// grab the data
-		//	//FW_GL_PIXELSTOREI (GL_UNPACK_ALIGNMENT, 1);
-		//	//FW_GL_PIXELSTOREI (GL_PACK_ALIGNMENT, 1);
-
-		//	//FW_GL_READPIXELS(0, 0, isize, isize, pixelType, GL_UNSIGNED_BYTE, ttip->texdata);
-		//	FW_GL_READPIXELS(0, 0, tti->x, tti->y, GL_DEPTH_COMPONENT, GL_FLOAT, ttip->texdata);
-		//	PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after glReadPixels");
-
-		//	ttip->x = tti->x;
-		//	ttip->y = tti->y;
-		//	ttip->z = 1;
-		//	ttip->hasAlpha = 0; // 1;
-		//	ttip->channels = 0; // 4;
-		//	ttip->idepthbuffer = 1;
-		//	ttip->status = TEX_NEEDSBINDING;
-		//}
 		PRINT_GL_ERROR_IF_ANY("generate_shadowMaps after GL calls");
 		if (j == 5) {
 			if (0) {
@@ -1657,17 +1071,14 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 		}
 	}
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-//	glDisable(GL_TEXTURE_CUBE_MAP);
 
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_POP_MATRIX();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
 	FW_GL_POP_MATRIX();
-	//glCullFace(GL_FRONT);
 
 	popnset_viewport();
 	popnset_framebuffer();
-	//compile_generatedcubemaptexture // convert to opengl
 
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
@@ -1706,7 +1117,6 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	ttglobal tg = gglobal();
 	bstack = getActiveBindableStacks(tg);
 
-	//set_viewmatrix();
 	//this function tampers with the normal background matrix, which has already been prepped for the mainloop rendering
 	//so save it, and restore after gencubemap loop of 6
 	memcpy(savebackmat, bstack->backgroundmatrix, 16 * sizeof(double));
@@ -1800,43 +1210,8 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	popnset_framebuffer();
 	memcpy(bstack->backgroundmatrix, savebackmat, 16 * sizeof(double));
 }
-/*
-void generate_GlobalShadowMaps() {
-	//Stack* genshadow_stack;
-	//ttglobal tg = gglobal();
-	//ppComponent_Lighting p = (ppComponent_Lighting)tg->Component_Lighting.prv;
-	//genshadow_stack = p->genshadow_stack;
-	//if (vectorSize(genshadow_stack)) {
-	if(shadowTable_count()){
-		int i, j, n;
 
-		n = shadowTable_count(); // vectorSize(genshadow_stack);
-		for (i = 0; i < n; i++) {
-			usehit *uhit;
 
-			uhit = shadowTable_item(i); // vector_get(usehit, genshadow_stack, i);
-			switch (uhit->node->_nodeType) {
-				case NODE_PointLight:
-					generate_shadowmap_cube(*uhit);
-					break;
-				case NODE_DirectionalLight:
-				case NODE_SpotLight:
-				case NODE_TextureProjector:
-				case NODE_TextureProjectorParallel:
-					generate_shadowmap_2D(*uhit, i);
-				default:
-					break;
-			}
-		}
-	}
-	shadowTable_clear(); //genshadow_stack->n = 0;
-	PRINT_GL_ERROR_IF_ANY("generate_GlobalShadowMaps END");
-
-}
-#else //SHADOWMAPS
-void generate_GlobalShadowMaps() {} //stub
-*/
-#endif //SHADOWMAPS
 
 
 
@@ -1863,80 +1238,7 @@ void transformDirectionToEye0(double *modelMatrix, float* dir)
 
 }
 
-/*
 
-void clear_uniform_buffers_used() {
-	//call this in child_shape just before you start sending data / textures to the shader program
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	p->uniformbufs.n = 0;
-}
-int next_uniform_buffer() {
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	p->tuniformbufs.n++;
-	return p->uniformbufs.n - 1;
-}
-
-int uniform_buffers_used() {
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-	return p->uniformbufs.n;
-}
-int bind_or_share_next_uniform_buffer(char *uniform_block_name, GLint ubuffer) {
-	// call this when sending uniform buffers to the shader 
-	// benefits 
-	// this one automatically
-	// a) checks if this uniform buffer is already bound
-	//   and if so return the buffer unit OR
-	// b) if not already bound, increments the buffer unit, binds (and returns its  unit index
-
-	ppComponent_Lighting p = (ppComponent_Lighting)gglobal()->Component_Lighting.prv;
-
-	//check if sharable
-	int unit = -1;
-	for (int i = 0; i < p->uniformbufs.n; i++) {
-		if (p->uniformbufs.p[i] == ubuffer) {
-			unit = i;
-			break;
-		}
-	}
-	if (unit == -1) {
-		unit = next_textureUnit();
-		p->uniformbufs.p[unit] = ubuffer;
-		//glActiveTexture(GL_TEXTURE0 + unit);
-		//glBindTexture(samplerType, ubuffer);
-	}
-	return unit;
-}
-
-void sendLightInfo3(s_shader_capabilities_t* me) {
-	// As of June 2022, not implemented, code just roughed in, in case
-	// we need/want to buffer lights better, rather than re-sending on every child_shape
-	if (me == NULL) return;
-
-	PRINT_GL_ERROR_IF_ANY("BEGIN sendLightInfo2");
-	int lightcount = lightTable_count();
-
-	for (int j = 0; j < lightcount; j++) {
-		usehit* uhit = lightTable_item(j);
-		struct X3D_Node* node = uhit->node;
-		struct X3D_PointLight* plight = X3D_POINTLIGHT(node);
-		struct X3D_SpotLight* slight = X3D_SPOTLIGHT(node);
-		struct X3D_DirectionalLight* dlight = X3D_DIRECTIONALLIGHT(node);
-		struct X3D_LightRep* lightrep = (struct X3D_LightRep*)node->_intern;
-		//int light_index = bind_or_share_next_uniform_buffer("lightbuf",pose->lightbufIndex);
-		//GLUNIFORM1I(me->lightbuf[j], light_index)
-		//if (lightpose_buffering()) {
-		//	struct LightPose* pose = lightTable_item_heavy(j);
-		//	me->lightpose[j] = glGetUniformBlockIndex(myProg, "lightPose");
-		//	//int pose_index = bind_or_share_next_uniform_buffer(pose->lightposebuf);
-		//	//GLUNIFORM1I(me->lightpose[j], pose_index);
-		//}
-	}
-	GLUNIFORM1I(me->lightcount, lightcount);
-
-	PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
-
-}
-*/
 GLint tunit(int index);
 void sendLightInfo2(s_shader_capabilities_t* me) {
 	// in case we are trying to render a node that has just been killed...
@@ -2033,10 +1335,9 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");
 				glUniform1i(me->textureUnit[iunit], itexunit);
 			}
-			//int iunit = tunit(itexunit);
 			GLUNIFORM1I(me->lightdepthmap[j], iunit);
 			float w2l[16];
-			if (1) {
+			{
 				//following textureProjector
 				double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
 				if (uhit->node->_nodeType == NODE_DirectionalLight)
