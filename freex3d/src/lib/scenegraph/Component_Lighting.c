@@ -1387,7 +1387,7 @@ void render_debug_quad() {
 	shader_requirements.debug = debug_quad.which_debug_shader;
 	scap = getMyShaders(shader_requirements);
 	enableGlobalShader(scap);
-	if (debug_quad.which_debug_shader > 2 && debug_quad.which_debug_shader < 5) {
+	if (debug_quad.which_debug_shader > 2 && debug_quad.which_debug_shader < 5 || debug_quad.which_debug_shader == 6) {
 		ia = glGetUniformLocation(scap->myShaderProgram, "near_plane");
 		glUniform1f(ia, debug_quad.near_plane);
 		ia = glGetUniformLocation(scap->myShaderProgram, "far_plane");
@@ -1431,13 +1431,22 @@ static struct {
 	double y;
 	double z;
 } sideangle[6] = {
+//{ 90.0,0.0,1.0,0.0}, //+x
+//{-90.0,0.0,1.0,0.0}, //-x
+//{-90.0,1.0,0.0,0.0}, //+y  weird but works
+//{ 90.0,1.0,0.0,0.0}, //-y  "
+//{  0.0,0.0,1.0,0.0}, //+z (lhs)
+//{180.0,0.0,1.0,0.0}, //-z
+
 { 90.0,0.0,1.0,0.0}, //+x
 {-90.0,0.0,1.0,0.0}, //-x
-{-90.0,1.0,0.0,0.0}, //+y  weird but works
-{ 90.0,1.0,0.0,0.0}, //-y  "
+{ 90.0,1.0,0.0,0.0}, //+y  weird but works
+{-90.0,1.0,0.0,0.0}, //-y  "
 {  0.0,0.0,1.0,0.0}, //+z (lhs)
 {180.0,0.0,1.0,0.0}, //-z
 };
+#define RADIANS_PER_DEGREE (double)0.0174532925199432957692
+#define DEGREES_PER_RADIAN (double)57.2957795130823208768
 
 void saveImage_web3dit(struct textureTableIndexStruct* tti, char* fname);
 void fw_gluPerspective_2(double xcenter, double fovy, double aspect, double zNear, double zFar);
@@ -1557,12 +1566,12 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 
 			matmultiplyAFFINE(world2lightview, world2light, lightrep->matview);
 			//printmatrix2(lightrep->matview, "lighrep.matview");
-			matrotate(matrotside,sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
+			matrotate(matrotside,RADIANS_PER_DEGREE * sideangle[j].angle, sideangle[j].x, sideangle[j].y, sideangle[j].z);
 			matmultiplyAFFINE(world2lightviewside, world2lightview, matrotside);
 			//printmatrix2(world2lightview, "world2lightview = lighrep.matview x world2light");
 
 			//fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj); //identity
-			projPerspective(90.0, 1.0, .5, 15.0, matproj);
+			projPerspective(90.0, 1.0, .1, node->radius, matproj);
 			fw_glSetDoublev(GL_PROJECTION_MATRIX, matproj);
 			//printmatrix2(lightrep->matproj, "matproj");
 
@@ -1637,11 +1646,11 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 					printf("\n");
 				}
 			}
-			if (1) {
+			if (0) {
 				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 2");
-				set_debug_quad_near_farplane(.5f, 15.0f);
+				set_debug_quad_near_farplane(.1f, node->radius);
 
-				set_debug_quad(4, tti->OpenGLTexture);
+				set_debug_quad(6, tti->OpenGLTexture);
 				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 3");
 
 			}
@@ -1997,7 +2006,19 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 				struct X3D_GeneratedCubeMapTexture* tex = (struct X3D_GeneratedCubeMapTexture*)texnode;
 				tti = getTableIndex(tex->__textureTableIndex);
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo before bind_or_share");
-//				glEnable(GL_TEXTURE_CUBE_MAP);
+				//				glEnable(GL_TEXTURE_CUBE_MAP);
+				if (0) {
+					GLuint target;
+					glGetTextureParameteriv(tti->OpenGLTexture, GL_TEXTURE_TARGET, (GLint*)&target);
+					switch (target) {
+					case GL_TEXTURE_CUBE_MAP: printf("CUBE MAP \n"); break;
+					case GL_TEXTURE_2D: printf("texture2D\n"); break;
+					case GL_TEXTURE_3D: printf("texture3D\n"); break;
+					case GL_TEXTURE_2D_ARRAY: printf("GL_TEXTURE_2D_ARRAY\n");
+					default: printf("unknown %d \n", target); break;
+					}
+
+				}
 				itexunit = share_or_next_material_sampler_index_Cube(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
 				iunit = tunitCube(itexunit); //returns index into shader samplerCube textureUnitCube[iunit]
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");
@@ -2010,12 +2031,12 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 				itexunit = share_or_next_material_sampler_index_2D(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
 				iunit = tunit2D(itexunit); //returns index into shader sampler2D textureUnit[iunit]
 				PRINT_GL_ERROR_IF_ANY("sendLightInfo after bind_or_share");
-				glUniform1i(me->textureUnit[iunit], itexunit); 
+				glUniform1i(me->textureUnit[iunit], itexunit);
 			}
 			//int iunit = tunit(itexunit);
 			GLUNIFORM1I(me->lightdepthmap[j], iunit);
 			float w2l[16];
-			if(1) {
+			if (1) {
 				//following textureProjector
 				double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
 				if (uhit->node->_nodeType == NODE_DirectionalLight)
@@ -2028,7 +2049,11 @@ void sendLightInfo2(s_shader_capabilities_t* me) {
 				matmultiplyFULL(matfull, eye2projector, lightrep->matproj);
 				double2float(w2l, matfull, 16);
 			}
-
+			//printf("w2l\n");
+			//for (int ii = 0; ii < 4; ii++){
+			//	for (int jj = 0; jj < 4; jj++) printf("%f ", w2l[ii * 4 + jj]);
+			//	printf("\n");
+			//}
 			GLUNIFORMMATRIX4FV(me->lightMat[j], 1, GL_FALSE, w2l);
 		}
 	}

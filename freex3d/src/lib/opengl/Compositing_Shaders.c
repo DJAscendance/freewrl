@@ -3369,10 +3369,21 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 // incoming eyeposition and eyenormal are of the surface vertex and normal
 // .. in the view/eye coordinate system (so eye is at 0,0,0 and eye direction is 0,0,-1
 
-static const GLchar *plug_vertex_lighting_ADSLightModel = "\n\
+		static const GLchar* plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
 #ifdef LITE \n\
 #ifdef SHADOW //this stuff only works in the fragment shader \n\
+float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
+{ \n\
+  //for cubemap depth, find which of 6 (perspective-rendered depthmap) faces will be sampled, \n\
+  // and scale local 3d vector to depth map scale for comparison elsewhere \n\
+  // https://en.wikipedia.org/wiki/Z-buffering#Mathematics \n\
+  // https://stackoverflow.com/questions/10786951/omnidirectional-shadow-mapping-with-depth-cubemap \n\
+  vec3 abslocal = abs(local); \n\
+  float maxAxis = max(abslocal.x, max(abslocal.y, abslocal.z)); \n\
+  float zfactor = (far + near) / (far - near) - (2.0 * far * near) / (far - near) / maxAxis; \n\
+  return (zfactor + 1.0) * 0.5; \n\
+} \n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
@@ -3386,20 +3397,23 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
     //instead of inverseTranspose we transform another point, and subtract \n\
     projNorm = lightNorm.xyz/lightNorm.w; \n\
     float closestDepth = 10.0; \n\
+	float currentDepth = 10.0; \n\
     if(type == 0){ \n\
       //PointLight uses cubemap shadow and 3D lookup coord \n\
-	  projCoords = projCoords * 0.5 + 0.5; \n\
-		vec3 nc = normalize(projNorm-projCoords); \n\
+      vec3 pc = lightCoord.xyz; \n\
+      pc.yz = -pc.yz; \n\
+	  vec3 nc = normalize(pc); \n\
+      //nc.x = -nc.x; \n\
       closestDepth = texture(textureUnitCube[fw_LightSource[ilight].depthmap], nc).r; \n\
-      //closestDepth = texture(textureUnitCube[0], nc).r; \n\
+      currentDepth = local3D2cubedepth(pc,.1,fw_LightSource[ilight].lightRadius); \n\
     }else{ \n\
 	  // transform to [0,1] range \n\
 	  projCoords = projCoords * 0.5 + 0.5; \n\
 	  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
 	  closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
 	  // get depth of current fragment from light's perspective \n\
+	  currentDepth = projCoords.z; \n\
     } \n\
-	float currentDepth = projCoords.z; \n\
 	// calculate bias (based on depth map resolution and slope) \n\
 	vec3 normal = normalize(projNorm-projCoords); \n\
 	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
@@ -3410,6 +3424,9 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
     float bias = 0.005; \n\
 	// check whether current frag pos is in shadow \n\
 	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+    //shadow = (currentDepth - bias - closestDepth)*100.0; \n\
+    //shadow = currentDepth; \n\
+    //shadow = closestDepth; \n\
 #ifdef PCF \n\
 	shadow = 0.0; \n\
 	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
@@ -3515,13 +3532,7 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 		float shadowtest = 1.0; \n\
 #ifdef SHADOW \n\
 		if (light.shadows) { \n\
-			if (myLightType > 0) { \n\
-				//spot, directional, uses 2D shadow texture \n\
-				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
-			} \n\
-			else { \n\
-				//point, uses cubemap shadow texture \n\
-			} \n\
+			shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
 		} \n\
 #endif //SHADOW \n\
 		sum_vertex   += on * shadowtest * attenuation * spot * light.color * (ambient + diffuse); \n\
@@ -5121,6 +5132,42 @@ void main() \n\
 } \n\
 ";
 
+char* fragmentQuadDepthCubeTee = "#version 330 core \n\
+out vec4 FragColor; \n\
+in vec2 TexCoords; \n\
+uniform samplerCube textureUnit; \n\
+uniform float near_plane; \n\
+uniform float far_plane; \n\
+ \n\
+// required when using a perspective projection matrix \n\
+float LinearizeDepth(float depth) \n\
+{ \n\
+	float z = depth * 2.0 - 1.0; // Back to NDC  \n\
+	return (2.0 * near_plane * far_plane) / (far_plane + near_plane - z * (far_plane - near_plane)); \n\
+} \n\
+ \n\
+void main() \n\
+{ \n\
+    float row = floor(TexCoords.y * 3.0); \n\
+    int irow = int(round(row)); \n\
+    float y = min((TexCoords.y*3.0 - row),1.0)*2.0 - 1.0; \n\
+    float col = floor(TexCoords.x * 4.0); \n\
+    int icol = int(round(col));\n\
+    float x = min((TexCoords.x*4.0 - col),1.0)*2.0 - 1.0; \n\
+    if(irow == 0 || irow == 2) \n\
+	  if (icol != 1) discard; \n\
+    vec3 tc; \n\
+    if(irow == 1 && icol == 0) tc = vec3(-1.0,y,-x); \n\
+	if (irow == 1 && icol == 1) tc = vec3(x, y, -1.0); \n\
+	if (irow == 1 && icol == 2) tc = vec3(1.0, y, x); \n\
+	if (irow == 1 && icol == 3) tc = vec3(-x, y, 1.0); \n\
+	if (irow == 0 && icol == 1) tc = vec3(x, -1.0, -y); \n\
+	if (irow == 2 && icol == 1) tc = vec3(x, 1.0, y); \n\
+    tc = normalize(tc); \n\
+	float depthValue = texture(textureUnit, tc).r; \n\
+	FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0); // perspective \n\
+} \n\
+";
 
 int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
 	*vertexSource = strdup(vertexQuad);
@@ -5140,6 +5187,9 @@ int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fra
 		break;
 	case 5:
 		*fragmentSource = strdup(fragmentQuadColorCube);
+		break;
+	case 6:
+		*fragmentSource = strdup(fragmentQuadDepthCubeTee);
 		break;
 	}
 	return TRUE;
