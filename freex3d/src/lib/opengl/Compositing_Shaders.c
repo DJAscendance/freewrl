@@ -1566,6 +1566,8 @@ uniform sampler2D textureUnit[16]; \n\
 //per projector: \n\
 uniform int ptmbackCull[8]; \n\
 uniform int ptmshadows[8]; \n\
+uniform vec3 ptmcolor[8]; \n\
+uniform float ptmintensity[8]; \n\
 uniform float ptmshadowIntensity[8]; \n\
 uniform int ptmdepthmap[8]; \n\
 uniform int ntdesc[8]; \n\
@@ -1576,6 +1578,7 @@ uniform int tunits[16]; \n\
 uniform int modes[16]; \n\
 uniform int sources[16]; \n\
 uniform int funcs[16]; \n\
+uniform int samplr[16]; \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	int k=0; \n\
 	for(int i=0;i<ptmCount;i++) { \n\
@@ -1620,7 +1623,8 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 						int mode = modes[k] - 100*modea; \n\
 						finalColCalcA(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
 					} \n\
-					frag_color = prev;\n\
+					//rag_color = prev;\n\
+                    frag_color.rgb = prev.rgb * ptmcolor[i]* ptmintensity[i]; \n\
 				} \n\
 			} \n\
 		} \n\

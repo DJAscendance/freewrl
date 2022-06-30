@@ -259,6 +259,8 @@ void resend_textureprojector_matrix()
 			// X HOWEVER freewrl Feb 2020 isn't reliably discriminating solid=true/false for different geometry types
 			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
 			GLUNIFORM1I(me->ptmbackCull[i],ptm->backCull);
+			GLUNIFORM3FV(me->ptmcolor[i], 1, ptm->color.c);
+			GLUNIFORM1F(me->ptmintensity[i], ptm->intensity);
 			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
 		//GLUNIFORM1I(me->ptmdepthmap[i], projrep->idepthtexture);
@@ -614,6 +616,154 @@ void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
 	/* this will be a global textureprojector here... */
 	render_TextureProjectorParallel(node);
 }
+
+
+void compile_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+
+	node->_intern = set_ProjectorRep(node->_intern);
+	/* LookAt Matrix Complete */
+	float dir[3], up[3], cross1[3], cross2[3];
+	veccopy3f(node->_loc.c, node->location.c);
+	veccopy3f(dir, node->direction.c);
+	veccopy3f(up, node->upVector.c);
+	vecnormalize3f(dir, dir);
+	vecnormalize3f(up, up);
+	veccross3f(cross1, dir, up);
+	vecnormalize3f(cross1, cross1);
+	veccross3f(cross2, cross1, dir);
+	vecnormalize3f(cross2, cross2);
+	veccopy3f(node->_dir.c, dir);
+	node->_dir.c[3] = 0.0f;
+	veccopy3f(node->_upVec.c, up);
+	node->_upVec.c[3] = 0.0f;
+	//	if (node->shadows) compile_shadowMap(X3D_NODE(node));
+	MARK_NODE_COMPILED;
+}
+
+void render_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+	int i, j = 0;
+	int flag = 0;
+	//float degree = node->fieldOfView * 180.0 / 3.141596;
+	GLDOUBLE cViewMat[16];
+	GLDOUBLE invcViewMat[16];
+	GLDOUBLE ViewMat[16];
+	GLDOUBLE ProjMat[16];
+	GLint tex1;
+	ppComponent_TextureProjector p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
+
+	RETURN_IF_RENDER_STATE_NOT_US
+		COMPILE_IF_REQUIRED;
+
+	if (node->on) {
+		double tempmat[16];
+		//GLDOUBLE TenLinearGexMatCam0[16];
+		GLDOUBLE modelview[16], modelviewnode[16], eye2projector[16], modelviewinv[16];
+		struct X3D_Node* tmpN = NULL;
+		struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
+
+		if (node->global) tg->Component_TextureProjector.globalProjector = TRUE;
+
+		//A. COMPUTE NODE-POSE MATRIX FOR: .position, .dir, .upVector
+		//glMatrixMode(GL_MODELVIEW);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
+
+		{
+			double loc[3], dir[3], up[3], eye[3];
+			float2double(loc, node->_loc.c, 3);
+			float2double(dir, node->_dir.c, 3);
+			float2double(up, node->_upVec.c, 3);
+			vecdifd(eye, loc, dir);
+			projLookAt(eye[0], eye[1], eye[2], loc[0], loc[1], loc[2], up[0], up[1], up[2], ViewMat);
+		}
+		matcopy(projrep->matview, ViewMat);
+		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
+		matinverse(modelviewinv, modelview);
+		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
+		matmultiplyAFFINE(eye2projector, modelviewinv, ViewMat);
+
+		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
+		//projPerspective((GLDOUBLE)degree,
+		//	(GLDOUBLE)node->aspectRatio, // aspectRatio = width/height see below, gets from image
+		//	(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance, // near, far
+		//	ProjMat);
+		matidentity4d(ProjMat);
+		matcopy(projrep->matproj, ProjMat);
+
+		//matidentity4d(tempmat);
+//		matmultiplyFULL(tempmat,bias,tempmat);
+		//matmultiplyFULL(tempmat,ProjMat,tempmat);
+
+		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
+		//matmultiplyFULL(projrep->matmodelviewproj,eye2projector,tempmat);
+		//matmultiplyFULL(projrep->matmodelviewproj, eye2projector, ProjMat);
+
+
+		//if (node->texture)
+		//{
+		//	POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);
+		//	if (tmpN) {
+		//		int ixyz[3];
+		//		float aspectRatio;
+		//		if (getTextureSizeFromTextureNode(tmpN, ixyz)) {
+		//			if (ixyz[0] > 0 && ixyz[1] > 0) {
+		//				aspectRatio = (float)ixyz[0] / (float)ixyz[1];
+		//				if (!APPROX(node->aspectRatio, aspectRatio)) {
+		//					node->aspectRatio = aspectRatio;
+		//					MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_TextureProjector, aspectRatio));
+		//					//printf("aspectRatio= %f\n",node->aspectRatio);
+		//				}
+		//			}
+		//		}
+		//	}
+
+
+		//}
+		{
+			GLuint texture;
+			usehit ptuple;
+
+			ptuple.node = X3D_NODE(node);
+			matcopy(ptuple.mvm, eye2projector);
+			//ptuple.userdata = projrep->matproj;
+			//matcopy(ptuple.proj, projrep->matproj);
+			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
+			projrep->itexture = texture;
+			projrep->texture = tmpN;
+			projectorTable_push(ptuple);
+			if (node->global && node->shadows) {
+				//shadowTable_push(ptuple);
+				//render_shadowMap(X3D_NODE(node));
+			}
+		}
+
+	} //if(node->on)
+}
+
+
+void fin_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node)
+{
+	RETURN_IF_RENDER_STATE_NOT_US
+		if (node->on)
+			if (!node->global)
+				projectorTable_pop(); //just pop local projectors that we pushed above - globals are cleared once per frame
+}
+
+void prep_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+
+
+	if (!renderstate()->render_light) return;
+	/* this will be a global textureprojector here... */
+	render_TextureProjectorPoint(node);
+
+}
+void child_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+}
+
+
+
 
 
 

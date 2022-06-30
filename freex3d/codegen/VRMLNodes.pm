@@ -3734,7 +3734,7 @@ our %Nodes = (
 
 	###################################################################################
 
-	# Chapter 43:		ProjectiveTextureMapping Component
+	# Chapter 42:		Texture Projector Component (aka ProjectiveTextureMapping PTM)
 
 	###################################################################################
 
@@ -3745,10 +3745,13 @@ our %Nodes = (
 		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		texture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3758,6 +3761,7 @@ our %Nodes = (
 		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		fieldOfView => ["SFFloat", 45, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 
 	], "X3DTextureProjectorNode"),
@@ -3770,10 +3774,13 @@ our %Nodes = (
 		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		texture => ["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3783,7 +3790,35 @@ our %Nodes = (
 		_loc => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		_upVec => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
 		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		fieldOfView => ["MFFloat", [-1, -1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DTextureProjectorNode"),
+
+	"TextureProjectorPoint" => new VRML::NodeType("TextureProjectorPoint",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		global => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		on => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		shadows => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		shadowIntensity => ["SFFloat", 1.0, "inputOutput", 0,"UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		location=> ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
+		direction => ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
+		nearDistance => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
+		farDistance => ["SFFloat", 10, "inputOutput", 0,"UNCA_NONE"],#ff
+		texture=>["SFNode","NULL","inputOutput", 0,"UNCA_NONE"],#ff
+		backCull => ["SFBool", "TRUE", "inputOutput", 0,"UNCA_NONE"],#ff
+
+		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", 0,"UNCA_NONE"],#ff
+		#aspectRatio => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
+		#fieldOfView => ["SFFloat", 45, "inputOutput", 0,"UNCA_NONE"],#ff
 
 	], "X3DTextureProjectorNode"),
 

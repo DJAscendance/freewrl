@@ -66,6 +66,7 @@ our %defaultContainerType = (
 
 	TextureProjector =>["children"],
 	TextureProjectorParallel =>["children"],
+	TextureProjectorPoint =>["children"],
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
@@ -573,6 +574,7 @@ our %PrepC = map {($_=>1)} qw/
 	CADPart
 	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -605,6 +607,7 @@ our %FinC = map {($_=>1)} qw/
 	CADPart
 	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -656,6 +659,7 @@ our %ChildC = map {($_=>1)} qw/
 	Viewport
 	TextureProjector
 	TextureProjectorParallel 
+      TextureProjectorPoint
 	LayoutGroup
 	ScreenGroup
 	LayerSet
@@ -689,6 +693,7 @@ our %CompileC = map {($_=>1)} qw/
 	Transform
 	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Group
 	Proto
 	Inline

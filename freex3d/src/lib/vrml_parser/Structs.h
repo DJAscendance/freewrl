@@ -390,37 +390,38 @@ typedef int indexT;
 #define NODE_TextureCoordinateGenerator	314
 #define NODE_TextureProjector	315
 #define NODE_TextureProjectorParallel	316
-#define NODE_TextureProperties	317
-#define NODE_TextureTransform	318
-#define NODE_TextureTransform3D	319
-#define NODE_TextureTransformGenerator	320
-#define NODE_TextureTransformMatrix3D	321
-#define NODE_Tile	322
-#define NODE_TimeSensor	323
-#define NODE_TimeTrigger	324
-#define NODE_ToneMappedVolumeStyle	325
-#define NODE_TouchSensor	326
-#define NODE_TrackingSensor	327
-#define NODE_Transform	328
-#define NODE_TransformSensor	329
-#define NODE_TransmitterPdu	330
-#define NODE_TriangleFanSet	331
-#define NODE_TriangleSet	332
-#define NODE_TriangleSet2D	333
-#define NODE_TriangleStripSet	334
-#define NODE_TwoSidedMaterial	335
-#define NODE_UniversalJoint	336
-#define NODE_UnlitMaterial	337
-#define NODE_Viewpoint	338
-#define NODE_ViewpointGroup	339
-#define NODE_Viewport	340
-#define NODE_VisibilitySensor	341
-#define NODE_VolumeData	342
-#define NODE_VolumeEmitter	343
-#define NODE_VolumePickSensor	344
-#define NODE_WaveShaperNode	345
-#define NODE_WindPhysicsModel	346
-#define NODE_WorldInfo	347
+#define NODE_TextureProjectorPoint	317
+#define NODE_TextureProperties	318
+#define NODE_TextureTransform	319
+#define NODE_TextureTransform3D	320
+#define NODE_TextureTransformGenerator	321
+#define NODE_TextureTransformMatrix3D	322
+#define NODE_Tile	323
+#define NODE_TimeSensor	324
+#define NODE_TimeTrigger	325
+#define NODE_ToneMappedVolumeStyle	326
+#define NODE_TouchSensor	327
+#define NODE_TrackingSensor	328
+#define NODE_Transform	329
+#define NODE_TransformSensor	330
+#define NODE_TransmitterPdu	331
+#define NODE_TriangleFanSet	332
+#define NODE_TriangleSet	333
+#define NODE_TriangleSet2D	334
+#define NODE_TriangleStripSet	335
+#define NODE_TwoSidedMaterial	336
+#define NODE_UniversalJoint	337
+#define NODE_UnlitMaterial	338
+#define NODE_Viewpoint	339
+#define NODE_ViewpointGroup	340
+#define NODE_Viewport	341
+#define NODE_VisibilitySensor	342
+#define NODE_VolumeData	343
+#define NODE_VolumeEmitter	344
+#define NODE_VolumePickSensor	345
+#define NODE_WaveShaperNode	346
+#define NODE_WindPhysicsModel	347
+#define NODE_WorldInfo	348
 
 
 /* Table of built-in fieldIds */
@@ -3105,6 +3106,7 @@ struct X3D_Node {
 #define X3D_BUFFERTEXTURE(node) ((struct X3D_BufferTexture*)node)
 #define X3D_TEXTUREPROJECTOR(node) ((struct X3D_TextureProjector*)node)
 #define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)
+#define X3D_TEXTUREPROJECTORPOINT(node) ((struct X3D_TextureProjectorPoint*)node)
 void mark_event (struct X3D_Node *from, int totalptr);
 #undef DEBUG_VALIDNODE
 #ifdef DEBUG_VALIDNODE	
@@ -12559,10 +12561,12 @@ struct X3D_TextureProjector {
 	int on;
 	int shadows;
 	float shadowIntensity;
+	float ambientIntensity;
+	struct SFColor color;
+	float intensity;
 	struct Uni_String *description;
 	struct SFVec3f location;
 	struct SFVec3f direction;
-	float aspectRatio;
 	float nearDistance;
 	float farDistance;
 	struct X3D_Node *texture;
@@ -12571,6 +12575,7 @@ struct X3D_TextureProjector {
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;
 	struct SFVec3f upVector;
+	float aspectRatio;
 	float fieldOfView;
 };
 extern struct X3D_Virt virt_TextureProjector;
@@ -12596,10 +12601,12 @@ struct X3D_TextureProjectorParallel {
 	int on;
 	int shadows;
 	float shadowIntensity;
+	float ambientIntensity;
+	struct SFColor color;
+	float intensity;
 	struct Uni_String *description;
 	struct SFVec3f location;
 	struct SFVec3f direction;
-	float aspectRatio;
 	float nearDistance;
 	float farDistance;
 	struct X3D_Node *texture;
@@ -12608,9 +12615,48 @@ struct X3D_TextureProjectorParallel {
 	struct SFVec4f _loc;
 	struct SFVec4f _upVec;
 	struct SFVec3f upVector;
+	float aspectRatio;
 	struct Multi_Float fieldOfView;
 };
 extern struct X3D_Virt virt_TextureProjectorParallel;
+/***********************/
+struct X3D_TextureProjectorPoint {
+       int _nodeType; /* unique integer for each type */ 
+       int _renderFlags; /*sensitive, etc */ 
+       int _hit; 
+       int _change; 
+       int _ichange; 
+       char * _fieldchange; 
+       struct Vector* _parentVector; 
+       double _dist; /*sorting for blending */ 
+       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ 
+       struct X3D_GeomRep *_intern; 
+       int referenceCount; /* if this reaches zero, nobody wants it anymore */ 
+       int _defaultContainer; /* holds the container */
+       void* _gc; /* ptr to vector of ptrs to free */
+       struct X3D_Node* _executionContext; /* scene or protoInstance */
+ 	/*** node specific data: *****/
+	struct X3D_Node *metadata;
+	int global;
+	int on;
+	int shadows;
+	float shadowIntensity;
+	float ambientIntensity;
+	struct SFColor color;
+	float intensity;
+	struct Uni_String *description;
+	struct SFVec3f location;
+	struct SFVec3f direction;
+	float nearDistance;
+	float farDistance;
+	struct X3D_Node *texture;
+	int backCull;
+	struct SFVec4f _dir;
+	struct SFVec4f _loc;
+	struct SFVec4f _upVec;
+	struct SFVec3f upVector;
+};
+extern struct X3D_Virt virt_TextureProjectorPoint;
 /***********************/
 struct X3D_TextureProperties {
        int _nodeType; /* unique integer for each type */ 

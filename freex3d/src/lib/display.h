@@ -468,6 +468,8 @@ typedef struct s_shader_capabilities{
 	/* PTM Projective Texture */
 	GLint ptmCount;
 	GLint ptmGenMatCam[8];
+	GLint ptmcolor[8];
+	GLint ptmintensity[8];
 	GLint ptmbackCull[8];
 	GLint ptmshadows[8];
 	GLint ptmshadowIntensity[8];

@@ -2761,6 +2761,10 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		me->ptmGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
 		sprintf(line,"ptmbackCull[%d]",i);
 		me->ptmbackCull[i] = GET_UNIFORM(myProg,line);
+		sprintf(line, "ptmcolor[%d]", i);
+		me->ptmcolor[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptmintensity[%d]", i);
+		me->ptmintensity[i] = GET_UNIFORM(myProg, line);
 		sprintf(line, "ptmshadows[%d]", i);
 		me->ptmshadows[i] = GET_UNIFORM(myProg, line);
 		sprintf(line, "ptmshadowIntensity[%d]", i);
