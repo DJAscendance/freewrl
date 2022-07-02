@@ -1168,23 +1168,47 @@ void unpackImageCubeMap6 (textureTableIndexStruct_s* me) {
 enum {
 	ICM_UNK = -1,
 	ICM_DDS = 0, //detected by file type
-	ICM_T = 1, //+-
+	ICM_T = 1, //+-  4x3
 	ICM_3X2 = 2,
 	ICM_2X3 = 3,
 	ICM_6X1 = 4,
 	ICM_1X6 = 5,
+	ICM_3X4 = 6, //like ICM_T 
 };
 int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned char** facetextures) {
+	//offsets x,y,flipx,flipy(0=renderman 1=no renderman flip)
 	int isize = 0;
 	int* offs = NULL;
 	if (pattern == ICM_DDS) {
 		isize = tti->x;
-		int oo0[] = { 0,0, 1,0, 2,0, 3,0, 4,0, 5,0 };
+		int oo0[] = { 0,0,0,0, 1,0,0,0,  2,0,0,0,  3,0,0,0,  4,0,0,0,  5,0,0.0 };
 		offs = oo0;
 	} else if (pattern == ICM_T) {
 		//+- format
 		isize = tti->x / 4;
-		offs = offsets; //defined above in y,x,y,x sequence
+		/*y,x,   with y-up    */
+		int oo0[] = {
+			1, 2, 0,0, /* right 	*/
+			1, 0, 0,0, /* left 	*/
+			2, 1, 0,0, /* top		*/
+			0, 1, 0,0, /* bottom	*/
+			1, 1, 0,0, /* front	*/
+			1, 3, 0,0, /* back		*/
+		};
+		offs = oo0; //defined above in y,x,y,x sequence
+	} else if (pattern == ICM_3X4) {
+		//+ format
+		//|
+		isize = tti->x / 3;
+		int oo0[] = {
+			2,2,0,0,	/* right 	*/
+			2,0,0,0,	/* left 	*/
+			3,1,0,0,	/* top		*/
+			1,1,0,0,	/* bottom	*/
+			2,1,0,0,	/* front	*/
+			0,1,1,1,    /* back     */
+		};
+		offs = oo0; //defined above in y,x,y,x sequence
 	}
 	else {
 		//packed
@@ -1194,22 +1218,22 @@ int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned ch
 		switch (pattern) {
 		case ICM_1X6: //nx = 1; ny = 6; 
 			isize = tti->x;
-			int oo1[] = { 5,0, 4,0, 3,0, 2,0, 1,0, 0,0 };
+			int oo1[] = { 5,0,0,0, 4,0,0,0, 3,0,0,0, 2,0,0,0, 1,0,0,0, 0,0,0,0, };
 			offs = oo1;
 			break;
 		case ICM_6X1: //nx = 6; ny = 1; 
 			isize = tti->y;
-			int oo2[] = { 0,0, 0,1, 0,2, 0,3, 0,4, 0,5 };
+			int oo2[] = { 0,0,0,0, 0,1,0,0, 0,2,0,0, 0,3,0,0, 0,4,0,0, 0,5,0,0, };
 			offs = oo2;
 			break;
 		case ICM_2X3: //nx = 2; ny = 3; 
 			isize = tti->x/2;
-			int oo3[] = { 2,0, 2,1, 1,0, 1,1, 0,0, 0,1 };
+			int oo3[] = { 2,0,0,0, 2,1,0,0, 1,0,0,0, 1,1,0,0, 0,0,0,0, 0,1,0,0, };
 			offs = oo3;
 			break;
 		case ICM_3X2: //nx = 3; ny = 2; 
 			isize = tti->x/3;
-			int oo4[] = { 0,0, 0,1, 0,2, 1,0, 1,2, 1,2 };
+			int oo4[] = { 0,0,0,0, 0,1,0,0, 0,2,0,0, 1,0,0,0, 1,2,0,0, 1,2,0,0, };
 			offs = oo4;
 			break;
 		default: nx = 0; ny = 0; isize = 0;
@@ -1220,16 +1244,17 @@ int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned ch
 		/* go through each face, and send the data to the relevant PixelTexture */
 		/* order: right left, top, bottom, back, front */
 		for (int iface = 0; iface < 6; iface++) {
-			int x, y, yy, iy, index;
+			int x, y, xx,ix, yy, iy, index;
 			unsigned char* tex = tti->texdata;
 			unsigned char rgba[4];
 			unsigned char c;
-			int xSubIndex, ySubIndex;
+			int xSubIndex, ySubIndex, iflipx, inoflipy;
 
 			int nci = 4; // tti->channels;
 			int nco = 4;
 			if (tti->hasAlpha && nci == 3) nci = 4;
-			ySubIndex = offs[iface * 2] * isize; xSubIndex = offs[iface * 2 + 1] * isize;
+			ySubIndex = offs[iface * 4] * isize; xSubIndex = offs[iface * 4 + 1] * isize;
+			iflipx = offs[iface * 4 + 2] * isize; inoflipy = offs[iface * 4 + 3] * isize;
 
 			/* create the MFInt32 array for this face in the PixelTexture */
 			FREE_IF_NZ(facetextures[iface]);
@@ -1239,8 +1264,12 @@ int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned ch
 				//flip cubemap textures to be y-down following opengl specs table 3-19
 				//'renderman' convention
 				y = (ySubIndex + isize - 1) - iy; //flip y for 
-				for (x = xSubIndex; x < xSubIndex + isize; x++) {
+				if (inoflipy) y = yy;
+				for (xx = xSubIndex,ix=0; xx < xSubIndex + isize; xx++,ix++) {
 					int ipix, ibyte;
+					x = xx;
+					if(iflipx)
+						x = (xSubIndex + isize - 1) - ix; //flip y for 
 					ipix = y * tti->x + x; //pixel in big image
 					ibyte = ipix * nci;
 					memset(rgba, 255, 4);
@@ -1271,7 +1300,7 @@ int unpack_image_2D_into_cube_faces(textureTableIndexStruct_s* tti, unsigned cha
 					printf ("have ImageCubeMapTexture, but status != TEX_LOADED\n");
 				}
 		*/
-		int pattern = tti->x * 3 == tti->y * 4 ? ICM_T : tti->x * 3 == tti->y * 2 ? ICM_2X3 : tti->x * 2 == tti->y * 3 ? ICM_3X2 : tti->x * 6 == tti->y ? ICM_1X6 : tti->x == tti->y * 6 ? ICM_6X1 : ICM_UNK;
+		int pattern = tti->x * 3 == tti->y * 4 ? ICM_T : tti->x * 4 == tti->y * 3 ? ICM_3X4 : tti->x * 3 == tti->y * 2 ? ICM_2X3 : tti->x * 2 == tti->y * 3 ? ICM_3X2 : tti->x * 6 == tti->y ? ICM_1X6 : tti->x == tti->y * 6 ? ICM_6X1 : ICM_UNK;
 		isize = unpackImageCubeMapB(tti,pattern,facetextures);
 	}
 	else if (tti->z == 6) {
