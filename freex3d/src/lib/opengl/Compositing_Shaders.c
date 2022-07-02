@@ -1561,6 +1561,82 @@ uniform sampler2D textureUnit[8]; \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
 #endif //SHADOW  || CUB \n\
+#ifdef SHADOW //this stuff only works in the fragment shader \n\
+float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
+{ \n\
+  //for cubemap depth, find which of 6 (perspective-rendered depthmap) faces will be sampled, \n\
+  // and scale local 3d vector to depth map scale for comparison elsewhere \n\
+  // https://en.wikipedia.org/wiki/Z-buffering#Mathematics \n\
+  // https://stackoverflow.com/questions/10786951/omnidirectional-shadow-mapping-with-depth-cubemap \n\
+  vec3 abslocal = abs(local); \n\
+  float maxAxis = max(abslocal.x, max(abslocal.y, abslocal.z)); \n\
+  float zfactor = (far + near) / (far - near) - (2.0 * far * near) / (far - near) / maxAxis; \n\
+  return (zfactor + 1.0) * 0.5; \n\
+} \n\
+float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
+{ \n\
+    float shadow = 0.0; \n\
+    vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
+    vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
+    vec4 fragPosLightSpace = lightCoord; \n\
+    int type = lightType[ilight]; \n\
+    vec3 projCoords, projNorm; \n\
+	// perform perspective divide \n\
+	projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
+    //instead of inverseTranspose we transform another point, and subtract \n\
+    projNorm = lightNorm.xyz/lightNorm.w; \n\
+    float closestDepth = 10.0; \n\
+	float currentDepth = 10.0; \n\
+    if(type == 0){ \n\
+      //PointLight uses cubemap shadow and 3D lookup coord \n\
+      vec3 pc = lightCoord.xyz; \n\
+      pc.yz = -pc.yz; \n\
+	  vec3 nc = normalize(pc); \n\
+      closestDepth = texture(textureUnitCube[fw_LightSource[ilight].depthmap], nc).r; \n\
+      currentDepth = local3D2cubedepth(pc,.1,fw_LightSource[ilight].lightRadius); \n\
+    }else{ \n\
+	  // transform to [0,1] range \n\
+	  projCoords = projCoords * 0.5 + 0.5; \n\
+	  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
+	  closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
+	  // get depth of current fragment from light's perspective \n\
+	  currentDepth = projCoords.z; \n\
+      if (projCoords.z > 1.0) \n\
+		currentDepth = 1.0; \n\
+    } \n\
+	// calculate bias (based on depth map resolution and slope) \n\
+	vec3 normal = normalize(projNorm-projCoords); \n\
+	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
+    vec3 lightDir = normalize(lightdir); \n\
+    // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping \n\
+    // solve shadow acne with a small bias \n\
+	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+    float bias = 0.005; \n\
+	// check whether current frag pos is in shadow \n\
+	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+    //shadow = (currentDepth - bias - closestDepth)*100.0; \n\
+    //shadow = currentDepth; \n\
+    //shadow = 0.0; \n\
+    //shadow = closestDepth; \n\
+#ifdef PCF \n\
+	shadow = 0.0; \n\
+	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
+	for (int x = -1; x <= 1; ++x) \n\
+	{ \n\
+		for (int y = -1; y <= 1; ++y) \n\
+		{ \n\
+			float pcfDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy + vec2(x, y) * texelSize).r; \n\
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0; \n\
+		} \n\
+	} \n\
+	shadow /= 9.0; \n\
+#endif //PCF \n\
+	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
+	//if (projCoords.z > 1.0) \n\
+	//	shadow = 0.0; \n\
+	return shadow; \n\
+} \n\
+#endif //SHADOW \n\
 //#endif //defined(TEX) || defined(PROJTEX \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
@@ -3170,52 +3246,6 @@ static const GLchar *plug_frag_lighting_physical = "\n\
 #ifndef M_PI \n\
 #define M_PI 3.14159265358979 \n\
 #endif \n\
-#ifdef SHADOW //this stuff only works in the fragment shader \n\
-float ShadowCalculationp(in int ilight, in vec3 lightdir) \n\
-{ \n\
-    float shadow = 0.0; \n\
-    vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
-    vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-    vec4 fragPosLightSpace = lightCoord; \n\
-	// perform perspective divide \n\
-	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
-    //instead of inverseTranspose we transform another point, and subtract \n\
-    vec3 projNorm = lightNorm.xyz/lightNorm.w; \n\
-	// transform to [0,1] range \n\
-	projCoords = projCoords * 0.5 + 0.5; \n\
-	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
-	float closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
-	// get depth of current fragment from light's perspective \n\
-	float currentDepth = projCoords.z; \n\
-	// calculate bias (based on depth map resolution and slope) \n\
-	vec3 normal = normalize(projNorm-projCoords); \n\
-	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
-    vec3 lightDir = normalize(lightdir); \n\
-    // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping \n\
-    // solve shadow acne with a small bias \n\
-	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
-    float bias = 0.005; \n\
-	// check whether current frag pos is in shadow \n\
-	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
-#ifdef PCF \n\
-	shadow = 0.0; \n\
-	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
-	for (int x = -1; x <= 1; ++x) \n\
-	{ \n\
-		for (int y = -1; y <= 1; ++y) \n\
-		{ \n\
-			float pcfDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy + vec2(x, y) * texelSize).r; \n\
-			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0; \n\
-		} \n\
-	} \n\
-	shadow /= 9.0; \n\
-#endif //PCF \n\
-	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
-	if (projCoords.z > 1.0) \n\
-		shadow = 0.0; \n\
-	return shadow; \n\
-} \n\
-#endif //SHADOW \n\
 struct AngularInfo \n\
 { \n\
 	float NdotL; // cos angle between normal and light direction \n\
@@ -3347,13 +3377,7 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 		float shadowtest = 1.0; \n\
 #ifdef SHADOW \n\
 		if (light.shadows) { \n\
-			if (myLightType > 0) { \n\
-				//spot, directional, uses 2D shadow texture \n\
-				shadowtest = 1.0 - light.shadowIntensity*ShadowCalculationp(i,VP); \n\
-			} \n\
-			else { \n\
-				//point, uses cubemap shadow texture \n\
-			} \n\
+			shadowtest = 1.0 - light.shadowIntensity*ShadowCalculation(i,VP); \n\
 		} \n\
 #endif //SHADOW \n\
 		vertexcolor   += on * shadowtest * attenuation * spot * light.color * light.intensity * shade; \n\
@@ -3376,82 +3400,6 @@ void PLUG_add_light_physical (inout vec3 vertexcolor, in vec3 myPosition, in vec
 		static const GLchar* plug_vertex_lighting_ADSLightModel = "\n\
 /* use ADSLightModel here the ADS colour is returned from the function.  */ \n\
 #ifdef LITE \n\
-#ifdef SHADOW //this stuff only works in the fragment shader \n\
-float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
-{ \n\
-  //for cubemap depth, find which of 6 (perspective-rendered depthmap) faces will be sampled, \n\
-  // and scale local 3d vector to depth map scale for comparison elsewhere \n\
-  // https://en.wikipedia.org/wiki/Z-buffering#Mathematics \n\
-  // https://stackoverflow.com/questions/10786951/omnidirectional-shadow-mapping-with-depth-cubemap \n\
-  vec3 abslocal = abs(local); \n\
-  float maxAxis = max(abslocal.x, max(abslocal.y, abslocal.z)); \n\
-  float zfactor = (far + near) / (far - near) - (2.0 * far * near) / (far - near) / maxAxis; \n\
-  return (zfactor + 1.0) * 0.5; \n\
-} \n\
-float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
-{ \n\
-    float shadow = 0.0; \n\
-    vec4 lightCoord = lightMat[ilight] * castle_vertex_eye; \n\
-    vec4 lightNorm = lightMat[ilight] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-    vec4 fragPosLightSpace = lightCoord; \n\
-    int type = lightType[ilight]; \n\
-    vec3 projCoords, projNorm; \n\
-	// perform perspective divide \n\
-	projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; \n\
-    //instead of inverseTranspose we transform another point, and subtract \n\
-    projNorm = lightNorm.xyz/lightNorm.w; \n\
-    float closestDepth = 10.0; \n\
-	float currentDepth = 10.0; \n\
-    if(type == 0){ \n\
-      //PointLight uses cubemap shadow and 3D lookup coord \n\
-      vec3 pc = lightCoord.xyz; \n\
-      pc.yz = -pc.yz; \n\
-	  vec3 nc = normalize(pc); \n\
-      closestDepth = texture(textureUnitCube[fw_LightSource[ilight].depthmap], nc).r; \n\
-      currentDepth = local3D2cubedepth(pc,.1,fw_LightSource[ilight].lightRadius); \n\
-    }else{ \n\
-	  // transform to [0,1] range \n\
-	  projCoords = projCoords * 0.5 + 0.5; \n\
-	  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords) \n\
-	  closestDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy).r; \n\
-	  // get depth of current fragment from light's perspective \n\
-	  currentDepth = projCoords.z; \n\
-      if (projCoords.z > 1.0) \n\
-		currentDepth = 1.0; \n\
-    } \n\
-	// calculate bias (based on depth map resolution and slope) \n\
-	vec3 normal = normalize(projNorm-projCoords); \n\
-	//vec3 lightDir = normalize(lightPos - fs_in.FragPos); \n\
-    vec3 lightDir = normalize(lightdir); \n\
-    // https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping \n\
-    // solve shadow acne with a small bias \n\
-	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
-    float bias = 0.005; \n\
-	// check whether current frag pos is in shadow \n\
-	shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
-    //shadow = (currentDepth - bias - closestDepth)*100.0; \n\
-    //shadow = currentDepth; \n\
-    //shadow = 0.0; \n\
-    //shadow = closestDepth; \n\
-#ifdef PCF \n\
-	shadow = 0.0; \n\
-	vec2 texelSize = 1.0 / textureSize(textureUnit[fw_LightSource[ilight].depthmap], 0); \n\
-	for (int x = -1; x <= 1; ++x) \n\
-	{ \n\
-		for (int y = -1; y <= 1; ++y) \n\
-		{ \n\
-			float pcfDepth = texture(textureUnit[fw_LightSource[ilight].depthmap], projCoords.xy + vec2(x, y) * texelSize).r; \n\
-			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0; \n\
-		} \n\
-	} \n\
-	shadow /= 9.0; \n\
-#endif //PCF \n\
-	// keep the shadow at 0.0 when outside the far_plane region of the light's frustum. \n\
-	//if (projCoords.z > 1.0) \n\
-	//	shadow = 0.0; \n\
-	return shadow; \n\
-} \n\
-#endif //SHADOW \n\
 \n\
 void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularcolor, in vec4 myPosition, in vec3 myNormal, \n\
 		in float mat_shininess, in float mat_ambient, in vec3 mat_diffuse, in vec3 mat_specular){ \n\
