@@ -428,8 +428,8 @@ void compile_Material (struct X3D_Material *node) {
 		if (tnodes[6]) q->map[6] = node->ambientTextureMapping ? node->ambientTextureMapping->strptr : NULL;
 	}
 
-	int *cindex = q->cindex;
-	for (int i = 0; i < 7; i++) cindex[i] = 0; //can't do this here, because texCoord.mapping order is dominant, and don't have geom node access here.
+	//int *cindex = q->cindex;
+	//for (int i = 0; i < 7; i++) cindex[i] = 0; //can't do this here, because texCoord.mapping order is dominant, and don't have geom node access here.
 	//cindex[0] = 0; //node->normalTextureChannel;
 	//cindex[1] = 0; //node->emissiveTextureChannel;
 	//cindex[2] = node->diffuseTextureChannel;
@@ -1877,13 +1877,13 @@ void compile_UnlitMaterial (struct X3D_UnlitMaterial *node) {
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->emissiveTexture,tnodes[1]);
 		if (tnodes[1]) q->map[1] = node->emissiveTextureMapping ? node->emissiveTextureMapping->strptr : NULL;
 	}
-	int *cindex = q->cindex;
-	for (int i = 0; i < 7; i++) {
-		cindex[i] = 0;
-		
-		//cindex[0] = 0; //node->normalTextureChannel;
-		//cindex[1] = 0; //node->emissiveTextureChannel;
-	}
+	//int *cindex = q->cindex;
+	//for (int i = 0; i < 7; i++) {
+	//	cindex[i] = 0;
+	//	
+	//	//cindex[0] = 0; //node->normalTextureChannel;
+	//	//cindex[1] = 0; //node->emissiveTextureChannel;
+	//}
 	q->nt = 0; //assume no material.texturexxx to start
 	for(int i=0;i<7;i++){
 		q->tcount[i] = 0; //default: no texture for this material function
@@ -2034,8 +2034,8 @@ void compile_PhysicalMaterial (struct X3D_PhysicalMaterial *node) {
 		if (tnodes[4]) q->map[4] = node->metallicRoughnessTextureMapping ? node->metallicRoughnessTextureMapping->strptr : NULL;
 
 	}
-	int *cindex = q->cindex;
-	for (int i = 0; i < 7; i++) cindex[i] = 0;
+	//int *cindex = q->cindex;
+	//for (int i = 0; i < 7; i++) cindex[i] = 0;
 	//cindex[0] = 0; //node->normalTextureChannel;
 	//cindex[1] = 0; //node->emissiveTextureChannel;
 	//cindex[2] = node->baseTextureChannel;

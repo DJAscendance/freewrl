@@ -895,8 +895,8 @@ void textureTransform_start() {
 				int nt = mp->nt;  //assume appearance.texture has fwFrontMaterial all to itself, no material.texture to coordinte with
 				mp->tcount[iuse] += ntdesc;
 				mp->tstart[iuse] = nt;
-				mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
-					// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
+				//mp->cindex[iuse] = 0; //appearance.texture - cindex (coordinate index) 1:1 singletexture m:1 multitexture
+				//	// material.texture - cindex 1:1 xxxTexture 1:1 xxxTexture.multitexture 1:m multitexture.singletexture
 				for (int j = 0; j < ntdesc; j++) {
 					int kunit, iunit;
 					kunit = iunit = 0;
@@ -957,7 +957,7 @@ void textureTransform_start() {
 				//printf("sampler type samplr[%d]=%d start[%d]=%d ", iuse, mp->samplr[iuse], iuse, mp->tstart[iuse]); //samplr 0=2D 1=cube
 				//something about the first sub-texture in the multitexture..
 				//printf("textureUnit(Cube)[%d]=%d\n", mp->tindex[mp->tstart[iuse]], mp->binding[mp->tstart[iuse]] );
-				GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
+				//GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
 				GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
 				GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
 

@@ -2831,8 +2831,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		char line[200];
 		sprintf(line, "fw_FrontMaterial.samplr[%d]", i); //0 = 2D, 1=cube
 		me->myMaterialSampler[i] = GET_UNIFORM(myProg, line);
-		sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
-		me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
+		//sprintf(line,"fw_FrontMaterial.cindex[%d]",i);
+		//me->myMaterialCindex[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_FrontMaterial.tstart[%d]",i);
 		me->myMaterialTstart[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_FrontMaterial.tcount[%d]",i);
@@ -2871,8 +2871,8 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		char line[200];
 		sprintf(line, "fw_BackMaterial.samplr[%d]", i);
 		me->myMaterialBackSampler[i] = GET_UNIFORM(myProg, line);
-		sprintf(line,"fw_BackMaterial.cindex[%d]",i);
-		me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
+		//sprintf(line,"fw_BackMaterial.cindex[%d]",i);
+		//me->myMaterialBackCindex[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_BackMaterial.tstart[%d]",i);
 		me->myMaterialBackTstart[i] = GET_UNIFORM(myProg,line);
 		sprintf(line,"fw_BackMaterial.tcount[%d]",i);
@@ -7057,7 +7057,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				}
 				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 			}
-			GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
+			//GLUNIFORM1I(me->myMaterialCindex[iuse], mp->cindex[iuse]);
 			GLUNIFORM1I(me->myMaterialTcount[iuse], mp->tcount[iuse]);
 			GLUNIFORM1I(me->myMaterialTstart[iuse], mp->tstart[iuse]);
 		}
@@ -7126,7 +7126,7 @@ PRINT_GL_ERROR_IF_ANY("BEGIN sendMaterialsToShader");
 				}
 				tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 			}
-			GLUNIFORM1I(me->myMaterialBackCindex[iuse], mp->cindex[iuse]);
+			//GLUNIFORM1I(me->myMaterialBackCindex[iuse], mp->cindex[iuse]);
 			GLUNIFORM1I(me->myMaterialBackTcount[iuse], mp->tcount[iuse]);
 			GLUNIFORM1I(me->myMaterialBackTstart[iuse], mp->tstart[iuse]);
 		}

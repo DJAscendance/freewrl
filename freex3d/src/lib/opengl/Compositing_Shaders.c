@@ -757,7 +757,7 @@ struct fw_MaterialParameters { \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
-  int cindex[7]; // which geometry multitexcoord channel 0=default \n\
+  //int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
@@ -1537,7 +1537,7 @@ struct fw_MaterialParameters { \n\
 	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
 	int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
 	int tstart[7]; // where in packed tindex list to start looping \n\
-	int cindex[7]; // which geometry multitexcoord channel 0=default \n\
+	//int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\
@@ -4559,7 +4559,7 @@ struct fw_MaterialParameters { \n\
   //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
   int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
   int tstart[7]; // where in packed tindex list to start looping \n\
-  int cindex[7]; // which geometry multitexcoord channel 0=default \n\
+  //int cindex[7]; // which geometry multitexcoord channel 0=default \n\
 }; \n\
 uniform fw_MaterialParameters fw_FrontMaterial; \n\
 //#ifdef TWO \n\

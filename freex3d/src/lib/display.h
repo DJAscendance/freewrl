@@ -368,7 +368,7 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialSampler[7];
 	GLint myMaterialTcount[7];
 	GLint myMaterialTstart[7];
-	GLint myMaterialCindex[7];
+	//GLint myMaterialCindex[7];
 
 	GLint myMaterialBackDiffuse;
 	GLint myMaterialBackEmissive;
@@ -392,7 +392,7 @@ typedef struct s_shader_capabilities{
 	GLint myMaterialBackSampler[7];
 	GLint myMaterialBackTcount[7];
 	GLint myMaterialBackTstart[7];
-	GLint myMaterialBackCindex[7];
+	//GLint myMaterialBackCindex[7];
 
 	GLint myPointSize;
     

@@ -182,7 +182,7 @@ struct fw_MaterialParameters {
 	struct X3D_Node *textures[7]; //emissive,normal,[occlusion,{diffuse,ambient,specular,shininess}, or {base,smetallic}]
 	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
 	int tstart[7]; // where in tindex to start looping
-	int cindex[7]; //texture coordinate channel
+	//int cindex[7]; //texture coordinate channel
 	char* map[7]; //xxxTextureMapping (pointer / shallow copy, don't free)
 	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
 	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
