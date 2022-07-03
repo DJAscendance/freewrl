@@ -1699,8 +1699,9 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 						int mode = modes[k] - 100*modea; \n\
 						finalColCalcA(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
 					} \n\
-					//rag_color = prev;\n\
+					//frag_color = prev;\n\
                     frag_color.rgb = prev.rgb * ptmcolor[i]* ptmintensity[i]; \n\
+                    frag_color.a = prev.a; \n\
 				} \n\
 			} \n\
 		} \n\
