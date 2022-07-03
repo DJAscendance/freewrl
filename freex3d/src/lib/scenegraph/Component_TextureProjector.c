@@ -234,7 +234,7 @@ void resend_textureprojector_matrix()
 	pcount = 0;
 	int nunit = 0;
 	int kdesc = 0;
-	int unitTextures[4];
+	//int unitTextures[4];
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 	PRINT_GL_ERROR_IF_ANY("BEGIN resend_textureprojector_matrix");
 
@@ -274,7 +274,7 @@ void resend_textureprojector_matrix()
 			int textures[4];
 			int width[4], height[4], samplr[4];
 
-			int toffset = 4;
+			//int toffset = 4;
 			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
 			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
 			render_node(projrep->texture);
@@ -560,13 +560,35 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 
 
 		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
-		mesa_Ortho((GLDOUBLE)node->fieldOfView.p[0],(GLDOUBLE)node->fieldOfView.p[2],(GLDOUBLE)node->fieldOfView.p[1],(GLDOUBLE)node->fieldOfView.p[3],
-			(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance,orthoMat);
-		matcopy(projrep->matproj, orthoMat);
-		//matidentity4d(tempmat);
-//		matmultiplyFULL(tempmat,bias,tempmat); //in shader now
-		//matmultiplyFULL(tempmat,orthoMat,tempmat);
+		int method = 1;
+		if (method == 0) {
+			// July 3, 2022 - this doesn't have the right zone (near/farDistance), not working right
+			mesa_Ortho((GLDOUBLE)node->fieldOfView.p[0], (GLDOUBLE)node->fieldOfView.p[2], (GLDOUBLE)node->fieldOfView.p[1], (GLDOUBLE)node->fieldOfView.p[3],
+				(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance, orthoMat);
+			matcopy(projrep->matproj, orthoMat);
+			printmatrix2(orthoMat, "orthoMat");
+		}
+		else {
+			// this works a bit
+			float size[3], center[3], * ll, * ur, zz[2];
+			double mate[16], dcenter[3], dsize[3], matproj[16], matinv[16];
+			ll = &node->fieldOfView.p[0];
+			ur = &node->fieldOfView.p[2];
+			zz[0] = node->nearDistance; zz[1] = node->farDistance;
+			matidentity4d(mate);
+			vecadd2f(center, ll, ur);
+			center[2] = zz[0] + zz[1];
+			vecscale3f(center, center, .5f);
+			vecdif2f(size, ur, ll);
+			size[2] = zz[1] - zz[0];
+			mattranslate4d(mate, float2double(dcenter, center, 3));
+			matscale4d(mate, float2double(dsize, size, 3));
+			matinverse(matinv, mate);
+			mesa_Ortho(-.5, .5, -.5, .5, -.5, .5, matproj);
+			matmultiplyFULL(projrep->matproj, matproj, matinv);
+			//printmatrix2(projrep->matproj, "orthoMat");
 
+		}
 		//D. COMBINE PROJECTION AND EYE-TO-PROJECTOR TRANSFORMS
 		//matmultiplyFULL(projrep->matmodelviewproj,eye2projector,orthoMat);
 	
