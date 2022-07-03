@@ -807,12 +807,14 @@ void textureTransform_start() {
 					p = mnode->texture.p;
 					n = mnode->texture.n;
 				}
+				int lasttrans = -1;
 				for (int i = 0; i < n; i++) {
 					int jsamplr = is_cubeMap(p[i]) ? 1 : isTex3D(p[i]) ? 2 : 0;
 					int itrans = i > ntrans_specified - 1 ? -1 : i; // min(i, ntrans - 1);
 					if (itrans == -1) {
-						itrans = next_or_last_sampler_compatible_trans(i-1, ntrans, jsamplr, igen);
+						itrans = next_or_last_sampler_compatible_trans(lasttrans, ntrans, jsamplr, igen);
 					}
+					lasttrans = itrans;
 					int icoord = min(i, ntcoord - 1);  //next_or_last_sampler_compatible_coord(icoord, ntcoord, jsamplr);
 					int jcombo = find_or_make_combo_by_index(itrans, icoord, &icombo[0], &ncombo);
 					matprop->fw_FrontMaterial.cmap[i] = jcombo;
