@@ -1661,74 +1661,7 @@ struct TextureDescriptor { \n\
  int samplr; \n\
 }; \n\
 uniform struct TextureDescriptor tdescs[16]; \n\
-uniform int ptmbackCull[8]; \n\
-uniform int ptmshadows[8]; \n\
-uniform vec3 ptmcolor[8]; \n\
-uniform float ptmintensity[8]; \n\
-uniform float ptmshadowIntensity[8]; \n\
-uniform int ptmdepthmap[8]; \n\
-uniform int ntdesc[8]; \n\
 uniform int ptmCount; \n\
-uniform mat4 ptmGenMatCam[8]; \n\
-//per texture descriptor (projector 1:m texdescriptor m:1 sampler): \n\
-uniform int tunits[16]; \n\
-uniform int modes[16]; \n\
-uniform int sources[16]; \n\
-uniform int funcs[16]; \n\
-uniform int samplr[16]; \n\
-vec4 fragProjCalTexCoord_old(in vec4 frag_color) { \n\
-	int k=0; \n\
-	for(int i=0;i<ptmCount;i++) { \n\
-        //is point on + side of projector ? \n\
-		vec4 projTexCoord = ptmGenMatCam[i] * vec4(castle_vertex_eye.xyz,1.0); \n\
-        vec4 projTexNorm = ptmGenMatCam[i] * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-		if( projTexCoord.z > 0.0 ){ \n\
-			vec4 pp = projTexCoord; \n\
-			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
-			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
-			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
-			if(inside){ \n\
-				bool facingProjector = true; \n\
-				vec3 pptex = pp.xyz/pp.w; \n\
-				if(ptmbackCull[i] == 1) \n\
-                { \n\
-					vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
-					//if(!gl_FrontFacing) pn = -pn; \n\
-					vec3 nvec = normalize(pn - pptex.xyz); \n\
-					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
-					float dotval = dot(nvec,peye); \n\
-					facingProjector = (dotval < 0.0); \n\
-				} \n\
-                if(facingProjector){ \n\
-                  if(ptmshadows[i] > 0){ \n\
-                    float depthValue = texture2D(textureUnit[ptmdepthmap[i]],pptex.xy).r; \n\
-					//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
-                    //frag_color = vec4(vec3(depthValue),1.0); \n\
-                    facingProjector = pptex.z < depthValue; \n\
-                  } \n\
-                } \n\
-				if(facingProjector){ \n\
-					//parallel/ortho \n\
-					vec2 ptex = pptex.xy; \n\
-					ptex.x = (ptex.x * .5) + .5; \n\
-					ptex.y = (ptex.y * .5) + .5; \n\
-					int ndesc = ntdesc[i]; \n\
-					vec4 prev = frag_color; \n\
-					for(int j=0;j<ndesc;j++,k++){ \n\
-						int kk = tunits[k]; \n\
-						int modea = int(modes[k] / 100); \n\
-						int mode = modes[k] - 100*modea; \n\
-						finalColCalcA(prev, mode, modea, funcs[k], textureUnit[kk], ptex); \n\
-					} \n\
-					//frag_color = prev;\n\
-                    frag_color.rgb = prev.rgb * ptmcolor[i]* ptmintensity[i]; \n\
-                    frag_color.a = prev.a; \n\
-				} \n\
-			} \n\
-		} \n\
-	} \n\
-	return frag_color; \n\
-} \n\
 vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 	int k=0; \n\
 	for(int i=0;i<ptmCount;i++) { \n\

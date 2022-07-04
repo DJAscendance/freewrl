@@ -289,9 +289,7 @@ void resend_textureprojector_matrix()
 			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
 			matmultiplyFULL(matfull, ptuple->mvm, projrep->matproj);
 			double2float(TenLinearGexMatCam0f, matfull,16);
-			//double2float(TenLinearGexMatCam0f, ptuple->userdata, 16);
 			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
-			//GLUNIFORM1I(me->projectorType[i],ptuple->type);
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
 			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
@@ -302,8 +300,6 @@ void resend_textureprojector_matrix()
 			GLUNIFORM1F(me->ptmintensity[i], ptm->intensity);
 			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
-		//GLUNIFORM1I(me->ptmdepthmap[i], projrep->idepthtexture);
-			//GLUNIFORM1I(me->pbackCull[i], (ptuple->backCull && getAppearanceProperties()->cullFace)?1:0); 
 
 			int ntdesc = 0; //number of texture descriptors in this projector
 			struct X3D_NODE * tlist[4];
@@ -313,9 +309,6 @@ void resend_textureprojector_matrix()
 			int textures[4];
 			int width[4], height[4], samplr[4];
 
-			//int toffset = 4;
-			//glActiveTexture(GL_TEXTURE0+toffset+pcount); 
-			//glActiveTexture(GL_TEXTURE0 + next_textureUnit2D());
 			render_node(projrep->texture);
 			PRINT_GL_ERROR_IF_ANY("MIDDLE resend_textureprojector_matrix");
 
@@ -334,7 +327,6 @@ void resend_textureprojector_matrix()
 
 			for(int j=0;j<ntdesc;j++,kdesc++){
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
-				//texture = ptuple->texture;
 				texture = textures[j];
 
 				int ksamp = share_or_next_material_sampler_index_2D(texture); //returns i as in GL_TEXTUREi next available
@@ -353,8 +345,6 @@ void resend_textureprojector_matrix()
 
 			if (ptm->shadows) {
 				PRINT_GL_ERROR_IF_ANY("before shadow resend_textureprojector_matrix");
-
-				//render_node(projrep->depthTexture);
 
 				texture = projrep->idepthtexture;
 				int ksamp = share_or_next_material_sampler_index_2D(texture); //does bind and activetexture
