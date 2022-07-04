@@ -9139,7 +9139,7 @@ const int OFFSETS_TextureProjectorParallel[] = {
 	(int) FIELDNAMES__upVec, (int) offsetof (struct X3D_TextureProjectorParallel, _upVec),  (int) FIELDTYPE_SFVec4f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_upVector, (int) offsetof (struct X3D_TextureProjectorParallel, upVector),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_aspectRatio, (int) offsetof (struct X3D_TextureProjectorParallel, aspectRatio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjectorParallel, fieldOfView),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_fieldOfView, (int) offsetof (struct X3D_TextureProjectorParallel, fieldOfView),  (int) FIELDTYPE_SFVec4f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_TextureProjectorPoint[] = {
@@ -16155,12 +16155,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_upVec.c[0] = 0;tmp2->_upVec.c[1] = 0;tmp2->_upVec.c[2] = 0;tmp2->_upVec.c[3] = 0;;
 			tmp2->upVector.c[0] = 0.0f;tmp2->upVector.c[1] = 1.0f;tmp2->upVector.c[2] = 0.0f;
 			tmp2->aspectRatio = 1.0f;
-			tmp2->fieldOfView.p = MALLOC (float *, sizeof(float)*4);
-			tmp2->fieldOfView.p[0] = -1.0f;
-			tmp2->fieldOfView.p[1] = -1.0f;
-			tmp2->fieldOfView.p[2] = 1.0f;
-			tmp2->fieldOfView.p[3] = 1.0f;
-			tmp2->fieldOfView.n=4;;
+			tmp2->fieldOfView.c[0] = -1;tmp2->fieldOfView.c[1] = -1;tmp2->fieldOfView.c[2] = 1;tmp2->fieldOfView.c[3] = 1;;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -22198,8 +22193,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->upVector.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," aspectRatio (SFFloat) \t%4.3f\n",tmp->aspectRatio);
-			spacer fprintf (fp," fieldOfView (MFFloat):\n");
-			for (i=0; i<tmp->fieldOfView.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->fieldOfView.p[i]); }
+			spacer fprintf (fp," fieldOfView (SFVec4f): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->fieldOfView.c[i]); }
+			fprintf (fp,"\n");
 		    break;
 		}
 		case NODE_TextureProjectorPoint : {

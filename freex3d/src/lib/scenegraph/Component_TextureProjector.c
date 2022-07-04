@@ -560,10 +560,13 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 
 
 		//C. COMPUTE A PROJECTION MATRIX THAT INCLUDES CAMERA SPACE TO TEXTURE SPACE BIAS
+		// unsolved problem: specs show TPParallel.fieldOfView as SFVec4f, but OrthoViewpoint fov MFFloat. The 2 are incompatible in freewrl.
+		float *fov;
+		fov = node->fieldOfView.c;
 		int method = 1;
 		if (method == 0) {
 			// July 3, 2022 - this doesn't have the right zone (near/farDistance), not working right
-			mesa_Ortho((GLDOUBLE)node->fieldOfView.p[0], (GLDOUBLE)node->fieldOfView.p[2], (GLDOUBLE)node->fieldOfView.p[1], (GLDOUBLE)node->fieldOfView.p[3],
+			mesa_Ortho((GLDOUBLE)fov[0], (GLDOUBLE)fov[2], (GLDOUBLE)fov[1], (GLDOUBLE)fov[3],
 				(GLDOUBLE)node->nearDistance, (GLDOUBLE)node->farDistance, orthoMat);
 			matcopy(projrep->matproj, orthoMat);
 			printmatrix2(orthoMat, "orthoMat");
@@ -572,8 +575,8 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			// this works a bit
 			float size[3], center[3], * ll, * ur, zz[2];
 			double mate[16], dcenter[3], dsize[3], matproj[16], matinv[16];
-			ll = &node->fieldOfView.p[0];
-			ur = &node->fieldOfView.p[2];
+			ll = &fov[0];
+			ur = &fov[2];
 			zz[0] = node->nearDistance; zz[1] = node->farDistance;
 			matidentity4d(mate);
 			vecadd2f(center, ll, ur);
@@ -593,8 +596,7 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 		//matmultiplyFULL(projrep->matmodelviewproj,eye2projector,orthoMat);
 	
 		{
-			float aspectRatio, denom, *fov;
-			fov = node->fieldOfView.p;
+			float aspectRatio, denom;
 			denom = fov[3]-fov[1];
 			if(denom > 0.0){
 				aspectRatio = (fov[2]-fov[0])/denom;

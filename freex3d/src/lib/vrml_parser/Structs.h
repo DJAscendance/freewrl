@@ -12616,7 +12616,7 @@ struct X3D_TextureProjectorParallel {
 	struct SFVec4f _upVec;
 	struct SFVec3f upVector;
 	float aspectRatio;
-	struct Multi_Float fieldOfView;
+	struct SFVec4f fieldOfView;
 };
 extern struct X3D_Virt virt_TextureProjectorParallel;
 /***********************/

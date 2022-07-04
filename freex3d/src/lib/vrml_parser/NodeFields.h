@@ -3932,7 +3932,7 @@ EXPOSED_FIELD(TextureProjectorParallel,texture,sfnode,texture,FIELDTYPE_SFNode,U
 EXPOSED_FIELD(TextureProjectorParallel,backCull,sfbool,backCull,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorParallel,upVector,sfvec3f,upVector,FIELDTYPE_SFVec3f,UNCA_NONE)
 EXPOSED_FIELD(TextureProjectorParallel,aspectRatio,sffloat,aspectRatio,FIELDTYPE_SFFloat,UNCA_NONE)
-EXPOSED_FIELD(TextureProjectorParallel,fieldOfView,mffloat,fieldOfView,FIELDTYPE_MFFloat,UNCA_NONE)
+EXPOSED_FIELD(TextureProjectorParallel,fieldOfView,sfvec4f,fieldOfView,FIELDTYPE_SFVec4f,UNCA_NONE)
 END_NODE(TextureProjectorParallel)
 
 /* TextureProjectorPoint node */
