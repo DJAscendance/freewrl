@@ -199,6 +199,7 @@ int get_bound_image(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
 int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height, int *samplr);
+void PRINT_GL_ERROR(GLenum _global_gl_err);
 void resend_textureprojector_matrix()
 {
 	//called from render_shape to refresh uniform before shade draw
@@ -209,6 +210,7 @@ void resend_textureprojector_matrix()
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
 
     me = getAppearanceProperties()->currentShaderProperties;
+	GLuint myProg = me->myShaderProgram;
 
 	// while the number of texture samplers are a limited resource in GLSL,
 	// there could be many projectors re-using the same sampler.
@@ -232,12 +234,49 @@ void resend_textureprojector_matrix()
 	int MAX_TEX = 4;
 	tcount = min(p->projector_stack->n,MAX_PROJ);
 	pcount = 0;
-	int nunit = 0;
-	int kdesc = 0;
-	//int unitTextures[4];
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 	PRINT_GL_ERROR_IF_ANY("BEGIN resend_textureprojector_matrix");
 
+	for (int i = 0; i < 8; i++) {
+		//per projector
+		char line[24];
+		sprintf(line, "ptms[%d].GenMatCam", i);
+		me->ptmGenMatCam[i] = GET_UNIFORM(myProg, line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+		sprintf(line, "ptms[%d].backCull", i);
+		me->ptmbackCull[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].color", i);
+		me->ptmcolor[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].intensity", i);
+		me->ptmintensity[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].shadows", i);
+		me->ptmshadows[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].shadowIntensity", i);
+		me->ptmshadowIntensity[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].depthmap", i);
+		me->ptmdepthmap[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].tcount", i);
+		me->ptmtcount[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].tstart", i);
+		me->ptmtstart[i] = GET_UNIFORM(myProg, line);
+	}
+	for (int i = 0; i < 16; i++) {
+		//per texture descriptor
+		char line[24];
+		sprintf(line, "tdescs[%d].tindex", i);
+		me->tdtindex[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "tdescs[%d].mode", i);
+		me->tdmode[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "tdescs[%d].source", i);
+		me->tdsource[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "tdescs[%d].func", i);
+		me->tdfunc[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "tdescs[%d].samplr", i);
+		me->tdsamplr[i] = GET_UNIFORM(myProg, line);
+	}
+	me->ptmCount = GET_UNIFORM(myProg, "ptmCount");
+	PRINT_GL_ERROR_IF_ANY("EARLY resend_textureprojector_matrix");
+
+	int kdesc = 0;
 	for(int i=0;i<tcount;i++)
 	{
 		float TenLinearGexMatCam0f[16];
@@ -281,25 +320,37 @@ void resend_textureprojector_matrix()
 			PRINT_GL_ERROR_IF_ANY("MIDDLE resend_textureprojector_matrix");
 
 			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height, samplr);
-			GLUNIFORM1I(me->ntdesc[i],ntdesc);
+			GLUNIFORM1I(me->ptmtcount[i],ntdesc);
+			PRINT_GL_ERROR_IF_ANY("M1 resend_textureprojector_matrix");
+			GLUNIFORM1I(me->ptmtstart[i], kdesc);
+			GLenum _global_gl_err = glGetError(); 
+			while (_global_gl_err != GL_NONE) {
+				PRINT_GL_ERROR(_global_gl_err);
+				printf(" here: %s (%s:%d)\n", "resend_textureprojector_matrix", __FILE__, __LINE__);
+				_global_gl_err = glGetError();
+			}
+
+			PRINT_GL_ERROR_IF_ANY("M2 resend_textureprojector_matrix");
+
 			for(int j=0;j<ntdesc;j++,kdesc++){
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
-				int kunit;
 				//texture = ptuple->texture;
 				texture = textures[j];
 
-				nunit = min(nunit++,MAX_TEX); //for fun, if we go over MAX_TEX we'll just over-write last one
-				kunit = nunit-1;
 				int ksamp = share_or_next_material_sampler_index_2D(texture); //returns i as in GL_TEXTUREi next available
 				int itextureunit = tunit2D(ksamp); //returns index into shader sampler2D textureUnit[itextureunit] 
-				glUniform1i(me->textureUnit[ksamp],itextureunit); //tunit(kkunit));
-				GLUNIFORM1I(me->tunits[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
-				//glActiveTexture(GL_TEXTURE0);
+				glUniform1i(me->textureUnit[ksamp],itextureunit); 
+				GLUNIFORM1I(me->tdtindex[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
+				PRINT_GL_ERROR_IF_ANY("M4 resend_textureprojector_matrix");
 
-				GLUNIFORM1I(me->modes[kdesc],modes[j]);
-				GLUNIFORM1I(me->sources[kdesc],sources[j]);
-				GLUNIFORM1I(me->funcs[kdesc],funcs[j]);
+				GLUNIFORM1I(me->tdmode[kdesc],modes[j]);
+				GLUNIFORM1I(me->tdsource[kdesc],sources[j]);
+				GLUNIFORM1I(me->tdfunc[kdesc],funcs[j]);
+				PRINT_GL_ERROR_IF_ANY("M6 resend_textureprojector_matrix");
+
 			}
+			PRINT_GL_ERROR_IF_ANY("LATE resend_textureprojector_matrix");
+
 			if (ptm->shadows) {
 				PRINT_GL_ERROR_IF_ANY("before shadow resend_textureprojector_matrix");
 
@@ -308,8 +359,6 @@ void resend_textureprojector_matrix()
 				texture = projrep->idepthtexture;
 				int ksamp = share_or_next_material_sampler_index_2D(texture); //does bind and activetexture
 				int itextureunit = tunit2D(ksamp);
-				//glActiveTexture(GL_TEXTURE1);
-				//glBindTexture(GL_TEXTURE_2D, texture);
 				glUniform1i(me->textureUnit[ksamp], itextureunit);
 				PRINT_GL_ERROR_IF_ANY("after [ksamp], texture resend_textureprojector_matrix");
 				glUniform1i(me->ptmdepthmap[i], ksamp);

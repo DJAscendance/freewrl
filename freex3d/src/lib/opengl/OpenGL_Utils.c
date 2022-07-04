@@ -2754,39 +2754,39 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 		sprintf(line, "textureUnitCube[%d]", i);
 		me->textureUnitCube[i] = GET_UNIFORM(myProg, line);
 	}
-	for(int i=0;i<8;i++){
-		//per projector
-		char line[24];
-		sprintf(line,"ptmGenMatCam[%d]",i);
-		me->ptmGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
-		sprintf(line,"ptmbackCull[%d]",i);
-		me->ptmbackCull[i] = GET_UNIFORM(myProg,line);
-		sprintf(line, "ptmcolor[%d]", i);
-		me->ptmcolor[i] = GET_UNIFORM(myProg, line);
-		sprintf(line, "ptmintensity[%d]", i);
-		me->ptmintensity[i] = GET_UNIFORM(myProg, line);
-		sprintf(line, "ptmshadows[%d]", i);
-		me->ptmshadows[i] = GET_UNIFORM(myProg, line);
-		sprintf(line, "ptmshadowIntensity[%d]", i);
-		me->ptmshadowIntensity[i] = GET_UNIFORM(myProg, line);
-		sprintf(line, "ptmdepthmap[%d]", i);
-		me->ptmdepthmap[i] = GET_UNIFORM(myProg, line);
-		sprintf(line,"ntdesc[%d]",i);
-		me->ntdesc[i] = GET_UNIFORM(myProg,line);
-	}
-	for(int i=0;i<16;i++){
-		//per texture descriptor
-		char line[24];
-		sprintf(line,"tunits[%d]",i);
-		me->tunits[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"modes[%d]",i);
-		me->modes[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"sources[%d]",i);
-		me->sources[i] = GET_UNIFORM(myProg,line);
-		sprintf(line,"funcs[%d]",i);
-		me->funcs[i] = GET_UNIFORM(myProg,line);	
-	}
-	me->ptmCount = GET_UNIFORM(myProg,"ptmCount");
+	//for(int i=0;i<8;i++){
+	//	//per projector
+	//	char line[24];
+	//	sprintf(line,"ptmGenMatCam[%d]",i);
+	//	me->ptmGenMatCam[i] = GET_UNIFORM(myProg,line); //"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture
+	//	sprintf(line,"ptmbackCull[%d]",i);
+	//	me->ptmbackCull[i] = GET_UNIFORM(myProg,line);
+	//	sprintf(line, "ptmcolor[%d]", i);
+	//	me->ptmcolor[i] = GET_UNIFORM(myProg, line);
+	//	sprintf(line, "ptmintensity[%d]", i);
+	//	me->ptmintensity[i] = GET_UNIFORM(myProg, line);
+	//	sprintf(line, "ptmshadows[%d]", i);
+	//	me->ptmshadows[i] = GET_UNIFORM(myProg, line);
+	//	sprintf(line, "ptmshadowIntensity[%d]", i);
+	//	me->ptmshadowIntensity[i] = GET_UNIFORM(myProg, line);
+	//	sprintf(line, "ptmdepthmap[%d]", i);
+	//	me->ptmdepthmap[i] = GET_UNIFORM(myProg, line);
+	//	sprintf(line,"ntdesc[%d]",i);
+	//	me->ntdesc[i] = GET_UNIFORM(myProg,line);
+	//}
+	//for(int i=0;i<16;i++){
+	//	//per texture descriptor
+	//	char line[24];
+	//	sprintf(line,"tunits[%d]",i);
+	//	me->tunits[i] = GET_UNIFORM(myProg,line);
+	//	sprintf(line,"modes[%d]",i);
+	//	me->modes[i] = GET_UNIFORM(myProg,line);
+	//	sprintf(line,"sources[%d]",i);
+	//	me->sources[i] = GET_UNIFORM(myProg,line);
+	//	sprintf(line,"funcs[%d]",i);
+	//	me->funcs[i] = GET_UNIFORM(myProg,line);	
+	//}
+	//me->ptmCount = GET_UNIFORM(myProg,"ptmCount");
 
 	/*
 	tg->Component_PTM._projTexGenMatCam0_Location = GET_UNIFORM(myProg,"projTexGenMatCam0"); //vertex shader matrix for projecting rays back to texture

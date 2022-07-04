@@ -474,11 +474,14 @@ typedef struct s_shader_capabilities{
 	GLint ptmshadows[8];
 	GLint ptmshadowIntensity[8];
 	GLint ptmdepthmap[8];
-	GLint ntdesc[8];
-	GLint tunits[16];
-	GLint modes[16];
-	GLint sources[16];
-	GLint funcs[16];
+	//GLint ntdesc[8];
+	GLint ptmtcount[8];
+	GLint ptmtstart[8];
+	GLint tdtindex[16];
+	GLint tdmode[16];
+	GLint tdsource[16];
+	GLint tdfunc[16];
+	GLint tdsamplr[16];
 
 
 	GLint TextureUnit[MAX_MULTITEXTURE];
