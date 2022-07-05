@@ -88,7 +88,10 @@ void normalChildren(struct Multi_Node ch) {
 			} else if (p->_nodeType == NODE_TextureProjectorParallel) {
 				if (X3D_TEXTUREPROJECTORPARALLEL(p)->global == TRUE) 
 					render_node(p);
-			} else 
+			} else if (p->_nodeType == NODE_TextureProjectorPoint) {
+				if (X3D_TEXTUREPROJECTORPOINT(p)->global == TRUE)
+					render_node(p);
+			} else
 				render_node(p);
 		}
 	}

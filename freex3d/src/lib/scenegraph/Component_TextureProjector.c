@@ -385,7 +385,7 @@ void sendProjectorInfo()
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
 				int kunit, iunit;
 				if (samplr[i] == 1) {
-					if (0) {
+					if (1) {
 						GLenum target;
 						printf("%s ", stringNodeType(node->_nodeType));
 						glGetTextureParameteriv(textures[i], GL_TEXTURE_TARGET, (GLint*)&target);
@@ -644,7 +644,8 @@ void render_TextureProjector0(struct X3D_Node* parent, struct X3D_TextureProject
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			if (node->global && node->shadows) {
+			//if (node->global && node->shadows) {
+			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
 				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 				generate_shadowmap_2D(ptuple, 0);
@@ -833,7 +834,8 @@ void render_TextureProjectorParallel0(struct X3D_Node* parent, struct X3D_Textur
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			if (node->global && node->shadows) {
+			//if (node->global && node->shadows) {
+			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
 				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 				generate_shadowmap_2D(ptuple, 0);
@@ -965,18 +967,22 @@ void render_TextureProjectorPoint0(struct X3D_Node* parent, struct X3D_TexturePr
 
 			ptuple.node = X3D_NODE(node);
 			ptuple.userdata = parent;
-			matcopy(ptuple.mvm, eye2projector);
+			if (old_waay)
+				matcopy(ptuple.mvm, eye2projector);
+			else
+				matcopy(ptuple.mvm, modelview);
 			//ptuple.userdata = projrep->matproj;
 			//matcopy(ptuple.proj, projrep->matproj);
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			projectorTable_push(ptuple);
-			if (node->global && node->shadows) {
+			//if (node->global && node->shadows) {
+			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
 				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
 				generate_shadowmap_cube(ptuple, 0);
 			}
+			projectorTable_push(ptuple);
 		}
 
 	} //if(node->on)
@@ -999,7 +1005,6 @@ void prep_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 	if (!renderstate()->render_light) return;
 	/* this will be a global textureprojector here... */
 	render_TextureProjectorPoint(node);
-
 }
 void child_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 }

@@ -4974,6 +4974,7 @@ int isSiblingAffector(struct X3D_Node *node){
 		case NODE_Effect:
 		case NODE_TextureProjector:
 		case NODE_TextureProjectorParallel:
+		case NODE_TextureProjectorPoint:
 			ret = 1; break;
 		default:
 			ret = 0; break;
@@ -5332,6 +5333,16 @@ void startOfLoopNodeUpdates(void) {
 						if (X3D_TEXTUREPROJECTORPARALLEL(node)->global)
 							update_renderFlag(pnode,VF_globalLight);
 						else{
+							//LOCAL_LIGHT_PARENT_FLAG
+							ADD_TO_PARENT_SIBAFFECTORS
+						}
+					}
+				END_NODE
+				BEGIN_NODE(TextureProjectorPoint)
+					if (X3D_TEXTUREPROJECTORPOINT(node)->on) {
+						if (X3D_TEXTUREPROJECTORPOINT(node)->global)
+							update_renderFlag(pnode, VF_globalLight);
+						else {
 							//LOCAL_LIGHT_PARENT_FLAG
 							ADD_TO_PARENT_SIBAFFECTORS
 						}
