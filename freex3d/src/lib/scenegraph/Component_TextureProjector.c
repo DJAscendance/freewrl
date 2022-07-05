@@ -40,6 +40,7 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include "../main/headers.h"
 
 #include "../opengl/OpenGL_Utils.h"
+#include "../opengl/Textures.h"
 #include "../opengl/Frustum.h"
 #include "../opengl/Material.h"
 #include "Renderfuncs.h"
@@ -115,15 +116,13 @@ void Component_TextureProjector_clear(struct tComponent_TextureProjector *t){
 struct X3D_ProjectorRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep
 	//depth section
-	struct X3D_Node* depthTexture;
+	Stack* depth_buffer_stack;
 	int size;
-	int idepthtexture;
 	double matproj[16];
 	double matview[16];
 	//projector section
 	struct X3D_Node* texture;
 	int itexture;
-	//double matmodelviewproj[16];
 };
 
 void* set_ProjectorRep(void* _projectorrep)
@@ -135,7 +134,6 @@ void* set_ProjectorRep(void* _projectorrep)
 		projectorrep = (struct X3D_ProjectorRep*)_projectorrep;
 		projectorrep->itype = 6;
 		projectorrep->size = 1024; //size of shadow image, or for pointlight, size of each of 6 sides of cubemap
-		projectorrep->idepthtexture = -1;
 	}
 	return projectorrep;
 }
@@ -176,6 +174,26 @@ void projectorTable_pop(){
 	stack_pop(usehit,p->projector_stack);
 
 }
+int projectorTable_count() {
+	ppComponent_TextureProjector p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
+	return p->projector_stack->n;
+}
+usehit* projectorTable_item(int i) {
+	ppComponent_TextureProjector p;
+	ttglobal tg = gglobal();
+	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
+	return vector_get_ptr(usehit, p->projector_stack, i);
+}
+int projectorTable_node_use_count(struct X3D_Node* node) {
+	int count = 0;
+	for (int i = 0; i < projectorTable_count(); i++) {
+		if (projectorTable_item(i)->node == node) count++;
+	}
+	return count;
+}
+
 void clear_bound_textures(){
 	for(int i=0;i<16;i++){
 		glActiveTexture(GL_TEXTURE0 + i); 
@@ -193,14 +211,14 @@ void print_bound_textures(char *str){
 	}
 }
 
-
+int old_waay = 0;
 
 int get_bound_image(struct X3D_Node *node);
 int getGlTextureNumberFromTextureNode(struct X3D_Node *textureNode);
 int getTextureSizeFromTextureNode(struct X3D_Node *textureNode, int *ixyz);
 int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *modes, int *sources, int *funcs, int *width, int *height, int *samplr);
 void PRINT_GL_ERROR(GLenum _global_gl_err);
-void resend_textureprojector_matrix()
+void sendProjectorInfo()
 {
 	//called from render_shape to refresh uniform before shade draw
 	int pcount,tcount;
@@ -229,11 +247,6 @@ void resend_textureprojector_matrix()
 	//   modes[MAX_TDESC]
 	//   sources[MAX_TDESC]
 	//   funcs[MAX_TDESC]
-	int MAX_PROJ = 8;
-	int MAX_TDESC = 16;
-	int MAX_TEX = 4;
-	tcount = min(p->projector_stack->n,MAX_PROJ);
-	pcount = 0;
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 	PRINT_GL_ERROR_IF_ANY("BEGIN resend_textureprojector_matrix");
 
@@ -276,30 +289,73 @@ void resend_textureprojector_matrix()
 	me->ptmCount = GET_UNIFORM(myProg, "ptmCount");
 	PRINT_GL_ERROR_IF_ANY("EARLY resend_textureprojector_matrix");
 
+	int MAX_PROJ = 8;
+	int MAX_TDESC = 16;
+	int MAX_TEX = 4;
+	int projcount = min(projectorTable_count(), MAX_PROJ);
+
+	pcount = 0;
+
 	int kdesc = 0;
-	for(int i=0;i<tcount;i++)
+	for(int j=0;j<projcount;j++)
 	{
 		float TenLinearGexMatCam0f[16];
 		usehit *ptuple;
 		GLint texture;
-		if(me->ptmGenMatCam[i] > -1){
-			ptuple = vector_get_ptr(usehit, p->projector_stack, i);
-			double matfull[16];
-			struct X3D_TextureProjector* ptm = (struct X3D_TextureProjector*)ptuple->node;
-			struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)ptm->_intern;
-			matmultiplyFULL(matfull, ptuple->mvm, projrep->matproj);
-			double2float(TenLinearGexMatCam0f, matfull,16);
-			GLUNIFORMMATRIX4FV (me->ptmGenMatCam[i],1,GL_FALSE, TenLinearGexMatCam0f);
+		usehit* uhit = projectorTable_item(j);
+		struct X3D_Node* node = uhit->node;
+		struct X3D_TextureProjector* ptm = X3D_TEXTUREPROJECTOR(node);
+		struct X3D_TextureProjectorParallel* ppar = X3D_TEXTUREPROJECTORPARALLEL(node);
+		struct X3D_TextureProjectorPoint* ppoint = X3D_TEXTUREPROJECTORPOINT(node);
+		struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
+		int projType = 0;
+		//0 - projector
+		//1 - projectorparallel
+		//2 - projectorpoint
+		switch (node->_nodeType) {
+			case NODE_TextureProjector: projType = 0; break;
+			case NODE_TextureProjectorParallel: projType = 1; break;
+			case NODE_TextureProjectorPoint: projType = 2; break;
+			default: break;
+		}
+
+		{
+			if (old_waay) {
+				double matfull[16];
+				matmultiplyFULL(matfull, uhit->mvm, projrep->matproj);
+				double2float(TenLinearGexMatCam0f, matfull, 16);
+				GLUNIFORMMATRIX4FV(me->ptmGenMatCam[j], 1, GL_FALSE, TenLinearGexMatCam0f);
+			}
+			else {
+				float w2l[16];
+				{
+					//following textureProjector
+					double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
+					matcopy(mvm, uhit->mvm);
+
+					matinverse(modelviewinv, mvm);
+					matmultiplyAFFINE(eye2projector, modelviewinv, projrep->matview);
+					matmultiplyFULL(matfull, eye2projector, projrep->matproj);
+					double2float(w2l, matfull, 16);
+				}
+				//printf("w2l\n");
+				//for (int ii = 0; ii < 4; ii++){
+				//	for (int jj = 0; jj < 4; jj++) printf("%f ", w2l[ii * 4 + jj]);
+				//	printf("\n");
+				//}
+				GLUNIFORMMATRIX4FV(me->ptmGenMatCam[j], 1, GL_FALSE, w2l);
+
+			}
 			//backCull in theory could automatically always do it, 
 			// or projector->backCull=TRUE default, 
 			// and turn off when Gl_CULL_FACE is off, meaning web3d solid=FALSE
 			// X HOWEVER freewrl Feb 2020 isn't reliably discriminating solid=true/false for different geometry types
 			// - THEREFORE we will let projector->backCull be definitive and scene authors will set manually until freewrl solid is fixed
-			GLUNIFORM1I(me->ptmbackCull[i],ptm->backCull);
-			GLUNIFORM3FV(me->ptmcolor[i], 1, ptm->color.c);
-			GLUNIFORM1F(me->ptmintensity[i], ptm->intensity);
-			GLUNIFORM1I(me->ptmshadows[i], ptm->shadows);
-			GLUNIFORM1F(me->ptmshadowIntensity[i], ptm->shadowIntensity);
+			GLUNIFORM1I(me->ptmbackCull[j],ptm->backCull);
+			GLUNIFORM3FV(me->ptmcolor[j], 1, ptm->color.c);
+			GLUNIFORM1F(me->ptmintensity[j], ptm->intensity);
+			GLUNIFORM1I(me->ptmshadows[j], ptm->shadows);
+			GLUNIFORM1F(me->ptmshadowIntensity[j], ptm->shadowIntensity);
 
 			int ntdesc = 0; //number of texture descriptors in this projector
 			struct X3D_NODE * tlist[4];
@@ -313,9 +369,9 @@ void resend_textureprojector_matrix()
 			PRINT_GL_ERROR_IF_ANY("MIDDLE resend_textureprojector_matrix");
 
 			ntdesc = getTextureDescriptors(projrep->texture,textures, modes,sources, funcs, width, height, samplr);
-			GLUNIFORM1I(me->ptmtcount[i],ntdesc);
+			GLUNIFORM1I(me->ptmtcount[j],ntdesc);
 			PRINT_GL_ERROR_IF_ANY("M1 resend_textureprojector_matrix");
-			GLUNIFORM1I(me->ptmtstart[i], kdesc);
+			GLUNIFORM1I(me->ptmtstart[j], kdesc);
 			GLenum _global_gl_err = glGetError(); 
 			while (_global_gl_err != GL_NONE) {
 				PRINT_GL_ERROR(_global_gl_err);
@@ -325,35 +381,110 @@ void resend_textureprojector_matrix()
 
 			PRINT_GL_ERROR_IF_ANY("M2 resend_textureprojector_matrix");
 
-			for(int j=0;j<ntdesc;j++,kdesc++){
+			for(int i=0;i<ntdesc;i++,kdesc++){
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
-				texture = textures[j];
+				int kunit, iunit;
+				if (samplr[i] == 1) {
+					if (0) {
+						GLenum target;
+						printf("%s ", stringNodeType(node->_nodeType));
+						glGetTextureParameteriv(textures[i], GL_TEXTURE_TARGET, (GLint*)&target);
+						switch (target) {
+						case GL_TEXTURE_CUBE_MAP: printf("CUBE MAP \n"); break;
+						case GL_TEXTURE_2D: printf("texture2D\n"); break;
+						case GL_TEXTURE_3D: printf("texture3D\n"); break;
+						case GL_TEXTURE_2D_ARRAY: printf("GL_TEXTURE_2D_ARRAY\n");
+						default: printf("unknown %d \n", target); break;
+						}
+					}
+					PRINT_GL_ERROR_IF_ANY("TT_start_ bfor bind cube");
 
-				int ksamp = share_or_next_material_sampler_index_2D(texture); //returns i as in GL_TEXTUREi next available
-				int itextureunit = tunit2D(ksamp); //returns index into shader sampler2D textureUnit[itextureunit] 
-				glUniform1i(me->textureUnit[ksamp],itextureunit); 
-				GLUNIFORM1I(me->tdtindex[kdesc],ksamp); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
+					kunit = share_or_next_material_sampler_index_Cube(textures[i]);//returns index into shader samplerCube texterUnitCube[kunit]
+					//kunit = share_or_next_material_sampler_index_Cube(getCheckerboardTextureCube());//returns index into shader samplerCube texterUnitCube[kunit]
+					PRINT_GL_ERROR_IF_ANY("TT_start_ aftr bind cube");
+					glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+					PRINT_GL_ERROR_IF_ANY("TT_start_ aftr seamless");
+					iunit = tunitCube(kunit);//returns i as in GL_TEXTUREi, to be stored in samplerCube textureUnitCube[kunit]
+					glUniform1i(me->textureUnitCube[kunit], iunit);
+				}
+				else {
+					kunit = share_or_next_material_sampler_index_2D(textures[i]);//returns index into shader sampler2D texterUnit[kunit]
+					iunit = tunit2D(kunit);//returns i as in GL_TEXTUREi, to be stored in sampler2D textureUnit[kunit]
+					glUniform1i(me->textureUnit[kunit], iunit);
+				}
+
+				GLUNIFORM1I(me->tdtindex[kdesc],kunit); //tunits like PBR tindex - an array saying which sampler2D textureUnit[tunit[kdesc]]
 				PRINT_GL_ERROR_IF_ANY("M4 resend_textureprojector_matrix");
 
-				GLUNIFORM1I(me->tdmode[kdesc],modes[j]);
-				GLUNIFORM1I(me->tdsource[kdesc],sources[j]);
-				GLUNIFORM1I(me->tdfunc[kdesc],funcs[j]);
+				GLUNIFORM1I(me->tdmode[kdesc],modes[i]);
+				GLUNIFORM1I(me->tdsource[kdesc],sources[i]);
+				GLUNIFORM1I(me->tdfunc[kdesc],funcs[i]);
+				GLUNIFORM1I(me->tdsamplr[kdesc], samplr[i]);
 				PRINT_GL_ERROR_IF_ANY("M6 resend_textureprojector_matrix");
 
 			}
 			PRINT_GL_ERROR_IF_ANY("LATE resend_textureprojector_matrix");
 
 			if (ptm->shadows) {
-				PRINT_GL_ERROR_IF_ANY("before shadow resend_textureprojector_matrix");
+				struct X3D_Node* texnode = (struct X3D_Node*)vector_get(struct X3D_Node*, projrep->depth_buffer_stack, uhit->ivalue);
+				int itexunit, iunit;
+				textureTableIndexStruct_s* tti;
+				if (texnode->_nodeType == NODE_GeneratedCubeMapTexture) {
+					struct X3D_GeneratedCubeMapTexture* tex = (struct X3D_GeneratedCubeMapTexture*)texnode;
+					tti = getTableIndex(tex->__textureTableIndex);
+					PRINT_GL_ERROR_IF_ANY("sendLightInfo before bind_or_share");
+					//				glEnable(GL_TEXTURE_CUBE_MAP);
+					if (0) {
+						GLuint target;
+						glGetTextureParameteriv(tti->OpenGLTexture, GL_TEXTURE_TARGET, (GLint*)&target);
+						switch (target) {
+						case GL_TEXTURE_CUBE_MAP: printf("CUBE MAP \n"); break;
+						case GL_TEXTURE_2D: printf("texture2D\n"); break;
+						case GL_TEXTURE_3D: printf("texture3D\n"); break;
+						case GL_TEXTURE_2D_ARRAY: printf("GL_TEXTURE_2D_ARRAY\n");
+						default: printf("unknown %d \n", target); break;
+						}
 
-				texture = projrep->idepthtexture;
-				int ksamp = share_or_next_material_sampler_index_2D(texture); //does bind and activetexture
-				int itextureunit = tunit2D(ksamp);
-				glUniform1i(me->textureUnit[ksamp], itextureunit);
-				PRINT_GL_ERROR_IF_ANY("after [ksamp], texture resend_textureprojector_matrix");
-				glUniform1i(me->ptmdepthmap[i], ksamp);
-				PRINT_GL_ERROR_IF_ANY("after shadow resend_textureprojector_matrix");
+					}
+					itexunit = share_or_next_material_sampler_index_Cube(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
+					iunit = tunitCube(itexunit); //returns index into shader samplerCube textureUnitCube[iunit]
+					PRINT_GL_ERROR_IF_ANY("sendProjectorInfo after bind_or_share");
+					glUniform1i(me->textureUnitCube[iunit], itexunit); // iunit);
+				}
+				else {
+					struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)texnode;
+					tti = getTableIndex(tex->__textureTableIndex);
+					PRINT_GL_ERROR_IF_ANY("sendProjectorInfo before bind_or_share");
+					itexunit = share_or_next_material_sampler_index_2D(tti->OpenGLTexture); // returns i as in GL_TEXTUREi, next available
+					iunit = tunit2D(itexunit); //returns index into shader sampler2D textureUnit[iunit]
+					PRINT_GL_ERROR_IF_ANY("sendProjectorInfo after bind_or_share");
+					glUniform1i(me->textureUnit[iunit], itexunit);
+				}
+				glUniform1i(me->ptmdepthmap[j], iunit);
+				// use the same transforms for depth as for diffuse 
+				
+				//float w2l[16];
+				//{
+				//	//following textureProjector
+				//	double modelviewinv[16], eye2projector[16], matfull[16], mvm[16];
+				//	if (uhit->node->_nodeType == NODE_DirectionalLight)
+				//		matmultiplyAFFINE(mvm, uhit->extra, uhit->mvm);
+				//	else
+				//		matcopy(mvm, uhit->mvm);
+
+				//	matinverse(modelviewinv, mvm);
+				//	matmultiplyAFFINE(eye2projector, modelviewinv, projrep->matview);
+				//	matmultiplyFULL(matfull, eye2projector, projrep->matproj);
+				//	double2float(w2l, matfull, 16);
+				//}
+				////printf("w2l\n");
+				////for (int ii = 0; ii < 4; ii++){
+				////	for (int jj = 0; jj < 4; jj++) printf("%f ", w2l[ii * 4 + jj]);
+				////	printf("\n");
+				////}
+				//GLUNIFORMMATRIX4FV(me->lightMat[j], 1, GL_FALSE, w2l);
 			}
+
 			pcount++;
 			tg->RenderFuncs.textureStackTop = saveTextureStackTop; //keep this frmo building up
 		}
@@ -361,28 +492,28 @@ void resend_textureprojector_matrix()
 	GLUNIFORM1I(me->ptmCount,pcount);
 	PRINT_GL_ERROR_IF_ANY("END resend_textureprojector_matrix");
 }
-//void compile_shadowMap(struct X3D_Node* node); // Component_Lighting
-//void render_shadowMap(struct X3D_Node* node);
-void compile_TextureProjector (struct X3D_TextureProjector *node) { 
 
+void generate_shadowmap_cube(usehit uhit, int index);
+void generate_shadowmap_2D(usehit uhit, int index);
+
+
+struct X3D_Node* make_depth_buffer_cube(int width, int height);
+struct X3D_Node* make_depth_buffer(int width, int height);
+
+int make_or_get_depth_buffer_projector(int index, struct X3D_Node* node) {
 	node->_intern = set_ProjectorRep(node->_intern);
-	/* LookAt Matrix Complete */
-	float dir[3], up[3], cross1[3],cross2[3];
-	veccopy3f(node->_loc.c,node->location.c);
-	veccopy3f(dir,node->direction.c);
-	veccopy3f(up,node->upVector.c);
-	vecnormalize3f(dir,dir);
-	vecnormalize3f(up,up);
-	veccross3f(cross1,dir,up);
-	vecnormalize3f(cross1,cross1);
-	veccross3f(cross2,cross1,dir);
-	vecnormalize3f(cross2,cross2);
-	veccopy3f(node->_dir.c,dir);
-	node->_dir.c[3] = 0.0f;
-	veccopy3f(node->_upVec.c,up);
-	node->_upVec.c[3] = 0.0f;
-//	if (node->shadows) compile_shadowMap(X3D_NODE(node));
-	MARK_NODE_COMPILED;
+	struct X3D_ProjectorRep* projrep = (struct X3D_ProjectorRep*)node->_intern;
+	if (!projrep->depth_buffer_stack) {
+		projrep->depth_buffer_stack = newStack(struct X3D_Node*);
+	}
+	if (index > -1 && index < vectorSize(projrep->depth_buffer_stack)) return index;
+	struct X3D_Node* depth_buffer_texture = NULL;
+	if (node->_nodeType == NODE_TextureProjectorPoint)
+		depth_buffer_texture = make_depth_buffer_cube(projrep->size, projrep->size);
+	else
+		depth_buffer_texture = make_depth_buffer(projrep->size, projrep->size);
+	stack_push(struct X3D_Node*, projrep->depth_buffer_stack, X3D_NODE(depth_buffer_texture));
+	return vectorSize(projrep->depth_buffer_stack) - 1;
 }
 
 /* Projective Texture gluLookAt */
@@ -391,7 +522,34 @@ void projLookAt(GLDOUBLE eyex, GLDOUBLE eyey, GLDOUBLE eyez,
 				GLDOUBLE upx, GLDOUBLE upy, GLDOUBLE upz, GLDOUBLE *matrix);
 void projPerspective(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar, GLDOUBLE *matrix);
 void printmatrix2(GLDOUBLE* mat,char* description );
-void render_TextureProjector (struct X3D_TextureProjector *node) {
+
+void compile_TextureProjector(struct X3D_TextureProjector* node) {
+
+	node->_intern = set_ProjectorRep(node->_intern);
+	/* LookAt Matrix Complete */
+	float dir[3], up[3], cross1[3], cross2[3];
+	veccopy3f(node->_loc.c, node->location.c);
+	veccopy3f(dir, node->direction.c);
+	veccopy3f(up, node->upVector.c);
+	vecnormalize3f(dir, dir);
+	vecnormalize3f(up, up);
+	veccross3f(cross1, dir, up);
+	vecnormalize3f(cross1, cross1);
+	veccross3f(cross2, cross1, dir);
+	vecnormalize3f(cross2, cross2);
+	veccopy3f(node->_dir.c, dir);
+	node->_dir.c[3] = 0.0f;
+	veccopy3f(node->_upVec.c, up);
+	node->_upVec.c[3] = 0.0f;
+	//	if (node->shadows) compile_shadowMap(X3D_NODE(node));
+
+	if (node->shadows)
+		set_debug_quad_near_farplane(node->nearDistance, node->farDistance);
+
+	MARK_NODE_COMPILED;
+}
+
+void render_TextureProjector0(struct X3D_Node* parent, struct X3D_TextureProjector *node) {
 	int i,j = 0;
 	int flag = 0;
 	float degree = node->fieldOfView* 180.0/3.141596;
@@ -476,22 +634,31 @@ void render_TextureProjector (struct X3D_TextureProjector *node) {
 			usehit ptuple;
 
 			ptuple.node = X3D_NODE(node);
-			matcopy(ptuple.mvm, eye2projector);
+			ptuple.userdata = parent;
+			if(old_waay)
+				matcopy(ptuple.mvm, eye2projector); 
+			else
+				matcopy(ptuple.mvm, modelview); //concatonate in sendProjectorInfo
 			//ptuple.userdata = projrep->matproj;
 			//matcopy(ptuple.proj, projrep->matproj);
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			projectorTable_push(ptuple);
 			if (node->global && node->shadows) {
-				//shadowTable_push(ptuple);
-				//render_shadowMap(X3D_NODE(node));
+				int nuse = projectorTable_node_use_count(X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				generate_shadowmap_2D(ptuple, 0);
 			}
+			projectorTable_push(ptuple);
+
+
 		}
 
 	} //if(node->on)
  }
-
+ void render_TextureProjector(struct X3D_TextureProjector* node) {
+	 render_TextureProjector0(NULL, node);
+ }
 
 void fin_TextureProjector (struct X3D_TextureProjector *node) 
 {
@@ -554,7 +721,7 @@ void compile_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node
 void projOrtho (GLDOUBLE l, GLDOUBLE r, GLDOUBLE b,	GLDOUBLE t, 
 				GLDOUBLE n, GLDOUBLE f,GLDOUBLE *matrix);
 void mesa_Ortho(GLDOUBLE left, GLDOUBLE right, GLDOUBLE bottom, GLDOUBLE top, GLDOUBLE nearZ, GLDOUBLE farZ, GLDOUBLE *m);
-void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node) {
+void render_TextureProjectorParallel0(struct X3D_Node* parent, struct X3D_TextureProjectorParallel *node) {
 	int i,j = 0;
 	int flag = 0;
 	//float degree = node->fieldOfView* 180/3.14;
@@ -656,22 +823,27 @@ void render_TextureProjectorParallel (struct X3D_TextureProjectorParallel *node)
 			GLuint texture;
 			usehit ptuple;
 			ptuple.node = X3D_NODE(node);
+			ptuple.userdata = parent;
 			matcopy(ptuple.mvm, eye2projector);
 			//matcopy(ptuple.proj, projrep->matproj);
 			//ptuple.userdata = projrep->matproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
 			projrep->itexture = texture;
 			projrep->texture = tmpN;
-			projectorTable_push(ptuple);
 			if (node->global && node->shadows) {
-				//shadowTable_push(ptuple);
+				int nuse = projectorTable_node_use_count(X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				generate_shadowmap_2D(ptuple, 0);
 			}
+			projectorTable_push(ptuple);
 		}
 
 
 	} //if(node->on)
 }
-
+void render_TextureProjectorParallel(struct X3D_TextureProjectorParallel* node) {
+	render_TextureProjectorParallel0(NULL, node);
+}
 
 void prep_TextureProjectorParallel(struct X3D_TextureProjectorParallel *node)
 {
@@ -703,7 +875,7 @@ void compile_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 	MARK_NODE_COMPILED;
 }
 
-void render_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+void render_TextureProjectorPoint0(struct X3D_Node* parent, struct X3D_TextureProjectorPoint* node) {
 	int i, j = 0;
 	int flag = 0;
 	//float degree = node->fieldOfView * 180.0 / 3.141596;
@@ -789,6 +961,7 @@ void render_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 			usehit ptuple;
 
 			ptuple.node = X3D_NODE(node);
+			ptuple.userdata = parent;
 			matcopy(ptuple.mvm, eye2projector);
 			//ptuple.userdata = projrep->matproj;
 			//matcopy(ptuple.proj, projrep->matproj);
@@ -797,14 +970,17 @@ void render_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 			projrep->texture = tmpN;
 			projectorTable_push(ptuple);
 			if (node->global && node->shadows) {
-				//shadowTable_push(ptuple);
-				//render_shadowMap(X3D_NODE(node));
+				int nuse = projectorTable_node_use_count(X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				generate_shadowmap_cube(ptuple, 0);
 			}
 		}
 
 	} //if(node->on)
 }
-
+void render_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
+	render_TextureProjectorPoint0(NULL, node);
+}
 
 void fin_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node)
 {
@@ -830,46 +1006,80 @@ void child_TextureProjectorPoint(struct X3D_TextureProjectorPoint* node) {
 
 
 
-void render_TextureProjectors(struct X3D_Node *sibAffector){
-	switch(sibAffector->_nodeType){
-		case NODE_TextureProjectorParallel:
-			render_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
-			break;
-		case NODE_TextureProjector:
-		default:
-			render_TextureProjector((struct X3D_TextureProjector*)sibAffector);
-			break;
+//void render_TextureProjectors(struct X3D_Node *sibAffector){
+//	switch(sibAffector->_nodeType){
+//		case NODE_TextureProjectorParallel:
+//			render_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
+//			break;
+//		case NODE_TextureProjector:
+//		default:
+//			render_TextureProjector((struct X3D_TextureProjector*)sibAffector);
+//			break;
+//	}
+//}
+//void fin_TextureProjectors(struct X3D_Node *sibAffector){
+//	switch(sibAffector->_nodeType){
+//		case NODE_TextureProjectorParallel:
+//			fin_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
+//			break;
+//		case NODE_TextureProjector:
+//		default:
+//			fin_TextureProjector((struct X3D_TextureProjector*)sibAffector);
+//			break;
+//	}
+//}
+
+//void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+//	if ( renderstate()->render_light != VF_globalLight){
+//		shaderflagsstruct shaderflags;
+//		shaderflags = getShaderFlags();
+//		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
+//		pushShaderFlags(shaderflags);
+//
+//		render_TextureProjectors(sibAffector);
+//	}
+//
+//}
+//
+//void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
+//	if (renderstate()->render_light != VF_globalLight) {
+//		fin_TextureProjectors(sibAffector);
+//		popShaderFlags();
+//	}
+//}
+
+void sib_prep_TextureProjector(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
+	struct X3D_TextureProjector* projector = X3D_TEXTUREPROJECTOR(sibAffector);
+	if (renderstate()->render_light != VF_globalLight && !renderstate()->render_depth && renderstate()->render_geom) {
+		if (projector->global == FALSE && projector->on == TRUE) {
+			shaderflagsstruct shaderflags;
+			shaderflags = getShaderFlags();
+			shaderflags.base |= HAVE_PROJECTIVETEXTURE;
+			pushShaderFlags(shaderflags);
+
+			switch (projector->_nodeType) {
+			case NODE_TextureProjector:
+				render_TextureProjector0(parent, (struct X3D_TextureProjector*)sibAffector);
+				break;
+			case NODE_TextureProjectorParallel:
+				render_TextureProjectorParallel0(parent, (struct X3D_TextureProjectorParallel*)sibAffector);
+				break;
+			case NODE_TextureProjectorPoint:
+				render_TextureProjectorPoint0(parent, (struct X3D_TextureProjectorPoint*)sibAffector);
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }
-void fin_TextureProjectors(struct X3D_Node *sibAffector){
-	switch(sibAffector->_nodeType){
-		case NODE_TextureProjectorParallel:
-			fin_TextureProjectorParallel((struct X3D_TextureProjectorParallel*)sibAffector);
-			break;
-		case NODE_TextureProjector:
-		default:
-			fin_TextureProjector((struct X3D_TextureProjector*)sibAffector);
-			break;
+void sib_fin_TextureProjector(struct X3D_Node* parent, struct X3D_Node* sibAffector) {
+	if (renderstate()->render_light != VF_globalLight && !renderstate()->render_depth && renderstate()->render_geom) {
+		struct X3D_TextureProjector* projector = X3D_TEXTUREPROJECTOR(sibAffector);
+		if (projector->global == FALSE && projector->on == TRUE) {
+			projectorTable_pop();
+			popShaderFlags();
+		}
 	}
 }
-
-void sib_prep_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	if ( renderstate()->render_light != VF_globalLight){
-		shaderflagsstruct shaderflags;
-		shaderflags = getShaderFlags();
-		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
-		pushShaderFlags(shaderflags);
-
-		render_TextureProjectors(sibAffector);
-	}
-
-}
-
-void sib_fin_TextureProjector(struct X3D_Node *parent, struct X3D_Node *sibAffector){
-	if (renderstate()->render_light != VF_globalLight) {
-		fin_TextureProjectors(sibAffector);
-		popShaderFlags();
-	}
-}
-
 

@@ -1677,6 +1677,7 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 			if(inside){ \n\
 				bool facingProjector = true; \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
+                pptex = pptex *.5 + .5; \n\
 				if(ptm.backCull == 1) \n\
                 { \n\
 					vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
@@ -1690,19 +1691,19 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
                   if(ptm.shadows > 0){ \n\
                     float depthValue = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
 					//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
-                    //frag_color = vec4(vec3(depthValue),1.0); \n\
+                    //frag_color = vec4(vec3(.2,.2,depthValue),1.0); \n\
                     facingProjector = pptex.z < depthValue; \n\
                   } \n\
                 } \n\
 				if(facingProjector){ \n\
 					//parallel/ortho \n\
 					vec2 ptex = pptex.xy; \n\
-					ptex.x = (ptex.x * .5) + .5; \n\
-					ptex.y = (ptex.y * .5) + .5; \n\
+					//ptex.x = (ptex.x * .5) + .5; \n\
+					//ptex.y = (ptex.y * .5) + .5; \n\
 					int ndesc = ptm.tcount; \n\
                     struct TextureDescriptor tdesc; \n\
 					vec4 prev = frag_color; \n\
-					for(int j=0;j<ndesc;j++,k++){ \n\
+					for(int j=0;j<ndesc;j++){ \n\
                         tdesc =  tdescs[ptm.tstart+j]; \n\
 						int kk = tdesc.tindex; \n\
 						int modea = int(tdesc.mode / 100); \n\

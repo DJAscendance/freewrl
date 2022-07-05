@@ -127,17 +127,16 @@ int lightTable_node_use_count(struct X3D_Node *node) {
 
 // a specialization of InternalRep - see PolyRep.h
 struct X3D_LightRep {
-	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
+	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep
+	//depth section
+	Stack* depth_buffer_stack;
+	int size;
+	double matproj[16];
+	double matview[16];
 	//light section
 	void* lightbuf;
 	int ilightbuf; //opengl uniform buffer index
-	//depth section
-	//struct X3D_Node* depthTexture;
-	Stack* depth_buffer_stack;
-	int size;
-	//int idepthtexture;
-	double matproj[16];
-	double matview[16];
+
 };
 
 void* set_LightRep(void* _lightrep)
@@ -929,7 +928,7 @@ void render_bound_background();
 // called from MainLoop.c
 #include "../x3d_parser/Bindable.h"
 void generate_shadowmap_cube(usehit uhit, int index) {
-	//call from render_PointLight once per frame (its a so-called 'dynamic cubemap', like GeneratedCubeMapTexture)
+	//call from render_PointLight or render_TextureProjectorPoint once per frame (its a so-called 'dynamic cubemap', like GeneratedCubeMapTexture)
 	// usehit - same as for lightTable / shared with lightTable which holds one usehit per scenegraph node visit
 	// -- so DEF/USE of light node will have 2+ entries in lightTable and 2+ shadowmaps
 	// -- currently fbo textures are persisted in Light node > LightRep > depth_buffer_stack
@@ -956,7 +955,12 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	//so save it, and restore after gencubemap loop of 6
 	memcpy(savebackmat, bstack->backgroundmatrix, 16 * sizeof(double));
 
-	node = (struct X3D_PointLight*)uhit.node;
+	node = (struct X3D_Nodet*)uhit.node;
+	float radius = 10.0f;
+	if (node->_nodeType == NODE_PointLight)
+		radius = ((struct X3D_PointLight*)node)->radius;
+	else if (node->_nodeType == NODE_TextureProjectorPoint)
+		radius = ((struct X3D_TextureProjectorPoint*)node)->farDistance;
 	lightrep = (struct X3D_LightRep*)node->_intern;
 	struct X3D_GeneratedCubeMapTexture* cubetex = (struct X3D_GeneratedCubeMapTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack, uhit.ivalue);;
 	memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
@@ -1028,7 +1032,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 			//printmatrix2(world2lightview, "world2lightview = lighrep.matview x world2light");
 
 			//fw_glSetDoublev(GL_PROJECTION_MATRIX, lightrep->matproj); //identity
-			projPerspective(90.0, 1.0, .1, node->radius, matproj);
+			projPerspective(90.0, 1.0, .1, radius, matproj);
 			fw_glSetDoublev(GL_PROJECTION_MATRIX, matproj);
 			//printmatrix2(lightrep->matproj, "matproj");
 
@@ -1096,8 +1100,8 @@ void PRINT_GL_ERROR(GLenum _global_gl_err) {
 	else printf ("unknown error %d ",_global_gl_err);
 }
 void generate_shadowmap_2D(usehit uhit, int index) {
-	//call from render_xxxLight once per frame
-	// usehit - same as for lightTable / shared with lightTable which holds one usehit per scenegraph node visit
+	//call from render_xxxLight or render_TextureProjectorxxx once per frame
+	// usehit - same as for lightTable/projectorTable / shared with lightTable which holds one usehit per scenegraph node visit
 	// -- so DEF/USE of light node will have 2+ entries in lightTable and 2+ shadowmaps
 	// -- currently fbo textures are persisted in Light node > LightRep > depth_buffer_stack
 	// -- index is index in that stack, 
@@ -1111,7 +1115,7 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	double modelviewmatrix[16];
 	textureTableIndexStruct_s* tti;
 	float vp[4] = { 0.0f,1.0f,0.0f,1.0f }; //arbitrary
-	struct X3D_SpotLight* node;
+	struct X3D_Node* node;
 	struct X3D_LightRep* lightrep;
 	bindablestack* bstack;
 	ttglobal tg = gglobal();
@@ -1121,8 +1125,8 @@ void generate_shadowmap_2D(usehit uhit, int index) {
 	//so save it, and restore after gencubemap loop of 6
 	memcpy(savebackmat, bstack->backgroundmatrix, 16 * sizeof(double));
 
-	node = (struct X3D_SpotLight*)uhit.node;
-	lightrep = (struct X3D_LightRep*)node->_intern;
+	node = (struct X3D_Node*)uhit.node;
+	lightrep = (struct X3D_LightRep*)node->_intern; //X3D_LightRep and X3D_ProjectorRep are same order for the depth fields
 	struct X3D_PixelTexture* tex = (struct X3D_PixelTexture*)vector_get(struct X3D_Node*, lightrep->depth_buffer_stack,uhit.ivalue);
 	memcpy(modelviewmatrix, uhit.mvm, 16 * sizeof(double));
 

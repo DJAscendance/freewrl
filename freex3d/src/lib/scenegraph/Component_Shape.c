@@ -1406,7 +1406,7 @@ void update_effect_uniforms();
 int setupShaderB();
 void textureTransform_start();
 void reallyDraw();
-void resend_textureprojector_matrix();
+void sendProjectorInfo();
 
 
 void PRINT_GL_ERROR(GLenum _global_gl_err);
@@ -1632,7 +1632,7 @@ void child_Shape (struct X3D_Shape *node) {
 		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
 		clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 		textureTransform_start(); //send regular appearance.textures to shader
-		resend_textureprojector_matrix();  
+		sendProjectorInfo();  
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
 
