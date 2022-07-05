@@ -1677,7 +1677,6 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 			if(inside){ \n\
 				bool facingProjector = true; \n\
 				vec3 pptex = pp.xyz/pp.w; \n\
-                pptex = pptex *.5 + .5; \n\
 				if(ptm.backCull == 1) \n\
                 { \n\
 					vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
@@ -1687,11 +1686,12 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 					float dotval = dot(nvec,peye); \n\
 					facingProjector = (dotval < 0.0); \n\
 				} \n\
+                pptex.xyz = pptex.xyz *.5 + .5; \n\
                 if(facingProjector){ \n\
                   if(ptm.shadows > 0){ \n\
 					float currentDepth = pptex.z; \n\
-					if (pptex.z > 1.0) \n\
-					  currentDepth = 1.0; \n\
+					//if (pptex.z > 1.0) \n\
+					//  currentDepth = 1.0; \n\
                     float closestDepth = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
 					//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
 					float bias = 0.005; \n\

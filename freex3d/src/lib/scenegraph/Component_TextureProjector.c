@@ -824,7 +824,10 @@ void render_TextureProjectorParallel0(struct X3D_Node* parent, struct X3D_Textur
 			usehit ptuple;
 			ptuple.node = X3D_NODE(node);
 			ptuple.userdata = parent;
-			matcopy(ptuple.mvm, eye2projector);
+			if (old_waay)
+				matcopy(ptuple.mvm, eye2projector);
+			else
+				matcopy(ptuple.mvm, modelview);
 			//matcopy(ptuple.proj, projrep->matproj);
 			//ptuple.userdata = projrep->matproj;
 			texture = tg->RenderFuncs.boundTextureStack[tg->RenderFuncs.textureStackTop];
