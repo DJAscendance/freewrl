@@ -1552,7 +1552,7 @@ varying vec3 castle_ColorES; //emissive shininess term \n\
 //#endif //LITE \n\
 #endif //LIT\n\
 //#if defined(TEX) || defined(PROJTEX) \n\
-#if defined(SHADOW) || defined(CUB) \n\
+#if defined(SHADOW) || defined(CUB) || defined(PROJTEX) \n\
 //shared samplerCube array -pointlight shadows, cubemapTextures \n\
 uniform samplerCube textureUnitCube[8]; \n\
 //shared sampler2D array -PTM or PBR use \n\
@@ -1560,7 +1560,7 @@ uniform sampler2D textureUnit[8]; \n\
 #else //SHADOW || CUB \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
-#endif //SHADOW  || CUB \n\
+#endif //SHADOW  || CUB || PROJTEX\n\
 #ifdef SHADOW //this stuff only works in the fragment shader \n\
 float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
 { \n\
@@ -1648,6 +1648,7 @@ struct TextureProjectorProperties { \n\
  int tcount; \n\
  float intensity; \n\
  int shadows; \n\
+ int type; //0,1 2D 2 cubemap \n\
  float shadowIntensity; \n\
  int depthmap; \n\
 }; \n\
@@ -1669,60 +1670,70 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
         //is point on + side of projector ? \n\
 		vec4 projTexCoord = ptm.GenMatCam * vec4(castle_vertex_eye.xyz,1.0); \n\
         vec4 projTexNorm = ptm.GenMatCam * vec4((castle_vertex_eye.xyz + castle_normal_eye.xyz),1.0); \n\
-		if( projTexCoord.z > 0.0 ){ \n\
-			vec4 pp = projTexCoord; \n\
-			bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
-			inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
-			inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
-			if(inside){ \n\
-				bool facingProjector = true; \n\
-				vec3 pptex = pp.xyz/pp.w; \n\
-				if(ptm.backCull == 1) \n\
-                { \n\
-					vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
-					//if(!gl_FrontFacing) pn = -pn; \n\
-					vec3 nvec = normalize(pn - pptex.xyz); \n\
-					vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
-					float dotval = dot(nvec,peye); \n\
-					facingProjector = (dotval < 0.0); \n\
-				} \n\
-                pptex.xyz = pptex.xyz *.5 + .5; \n\
-                if(facingProjector){ \n\
-                  if(ptm.shadows > 0){ \n\
-					float currentDepth = pptex.z; \n\
-					//if (pptex.z > 1.0) \n\
-					//  currentDepth = 1.0; \n\
-                    float closestDepth = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
-					//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
-					float bias = 0.005; \n\
-					// check whether current frag pos is in shadow \n\
-					float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
-					//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
-                    //frag_color = vec4(vec3(.2,.2,depthValue),1.0); \n\
-                    facingProjector = shadow == 0.0; //pptex.z < depthValue; \n\
-                  } \n\
-                } \n\
-				if(facingProjector){ \n\
-					//parallel/ortho \n\
-					vec2 ptex = pptex.xy; \n\
-					//ptex.x = (ptex.x * .5) + .5; \n\
-					//ptex.y = (ptex.y * .5) + .5; \n\
-					int ndesc = ptm.tcount; \n\
-                    struct TextureDescriptor tdesc; \n\
-					vec4 prev = frag_color; \n\
-					for(int j=0;j<ndesc;j++){ \n\
-                        tdesc =  tdescs[ptm.tstart+j]; \n\
-						int kk = tdesc.tindex; \n\
-						int modea = int(tdesc.mode / 100); \n\
-						int mode = tdesc.mode - 100*modea; \n\
-						finalColCalcA(prev, mode, modea, tdesc.func, textureUnit[tdesc.tindex], ptex); \n\
+        if(ptm.type == 2) { \n\
+			//ProjectorPoint uses cubemap for diffuse and shadow, and a 3D lookup coord \n\
+			vec3 pc = projTexCoord.xyz; \n\
+			pc.yz = -pc.yz; //renderman cubemap convention \n\
+			vec3 nc = normalize(pc); \n\
+			struct TextureDescriptor tdesc = tdescs[ptm.tstart]; \n\
+			frag_color.rgb = texture(textureUnitCube[tdesc.tindex], nc).rgb; \n\
+            frag_color.a = 1.0; \n\
+        } else { //ptm.type \n\
+			if( projTexCoord.z > 0.0 ){ \n\
+				vec4 pp = projTexCoord; \n\
+				bool inside = (-pp.w < pp.x) && (pp.x < pp.w); \n\
+				inside = inside && (-pp.w < pp.y) && (pp.y < pp.w); \n\
+				inside = inside && (-pp.w < pp.z) && (pp.z < pp.w); \n\
+				if(inside){ \n\
+					bool facingProjector = true; \n\
+					vec3 pptex = pp.xyz/pp.w; \n\
+					if(ptm.backCull == 1) \n\
+					{ \n\
+						vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
+						//if(!gl_FrontFacing) pn = -pn; \n\
+						vec3 nvec = normalize(pn - pptex.xyz); \n\
+						vec3 peye = vec3(0.0,0.0,1.0); //normalize(pc); \n\
+						float dotval = dot(nvec,peye); \n\
+						facingProjector = (dotval < 0.0); \n\
 					} \n\
-					//frag_color = prev;\n\
-                    frag_color.rgb = prev.rgb * ptm.color * ptm.intensity; \n\
-                    frag_color.a = prev.a; \n\
+					pptex.xyz = pptex.xyz *.5 + .5; \n\
+					if(facingProjector){ \n\
+					  if(ptm.shadows > 0){ \n\
+						float currentDepth = pptex.z; \n\
+						//if (pptex.z > 1.0) \n\
+						//  currentDepth = 1.0; \n\
+						float closestDepth = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
+						//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+						float bias = 0.005; \n\
+						// check whether current frag pos is in shadow \n\
+						float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+						//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
+						//frag_color = vec4(vec3(.2,.2,depthValue),1.0); \n\
+						facingProjector = shadow == 0.0; //pptex.z < depthValue; \n\
+					  } \n\
+					} \n\
+					if(facingProjector){ \n\
+						//parallel/ortho \n\
+						vec2 ptex = pptex.xy; \n\
+						//ptex.x = (ptex.x * .5) + .5; \n\
+						//ptex.y = (ptex.y * .5) + .5; \n\
+						int ndesc = ptm.tcount; \n\
+						struct TextureDescriptor tdesc; \n\
+						vec4 prev = frag_color; \n\
+						for(int j=0;j<ndesc;j++){ \n\
+							tdesc =  tdescs[ptm.tstart+j]; \n\
+							int kk = tdesc.tindex; \n\
+							int modea = int(tdesc.mode / 100); \n\
+							int mode = tdesc.mode - 100*modea; \n\
+							finalColCalcA(prev, mode, modea, tdesc.func, textureUnit[tdesc.tindex], ptex); \n\
+						} \n\
+						//frag_color = prev;\n\
+						frag_color.rgb = prev.rgb * ptm.color * ptm.intensity; \n\
+						frag_color.a = prev.a; \n\
+					} \n\
 				} \n\
 			} \n\
-		} \n\
+        } //ptm.type \n\
 	} \n\
 	return frag_color; \n\
 } \n\

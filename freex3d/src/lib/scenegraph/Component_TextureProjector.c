@@ -271,6 +271,8 @@ void sendProjectorInfo()
 		me->ptmtcount[i] = GET_UNIFORM(myProg, line);
 		sprintf(line, "ptms[%d].tstart", i);
 		me->ptmtstart[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].type", i);
+		me->ptmtype[i] = GET_UNIFORM(myProg, line);
 	}
 	for (int i = 0; i < 16; i++) {
 		//per texture descriptor
@@ -356,6 +358,7 @@ void sendProjectorInfo()
 			GLUNIFORM1F(me->ptmintensity[j], ptm->intensity);
 			GLUNIFORM1I(me->ptmshadows[j], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[j], ptm->shadowIntensity);
+			GLUNIFORM1I(me->ptmtype[j], projType);
 
 			int ntdesc = 0; //number of texture descriptors in this projector
 			struct X3D_NODE * tlist[4];
@@ -385,7 +388,7 @@ void sendProjectorInfo()
 				// re-use texture sampler if mulitple projectors and multitextures refer to same GLint texture 1:1 sampler2D
 				int kunit, iunit;
 				if (samplr[i] == 1) {
-					if (1) {
+					if (0) {
 						GLenum target;
 						printf("%s ", stringNodeType(node->_nodeType));
 						glGetTextureParameteriv(textures[i], GL_TEXTURE_TARGET, (GLint*)&target);
@@ -961,6 +964,11 @@ void render_TextureProjectorPoint0(struct X3D_Node* parent, struct X3D_TexturePr
 
 
 		//}
+		if (node->texture)
+		{
+			POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->texture, tmpN);
+		}
+
 		{
 			GLuint texture;
 			usehit ptuple;
