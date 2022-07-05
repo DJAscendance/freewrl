@@ -1689,10 +1689,17 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 				} \n\
                 if(facingProjector){ \n\
                   if(ptm.shadows > 0){ \n\
-                    float depthValue = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
+					float currentDepth = pptex.z; \n\
+					if (pptex.z > 1.0) \n\
+					  currentDepth = 1.0; \n\
+                    float closestDepth = texture2D(textureUnit[ptm.depthmap],pptex.xy).r; \n\
+					//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+					float bias = 0.005; \n\
+					// check whether current frag pos is in shadow \n\
+					float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
 					//frag_color = vec4(vec3(ptmdepthmap[i]),1.0); \n\
                     //frag_color = vec4(vec3(.2,.2,depthValue),1.0); \n\
-                    facingProjector = pptex.z < depthValue; \n\
+                    facingProjector = shadow == 0.0; //pptex.z < depthValue; \n\
                   } \n\
                 } \n\
 				if(facingProjector){ \n\
