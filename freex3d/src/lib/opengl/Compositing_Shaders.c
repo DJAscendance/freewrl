@@ -1673,11 +1673,23 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
         if(ptm.type == 2) { \n\
 			//ProjectorPoint uses cubemap for diffuse and shadow, and a 3D lookup coord \n\
 			vec3 pc = projTexCoord.xyz; \n\
-			pc.yz = -pc.yz; //renderman cubemap convention \n\
-			vec3 nc = normalize(pc); \n\
-			struct TextureDescriptor tdesc = tdescs[ptm.tstart]; \n\
-			frag_color.rgb = texture(textureUnitCube[tdesc.tindex], nc).rgb; \n\
-            frag_color.a = 1.0; \n\
+			bool facingProjector = true; \n\
+			if(ptm.backCull == 1) \n\
+			{ \n\
+				vec3 pn = projTexNorm.xyz/projTexNorm.w; \n\
+				vec3 nvec = normalize(pn - pc); \n\
+				vec3 pvec = normalize(pc); \n\
+				float dotval = dot(nvec,pvec); \n\
+				facingProjector = (dotval <= 0.0); \n\
+			} \n\
+            if(facingProjector){ \n\
+			  pc.yz = -pc.yz; //renderman cubemap convention \n\
+			  vec3 nc = normalize(pc); \n\
+			  struct TextureDescriptor tdesc = tdescs[ptm.tstart]; \n\
+			  frag_color.rgb = texture(textureUnitCube[tdesc.tindex], nc).rgb; \n\
+			  frag_color.rgb = frag_color.rgb * ptm.color * ptm.intensity; \n\
+              frag_color.a = 1.0; \n\
+            } \n\
         } else { //ptm.type \n\
 			if( projTexCoord.z > 0.0 ){ \n\
 				vec4 pp = projTexCoord; \n\
