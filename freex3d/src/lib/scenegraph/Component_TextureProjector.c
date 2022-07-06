@@ -650,7 +650,7 @@ void render_TextureProjector0(struct X3D_Node* parent, struct X3D_TextureProject
 			//if (node->global && node->shadows) {
 			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
-				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer_projector(nuse, X3D_NODE(node));
 				generate_shadowmap_2D(ptuple, 0);
 			}
 			projectorTable_push(ptuple);
@@ -840,7 +840,7 @@ void render_TextureProjectorParallel0(struct X3D_Node* parent, struct X3D_Textur
 			//if (node->global && node->shadows) {
 			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
-				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer_projector(nuse, X3D_NODE(node));
 				generate_shadowmap_2D(ptuple, 0);
 			}
 			projectorTable_push(ptuple);
@@ -913,15 +913,20 @@ void render_TextureProjectorPoint0(struct X3D_Node* parent, struct X3D_TexturePr
 		FW_GL_MATRIX_MODE(GL_MODELVIEW);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
 
-		{
+		if(0) {
 			double loc[3], dir[3], up[3], eye[3];
 			float2double(loc, node->_loc.c, 3);
 			float2double(dir, node->_dir.c, 3);
 			float2double(up, node->_upVec.c, 3);
 			vecdifd(eye, loc, dir);
 			projLookAt(eye[0], eye[1], eye[2], loc[0], loc[1], loc[2], up[0], up[1], up[2], ViewMat);
+			matcopy(projrep->matview, ViewMat);
 		}
-		matcopy(projrep->matview, ViewMat);
+		else {
+			float center[3];
+			vecadd3f(center, node->location.c, node->direction.c);
+			matrix_lookAtfd(node->location.c, center, node->upVector.c, projrep->matview);
+		}
 		//B. INVERT modelviewnode (which transforms projector to eye) to get eye-to-projector
 		matinverse(modelviewinv, modelview);
 		//C. COMBINE MODELVIEW MATRIX WITH NODE-POSE MATRIX
@@ -987,7 +992,7 @@ void render_TextureProjectorPoint0(struct X3D_Node* parent, struct X3D_TexturePr
 			//if (node->global && node->shadows) {
 			if (node->shadows) {
 				int nuse = projectorTable_node_use_count(X3D_NODE(node));
-				ptuple.ivalue = make_or_get_depth_buffer(nuse, X3D_NODE(node));
+				ptuple.ivalue = make_or_get_depth_buffer_projector(nuse, X3D_NODE(node));
 				generate_shadowmap_cube(ptuple, 0);
 			}
 			projectorTable_push(ptuple);

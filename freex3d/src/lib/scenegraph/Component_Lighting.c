@@ -1066,7 +1066,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 			}
 			if (0) {
 				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 2");
-				set_debug_quad_near_farplane(.1f, node->radius);
+				set_debug_quad_near_farplane(.1f, radius);
 
 				set_debug_quad(6, tti->OpenGLTexture);
 				PRINT_GL_ERROR_IF_ANY("generate_shadowMaps cube in quad prep 3");

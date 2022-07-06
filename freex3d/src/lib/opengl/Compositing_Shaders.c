@@ -1682,8 +1682,22 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 				float dotval = dot(nvec,pvec); \n\
 				facingProjector = (dotval <= 0.0); \n\
 			} \n\
+			if(facingProjector){ \n\
+				if(ptm.shadows > 0){ \n\
+					vec3 nc = normalize(pc); \n\
+                    nc.yz = -nc.yz; \n\
+					float closestDepth = texture(textureUnitCube[ptm.depthmap], nc).r; \n\
+					//currentDepth = local3D2cubedepth(pc,ptm.neardistance,ptm.farDistance); \n\
+					float currentDepth = length(nc); \n\
+					//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
+					float bias = 0.005; \n\
+					// check whether current frag pos is in shadow \n\
+					float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0; \n\
+					facingProjector = shadow == 0.0; \n\
+				} \n\
+			} \n\
             if(facingProjector){ \n\
-			  pc.yz = -pc.yz; //renderman cubemap convention \n\
+			  //pc.yz = -pc.yz; //renderman cubemap convention \n\
 			  vec3 nc = normalize(pc); \n\
 			  struct TextureDescriptor tdesc = tdescs[ptm.tstart]; \n\
 			  frag_color.rgb = texture(textureUnitCube[tdesc.tindex], nc).rgb; \n\
