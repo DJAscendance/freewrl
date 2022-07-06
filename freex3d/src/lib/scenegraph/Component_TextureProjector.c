@@ -273,6 +273,8 @@ void sendProjectorInfo()
 		me->ptmtstart[i] = GET_UNIFORM(myProg, line);
 		sprintf(line, "ptms[%d].type", i);
 		me->ptmtype[i] = GET_UNIFORM(myProg, line);
+		sprintf(line, "ptms[%d].farDistance", i);
+		me->ptmfarDistance[i] = GET_UNIFORM(myProg, line);
 	}
 	for (int i = 0; i < 16; i++) {
 		//per texture descriptor
@@ -359,6 +361,7 @@ void sendProjectorInfo()
 			GLUNIFORM1I(me->ptmshadows[j], ptm->shadows);
 			GLUNIFORM1F(me->ptmshadowIntensity[j], ptm->shadowIntensity);
 			GLUNIFORM1I(me->ptmtype[j], projType);
+			GLUNIFORM1F(me->ptmfarDistance[j], ptm->farDistance);
 
 			int ntdesc = 0; //number of texture descriptors in this projector
 			struct X3D_NODE * tlist[4];

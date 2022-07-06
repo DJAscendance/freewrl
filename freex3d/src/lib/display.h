@@ -478,6 +478,7 @@ typedef struct s_shader_capabilities{
 	GLint ptmtcount[8];
 	GLint ptmtstart[8];
 	GLint ptmtype[8];
+	GLint ptmfarDistance[8];
 	GLint tdtindex[16];
 	GLint tdmode[16];
 	GLint tdsource[16];

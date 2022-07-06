@@ -1561,7 +1561,7 @@ uniform sampler2D textureUnit[8]; \n\
 //shared sampler2D array -PTM or PBR use \n\
 uniform sampler2D textureUnit[16]; \n\
 #endif //SHADOW  || CUB || PROJTEX\n\
-#ifdef SHADOW //this stuff only works in the fragment shader \n\
+#if defined(SHADOW) || defined(PROJTEX) //this stuff only works in the fragment shader \n\
 float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
 { \n\
   //for cubemap depth, find which of 6 (perspective-rendered depthmap) faces will be sampled, \n\
@@ -1573,6 +1573,8 @@ float local3D2cubedepth(in vec3 local, in float near, in float far) \n\
   float zfactor = (far + near) / (far - near) - (2.0 * far * near) / (far - near) / maxAxis; \n\
   return (zfactor + 1.0) * 0.5; \n\
 } \n\
+#endif //SHADOW || PROJTEX \n\
+#ifdef SHADOW \n\
 float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 { \n\
     float shadow = 0.0; \n\
@@ -1637,7 +1639,7 @@ float ShadowCalculation(in int ilight, in vec3 lightdir) \n\
 	return shadow; \n\
 } \n\
 #endif //SHADOW \n\
-//#endif //defined(TEX) || defined(PROJTEX \n\
+//#endif //defined(TEX) || defined(PROJTEX) \n\
 #ifdef PROJTEX \n\
 //per projector: \n\
 struct TextureProjectorProperties { \n\
@@ -1646,9 +1648,10 @@ struct TextureProjectorProperties { \n\
  vec3 color; \n\
  int tstart; \n\
  int tcount; \n\
+ float farDistance; \n\
+ int type; //0,1 2D 2 cubemap \n\
  float intensity; \n\
  int shadows; \n\
- int type; //0,1 2D 2 cubemap \n\
  float shadowIntensity; \n\
  int depthmap; \n\
 }; \n\
@@ -1687,8 +1690,8 @@ vec4 fragProjCalTexCoord(in vec4 frag_color) { \n\
 					vec3 nc = normalize(pc); \n\
                     nc.yz = -nc.yz; \n\
 					float closestDepth = texture(textureUnitCube[ptm.depthmap], nc).r; \n\
-					//currentDepth = local3D2cubedepth(pc,ptm.neardistance,ptm.farDistance); \n\
-					float currentDepth = length(nc); \n\
+					float currentDepth = local3D2cubedepth(pc,.1,ptm.farDistance); \n\
+					//float currentDepth = length(nc); \n\
 					//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005); \n\
 					float bias = 0.005; \n\
 					// check whether current frag pos is in shadow \n\
