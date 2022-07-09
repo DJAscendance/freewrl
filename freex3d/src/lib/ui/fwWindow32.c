@@ -1416,7 +1416,7 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	DWORD wStyle   = 0;
 	HWND  ghWnd;   
     //RECT rect; 
-	int width, height;
+	int width, height, xpos, ypos;
 	int haveTOUCH;
     int nCmdShow = SW_SHOW;
 	
@@ -1476,6 +1476,8 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	//height = gglobal()->display.height + 34;  // and 26 for the menu bar
 	width = d->width;
 	height = d->height;
+	xpos = d->xpos > -1 ? d->xpos : CW_USEDEFAULT;
+	ypos = d->ypos > -1 ? d->ypos : CW_USEDEFAULT;
 	if (!d->fullscreen){
 		width += 8;  //windows gui eats 4 on each side
 		height += 34;  // and 26 for the menu bar
@@ -1488,8 +1490,8 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", "freeWRL", 
 			    /* ghWnd = CreateWindow( "GenericAppClass", "Generic Application", */
 			    wStyle, //WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 
-			    CW_USEDEFAULT, 
-			    CW_USEDEFAULT, 
+			    xpos, 
+			    ypos, 
 			    width, 
 			    height, 
 			    NULL, 

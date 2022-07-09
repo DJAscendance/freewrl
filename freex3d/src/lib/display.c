@@ -363,7 +363,7 @@ int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_hei
 	int width, height, xpos, ypos;
 	int c;
 
-	width = height = xpos = ypos = 0;
+	width = height = 0; xpos = ypos = -1;
 
 	c = sscanf(geometry, "%dx%d+%d+%d", 
 		   &width, &height, &xpos, &ypos);
