@@ -943,7 +943,6 @@ static int shiftState = 0;
 	}
     //ghWnd = hWnd;
     switch( msg ) {
-
     case WM_CREATE: 
 	//printf("wm_create\n");
 	//fv_create_GLcontext();
@@ -1416,7 +1415,8 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	DWORD wStyle   = 0;
 	HWND  ghWnd;   
     //RECT rect; 
-	int width, height, xpos, ypos;
+	int width, height, xpos, ypos, wnum;
+	char appname[30];
 	int haveTOUCH;
     int nCmdShow = SW_SHOW;
 	
@@ -1478,6 +1478,12 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	height = d->height;
 	xpos = d->xpos > -1 ? d->xpos : CW_USEDEFAULT;
 	ypos = d->ypos > -1 ? d->ypos : CW_USEDEFAULT;
+	strcpy(appname, "freeWRL");
+	if (d->wnum > -1) {
+		//future comparison testing app may need to differentiate between the multiple windows it launches
+		//so in -g WxH+xpos+ypos_wnum the wnum would be a small int
+		sprintf_s(appname, 30, "freeWRL%d", d->wnum);
+	}
 	if (!d->fullscreen){
 		width += 8;  //windows gui eats 4 on each side
 		height += 34;  // and 26 for the menu bar
@@ -1487,7 +1493,7 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	wStyle |= WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	//wStyle |= WS_EX_ACCEPTFILES; //drag & drop target (but needs OLE32.dll etc https://msdn.microsoft.com/en-us/library/windows/desktop/bb776905(v=vs.85).aspx
 
-	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", "freeWRL", 
+	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", appname, //"freeWRL", 
 			    /* ghWnd = CreateWindow( "GenericAppClass", "Generic Application", */
 			    wStyle, //WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 
 			    xpos, 

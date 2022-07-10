@@ -330,7 +330,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    } else {
 		    if (!fwl_parse_geometry_string(optarg, 
 						   &fv_params->width, &fv_params->height,
-						   &fv_params->xpos, &fv_params->ypos)) {
+						   &fv_params->xpos, &fv_params->ypos, &fv_params->wnum)) {
 			    ERROR_MSG("Malformed geometry string: %s\n", optarg);
 			    return FALSE;
 		    }

@@ -358,20 +358,21 @@ int fv_display_initialize_desktop(){
  *                             set up the window dimensions.
  */
 int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_height, 
-			      int *out_xpos, int *out_ypos)
+			      int *out_xpos, int *out_ypos, int *out_wnum)
 {
-	int width, height, xpos, ypos;
+	int width, height, xpos, ypos, wnum;
 	int c;
 
-	width = height = 0; xpos = ypos = -1;
+	width = height = 0; xpos = ypos = wnum = -1;
 
-	c = sscanf(geometry, "%dx%d+%d+%d", 
-		   &width, &height, &xpos, &ypos);
+	c = sscanf(geometry, "%dx%d+%d+%d_%d", 
+		   &width, &height, &xpos, &ypos, &wnum);
 
 	if (out_width) *out_width = width;
 	if (out_height) *out_height = height;
 	if (out_xpos) *out_xpos = xpos;
 	if (out_ypos) *out_ypos = ypos;
+	if (out_wnum) *out_wnum = wnum;
 
 	if (c > 0)
 		return TRUE;
