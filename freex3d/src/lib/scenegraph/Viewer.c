@@ -266,7 +266,7 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		/* SLERP code for moving between viewpoints */
 		viewer->SLERPing = FALSE;
 		viewer->startSLERPtime = 0.0;
-		viewer->transitionType = 1; /* assume LINEAR */
+		viewer->transitionType = VIEWER_TRANSITION_TELEPORT;//VIEWER_TRANSITION_LINEAR;  /* assume TELEPORT unless NavigationInfo, which defaults to LINEAR */
 		viewer->transitionTime = 1.0; /* assume 1 second */
 
 		/* Orthographic projections */
