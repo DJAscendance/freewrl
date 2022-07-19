@@ -1616,8 +1616,8 @@ double z;
 } sideangle[6] = {
 { 90.0,0.0,1.0,0.0}, //+x
 {-90.0,0.0,1.0,0.0}, //-x
-{-90.0,1.0,0.0,0.0}, //+y  weird but works
-{ 90.0,1.0,0.0,0.0}, //-y  "
+{ 90.0,1.0,0.0,0.0}, //+y  weird but works
+{-90.0,1.0,0.0,0.0}, //-y  "
 {  0.0,0.0,1.0,0.0}, //+z (lhs)
 {180.0,0.0,1.0,0.0}, //-z
 };
@@ -1701,6 +1701,7 @@ void generate_GeneratedCubeMapTextures(){
 				FW_GL_LOAD_IDENTITY();
 				fw_glSetDoublev(GL_MODELVIEW_MATRIX, modelviewmatrix);
 				fw_glRotated(sideangle[j].angle,sideangle[j].x,sideangle[j].y,sideangle[j].z);
+				fw_glScaled(1.0, -1.0, 1.0);
 				fw_glGetDoublev(GL_MODELVIEW_MATRIX, bstack->viewmatrix);
 
 				lightTable_clear();
