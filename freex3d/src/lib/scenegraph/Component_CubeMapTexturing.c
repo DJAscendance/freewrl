@@ -921,7 +921,7 @@ int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename) {
 			//int size;
 
 			if( li->swap ) {
-			//printf ("swap\n");
+			printf ("swap\n");
 
 			/*
 			glPixelStorei( GL_UNPACK_SWAP_BYTES, GL_TRUE );
@@ -1181,7 +1181,7 @@ int unpackImageCubeMapB(textureTableIndexStruct_s* tti, int pattern, unsigned ch
 	int* offs = NULL;
 	if (pattern == ICM_DDS) {
 		isize = tti->x;
-		int oo0[] = { 0,0,0,0, 1,0,0,0,  2,0,0,0,  3,0,0,0,  4,0,0,0,  5,0,0.0 };
+		int oo0[] = { 0,0,0,0, 1,0,0,0,  2,0,0,0,  3,0,0,0,  4,0,0,0,  5,0,0,0 };
 		offs = oo0;
 	} else if (pattern == ICM_T) {
 		//+- format
