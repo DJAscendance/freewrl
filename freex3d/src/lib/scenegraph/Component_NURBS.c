@@ -1063,8 +1063,11 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 		rep_->tcoordtype = NODE_TextureCoordinate; //??
 		rep_->ntcoord = 1;
 	}
-	tcnode =  &tcnode0; //createNewX3DNode(NODE_TextureCoordinate);
-
+	//tcnode = createNewX3DNode(NODE_TextureCoordinate);
+	//memcpy(&tcnode0, tcnode, sizeof(struct X3D_TextureCoordinate));
+	//free(tcnode);
+	//tcnode =  &tcnode0; //createNewX3DNode(NODE_TextureCoordinate);
+	tcnode = createNewX3DNode(NODE_TextureCoordinate);
 	npoints = nindex = ntc = 0;
 	for(i=0;i<strips->n;i++){
 		ss = vector_get_ptr(struct stripState,strips,i);

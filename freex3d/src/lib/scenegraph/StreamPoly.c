@@ -282,7 +282,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] = &(texCoordNode->point);
 			nmtexcoord = 1;
 			ntexdim[0] = 2;
-			map[0] = texCoordNode->mapping->strptr ? texCoordNode->mapping->strptr : NULL;
+			map[0] = texCoordNode->mapping ? texCoordNode->mapping->strptr : NULL;
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate3D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -291,7 +291,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] = (struct Multi_Vec2f*) &(tcn->point);
 			nmtexcoord = 1;
 			ntexdim[0] = 3;
-			map[0] = tcn->mapping->strptr ? tcn->mapping->strptr : NULL;
+			map[0] = tcn->mapping ? tcn->mapping->strptr : NULL;
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate4D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -300,7 +300,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] =(struct Multi_Vec2f*) &(tcn->point); 
 			nmtexcoord = 1;
 			ntexdim[0] = 4;
-			map[0] = tcn->mapping->strptr ? tcn->mapping->strptr : NULL;
+			map[0] = tcn->mapping ? tcn->mapping->strptr : NULL;
 		}
 
 		if (r->tcoordtype == NODE_MultiTextureCoordinate) {
@@ -313,7 +313,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 						struct X3D_TextureCoordinate * ttcc = (struct X3D_TextureCoordinate*)mtc->texCoord.p[k];
 						textureCoordPoint[k] = &(ttcc->point);
 						ntexdim[k] = 2;
-						map[k] = ttcc->mapping->strptr ? ttcc->mapping->strptr : NULL;
+						map[k] = ttcc->mapping ? ttcc->mapping->strptr : NULL;
 						nmtexcoord++;
 					}
 				}
@@ -326,7 +326,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			struct X3D_TextureCoordinateGenerator* tcg = (struct X3D_TextureCoordinateGenerator*)texCoordNode;
 			r->texgentype = findFieldInARR((tcg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);    
 			//ConsoleMessage("have texgen, type %d",r->texgentype);
-			map[0] = tcg->mapping->strptr ? tcg->mapping->strptr : NULL;
+			map[0] = tcg->mapping ? tcg->mapping->strptr : NULL;
 		}
 	}
 
