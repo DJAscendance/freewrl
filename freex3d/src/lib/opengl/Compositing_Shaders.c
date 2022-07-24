@@ -1328,8 +1328,11 @@ uniform int tex3dTiles[3]; \n\
 uniform int repeatSTR[3]; \n\
 uniform int magFilter; \n\
 #endif //TEX3D \n\
-#ifdef TEX3DLAY \n\
+#if defined(TEX3D) || defined(TEX3DLAY) \n\
 uniform sampler2D fw_Texture_unit0; \n\
+#endif //TEX3D || TEX3DLAY \n\
+#ifdef TEX3DLAY \n\
+//uniform sampler2D fw_Texture_unit0; \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
@@ -3103,7 +3106,7 @@ void PLUG_fragment_end (inout vec4 finalFrag){ \n\
 //  
 static const GLchar *plug_fragment_texture3D_apply_volume =	"\n\
 vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
-  vec4 sample = vec4(0.0); \n\
+  vec4 rgba = vec4(0.0); \n\
   #ifdef TEX3D \n\
   //TILED method (vs Y strip method) \n\
   vec3 texcoord = texcoord3; \n\
@@ -3152,22 +3155,22 @@ vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
 	texel = mix(ctexel,ftexel,1.0-fraction); //lerp GL_LINEAR \n\
   else \n\
 	texel = ftexel; //fraction > .5 ? ctexel : ftexel; //GL_NEAREST \n\
-  sample = texel; \n\
+  rgba = texel; \n\
   #endif //TEX3D \n\
-  return sample; \n\
+  return rgba; \n\
 } \n\
 vec4 texture3Demu( sampler2D sampler, in vec3 texcoord3){ \n\
 	//use uniform magfilter \n\
 	return texture3Demu0( sampler, texcoord3, magFilter); \n\
 } \n\
-void PLUG_texture3D( inout vec4 sample, in vec3 texcoord3 ){ \n\
-	sample = texture3Demu(fw_Texture_unit0,texcoord3); \n\
+void PLUG_texture3D( inout vec4 rgba, in vec3 texcoord3 ){ \n\
+	rgba = texture3Demu(fw_Texture_unit0,texcoord3); \n\
 } \n\
 void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
-	vec4 sample; \n\
-	sample = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
-	finalFrag *= sample; \n\
+	vec4 rgba; \n\
+	rgba = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
+	finalFrag *= rgba; \n\
   \n\
 }\n";
 
