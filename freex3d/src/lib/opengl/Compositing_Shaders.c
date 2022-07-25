@@ -3168,8 +3168,13 @@ void PLUG_texture3D( inout vec4 rgba, in vec3 texcoord3 ){ \n\
 } \n\
 void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
-	vec4 rgba; \n\
-	rgba = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
+int tex_index = mat.tindex[mat.tstart[iuse] ]; \n\
+int coord_index = mat.cmap[mat.tstart[iuse] ]; \n\
+int samplr = mat.samplr[mat.tstart[iuse] ]; \n\
+vec4 rgba; \n\
+rgba = texture3Demu(textureUnit[tex_index],fw_TexCoord[coord_index]); \n\
+	//rgba = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
+    //rgba = texture2D(textureUnit[tex_index],fw_TexCoord[coord_index].xy); \n\
 	finalFrag *= rgba; \n\
   \n\
 }\n";

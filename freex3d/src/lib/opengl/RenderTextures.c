@@ -870,9 +870,24 @@ void textureTransform_start() {
 			glUniform1i(me->textureCount, tg->RenderFuncs.textureStackTop);
 		}
 		if(tg->RenderFuncs.textureStackTop){
-			if(isMultiTexture(tg->RenderFuncs.texturenode)){
-				struct X3D_MultiTexture * mtnode = (struct X3D_MultiTexture *)tg->RenderFuncs.texturenode;
+			if(isMultiTexture(tnode)){
+				struct X3D_MultiTexture * mtnode = (struct X3D_MultiTexture *)tnode;
 				glUniform4f(me->multitextureColor,mtnode->color.c[0],mtnode->color.c[1],mtnode->color.c[2],mtnode->alpha);
+			}
+			if (isTex3D(tnode)) {
+				textureTableIndexStruct_s* tti;
+				tti = getTableTableFromTextureNode(tg->RenderFuncs.texturenode);
+				if (tti && tti->status >= TEX_LOADED) {
+					GLint ttiles, tex3dUseVertex, repeatSTR, magFilter;
+					//ttiles = GET_UNIFORM(myProg, "tex3dTiles");
+					GLUNIFORM1IV(me->tex3dTiles, 3, tti->tiles);
+
+					//me->tex3dUseVertex = GET_UNIFORM(myProg,"tex3dUseVertex");
+					//repeatSTR = GET_UNIFORM(myProg, "repeatSTR");
+					glUniform1iv(me->repeatSTR, 3, tti->repeatSTR);
+					//magFilter = GET_UNIFORM(myProg, "magFilter");
+					glUniform1i(me->magFilter, tti->magFilter);
+				}
 			}
 		}
 		if (tg->RenderFuncs.textureStackTop) {
