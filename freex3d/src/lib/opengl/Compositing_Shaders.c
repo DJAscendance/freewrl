@@ -3104,7 +3104,7 @@ void PLUG_fragment_end (inout vec4 finalFrag){ \n\
 //  3  7  11
 //  4  8
 //  
-static const GLchar *plug_fragment_texture3D_apply_volume =	"\n\
+static const GLchar *plug_fragment_texture3D_apply_volume_uber =	"\n\
 vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
   vec4 rgba = vec4(0.0); \n\
   #ifdef TEX3D \n\
@@ -3181,7 +3181,7 @@ rgba = texture3Demu(textureUnit[tex_index],fw_TexCoord[coord_index]); \n\
 
 
 
-static const GLchar *plug_fragment_texture3Dlayer_apply =	"\
+static const GLchar *plug_fragment_texture3Dlayer_apply_uber =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
   #ifdef TEX3DLAY \n\
@@ -3221,6 +3221,117 @@ int samplr = mat.samplr[mat.tstart[iuse] ]; \n\
   #endif //TEX3DLAY \n\
   \n\
 }\n";
+
+static const GLchar* plug_fragment_texture3D_apply_volume = "\n\
+vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
+  vec4 sample = vec4(0.0); \n\
+  #ifdef TEX3D \n\
+  //TILED method (vs Y strip method) \n\
+  vec3 texcoord = texcoord3; \n\
+  //texcoord.z = 1.0 - texcoord.z; //flip z from RHS to LHS\n\
+  float depth = max(1.0,float(tex3dTiles[2])); \n\
+  if(repeatSTR[0] == 0) texcoord.x = clamp(texcoord.x,0.0001,.9999); \n\
+  else texcoord.x = mod(texcoord.x,1.0); \n\
+  if(repeatSTR[1] == 0) texcoord.y = clamp(texcoord.y,0.0001,.9999); \n\
+  else texcoord.y = mod(texcoord.y,1.0); \n\
+  if(repeatSTR[2] == 0) texcoord.z = clamp(texcoord.z,0.0001,.9999); \n\
+  else texcoord.z = mod(texcoord.z,1.0); \n\
+  vec4 texel; \n\
+  int izf = int(floor(texcoord.z*depth)); //floor z \n\
+  int izc = int(ceil(texcoord.z*depth));  //ceiling z \n\
+  izc = izc == tex3dTiles[2] ? izc - 1 : izc; //clamp int z \n\
+  vec4 ftexel, ctexel; \n\
+  \n\
+  int nx = tex3dTiles[0]; //0-11 \n\
+  int ny = tex3dTiles[1]; \n\
+  float fnx = 1.0/float(nx); //.1\n\
+  float fny = 1.0/float(ny); \n\
+  int ix = izc / ny; //60/11=5\n\
+  int ixny = ix * ny; //5*11=55\n\
+  int iy = izc - ixny; //60-55=5 modulus remainder \n\
+  float cix = float(ix); //5 \n\
+  float ciy = float(iy); \n\
+  float xxc = (cix + texcoord.s)*fnx; //(5 + .5)*.1 = .55\n\
+  float yyc = (ciy + texcoord.t)*fny; \n\
+  ix = izf / ny; \n\
+  ixny = ix * ny; \n\
+  iy = izf - ixny; //modulus remainder \n\
+  float fix = float(ix); \n\
+  float fiy = float(iy); \n\
+  float xxf = (fix + texcoord.s)*fnx; \n\
+  float yyf = (fiy + texcoord.t)*fny; \n\
+  \n\
+  vec2 ftexcoord, ctexcoord; //texcoord is 3D, ftexcoord and ctexcoord are 2D coords\n\
+  ftexcoord.s = xxf; \n\
+  ftexcoord.t = yyf; \n\
+  ctexcoord.s = xxc; \n\
+  ctexcoord.t = yyc; \n\
+  ftexel = texture2D(sampler,ftexcoord.st); \n\
+  ctexel = texture2D(sampler,ctexcoord.st); \n\
+  float fraction = mod(texcoord.z*depth,1.0); \n\
+  if(magfilter == 1) \n\
+	texel = mix(ctexel,ftexel,1.0-fraction); //lerp GL_LINEAR \n\
+  else \n\
+	texel = ftexel; //fraction > .5 ? ctexel : ftexel; //GL_NEAREST \n\
+  sample = texel; \n\
+  #endif //TEX3D \n\
+  return sample; \n\
+} \n\
+vec4 texture3Demu( sampler2D sampler, in vec3 texcoord3){ \n\
+	//use uniform magfilter \n\
+	return texture3Demu0( sampler, texcoord3, magFilter); \n\
+} \n\
+void PLUG_texture3D( inout vec4 sample, in vec3 texcoord3 ){ \n\
+	sample = texture3Demu(fw_Texture_unit0,texcoord3); \n\
+} \n\
+void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
+\n\
+	vec4 sample; \n\
+	sample = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
+	finalFrag *= sample; \n\
+  \n\
+}\n";
+
+
+
+static const GLchar* plug_fragment_texture3Dlayer_apply = "\
+void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
+\n\
+  #ifdef TEX3DLAY \n\
+  vec3 texcoord = fw_TexCoord[0]; \n\
+  texcoord.z = 1.0 - texcoord.z; //flip z from RHS to LHS\n\
+  float depth = max(1.0,float(textureCount-1)); \n\
+  float delta = 1.0/depth; \n\
+  if(repeatSTR[0] == 0) texcoord.x = clamp(texcoord.x,0.0001,.9999); \n\
+  else texcoord.x = mod(texcoord.x,1.0); \n\
+  if(repeatSTR[1] == 0) texcoord.y = clamp(texcoord.y,0.0001,.9999); \n\
+  else texcoord.y = mod(texcoord.y,1.0); \n\
+  if(repeatSTR[2] == 0) texcoord.z = clamp(texcoord.z,0.0001,.9999); \n\
+  else texcoord.z = mod(texcoord.z,1.0); \n\
+  int flay = int(floor(texcoord.z*depth)); \n\
+  int clay = int(ceil(texcoord.z*depth)); \n\
+  vec4 ftexel, ctexel; \n\
+  //flay = 0; \n\
+  //clay = 1; \n\
+  if(flay == 0) ftexel = texture2D(fw_Texture_unit0,texcoord.st);  \n\
+  if(clay == 0) ctexel = texture2D(fw_Texture_unit0,texcoord.st);  \n\
+  if(flay == 1) ftexel = texture2D(fw_Texture_unit1,texcoord.st);  \n\
+  if(clay == 1) ctexel = texture2D(fw_Texture_unit1,texcoord.st);  \n\
+  if(flay == 2) ftexel = texture2D(fw_Texture_unit2,texcoord.st);  \n\
+  if(clay == 2) ctexel = texture2D(fw_Texture_unit2,texcoord.st);  \n\
+  if(flay == 3) ftexel = texture2D(fw_Texture_unit3,texcoord.st);  \n\
+  if(clay == 3) ctexel = texture2D(fw_Texture_unit3,texcoord.st); \n\
+  float fraction = mod(texcoord.z*depth,1.0); \n\
+  vec4 texel; \n\
+  if(magFilter == 1) \n\
+	texel = mix(ctexel,ftexel,(1.0-fraction)); //lerp GL_LINEAR \n\
+  else \n\
+	texel = fraction > .5 ? ctexel : ftexel; //GL_NEAREST \n\
+  finalFrag *= texel; \n\
+  #endif //TEX3DLAY \n\
+  \n\
+}\n";
+
 
 //MULTITEXTURE
 // http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/texturing.html#MultiTexture
@@ -3841,11 +3952,11 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 			if(DESIRE(whichOne.base,TEX3D_LAYER_SHADER)){
 				//up to 6 textures, with lerp between floor,ceil textures
 				AddDefine(SHADERPART_FRAGMENT,"TEX3DLAY",CompleteCode);
-				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3Dlayer_apply,CompleteCode,&unique_int);
+				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3Dlayer_apply_uber,CompleteCode,&unique_int);
 			}else{
 				//TEX3D_VOLUME_SHADER
 				//AddDefine(SHADERPART_FRAGMENT,"TEX3D",CompleteCode);
-				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3D_apply_volume,CompleteCode,&unique_int);
+				Plug(SHADERPART_FRAGMENT,plug_fragment_texture3D_apply_volume_uber,CompleteCode,&unique_int);
 			}
 		}else {
 			if(DESIRE(whichOne.base,HAVE_CUBEMAP_TEXTURE)){
