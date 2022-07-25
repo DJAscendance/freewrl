@@ -1069,7 +1069,7 @@ void main(void) \n\
   for(int i=0;i<6;i++){ \n\
     int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; //programmer: should it be >= ? \n\
     int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; //ditto \n\
-    //spec rules: not enough transforms use identity, not enough coords use last ones\n\
+    //spec rules: not enough transforms? use identity, not enough coords? use last ones\n\
     ttrans = mat4(1.0); \n\
 	if(icmap < 0) icmap = min(i,nTexCoordChannels-1); \n\
     tc = tcoord[max(icmap,0)]; \n\
@@ -3185,7 +3185,10 @@ static const GLchar *plug_fragment_texture3Dlayer_apply =	"\
 void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
   #ifdef TEX3DLAY \n\
-  vec3 texcoord = fw_TexCoord[0]; \n\
+int tex_index = mat.tindex[mat.tstart[iuse] ]; \n\
+int coord_index = mat.cmap[mat.tstart[iuse] ]; \n\
+int samplr = mat.samplr[mat.tstart[iuse] ]; \n\
+  vec3 texcoord = fw_TexCoord[coord_index]; \n\
   texcoord.z = 1.0 - texcoord.z; //flip z from RHS to LHS\n\
   float depth = max(1.0,float(textureCount-1)); \n\
   float delta = 1.0/depth; \n\
@@ -3200,14 +3203,14 @@ void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
   vec4 ftexel, ctexel; \n\
   //flay = 0; \n\
   //clay = 1; \n\
-  if(flay == 0) ftexel = texture2D(fw_Texture_unit0,texcoord.st);  \n\
-  if(clay == 0) ctexel = texture2D(fw_Texture_unit0,texcoord.st);  \n\
-  if(flay == 1) ftexel = texture2D(fw_Texture_unit1,texcoord.st);  \n\
-  if(clay == 1) ctexel = texture2D(fw_Texture_unit1,texcoord.st);  \n\
-  if(flay == 2) ftexel = texture2D(fw_Texture_unit2,texcoord.st);  \n\
-  if(clay == 2) ctexel = texture2D(fw_Texture_unit2,texcoord.st);  \n\
-  if(flay == 3) ftexel = texture2D(fw_Texture_unit3,texcoord.st);  \n\
-  if(clay == 3) ctexel = texture2D(fw_Texture_unit3,texcoord.st); \n\
+  if(flay == 0) ftexel = texture2D(textureUnit[tex_index+0],texcoord.st);  \n\
+  if(clay == 0) ctexel = texture2D(textureUnit[tex_index+0],texcoord.st);  \n\
+  if(flay == 1) ftexel = texture2D(textureUnit[tex_index+1],texcoord.st);  \n\
+  if(clay == 1) ctexel = texture2D(textureUnit[tex_index+1],texcoord.st);  \n\
+  if(flay == 2) ftexel = texture2D(textureUnit[tex_index+2],texcoord.st);  \n\
+  if(clay == 2) ctexel = texture2D(textureUnit[tex_index+2],texcoord.st);  \n\
+  if(flay == 3) ftexel = texture2D(textureUnit[tex_index+3],texcoord.st);  \n\
+  if(clay == 3) ctexel = texture2D(textureUnit[tex_index+3],texcoord.st); \n\
   float fraction = mod(texcoord.z*depth,1.0); \n\
   vec4 texel; \n\
   if(magFilter == 1) \n\

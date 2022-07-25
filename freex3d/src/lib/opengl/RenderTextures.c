@@ -566,6 +566,7 @@ int next_or_last_sampler_compatible_trans(int lasttrans, int ntrans, int jsamplr
 	//find the prior compatible if any
 	for (int i = 0; i < lasttrans + 1; i++){
 		if (jsamplr == 0 && igen[i] == TCGT_REGULAR) itrans = i;
+		if (jsamplr == 2 && igen[i] == TCGT_REGULAR) itrans = i;
 		if (jsamplr == 1 && igen[i] != TCGT_REGULAR) itrans = i;
 	}
 	//over-ride with the next compatible if any
@@ -575,6 +576,10 @@ int next_or_last_sampler_compatible_trans(int lasttrans, int ntrans, int jsamplr
 			break;
 		}
 		if (jsamplr == 0 && igen[i] == TCGT_REGULAR) {
+			itrans = i;
+			break;
+		}
+		if (jsamplr == 2 && igen[i] == TCGT_REGULAR) {
 			itrans = i;
 			break;
 		}
@@ -883,6 +888,7 @@ void textureTransform_start() {
 					GLUNIFORM1IV(me->tex3dTiles, 3, tti->tiles);
 
 					//me->tex3dUseVertex = GET_UNIFORM(myProg,"tex3dUseVertex");
+					glUniform1i(me->tex3dUseVertex, 1);
 					//repeatSTR = GET_UNIFORM(myProg, "repeatSTR");
 					glUniform1iv(me->repeatSTR, 3, tti->repeatSTR);
 					//magFilter = GET_UNIFORM(myProg, "magFilter");

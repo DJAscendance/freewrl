@@ -1472,7 +1472,22 @@ int getTextureDescriptors(struct X3D_Node *textureNode, int *textures, int *mode
 			funcs[i] = xparam[i].multitex_function;
 			samplr[i] = is_cubeMap(pt->texture.p[i]);
 		}
-	}else{
+	}else if (textureNode->_nodeType == NODE_ComposedTexture3D) {
+		struct X3D_ComposedTexture3D* pt = (struct X3D_ComposedTexture3D*)textureNode;
+		struct Multi_Node* tex = &pt->texture;
+		ntexture = tex->n;
+		for (int i = 0; i < ntexture; i++) {
+			int iret, ixyz[3];
+
+			textures[i] = getGlTextureNumberFromTextureNode(tex->p[i]);
+			iret = getTextureSizeFromTextureNode(tex->p[i], ixyz);
+
+			modes[i] = MTMODE_REPLACE;
+			sources[i] = INT_ID_UNDEFINED;
+			funcs[i] = INT_ID_UNDEFINED;
+			samplr[i] = 0;
+		}
+	} else {
 		//single texture, use web3d default texture descriptor
 		int iret, ixyz[3];
 		ntexture = 1;
