@@ -3000,11 +3000,13 @@ EXPOSED_FIELD(ParticleSystem,particleLifetime,sffloat,particleLifetime,FIELDTYPE
 EXPOSED_FIELD(ParticleSystem,particleSize,sfvec2f,particleSize,FIELDTYPE_SFVec2f,UNCA_LENGTH)
 EVENT_OUT(ParticleSystem,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 FIELD(ParticleSystem,colorRamp,sfnode,colorRamp,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(ParticleSystem,color,sfnode,color,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,colorKey,mffloat,colorKey,FIELDTYPE_MFFloat,UNCA_NONE)
 FIELD(ParticleSystem,emitter,sfnode,emitter,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,geometryType,sfstring,geometryType,FIELDTYPE_SFString,UNCA_NONE)
 FIELD(ParticleSystem,physics,mfnode,physics,FIELDTYPE_MFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordRamp,sfnode,texCoordRamp,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(ParticleSystem,texCoord,sfnode,texCoord,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,texCoordKey,mffloat,texCoordKey,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(ParticleSystem)
 

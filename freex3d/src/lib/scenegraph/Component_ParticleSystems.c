@@ -410,9 +410,13 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		vert[2] = vert0[2];
 	}
 
-	if(node->texCoordRamp){
+	if(node->texCoordRamp || node->texCoord){
 		int ml,mq,mt,n;
-		struct X3D_TextureCoordinate *tc = (struct X3D_TextureCoordinate *)node->texCoordRamp;
+		struct X3D_TextureCoordinate* tc;
+		if(node->texCoordRamp) 
+			tc = (struct X3D_TextureCoordinate*)node->texCoordRamp;
+		else
+			tc = (struct X3D_TextureCoordinate*)node->texCoord;
 		n = node->texCoordKey.n;
 		mq = n*4; //quad
 		ml = n*2; //2 pt line
@@ -1030,9 +1034,12 @@ void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp)
 		float spread, fraction;
 		struct SFColorRGBA * crgba = NULL;
 		struct SFColor *crgb = NULL;
-		switch(node->colorRamp->_nodeType){
-			case NODE_ColorRGBA: crgba = ((struct X3D_ColorRGBA *)node->colorRamp)->color.p; break;
-			case NODE_Color: crgb = ((struct X3D_Color *)node->colorRamp)->color.p; break;
+		struct X3D_Node* color_ramp;
+		if (node->colorRamp) color_ramp = node->colorRamp;
+		else if (node->color) color_ramp = node->color;
+		switch(color_ramp->_nodeType){
+			case NODE_ColorRGBA: crgba = ((struct X3D_ColorRGBA *)color_ramp)->color.p; break;
+			case NODE_Color: crgb = ((struct X3D_Color *)color_ramp)->color.p; break;
 			default:
 			break;
 		}
@@ -1124,7 +1131,91 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	initialize_front_and_back_material_params();
 
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+	if (renderstate()->render_depth) {
+		if (node->castShadow) {
+			PRINT_GL_ERROR_IF_ANY("child_shape depth start");
+			s_shader_capabilities_t* scap;
+			shaderflagsstruct shader_requirements;
+			memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+			shader_requirements.depth = TRUE;
+			scap = getMyShaders(shader_requirements);
+			enableGlobalShader(scap);
+			sendMatriciesToShader(scap);  //send matrices
+			switch (node->_geometryType) {
+			case GEOM_LINE:
+			{
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
+				sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
+			}
+			break;
+			case GEOM_POINT:
+			{
+				float point[3];
+				memset(point, 0, 3 * sizeof(float));
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
+				sendArraysToGPU(GL_POINTS, 0, 1);
+			}
+			break;
+			case GEOM_QUAD:
+			{
+				//textureCoord_send(&mtf);
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+				sendArraysToGPU(GL_TRIANGLES, 0, 6);
+			}
+			break;
+			case GEOM_SPRITE:
+			{
+				//textureCoord_send(&mtf);
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+				sendArraysToGPU(GL_TRIANGLES, 0, 6);
+			}
+			break;
+			case GEOM_TRIANGLE:
+			{
+				//textureCoord_send(&mtf);
+				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+				sendArraysToGPU(GL_TRIANGLES, 0, 6);
+			}
+			break;
+			case GEOM_GEOMETRY:
+				render_node(node->geometry);
+				break;
+			default:
+				break;
+			}
+			GLint ppos, cr, gtype;
 
+			ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+			cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
+			gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
+			glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
+			//loop over live particles, drawing each one
+			float estart6[6], eout6[6];
+			extent6f_copy(estart6, peek_group_extent());
+			Stack* _particles = node->_particles;
+
+			for (int i = 0; i < vectorSize(_particles); i++) {
+				particle pp = vector_get(particle, _particles, i);
+				//update particle-specific uniforms
+				glUniform3fv(ppos, 1, pp.position);
+				//draw
+				reallyDrawOnce();
+				extent6f_translate3f(eout6, estart6, pp.position);
+				union_group_extent(eout6);
+			}
+			clearDraw();
+			//cleanup after draw, like child_shape
+			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+			finishedWithGlobalShader();
+
+			PRINT_GL_ERROR_IF_ANY("child_shape depth end");
+		}
+		return;
+	}
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
 	if(TRUE){ //node->isActive){
@@ -1339,7 +1430,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 			//ParticleSystem flag
 			shader_requirements.base |= PARTICLE_SHADER;
-			if(node->colorRamp)
+			if(node->colorRamp || node->color)
 				shader_requirements.base |= HAVE_UNLIT_COLOR;
 		}
 		//printf("child_shape shader_requirements base %d effects %d user %d\n",shader_requirements.base,shader_requirements.effects,shader_requirements.usershaders);
@@ -1465,9 +1556,9 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		gtype = GET_UNIFORM(scap->myShaderProgram,"fw_ParticleGeomType");
 		glUniform1i(gtype,node->_geometryType); //for SPRITE = 4, screen alignment
 		//loop over live particles, drawing each one
-		haveColorRamp = node->colorRamp ? TRUE : FALSE;
+		haveColorRamp = node->colorRamp || node->color ? TRUE : FALSE;
 		haveColorRamp = haveColorRamp && cr > -1;
-		haveTexcoordRamp = node->texCoordRamp ? TRUE : FALSE;
+		haveTexcoordRamp = node->texCoordRamp || node->texCoord ? TRUE : FALSE;
 		haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord; 
 		if(haveTexcoordRamp){
 			//glUniform1i(scap->nTexMatrix,0);

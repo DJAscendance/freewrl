@@ -2083,6 +2083,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"closureType",
 	"code",
 	"collidable",
+	"color",
 	"colorIndex",
 	"colorKey",
 	"colorPerVertex",
@@ -2192,6 +2193,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"style",
 	"subcategory",
 	"systemParameters",
+	"texCoord",
 	"texCoordIndex",
 	"texCoordKey",
 	"texCoordRamp",
@@ -8035,11 +8037,13 @@ const int OFFSETS_ParticleSystem[] = {
 	(int) FIELDNAMES_particleSize, (int) offsetof (struct X3D_ParticleSystem, particleSize),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_ParticleSystem, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_colorRamp, (int) offsetof (struct X3D_ParticleSystem, colorRamp),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_color, (int) offsetof (struct X3D_ParticleSystem, color),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_colorKey, (int) offsetof (struct X3D_ParticleSystem, colorKey),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_emitter, (int) offsetof (struct X3D_ParticleSystem, emitter),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_geometryType, (int) offsetof (struct X3D_ParticleSystem, geometryType),  (int) FIELDTYPE_SFString, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_physics, (int) offsetof (struct X3D_ParticleSystem, physics),  (int) FIELDTYPE_MFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_texCoordRamp, (int) offsetof (struct X3D_ParticleSystem, texCoordRamp),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_texCoord, (int) offsetof (struct X3D_ParticleSystem, texCoord),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_texCoordKey, (int) offsetof (struct X3D_ParticleSystem, texCoordKey),  (int) FIELDTYPE_MFFloat, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__tris, (int) offsetof (struct X3D_ParticleSystem, _tris),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__ttex, (int) offsetof (struct X3D_ParticleSystem, _ttex),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -14808,11 +14812,13 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->particleSize.c[0] = 0.02f;tmp2->particleSize.c[1] = 0.02f;;
 			tmp2->isActive = TRUE;
 			tmp2->colorRamp = NULL;
+			tmp2->color = NULL;
 			tmp2->colorKey.n=0; tmp2->colorKey.p=0;
 			tmp2->emitter = NULL;
 			tmp2->geometryType = newASCIIString("QUAD");
 			tmp2->physics.n=0; tmp2->physics.p=0;
 			tmp2->texCoordRamp = NULL;
+			tmp2->texCoord = NULL;
 			tmp2->texCoordKey.n=0; tmp2->texCoordKey.p=0;
 			tmp2->_tris = NULL;
 			tmp2->_ttex = NULL;
