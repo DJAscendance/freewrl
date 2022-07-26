@@ -1127,17 +1127,19 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	tg->RenderFuncs.last_texture_type = NOTEXTURE;
 	tg->RenderFuncs.shapenode = node;
 
-	/* copy the material stuff in preparation for copying all to the shader */
-	initialize_front_and_back_material_params();
-
-	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	if (renderstate()->render_depth) {
 		if (node->castShadow) {
 			PRINT_GL_ERROR_IF_ANY("child_shape depth start");
 			s_shader_capabilities_t* scap;
 			shaderflagsstruct shader_requirements;
 			memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+			shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
+			shader_requirements.effects = node->_shaderflags_effects;
+			shader_requirements.usershaders = node->_shaderflags_usershaders;
+
 			shader_requirements.depth = TRUE;
+			shader_requirements.base |= PARTICLE_SHADER;
+
 			scap = getMyShaders(shader_requirements);
 			enableGlobalShader(scap);
 			sendMatriciesToShader(scap);  //send matrices
@@ -1193,8 +1195,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
 			glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
 			//loop over live particles, drawing each one
-			float estart6[6], eout6[6];
-			extent6f_copy(estart6, peek_group_extent());
+			//float estart6[6], eout6[6];
+			//extent6f_copy(estart6, peek_group_extent());
 			Stack* _particles = node->_particles;
 
 			for (int i = 0; i < vectorSize(_particles); i++) {
@@ -1203,8 +1205,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 				glUniform3fv(ppos, 1, pp.position);
 				//draw
 				reallyDrawOnce();
-				extent6f_translate3f(eout6, estart6, pp.position);
-				union_group_extent(eout6);
+				//extent6f_translate3f(eout6, estart6, pp.position);
+				//union_group_extent(eout6);
 			}
 			clearDraw();
 			//cleanup after draw, like child_shape
@@ -1216,6 +1218,11 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		}
 		return;
 	}
+	/* copy the material stuff in preparation for copying all to the shader */
+	initialize_front_and_back_material_params();
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
 	if(TRUE){ //node->isActive){

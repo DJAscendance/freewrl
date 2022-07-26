@@ -1208,7 +1208,6 @@ static void shaderErrorLog(GLuint myShader, char *which) {
 /****************************************************************************************/
 
 
-
 /* find a shader that matches the capabilities requested. If no match, recreate it */
 s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned int rq_cap0) {
 
@@ -1235,8 +1234,9 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct rq_cap0) { //unsigned in
 			if(me->whichOne.volume == rq_cap0.volume && me->whichOne.effects == rq_cap0.effects){
 				return me->myCapabilities;
 			}
-		} else if (rq_cap0.depth) {
-			if (me->whichOne.depth == rq_cap0.depth) return me->myCapabilities;
+		} else if (rq_cap0.depth) { //DESIRE(whichOne.base,PARTICLE_SHADER)
+			if (me->whichOne.depth == rq_cap0.depth)
+				return me->myCapabilities;
 		} else if (rq_cap0.debug) {
 			if (me->whichOne.debug == rq_cap0.debug) return me->myCapabilities;
 		}else {

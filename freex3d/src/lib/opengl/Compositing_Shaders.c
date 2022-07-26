@@ -5154,6 +5154,39 @@ void main() \n\
 { \n\
 	gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * fw_Vertex; \n\
 }  ";
+char* vertexDepthParticle = "#version 330 core \n\
+//layout(location = 0) in vec3 fw_Vertex; \n\
+#define PARTICLE 1 \n\
+in vec4 fw_Vertex; \n\
+\n\
+uniform mat4 fw_ModelViewMatrix; \n\
+uniform mat4 fw_ProjectionMatrix; \n\
+#ifdef PARTICLE \n\
+uniform vec3 particlePosition; \n\
+uniform int fw_ParticleGeomType; \n\
+#endif //PARTICLE \n\
+\n\
+void main() \n\
+{ \n\
+  vec4 vertex = fw_Vertex; \n\
+  #ifdef PARTICLE \n\
+  if(fw_ParticleGeomType != 4){ \n\
+    vertex.xyz += particlePosition; \n\
+  } \n\
+  //sprite: align to viewer \n\
+  if(fw_ParticleGeomType == 4){ \n\
+	vec4 ppos = vec4(particlePosition,1.0); \n\
+	vec4 particle_eye = fw_ModelViewMatrix * ppos; \n\
+	ppos.x += 1.0; \n\
+	vec4 particle_eye1 = fw_ModelViewMatrix * ppos; \n\
+	float pscal = length(particle_eye1.xyz - particle_eye.xyz); \n\
+	vertex = particle_eye + pscal*vertex; \n\
+  } else \n\
+  #endif //PARTICLE \n\
+    vertex = fw_ProjectionMatrix * fw_ModelViewMatrix * vertex; \n\
+	gl_Position =  vertex; \n\
+}  ";
+
 char* fragDepth = "#version 330 core \n\
  \n\
 void main() \n\
@@ -5162,7 +5195,10 @@ void main() \n\
     //gl_FragColor = vec4(vec3(gl_FragCoord.z),1.0); \n\
 }  ";
 int getSpecificShaderSourceDepth(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
-	*vertexSource = strdup(vertexDepth);
+	if(DESIRE(whichOne.base, PARTICLE_SHADER))
+		*vertexSource = strdup(vertexDepthParticle);
+	else
+		*vertexSource = strdup(vertexDepth);
 	*fragmentSource = strdup(fragDepth);
 	return TRUE;
 }
