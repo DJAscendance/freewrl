@@ -53,5 +53,8 @@
     <ClInclude Include="$(SRC)\libeai\X3DNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(SRC)\lib\input\EAIHeaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
