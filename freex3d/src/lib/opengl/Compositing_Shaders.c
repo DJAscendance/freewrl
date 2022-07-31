@@ -4256,10 +4256,12 @@ uniform sampler2D fw_Texture_unit0; \n\
 uniform sampler2D fw_Texture_unit1; \n\
 uniform sampler2D fw_Texture_unit2; \n\
 uniform sampler2D fw_Texture_unit3; \n\
+uniform int fw_gradTexture; \n\
+vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, int magfilter); \n\
+uniform int magFilter; \n\
 #ifdef TEX3D \n\
 uniform int tex3dTiles[3]; \n\
 uniform int repeatSTR[3]; \n\
-uniform int magFilter; \n\
 #endif //TEX3D \n\
 #ifdef SEGMENT \n\
 uniform int fw_nIDs; \n\
@@ -4267,7 +4269,6 @@ uniform int fw_enableIDs[10]; \n\
 uniform int fw_surfaceStyles[2]; \n\
 uniform int fw_nStyles; \n\
 vec4 texture3Demu( sampler2D sampler, in vec3 texcoord3); \n\
-vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, int magfilter); \n\
 bool inEnabledSegment(in vec3 texcoords, inout int jstyle){ \n\
 	bool inside = true; \n\
 	jstyle = 1; //DEFAULT \n\
@@ -4413,7 +4414,8 @@ void main(void) \n\
 		#endif //CLIP \n\
 		if(!iclip) { \n\
 			fragment_color = vec4(1.0,0.0,1.0,1.0); //do I need a default? seems not \n\
-			/* PLUG: texture3D ( fragment_color, texcoord3) */ \n\
+			/* UNP_LUG: texture3D ( fragment_color, texcoord3) */ \n\
+			fragment_color = texture3Demu0( fw_Texture_unit0, texcoord3, magFilter); \n\
 			#ifdef SEGMENT \n\
 			int jstyle = 1; \n\
 			if(inEnabledSegment(texcoord3,jstyle)){ \n\
@@ -4422,6 +4424,13 @@ void main(void) \n\
 			// and computed gradient and put in .rgb : \n\
 			float density = fragment_color.a; //recover the scalar value \n\
 			vec3 gradient = fragment_color.rgb - vec3(.5,.5,.5); //we added 127 to (-127 to 127) in CPU gradient computation\n\
+            if(fw_gradTexture == 1) { \n\
+				float gradmag = texture3Demu0( fw_Texture_unit3, texcoord3, magFilter).a; \n\
+				gradient = vec3(gradmag,gradmag,gradmag); \n\
+			} \n\
+            if(fw_gradTexture == 3){ \n\
+				gradient = texture3Demu0( fw_Texture_unit3, texcoord3, magFilter).xyz - vec3(.5,.5,.5); \n\
+			} \n\
 			//vec4 voxel = vec4(density,density,density,density); //this is where the black visual voxels come from\n\
 			vec4 voxel = vec4(density,density,density,density); //this is where the black visual voxels come from\n\
 			\n\

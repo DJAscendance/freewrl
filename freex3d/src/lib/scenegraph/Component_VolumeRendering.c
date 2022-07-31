@@ -163,6 +163,7 @@ gradients:
 surfaceNormals:
 	CartoonVolumeStyle
 	EdgeEnhacementVolumeStyle
+	BoundaryEnhancementVolumeStyle
 	ShadedVolumeStyle
 	SilhouetteEnhancementVolumeStyle
 	ToneMappedVolumeStyle
@@ -370,6 +371,35 @@ unsigned int prep_volumestyle(struct X3D_Node *vstyle, unsigned int volflags){
 	}
 	return volflags;
 }
+void applysurfaceNormalTexture(struct X3D_Node* surfaceNormals, GLint myProg) {
+	GLuint gradtex;
+	int havetexture = 0;
+	if (surfaceNormals) {
+		//load texture
+		struct X3D_Node* tmpN;
+		textureTableIndexStruct_s* tti;
+		ttglobal tg = gglobal();
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, surfaceNormals, tmpN);
+		tg->RenderFuncs.texturenode = (void*)tmpN;
+
+		//problem: I don't want it sending image dimensions to my volume shader,
+		// which could confuse the voxel sampler
+		//render_node(tmpN); //render_node(node->texture); 
+		loadTextureNode(tmpN, NULL);
+		tti = getTableTableFromTextureNode(tmpN);
+		if (tti && tti->status >= TEX_LOADED) {
+			glActiveTexture(GL_TEXTURE0 + 3);
+			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			GLuint tu3 = GET_UNIFORM(myProg, "fw_Texture_unit3");
+			glUniform1i(tu3, 3);
+			havetexture = 1; //signal its a |gradient| magnitude
+			if (tti->channels == 3) havetexture = 3; //signal its an xyz gradient
+		}
+	}
+	gradtex = GET_UNIFORM(myProg, "fw_gradTexture");
+	glUniform1i(gradtex, havetexture);
+
+}
 void render_volume_data(struct X3D_Node *renderStyle, struct X3D_Node *voxels, struct X3D_VolumeData *node);
 struct X3D_Material *get_material_oneSided();
 struct X3D_TwoSidedMaterial *get_material_twoSided();
@@ -491,6 +521,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					//SFFloat     [in,out] boundaryOpacity  0.9     [0,1]
 					//SFFloat     [in,out] opacityFactor    2       [0,?)
 					//SFFloat     [in,out] retainedOpacity  0.2     [0,1]
+					//SFNode      [in,out] surfaceNormals   NULL    [X3DTexture3DNode]
 					GLint ibebound, iberetain, ibefactor;
 					ibebound = GET_UNIFORM(myProg,"fw_boundaryOpacity");
 					glUniform1f(ibebound,style->boundaryOpacity);
@@ -498,6 +529,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1f(iberetain,style->retainedOpacity);
 					ibefactor = GET_UNIFORM(myProg,"fw_opacityFactor");
 					glUniform1f(ibefactor,style->opacityFactor);
+					applysurfaceNormalTexture(style->surfaceNormals,myProg);
 				}
 				break;
 			case NODE_CartoonVolumeStyle:
@@ -515,6 +547,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform4fv(itoonortho,1,style->orthogonalColor.c);
 					itoonparallel = GET_UNIFORM(myProg,"fw_paraColor");
 					glUniform4fv(itoonparallel,1,style->parallelColor.c);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
 
 				}
 				break;
@@ -545,6 +578,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					igradientThreshold = GET_UNIFORM(myProg,"fw_cosGradientThreshold");
 					glUniform1f(igradientThreshold,cosf(style->gradientThreshold));
 					//printf("edge uniforms color %d gradthresh %d\n",iedgeColor,igradientThreshold);
+					applysurfaceNormalTexture(style->surfaceNormals,myProg);
 				}
 				break;
 			case NODE_ProjectionVolumeStyle:
@@ -704,6 +738,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1i(ilite,style->lighting);
 					ishadow = GET_UNIFORM(myProg,"fw_shadows");
 					glUniform1i(ishadow,style->shadows);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			case NODE_SilhouetteEnhancementVolumeStyle:
@@ -720,6 +756,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1f(isilretain,style->silhouetteRetainedOpacity);
 					isilsharp = GET_UNIFORM(myProg,"fw_Sharpness");
 					glUniform1f(isilsharp,style->silhouetteSharpness);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			case NODE_ToneMappedVolumeStyle:
@@ -735,6 +773,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform4fv(icool,1,style->coolColor.c);
 					iwarm = GET_UNIFORM(myProg,"fw_warmColor");
 					glUniform4fv(iwarm,1,style->warmColor.c);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			default:
@@ -1491,6 +1531,8 @@ void render_ISO_volume_data(s_shader_capabilities_t *caps,struct X3D_IsoSurfaceV
 	glUniform1fv(ivals,node->surfaceValues.n,node->surfaceValues.p); 
 	invals = GET_UNIFORM(myProg,"fw_nVals");
 	glUniform1i(invals,node->surfaceValues.n);
+	applysurfaceNormalTexture(node->gradients, myProg);
+
 	if(node->renderStyle.n){
 		int i;
 		// OLDCODE GLint istyles;

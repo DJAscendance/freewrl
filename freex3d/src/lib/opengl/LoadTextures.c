@@ -1110,6 +1110,8 @@ NRRDFIELD_sizes,
 NRRDFIELD_spacing,
 NRRDFIELD_encoding,
 NRRDFIELD_endian,
+NRRDFIELD_nchannel,
+NRRDFIELD_interpretation,
 };
 struct {
 const char *fieldname;
@@ -1122,6 +1124,8 @@ const int fieldtype;
 {"spacings:",9,NRRDFIELD_spacing},
 {"encoding:",9,NRRDFIELD_encoding},
 {"endian:",7,NRRDFIELD_endian},
+{"nchannel:=",10,NRRDFIELD_nchannel},
+{"interpretation:=",16,NRRDFIELD_interpretation},
 {NULL,0,0},
 };
 enum {
@@ -1223,6 +1227,7 @@ encoding: raw
 		int counts[256]; //histogram
 		char *rv;
 		UNUSED(rv);
+		int nchannel = 1; //1 voxel is a scalar 3 voxel is a vector // 2 scalar + alpha 4 vector + alpha
 
 		dhi=0.0; dlo=0.0;
 
@@ -1334,6 +1339,13 @@ encoding: raw
 						iendian = NRRDENDIAN_BIG;
 					break;
 				//we may need kinds[] which say how to interpret the scalars, otherwise limited to scalar-per-voxel
+				case NRRDFIELD_nchannel:
+					sscanf(remainder, "%d", &nchannel);
+					break;
+				case NRRDFIELD_interpretation:
+					printf("nrrd interpretation:=%s",remainder);
+					break;
+
 				//range field? would be helpful when compressing voxel significant bits into displayable unsigned char range
 				default:
 					//skip fields and key/value stuff we dont need or care about for our display app
@@ -1366,7 +1378,7 @@ encoding: raw
 		nvoxel = isize[0] * isize[1] * isize[2];
 		totalbytes = nvoxel * bsize;
 		data = MALLOC(unsigned char *,(size_t)totalbytes);
-		memset(data,4,(size_t)totalbytes);
+		memset(data,0,(size_t)totalbytes);
 		voxel = MALLOC(unsigned char *, bsize);
 		//read data
 		if(iencoding == NRRDENCODING_RAW){
@@ -1411,105 +1423,107 @@ encoding: raw
 			}
 		}
 		//we have binary data in voxel datatype described in file
-		//currently (Oct 2, 2016) this function assumes scalar-per-voxel aka luminance or alpha
+		if (nchannel == 1) {
+			//currently (Oct 2, 2016) this function assumes scalar-per-voxel aka luminance or alpha
 
-		//find range of data so we can compress range into unsigned char range 0-255 from much bigger ints and floats
-		//initialize range - use maxint, minint or just init to first pixel which we do here
-		voxel = &data[0];
-		switch(idatatype){
-			case CDATATYPE_char: 
+			//find range of data so we can compress range into unsigned char range 0-255 from much bigger ints and floats
+			//initialize range - use maxint, minint or just init to first pixel which we do here
+			voxel = &data[0];
+			switch (idatatype) {
+			case CDATATYPE_char:
 				dlo = -127.0;
 				dhi = 127.0; //or is it 128?
-			break;
-			case CDATATYPE_uchar: 
+				break;
+			case CDATATYPE_uchar:
 				dlo = 0.0;
 				dhi = 255.0;
-			break;
-			case CDATATYPE_short: 
-				dlo = dhi = (double) *(short*)(voxel);
-			break;
-			case CDATATYPE_ushort: 
-				dlo = dhi = (double) *(unsigned short*)(voxel);
-				printf("initial range for ushort hi %lf lo %lf\n",dhi,dlo);
-			break;
-			case CDATATYPE_int: 
-				dlo = dhi = (double) *(long*)(voxel);
-			break;
-			case CDATATYPE_uint: 
-				dlo = dhi = (double) *(unsigned long*)(voxel);
-			break;
-			case CDATATYPE_longlong: 
-				dlo = dhi = (double) *(long long *)(voxel);
-			break;
-			case CDATATYPE_ulonglong: 
-				dlo = dhi = (double) *(unsigned long long *)(voxel);
-			break;
-			case CDATATYPE_float: 
-				dlo = dhi = (double) *(float*)(voxel);
-			break;
-			case CDATATYPE_double: 
+				break;
+			case CDATATYPE_short:
+				dlo = dhi = (double)*(short*)(voxel);
+				break;
+			case CDATATYPE_ushort:
+				dlo = dhi = (double)*(unsigned short*)(voxel);
+				printf("initial range for ushort hi %lf lo %lf\n", dhi, dlo);
+				break;
+			case CDATATYPE_int:
+				dlo = dhi = (double)*(long*)(voxel);
+				break;
+			case CDATATYPE_uint:
+				dlo = dhi = (double)*(unsigned long*)(voxel);
+				break;
+			case CDATATYPE_longlong:
+				dlo = dhi = (double)*(long long*)(voxel);
+				break;
+			case CDATATYPE_ulonglong:
+				dlo = dhi = (double)*(unsigned long long*)(voxel);
+				break;
+			case CDATATYPE_float:
+				dlo = dhi = (double)*(float*)(voxel);
+				break;
+			case CDATATYPE_double:
 				dlo = dhi = *(double*)(voxel);
-			break;
+				break;
 			default:
 				break;
-		}
-		//find lower and upper of range by looking at every value
-		for(i=0;i<nvoxel;i++){
-			unsigned char *voxel;
-			//unsigned char A;
-			// unused unsigned char *rgba = &tti->texdata[i*4];
-			//LUM-ALPHA with RGB=1, A= voxel scalar
-			voxel = &data[i*bsize];
-			switch(idatatype){
-				case CDATATYPE_char: 
-					dlo = min(dlo,(double)*(char*)(voxel));
-					dhi = max(dhi,(double)*(char*)(voxel));
-				break;
-				case CDATATYPE_uchar: 
-					dlo = min(dlo,(double)*(unsigned char*)(voxel));
-					dhi = max(dhi,(double)*(unsigned char*)(voxel));
-				break;
-				case CDATATYPE_short: 
-					dlo = min(dlo,(double)*(short*)(voxel));
-					dhi = max(dhi,(double)*(short*)(voxel));
-				break;
-				case CDATATYPE_ushort: 
-					dlo = min(dlo,(double)*(unsigned short*)(voxel));
-					dhi = max(dhi,(double)*(unsigned short*)(voxel));
-				break;
-				case CDATATYPE_int: 
-					dlo = min(dlo,(double)*(long*)(voxel));
-					dhi = max(dhi,(double)*(long*)(voxel));
-				break;
-				case CDATATYPE_uint: 
-					dlo = min(dlo,(double)*(unsigned long*)(voxel));
-					dhi = max(dhi,(double)*(unsigned long*)(voxel));
-				break;
-				case CDATATYPE_longlong: 
-					dlo = min(dlo,(double)*(unsigned long long*)(voxel));
-					dhi = max(dhi,(double)*(unsigned long long*)(voxel));
-				break;
-				case CDATATYPE_ulonglong: 
-					dlo = min(dlo,(double)*(unsigned long*)(voxel));
-					dhi = max(dhi,(double)*(unsigned long*)(voxel));
-				break;
-				case CDATATYPE_float: 
-					dlo = min(dlo,(double)*(float*)(voxel));
-					dhi = max(dhi,(double)*(float*)(voxel));
-				break;
-				case CDATATYPE_double: 
-					dlo = min(dlo,(double)*(double*)(voxel));
-					dhi = max(dhi,(double)*(double*)(voxel));
-				break;
+			}
+			//find lower and upper of range by looking at every value
+			for (i = 0; i < nvoxel; i++) {
+				unsigned char* voxel;
+				//unsigned char A;
+				// unused unsigned char *rgba = &tti->texdata[i*4];
+				//LUM-ALPHA with RGB=1, A= voxel scalar
+				voxel = &data[i * bsize];
+				switch (idatatype) {
+				case CDATATYPE_char:
+					dlo = min(dlo, (double)*(char*)(voxel));
+					dhi = max(dhi, (double)*(char*)(voxel));
+					break;
+				case CDATATYPE_uchar:
+					dlo = min(dlo, (double)*(unsigned char*)(voxel));
+					dhi = max(dhi, (double)*(unsigned char*)(voxel));
+					break;
+				case CDATATYPE_short:
+					dlo = min(dlo, (double)*(short*)(voxel));
+					dhi = max(dhi, (double)*(short*)(voxel));
+					break;
+				case CDATATYPE_ushort:
+					dlo = min(dlo, (double)*(unsigned short*)(voxel));
+					dhi = max(dhi, (double)*(unsigned short*)(voxel));
+					break;
+				case CDATATYPE_int:
+					dlo = min(dlo, (double)*(long*)(voxel));
+					dhi = max(dhi, (double)*(long*)(voxel));
+					break;
+				case CDATATYPE_uint:
+					dlo = min(dlo, (double)*(unsigned long*)(voxel));
+					dhi = max(dhi, (double)*(unsigned long*)(voxel));
+					break;
+				case CDATATYPE_longlong:
+					dlo = min(dlo, (double)*(unsigned long long*)(voxel));
+					dhi = max(dhi, (double)*(unsigned long long*)(voxel));
+					break;
+				case CDATATYPE_ulonglong:
+					dlo = min(dlo, (double)*(unsigned long*)(voxel));
+					dhi = max(dhi, (double)*(unsigned long*)(voxel));
+					break;
+				case CDATATYPE_float:
+					dlo = min(dlo, (double)*(float*)(voxel));
+					dhi = max(dhi, (double)*(float*)(voxel));
+					break;
+				case CDATATYPE_double:
+					dlo = min(dlo, (double)*(double*)(voxel));
+					dhi = max(dhi, (double)*(double*)(voxel));
+					break;
 				default:
 					break;
+				}
 			}
+			d255range = 255.0 / (dhi - dlo);
+			if (1) printf("nrrd image voxel range hi %lf lo %lf 255range scale factor %lf\n", dhi, dlo, d255range);
 		}
-		d255range = 255.0/(dhi - dlo); 
-		if(1) printf("nrrd image voxel range hi %lf lo %lf 255range scale factor %lf\n",dhi,dlo,d255range);
 		//now convert to display usable data type which currently is RGBA
 		tti->texdata = MALLOC(unsigned char *,(size_t)nvoxel * 4); //4 for RGBA
-		tti->channels = 1; //1=lum 2=lum-alpha 3=rgb 4=rgba //doing 2-channel allows modulation of material color
+		tti->channels = nchannel; //1=lum 2=lum-alpha 3=rgb 4=rgba //doing 2-channel allows modulation of material color
 			//Oct 16, 2016: in textures.c we now compute gradient automatically and put in RGB, if channels == 1 and z > 1
 		tti->hasAlpha = TRUE;
 		tti->x = isize[0];
@@ -1524,23 +1538,24 @@ encoding: raw
 
 			A = '\0';
 			voxel = &data[i*bsize];
-			if(1){
-				//no range-scale method - might be needed for experiments
-				switch(idatatype){
-					case CDATATYPE_char: 
+			if (nchannel == 1) {
+				if (1) {
+					//no range-scale method - might be needed for experiments
+					switch (idatatype) {
+					case CDATATYPE_char:
 						A = (char)(voxel[0]) + 127; //convert from signed char to unsigned
-					break;
-					case CDATATYPE_uchar: 
+						break;
+					case CDATATYPE_uchar:
 						A = voxel[0];
-					break;
-					case CDATATYPE_short: 
-						A = (unsigned char) ((*(short *)voxel) / 255) + 127; //scale into uchar range, assumes short range is fully used
-					break;
-					case CDATATYPE_ushort: 
-						{
+						break;
+					case CDATATYPE_short:
+						A = (unsigned char)((*(short*)voxel) / 255) + 127; //scale into uchar range, assumes short range is fully used
+						break;
+					case CDATATYPE_ushort:
+					{
 						//static unsigned short lastushort = 1;
 						unsigned short thisushort;
-						memcpy(&thisushort,voxel,bsize);
+						memcpy(&thisushort, voxel, bsize);
 						//thisushort = *(unsigned short*)voxel;
 						//A = (unsigned char) ((*(unsigned short *)voxel) / 255); //scale into uchar range, "
 						//A = (*(unsigned short *)voxel) >> 8;
@@ -1551,101 +1566,120 @@ encoding: raw
 						//	printf("%d ", (int)thisushort);
 						counts[thisushort]++;
 						//lastushort = thisushort;
-						A = (unsigned char) thisushort;
-						}
+						A = (unsigned char)thisushort;
+					}
 					break;
-					case CDATATYPE_int: 
-						A = (unsigned char)((*((long *)voxel))/65536/255 + 127);
-					break;
-					case CDATATYPE_uint: 
-						A = (unsigned char) ((*((unsigned long *)voxel))/65536/255);
-					break;
-					case CDATATYPE_longlong: 
-						A = (unsigned char) ((*((long long *)voxel))/65536/65536/255 + 127);
-					break;
-					case CDATATYPE_ulonglong: 
-						A = (unsigned char) ((*((unsigned long long *)voxel))/65536/65536/255);
-					break;
-					//case CDATATYPE_float: 
-					//	A = (unsigned char) ((int)((*((float *)voxel))/range + range/2.0f) + 127) ;
-					//break;
-					//case CDATATYPE_double: 
-					//	A = (unsigned char) ((int)((*((double *)voxel))/range + range/2.0f) + 127) ;
-					//break;
+					case CDATATYPE_int:
+						A = (unsigned char)((*((long*)voxel)) / 65536 / 255 + 127);
+						break;
+					case CDATATYPE_uint:
+						A = (unsigned char)((*((unsigned long*)voxel)) / 65536 / 255);
+						break;
+					case CDATATYPE_longlong:
+						A = (unsigned char)((*((long long*)voxel)) / 65536 / 65536 / 255 + 127);
+						break;
+					case CDATATYPE_ulonglong:
+						A = (unsigned char)((*((unsigned long long*)voxel)) / 65536 / 65536 / 255);
+						break;
+						//case CDATATYPE_float: 
+						//	A = (unsigned char) ((int)((*((float *)voxel))/range + range/2.0f) + 127) ;
+						//break;
+						//case CDATATYPE_double: 
+						//	A = (unsigned char) ((int)((*((double *)voxel))/range + range/2.0f) + 127) ;
+						//break;
 					default:
 						break;
+					}
 				}
-			} else {
-				//range scaling method
-				double dtemp; //, dtemp2;
-				//unsigned int lutemp;
-				//unsigned short utemp;
-				//unsigned char uctemp;
+				else {
+					//range scaling method
+					double dtemp; //, dtemp2;
+					//unsigned int lutemp;
+					//unsigned short utemp;
+					//unsigned char uctemp;
 
-				switch(idatatype){
-					case CDATATYPE_char: 
+					switch (idatatype) {
+					case CDATATYPE_char:
 						A = (unsigned char)((int)(voxel[0])) + 127; //convert from signed char to unsigned
-					break;
-					case CDATATYPE_uchar: 
+						break;
+					case CDATATYPE_uchar:
 						A = voxel[0];
-					break;
-					case CDATATYPE_short: 
-						dtemp = (double)(*(short *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_ushort: 
-						dtemp = (double)(*(unsigned short *)voxel);
+						break;
+					case CDATATYPE_short:
+						dtemp = (double)(*(short*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_ushort:
+						dtemp = (double)(*(unsigned short*)voxel);
 						//dtemp2 = (dtemp - dlo)*d255range;
 						//lutemp = (unsigned int)dtemp2;
 						//utemp = (unsigned short)lutemp;
 						//uctemp = (unsigned char)utemp;
 						//A = uctemp;
 						//tip: get it into 0-255 range while still double, then cast to uchar
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
 						//A = (unsigned char)(unsigned short)(unsigned int)dtemp2;
 						//printf("[%lf %lu %u %d]  ",dtemp2,lutemp,utemp,(int)uctemp);
-					break;
-					case CDATATYPE_int: 
-						dtemp = (double)(*(long *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_uint: 
-						dtemp = (double)(*(unsigned long *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_longlong: 
-						dtemp = (double)(*(long long *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_ulonglong: 
-						dtemp = (double)(*(unsigned long long *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_float: 
-						dtemp = (double)(*(float *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
-					case CDATATYPE_double: 
-						dtemp = (double)(*(double *)voxel);
-						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo)*d255range);
-					break;
+						break;
+					case CDATATYPE_int:
+						dtemp = (double)(*(long*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_uint:
+						dtemp = (double)(*(unsigned long*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_longlong:
+						dtemp = (double)(*(long long*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_ulonglong:
+						dtemp = (double)(*(unsigned long long*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_float:
+						dtemp = (double)(*(float*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
+					case CDATATYPE_double:
+						dtemp = (double)(*(double*)voxel);
+						A = (unsigned char)(unsigned short)(unsigned int)((dtemp - dlo) * d255range);
+						break;
 					default:
 						break;
+					}
+					counts[(int)A]++; //histogram accumulation
+
+
 				}
-				counts[(int)A]++; //histogram accumulation
-
-
+				//this displays nice in texturing3D as 'white bones x-ray'
+				rgba[0] = 255;
+				rgba[1] = 255;
+				rgba[2] = 255;
+				rgba[3] = A;
+				//print histogram to console
+				if (0) for (i = 0; i < 256; i++)
+					if (counts[i] != 0)
+						printf("counts[%ld]=%ld\n", (long)i, (long)counts[i]);
+			} else {
+				//more than one channel. July 2022 dug9 formula for guessing how to allocate voxel bytes
+				rgba[0] = voxel[0];
+				if (bsize < 3) {
+					rgba[1] = rgba[2] = rgba[0];
+				}
+				if (bsize == 2) {
+					rgba[3] = voxel[1];
+				}
+				if (bsize > 2) {
+					rgba[1] = voxel[1];
+					rgba[2] = voxel[2];
+				}
+				if(bsize == 3)
+					rgba[3] = 255;
+				if (bsize == 4)
+					rgba[3] = voxel[3];
 			}
-			//this displays nice in texturing3D as 'white bones x-ray'
-			rgba[0] = 255;
-			rgba[1] = 255;
-			rgba[2] = 255;
-			rgba[3] = A;
 		}
-		//print histogram to console
-		if(0) for(i=0;i<256;i++)
-			if(counts[i] != 0) 
-				printf("counts[%ld]=%ld\n",(long)i,(long)counts[i]);
 		FREE_IF_NZ(data); //free the raw data we malloced, now that we have rgba, unless we plan to do more processing on scalar values later.
 	}
 	return TRUE;
