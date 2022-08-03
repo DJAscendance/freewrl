@@ -109,6 +109,7 @@ void fv_usage()
 		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
 		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
+		"  -S|--set <int> testing set default 0, added to port number for DIS\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
 		"  -X|--viewpoints         Show viewpointss\n"
@@ -183,6 +184,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
 	{"DIS",no_argument,0,'D'},
+	{"set",required_argument,0,'S'},
 	{"javascript",required_argument,0,'J'},
 	{"boxes",no_argument,0,'x'},
 	{"viewpoints",no_argument,0,'X'},
@@ -221,7 +223,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:x"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -425,6 +427,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'D': /* --DIS, no argument */
 	    fwl_init_DIS();
 	    break;
+	case 'S': /* --set, required argument: int */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_testset(itmp);
+		break;
 
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();

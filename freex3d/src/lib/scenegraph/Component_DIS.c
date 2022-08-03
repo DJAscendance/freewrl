@@ -243,6 +243,15 @@ int fwl_get_allow_DIS(){
 void fwl_set_allow_DIS(int allow){
 	allow_DIS = allow ? 1 : 0;
 }
+//testset is an int added to port when regression tessting DIS sets
+// so 2 sets of mulitple freewrl instances don't mix their communications
+static int testset = 0;
+void fwl_set_testset(int iset) {
+	testset = iset;
+}
+int fwl_get_testset() {
+	return testset;
+}
 
 #ifdef WITH_DIS
 
@@ -2971,6 +2980,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval){
 	void *preg; //something to store in the node, to say which socket its registerd in
 	int inetworkmode = 0;
+	int sport = port + fwl_get_testset();
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
 	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
 	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
@@ -2985,7 +2995,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		dsock = NULL;
 		for(i=0;i<sockets_recv->n;i++){
 			dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
-			if(!strcmp(dsock->address,address) && dsock->port == port){
+			if(!strcmp(dsock->address,address) && dsock->port == sport){
 				//if(dsock->registered){
 				//	for(j=0;j<dsock->registered->n;j++){
 				//		we assume its not registered
@@ -3002,7 +3012,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 			vector_pushBack(struct dis_socket,sockets_recv,asock);
 			dsock = vector_get_ptr(struct dis_socket,sockets_recv,sockets_recv->n-1);
 			dsock->address = address;
-			dsock->port = port;
+			dsock->port = sport;
 			dsock->multicastRelayHost = multicastRelayHost;
 			dsock->multicastRelayPort = multicastRelayPort;
 			dsock->idir = inetworkmode;
@@ -3023,7 +3033,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		dsock = NULL;
 		for(i=0;i<sockets_send->n;i++){
 			dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
-			if(!strcmp(dsock->address,address) && dsock->port == port){
+			if(!strcmp(dsock->address,address) && dsock->port == sport){
 				//if(dsock->registered){
 				//	for(j=0;j<dsock->registered->n;j++){
 				//		we assume its not registered
@@ -3040,7 +3050,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 			vector_pushBack(struct dis_socket,sockets_send,asock);
 			dsock = vector_get_ptr(struct dis_socket,sockets_send,sockets_send->n-1);
 			dsock->address = address;
-			dsock->port = port;
+			dsock->port = sport;
 			dsock->multicastRelayHost = multicastRelayHost;
 			dsock->multicastRelayPort = multicastRelayPort;
 			dsock->idir = inetworkmode;
@@ -3078,6 +3088,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	//IDEA: save a duplicate of the node in _oldNode field, so can compare 1:1 with any field
 
 	int inetworkmode = 0;
+	int sport = port + fwl_get_testset();
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
 	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
 	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
@@ -3085,7 +3096,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	if(dsock == NULL) return TRUE; //need to register
 	if(inetworkmode != dsock->idir) return TRUE; //change of direction
 	if(strcmp(address,dsock->address)) return TRUE; //change of address
-	if(port != dsock->port) return TRUE; //change of port
+	if(sport != dsock->port) return TRUE; //change of port
 	if(strcmp(multicastRelayHost,dsock->multicastRelayHost)) return TRUE; 
 	if(multicastRelayPort != dsock->multicastRelayPort) return TRUE;
 

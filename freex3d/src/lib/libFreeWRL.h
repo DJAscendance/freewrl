@@ -447,6 +447,7 @@ void *fwl_resitem_getDownloadThread(void *res);
 void *fwl_resitem_getGlobal(void *res);
 
 void fwl_init_DIS();
+void fwl_set_testset(int iset);
 int fwl_get_allow_DIS();
 void fwl_set_allow_DIS(int allow);
 
