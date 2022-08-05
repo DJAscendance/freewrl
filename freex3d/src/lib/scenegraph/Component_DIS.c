@@ -2052,7 +2052,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					et->siteID = espdu->entityID.site;
 					et->entityID = espdu->entityID.entity;
 					et->address = newASCIIString(dsock->address);
-					et->port = dsock->port;
+					et->port = dsock->port - fwl_get_testset();
 					et->multicastRelayHost = newASCIIString(dsock->multicastRelayHost);
 					et->multicastRelayPort = dsock->multicastRelayPort;
 					et->entityCategory = espdu->entityType.category;
