@@ -226,6 +226,9 @@ void sendProjectorInfo()
 	ppComponent_TextureProjector p;
 	ttglobal tg = gglobal();
 	p = (ppComponent_TextureProjector)tg->Component_TextureProjector.prv;
+	int MAX_PROJ = 8;
+	int projcount = min(projectorTable_count(), MAX_PROJ);
+	if (!projcount) return;
 
     me = getAppearanceProperties()->currentShaderProperties;
 	GLuint myProg = me->myShaderProgram;
@@ -250,6 +253,7 @@ void sendProjectorInfo()
 	GLint saveTextureStackTop = tg->RenderFuncs.textureStackTop;
 	PRINT_GL_ERROR_IF_ANY("BEGIN resend_textureprojector_matrix");
 
+	// programmer: fetching these uniform addresses on every frame eats 35 FPS. Please find a way to store once fetched.
 	for (int i = 0; i < 8; i++) {
 		//per projector
 		char line[24];
@@ -293,10 +297,8 @@ void sendProjectorInfo()
 	me->ptmCount = GET_UNIFORM(myProg, "ptmCount");
 	PRINT_GL_ERROR_IF_ANY("EARLY resend_textureprojector_matrix");
 
-	int MAX_PROJ = 8;
 	int MAX_TDESC = 16;
 	int MAX_TEX = 4;
-	int projcount = min(projectorTable_count(), MAX_PROJ);
 
 	pcount = 0;
 
