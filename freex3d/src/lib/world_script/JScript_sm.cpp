@@ -228,21 +228,22 @@ void sm_process_eventsProcessed() {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol->thisScriptType != NOSCRIPT ){
 			JSContext *cx = (JSContext *)scriptcontrol->cx;
-			JSObject *global = (JSObject *)scriptcontrol->glob;
+			JSObject *obj = (JSObject *)scriptcontrol->glob;
 			{ // Scope A for our various stack objects (JSAutoRequest, RootedObject), so they all go
 				// out of scope before we JS_DestroyContext.
 				JSAutoRequest ar(cx); // In practice, you would want to exit this any
 									// time you're spinning the event loop
 				{ // Scope B for JSAutoCompartment
-					JSAutoCompartment ac(cx, global);
+					JSAutoCompartment ac(cx, obj);
 					if (scriptcontrol->eventsProcessed == NULL) {
-						scriptcontrol->eventsProcessed = (void *)JS_CompileScript(cx,global,"eventsProcessed()", strlen ("eventsProcessed()"),
+						scriptcontrol->eventsProcessed = (void *)JS_CompileScript(cx,obj,"eventsProcessed(__eventInTickTime)", strlen ("eventsProcessed(__eventInTickTime)"),
 							"compile eventsProcessed()", 1);
 						if (!JS_AddObjectRoot(cx,(JSObject**)(&scriptcontrol->eventsProcessed))) {
 							printf ("can not add object root for compiled eventsProcessed() for script %d\n",counter);
 						}
 					}
-					if (!JS_ExecuteScript(cx,global,(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
+					SET_JS_TICKTIME
+					if (!JS_ExecuteScript(cx,obj,(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
 						printf ("can not run eventsProcessed() for script %d\n",counter);
 					}
 				} //Scope B
