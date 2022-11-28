@@ -1067,8 +1067,8 @@ void main(void) \n\
   // loop over output (transformed) texcoord \n\
   //for(int i=0;i<fw_ntexcombo;i++){ \n\
   for(int i=0;i<6;i++){ \n\
-    int itmap = i > fw_ntexcombo ? -1 : fw_tmap[i]; //programmer: should it be >= ? \n\
-    int icmap = i > fw_ntexcombo ? -1 : fw_cmap[i]; //ditto \n\
+    int itmap = i >= fw_ntexcombo ? -1 : fw_tmap[i]; //programmer: should it be >= ? \n\
+    int icmap = i >= fw_ntexcombo ? -1 : fw_cmap[i]; //ditto \n\
     //spec rules: not enough transforms? use identity, not enough coords? use last ones\n\
     ttrans = mat4(1.0); \n\
 	if(icmap < 0) icmap = min(i,nTexCoordChannels-1); \n\
