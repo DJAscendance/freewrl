@@ -1567,8 +1567,8 @@ int fv_create_main_window2(freewrl_params_t * d, freewrl_params_t *share) //int 
 #endif
 	if(!d->frontend_handles_display_thread){
 		//printf("wintoembedinto 1=%d\n",d->winToEmbedInto);
-		if( d->winToEmbedInto < 1) //INT_ID_UNDEFINED) sometimes 0 or -1
-			d->winToEmbedInto = (long)create_main_window0(d); //argc, argv);
+		if( (long)(size_t)d->winToEmbedInto < 1) //INT_ID_UNDEFINED) sometimes 0 or -1
+			d->winToEmbedInto = (long *)create_main_window0(d); //argc, argv);
 		//printf("wintoembedinto 2=%d\n",d->winToEmbedInto);
 		if( d->winToEmbedInto )
 		{

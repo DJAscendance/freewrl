@@ -82,7 +82,7 @@ typedef struct freewrl_params {
 	int xpos;
 	int ypos;
 	int wnum;
-	long int winToEmbedInto;
+	long * winToEmbedInto;
 	int touchtype;
 	bool fullscreen;
 	bool multithreading;
@@ -118,8 +118,8 @@ bool fwl_initFreeWRL(freewrl_params_t *params);
 void closeFreeWRL();
 void terminateFreeWRL();
 
-int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_height, 
-			      int *out_xpos, int *out_ypos);
+int fwl_parse_geometry_string(const char* geometry, int* out_width, int* out_height,
+	int* out_xpos, int* out_ypos, int* out_wnum);
 
 /**
  * General functions

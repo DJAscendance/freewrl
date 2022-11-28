@@ -1341,7 +1341,7 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	{
 		jsdouble nv;
 		char tmpline[100];
-		sprintf (tmpline,"%zx",handle);
+		sprintf (tmpline,"%zx",(size_t)handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */

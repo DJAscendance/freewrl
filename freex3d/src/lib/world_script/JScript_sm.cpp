@@ -43,7 +43,7 @@ Javascript C language binding.
 //# include <jsdbgapi.h> /* JS debugger */
 
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
-
+#undef JS_VERSION
 #define JS_VERSION 187
 static int js_run_version = JS_VERSION; //may be over-ridden below when more info avail
 //#define JS_THREADSAFE 1 //by default in 186+

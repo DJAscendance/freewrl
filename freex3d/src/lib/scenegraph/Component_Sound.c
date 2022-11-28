@@ -480,7 +480,7 @@ void locateAudioSource (struct X3D_AudioClip *node) {
 				//no hope left
 				printf ("resource failed to load\n");
 				for(int ii=0;ii<node->url.n;ii++)
-					printf ("-- url[%d]=%s\n",ii,node->url.p[ii]);
+					printf ("-- url[%d]=%s\n",ii,node->url.p[ii]->strptr);
 				node->__loadstatus = LOAD_STABLE; // a "do-nothing" approach 
 				node->__sourceNumber = BADAUDIOSOURCE;
 			} else	if (res->status == ress_parsed) {

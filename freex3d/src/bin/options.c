@@ -216,7 +216,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 {
     int c, itmp;
     float ftmp;
-    long int ldtmp;
+    long* ldtmp;
     int option_index = 0;
     int real_option_index;
     const char *real_option_name;
@@ -346,7 +346,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 	case 'd': /* --display, required argument int */
 		printf ("Parameter --display = %s\n", optarg);
-		sscanf(optarg,"%ld", (long int *)&ldtmp);
+		sscanf(optarg,"%zu", (size_t*)&ldtmp);
 		fv_params->winToEmbedInto = ldtmp;
 		break;
 

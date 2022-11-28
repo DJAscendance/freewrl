@@ -955,7 +955,7 @@ void generate_shadowmap_cube(usehit uhit, int index) {
 	//so save it, and restore after gencubemap loop of 6
 	memcpy(savebackmat, bstack->backgroundmatrix, 16 * sizeof(double));
 
-	node = (struct X3D_Nodet*)uhit.node;
+	node = (struct X3D_PointLight*)uhit.node;
 	float radius = 10.0f;
 	if (node->_nodeType == NODE_PointLight)
 		radius = ((struct X3D_PointLight*)node)->radius;
