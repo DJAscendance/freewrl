@@ -1951,7 +1951,7 @@ vec4 getMainColor(in vec4 fragColor, in int iuse) { \n\
 		#endif //MODC \n\
 	#endif //TEX \n\
 	vec4 IC = getVertexColor(); \n\
-	dcolor *= mix(dcolor,IC,mixcpv); \n\
+	dcolor = mix(dcolor,IC,mixcpv); \n\
 	#ifdef TEX \n\
     if(mat.tcount[iuse] > 0){ \n\
         //appearance level textures (vs material level) \n\
@@ -1960,7 +1960,7 @@ vec4 getMainColor(in vec4 fragColor, in int iuse) { \n\
 			tcolor.rgb = dcolor.rgb; \n\
 		#endif //MODT || MODC \n\
 		/* PLUG: texture_apply (tcolor, iuse) */ \n\
-		dcolor.rgb = tcolor.rgb; \n\
+		dcolor.rgb *= tcolor.rgb; \n\
 		#ifdef MODA \n\
 			dcolor.a *= tcolor.a; \n\
 		#else //MODA \n\
@@ -2112,7 +2112,7 @@ void main(void) \n\
 		#ifdef LITE \n\
 		float metallic = getMetallic(); \n\
 		float perceptualRoughness = getRoughness(); \n\
-        vec4 apriori = vec4(mat.diffuse,1.0-mat.transparency); \n\
+        vec4 apriori = vec4(mat.baseColor,1.0-mat.transparency); \n\
         int iuse = 3; \n\
         fragment_color = getMainColor(apriori,iuse); \n\
         vec3 baseColor = fragment_color.rgb; // getBaseColor(); \n\
