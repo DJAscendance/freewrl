@@ -70,7 +70,6 @@ our %defaultContainerType = (
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
-	AudioClip 		=>["source","connect"],
 	FloatMultiply           =>["children"],
 	Background 		=>["children"],
 	Billboard 		=>["children"],
@@ -164,7 +163,6 @@ our %defaultContainerType = (
 	Scene 			=>["children"],
 	Script 			=>["children"],
 	Shape 			=>["children","shape"],
-	Sound 			=>["children"],
 	Sphere 			=>["geometry"],
 	SphereSensor 		=>["children"],
 	SpotLight 		=>["children"],
@@ -362,28 +360,29 @@ our %defaultContainerType = (
 	AcousticProperties	=>["acousticProperties"],
 
 
-	AudioContext		=>["children"],
-	AudioContext		=>["connect"],
-	AudioParam		=>["connect"],
-	OscillatorNode		=>["connect"],
-	AudioBuffer		=>["connect"],
-	AudioBufferSourceNode	=>["connect"],
-	MediaElementAudioSourceNode	=>["connect"],
-	BiquadFilterNode	=>["connect"],
-	ConvolverNode		=>["connect"],
-	DelayNode		=>["connect"],
-	DynamicsCompressorNode	=>["connect"],
-	GainNode		=>["connect"],
-	WaveShaperNode		=>["connect"],
-	PeriodicWave		=>["connect"],
-	AudioDestinationNode	=>["destination","connect"],
-	MediaStreamAudioDestinationNode	=>["connect"],
-	MediaStreamTrack	=>["connect"],
-	AnalyserNode		=>["connect"],
-	ChannelSplitterNode	=>["connect"],
-	ChannelMergerNode	=>["connect"],
-	AudioListener		=>["connect"],
-	PannerNode		=>["connect"],
+	Analyser			=>["children"],
+	AudioClip 			=>["source","children"],
+	AudioDestination		=>["children"],
+	BiquadFilter		=>["children"],
+	BufferAudioSource		=>["children"],
+	ChannelMerger		=>["children"],
+	ChannelSelector		=>["children"],
+	ChannelSplitter		=>["children"],
+	Convolver			=>["children"],
+	Delay				=>["children"],
+	DynamicsCompressor	=>["children"],
+	Gain				=>["children"],
+	ListenerPointSource	=>["children"],
+	MicrophoneSource		=>["children"],
+	OscillatorSource		=>["children"],
+	PeriodicWave		=>["children"],
+	Sound 			=>["children"],
+	SpatialSound		=>["children"],
+	StreamAudioDestination	=>["children"],
+	StreamAudioSource		=>["children"],
+	WaveShaper			=>["children"],
+
+
 	GeoSRF			=>["geoSRF"],
 	GeoEllipsoid		=>["ellipsoid"],
 	GeoSystemParameters	=>["systemParameters"],
@@ -487,27 +486,26 @@ our %RendC = map {($_=>1)} qw/
 	ProximitySensor
 	
 	AcousticProperties
-	AudioContext
-	AudioParam
 	OscillatorNode
-	AudioBuffer
-	AudioBufferSourceNode
-	MediaElementAudioSourceNode
-	BiquadFilterNode
-	ConvolverNode
-	DelayNode
-	DynamicsCompressorNode
-	GainNode
-	WaveShaperNode
+	BufferAudioSource
+	StreamAudioSource
+	BiquadFilter
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+	WaveShaper
 	PeriodicWave
-	AudioDestinationNode
-	MediaStreamAudioDestinationNode
-	MediaStreamTrack
-	AnalyserNode
-	ChannelSplitterNode
-	ChannelMergerNode
-	AudioListener
-	PannerNode
+	AudioDestination
+	StreamAudioDestination
+	Analyser
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	ListenerPointSource
+	MicrophoneSource
+	SpatialSound
+
 	GeoSRF
 	MultiTouchSensor
 	BufferGeometry
@@ -822,27 +820,26 @@ our %CompileC = map {($_=>1)} qw/
 
 	AcousticProperties
 	
-	AudioContext
-	AudioParam
-	OscillatorNode
-	AudioBuffer
-	AudioBufferSourceNode
-	MediaElementAudioSourceNode
-	BiquadFilterNode
-	ConvolverNode
-	DelayNode
-	DynamicsCompressorNode
-	GainNode
-	WaveShaperNode
+	Oscillator
+	BufferAudioSource
+	StreamAudioSource
+	BiquadFilter
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+	WaveShaper
 	PeriodicWave
-	AudioDestinationNode
-	MediaStreamAudioDestinationNode
-	MediaStreamTrack
-	AnalyserNode
-	ChannelSplitterNode
-	ChannelMergerNode
-	AudioListener
-	PannerNode
+	AudioDestination
+	StreamAudioDestination
+	Analyser
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	ListenerPointSource
+	MicrophoneSource
+	SpatialSound
+
 	GeoSRF
 	BufferGeometry
 	Tile

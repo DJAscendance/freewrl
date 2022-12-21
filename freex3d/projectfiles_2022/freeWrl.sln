@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SSRserver", "SSRserver\SSRs
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libfreeWRLEAI", "libfreeWRLEAI\libfreeWRLEAI.vcxproj", "{025DC1AD-0C75-4A06-A641-32F2EABD28B6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libsound", "libsound\libsound.vcxproj", "{76BACE05-109A-4D03-8565-AF378E2FD1E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_glew|Win32 = Debug_glew|Win32
@@ -206,6 +208,22 @@ Global
 		{025DC1AD-0C75-4A06-A641-32F2EABD28B6}.Release|Win32.Build.0 = Release|Win32
 		{025DC1AD-0C75-4A06-A641-32F2EABD28B6}.Release|x64.ActiveCfg = Release|Win32
 		{025DC1AD-0C75-4A06-A641-32F2EABD28B6}.Release|x64.Build.0 = Release|Win32
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug_glew|Win32.ActiveCfg = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug_glew|Win32.Build.0 = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug_glew|x64.ActiveCfg = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug_glew|x64.Build.0 = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug|Win32.ActiveCfg = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug|Win32.Build.0 = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug|x64.ActiveCfg = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Debug|x64.Build.0 = Debug_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release_glew|Win32.ActiveCfg = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release_glew|Win32.Build.0 = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release_glew|x64.ActiveCfg = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release_glew|x64.Build.0 = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release|Win32.ActiveCfg = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release|Win32.Build.0 = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release|x64.ActiveCfg = Release_glew|x64
+		{76BACE05-109A-4D03-8565-AF378E2FD1E1}.Release|x64.Build.0 = Release_glew|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -583,7 +583,6 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DTouchSensorNode 			42
 #define X3DSequencerNode  			43
 #define X3DTimeDependentNode 			44
-#define X3DSoundSourceNode 			45
 #define X3DTriggerNode 				46
 #define X3DInfoNode 				47
 #define X3DShaderNode				48
@@ -609,13 +608,17 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DComposableVolumeRenderStyleNode 68
 #define X3DVolumeDataNode 69
 #define X3DTextureProjectorNode			70
-#define X3DAudioContextNode				71
-#define X3DAudioNode					72
 #define X3DMotionNode					73
 #define X3DMotionDataNode				74
 #define X3DGeoSRFTParametersNode		75
 #define X3DGeoSRFParametersNode			76
 #define X3DGeoSRFParametersInfoNode		77
+#define X3DSoundNode					80
+#define X3DSoundProcessingNode			81
+#define X3DSoundSourceNode				82
+#define X3DSoundDestinationNode			83
+#define X3DSoundChannelNode				84
+
 
 
 

@@ -1141,17 +1141,17 @@ void render_PannerNode(struct X3D_PannerNode *node){
 #ifdef HAVE_LIBSOUND
 
 // v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
-void push_audio_context(struct X3D_AudioContext *node){
+void push_audio_context(void *audio_context){
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	stack_push(struct X3D_AudioContext*,p->audio_context_stack,node);
+	stack_push(void*,p->audio_context_stack,audio_context);
 }
 void pop_audio_context(){
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	stack_pop(struct X3D_AudioContext*,p->audio_context_stack);
+	stack_pop(void *,p->audio_context_stack);
 }
-struct X3D_AudioContext* peek_audio_context(){
+void* peek_audio_context(){
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	return stack_top(struct X3D_AudioContext*,p->audio_context_stack);
+	return stack_top(void*,p->audio_context_stack);
 }
 
 
@@ -1171,38 +1171,16 @@ void render_connections(struct X3D_AudioNode *source, struct Multi_Node *connect
 	}
 }
 
-void compile_AudioContext(struct X3D_AudioContext *node){
-	//libsound_testNoise();
-	void * context = libsound_createContext();
-	//node->_context = context;
+void compile_OscillatorSource(struct X3D_OscillatorSource *node){
 	MARK_NODE_COMPILED
 }
-void render_AudioContext(struct X3D_AudioContext *node){
-	COMPILE_IF_REQUIRED
-	push_audio_context(node);
-	//render_destination
-	render_connections(X3D_AUDIO(node),&node->connect);
-	//render_connect
-	pop_audio_context();
-}
-
-void compile_AudioParam(struct X3D_AudioParam *node){
-	MARK_NODE_COMPILED
-}
-void render_AudioParam(struct X3D_AudioParam *node){
+void render_OscillatorSource(struct X3D_OscillatorSource *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_OscillatorNode(struct X3D_OscillatorNode *node){
-	MARK_NODE_COMPILED
-}
-void render_OscillatorNode(struct X3D_OscillatorNode *node){
-	COMPILE_IF_REQUIRED
-}
-
-void compile_AudioBuffer(struct X3D_AudioBuffer *node){
+void compile_BufferAudioSource(struct X3D_BufferAudioSource *node){
 	if(!node->_self && peek_audio_context()){
-		node->_self = libsound_createNode(peek_audio_context()->_context,AN_AudioBuffer); //,node type, parameter list
+		node->_self = libsound_createNode(peek_audio_context(),AN_AudioBuffer); //,node type, parameter list
 		node->_context = peek_audio_context();
 	}else if(peek_audio_context() == node->_context){
 		//which field changed
@@ -1211,63 +1189,56 @@ void compile_AudioBuffer(struct X3D_AudioBuffer *node){
 
 	MARK_NODE_COMPILED
 }
-void render_AudioBuffer(struct X3D_AudioBuffer *node){
+void render_BufferAudioSource(struct X3D_BufferAudioSource *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_AudioBufferSourceNode(struct X3D_AudioBufferSourceNode *node){
+void compile_StreamAudioSource(struct X3D_StreamAudioSource *node){
 	MARK_NODE_COMPILED
 }
-void render_AudioBufferSourceNode(struct X3D_AudioBufferSourceNode *node){
+void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_MediaElementAudioSourceNode(struct X3D_MediaElementAudioSourceNode *node){
+void compile_BiquadFilter(struct X3D_BiquadFilter *node){
 	MARK_NODE_COMPILED
 }
-void render_MediaElementAudioSourceNode(struct X3D_MediaElementAudioSourceNode *node){
+void render_BiquadFilter(struct X3D_BiquadFilter *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_BiquadFilterNode(struct X3D_BiquadFilterNode *node){
+void compile_Convolver(struct X3D_Convolver *node){
 	MARK_NODE_COMPILED
 }
-void render_BiquadFilterNode(struct X3D_BiquadFilterNode *node){
+void render_Convolver(struct X3D_Convolver *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_ConvolverNode(struct X3D_ConvolverNode *node){
+void compile_Delay(struct X3D_Delay *node){
 	MARK_NODE_COMPILED
 }
-void render_ConvolverNode(struct X3D_ConvolverNode *node){
+void render_Delay(struct X3D_Delay *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_DelayNode(struct X3D_DelayNode *node){
+void compile_DynamicsCompressor(struct X3D_DynamicsCompressor *node){
 	MARK_NODE_COMPILED
 }
-void render_DelayNode(struct X3D_DelayNode *node){
+void render_DynamicsCompressor(struct X3D_DynamicsCompressor *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_DynamicsCompressorNode(struct X3D_DynamicsCompressorNode *node){
+void compile_Gain(struct X3D_Gain *node){
 	MARK_NODE_COMPILED
 }
-void render_DynamicsCompressorNode(struct X3D_DynamicsCompressorNode *node){
+void render_Gain(struct X3D_Gain *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_GainNode(struct X3D_GainNode *node){
+void compile_WaveShaper(struct X3D_WaveShaper *node){
 	MARK_NODE_COMPILED
 }
-void render_GainNode(struct X3D_GainNode *node){
-	COMPILE_IF_REQUIRED
-}
-
-void compile_WaveShaperNode(struct X3D_WaveShaperNode *node){
-	MARK_NODE_COMPILED
-}
-void render_WaveShaperNode(struct X3D_WaveShaperNode *node){
+void render_WaveShaper(struct X3D_WaveShaper *node){
 	COMPILE_IF_REQUIRED
 }
 
@@ -1278,59 +1249,66 @@ void render_PeriodicWave(struct X3D_PeriodicWave *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_AudioDestinationNode(struct X3D_AudioDestinationNode *node){
+void compile_AudioDestination(struct X3D_AudioDestination *node){
 	MARK_NODE_COMPILED
 }
-void render_AudioDestinationNode(struct X3D_AudioDestinationNode *node){
+void render_AudioDestination(struct X3D_AudioDestination *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_MediaStreamAudioDestinationNode(struct X3D_MediaStreamAudioDestinationNode *node){
+void compile_StreamAudioDestination(struct X3D_StreamAudioDestination *node){
 	MARK_NODE_COMPILED
 }
-void render_MediaStreamAudioDestinationNode(struct X3D_MediaStreamAudioDestinationNode *node){
+void render_StreamAudioDestination(struct X3D_StreamAudioDestination *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_MediaStreamTrack(struct X3D_MediaStreamTrack *node){
+void compile_Analyser(struct X3D_Analyser *node){
 	MARK_NODE_COMPILED
 }
-void render_MediaStreamTrack(struct X3D_MediaStreamTrack *node){
+void render_Analyser(struct X3D_Analyser *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_AnalyserNode(struct X3D_AnalyserNode *node){
+void compile_ChannelSelector(struct X3D_ChannelSelector* node) {
 	MARK_NODE_COMPILED
 }
-void render_AnalyserNode(struct X3D_AnalyserNode *node){
+void render_ChannelSelector(struct X3D_ChannelSelector* node) {
 	COMPILE_IF_REQUIRED
 }
 
-void compile_ChannelSplitterNode(struct X3D_ChannelSplitterNode *node){
+void compile_ChannelSplitter(struct X3D_ChannelSplitter *node){
 	MARK_NODE_COMPILED
 }
-void render_ChannelSplitterNode(struct X3D_ChannelSplitterNode *node){
+void render_ChannelSplitter(struct X3D_ChannelSplitter *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_ChannelMergerNode(struct X3D_ChannelMergerNode *node){
+void compile_ChannelMerger(struct X3D_ChannelMerger *node){
 	MARK_NODE_COMPILED
 }
-void render_ChannelMergerNode(struct X3D_ChannelMergerNode *node){
+void render_ChannelMerger(struct X3D_ChannelMerger *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_AudioListener(struct X3D_AudioListener *node){
+void compile_ListenerPointSource(struct X3D_ListenerPointSource *node){
 	MARK_NODE_COMPILED
 }
-void render_AudioListener(struct X3D_AudioListener *node){
+void render_ListenerPointSource(struct X3D_ListenerPointSource *node){
 	COMPILE_IF_REQUIRED
 }
 
-void compile_PannerNode(struct X3D_PannerNode *node){
+void compile_MicrophoneSource(struct X3D_MicrophoneSource* node) {
 	MARK_NODE_COMPILED
 }
-void render_PannerNode(struct X3D_PannerNode *node){
+void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {
+	COMPILE_IF_REQUIRED
+}
+
+void compile_SpatialSound(struct X3D_SpatialSound *node){
+	MARK_NODE_COMPILED
+}
+void render_SpatialSound(struct X3D_SpatialSound *node){
 	COMPILE_IF_REQUIRED
 }
 #endif //HAVE_LIBSOUND

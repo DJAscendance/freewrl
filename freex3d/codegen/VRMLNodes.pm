@@ -1036,6 +1036,35 @@ our %Nodes = (
 
 	###################################################################################
 
+	"Analyser" => new VRML::NodeType("Analyser", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+            # Analyzer
+		fftSize => ["SFInt32", 2048, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		frequencyBinCount => ["SFInt32", 1024, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		minDecibels => ["SFFloat", -100, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		maxDecibels => ["SFFloat", -30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		smoothingTimeConstant => ["SFFloat", .8, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundProcessingNode"),
+
+
 	"AudioClip" => new VRML::NodeType("AudioClip", [
 		#movietexture compatible SoundSource section
 		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1068,237 +1097,458 @@ our %Nodes = (
 		# old audio __localFileName => ["FreeWRLPTR", 0,"initializeOnly", 0,0],#ff
 	],"X3DSoundSourceNode"),
 
+
+	"AudioDestination" => new VRML::NodeType("AudioDestination", [
+            # X3DSoundDestinationNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+            # AudioDestination
+		maxChannelCount => ["SFInt32", 2, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            mediaDeviceID => ["SFString","","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundDestinationNode"),
+
+	"BiquadFilter" => new VRML::NodeType("BiquadFilter", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# BiquadFilter
+		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		frequency => ["SFFloat", 350, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		qualityFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		type => ["SFString", "lowpass", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundProcessingNode"),
+
+
+	"BufferAudioSource" => new VRML::NodeType("BufferAudioSource", [
+            # X3DSoundSourceNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
+            # BufferAudioSource
+		buffer => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bufferLength => ["SFInt32", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+		bufferDuration => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		loop => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		loopStart => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		loopEnd => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		numberOfChannels => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		playbackRate => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		sampleRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+            # X3DUrlObject
+		autoRefresh => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		autoRefreshTimeLimit => ["SFTime",3600.0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+	],"X3DSoundSourceNode"),
+
+	"ChannelMerger" => new VRML::NodeType("ChannelMerger", [
+            # X3DSoundChannelNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+           # ChannelMerger
+	],"X3DSoundChannelNode"),
+
+	"ChannelSelector" => new VRML::NodeType("ChannelSelector", [
+            # X3DSoundChannelNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+           # ChannelSelector
+		channelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundChannelNode"),
+
+	"ChannelSplitter" => new VRML::NodeType("ChannelSplitter", [
+            # X3DSoundChannelNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+           # ChannelSplitter
+		outputs => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundChannelNode"),
+
+
+	"Convolver" => new VRML::NodeType("Convolver", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# Convolver
+		buffer => ["MFFloat", "[]", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		normalize => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundProcessingNode"),
+
+	"Delay" => new VRML::NodeType("Delay", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# Delay
+		delayTime => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		maxDelayTime => ["SFTime", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundProcessingNode"),
+
+	"DynamicsCompressor" => new VRML::NodeType("DynamicsCompressor", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# DynamicsCompressor
+		attack => ["SFFloat", .003, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		knee => ["SFFloat", 30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ratio => ["SFFloat", 12, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		reduction => ["SFFloat", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		release => ["SFTime", 0.25, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		threshold => ["SFFloat", -24, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundProcessingNode"),
+
+	"Gain" => new VRML::NodeType("Gain", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# Gain
+	],"X3DSoundProcessingNode"),
+
+	"ListenerPointSource" => new VRML::NodeType("ListenerPointSource", [
+            # X3DSoundSourceNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
+            # ListenerPointSource
+		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		interauralDistance => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		trackCurrentView => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+	],"X3DSoundSourceNode"),
+
+	"MicrophoneSource" => new VRML::NodeType("MicrophoneSource", [
+            # X3DSoundSourceNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
+            # MicrophoneSource
+		mediaDeviceID => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundSourceNode"),
+
+	"OscillatorSource" => new VRML::NodeType("OscillatorSource", [
+            # X3DSoundSourceNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
+            # OscillatorSource
+		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		frequency => ["SFFloat", 440.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		periodicWave => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundSourceNode"),
+
+	"PeriodicWave" => new VRML::NodeType("PeriodicWave", [
+            # X3DSoundNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# PeriodicWave
+		optionsReal => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		optionsImag => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundNode"),
+
 	"Sound" => new VRML::NodeType("Sound", [
+            # X3DSoundNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		# Sound
 		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		intensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		maxBack => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		maxFront => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		minBack => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		minFront => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
 		priority => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		source => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		spatialize => ["SFBool", "FALSE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# openal sound source number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
-	],"X3DSoundSourceNode"),
+	],"X3DSoundNode"),
 
-	# v4 Extra Nodes baed on WebAudio API, proposed
-	"AudioContext"  => new VRML::NodeType("AudioContext", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		currentTime => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		destination => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		listener => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		sampleRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		mozAudioChannelType => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DSoundSourceNode"),
-
-	"AudioNode" => new VRML::NodeType("AudioNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		# numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		# numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		# channelCount => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		# channelCountMode => ["SFString", "max", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		# channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioContextNode"),
-
-	"AudioParam" => new VRML::NodeType("AudioParam", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		value => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		defaultValue => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"OscillatorNode" => new VRML::NodeType("OscillatorNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"AudioBuffer" => new VRML::NodeType("AudioBuffer", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		sampleRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		length => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		duration => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		numberOfChannels => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"AudioBufferSourceNode" => new VRML::NodeType("AudioBufferSourceNode", [
+	"SpatialSound" => new VRML::NodeType("SpatialSound", [
+            # X3DSoundNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		buffer => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		playbackRate => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		loop => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		loopStart => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		loopEnd => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
+		# SpatialSound
+		coneInnerAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		coneOuterAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		coneOuterGain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		distanceModel => ["SFString", "INVERSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		enabledHRTF => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		maxDistance => ["SFFloat", 10000, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		priority => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		referenceDistance => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		rolloffFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# openal sound source number
+		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
+		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
+		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+	],"X3DSoundNode"),
 
-	"MediaElementAudioSourceNode" => new VRML::NodeType("MediaElementAudioSourceNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	"StreamAudioDestination" => new VRML::NodeType("StreamAudioDestination", [
+            # X3DSoundDestinationNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelCount => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+            # StreamAudioDestination
+		streamIdentifier => ["MFString", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundDestinationNode"),
+
+
+	"StreamAudioSource" => new VRML::NodeType("StreamAudioSource", [
+            # X3DSoundSourceNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+
+            # StreamAudioSource
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		channelCountMode => ["SFString", "smax", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		channelInterpretation => ["SFString", "speakders", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
+            streamIdentifier => ["MFString",[],"inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+	],"X3DSoundSourceNode"),
 
-	"BiquadFilterNode" => new VRML::NodeType("BiquadFilterNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+	"WaveShaper" => new VRML::NodeType("WaveShaper", [
+            # X3DSoundProcessingNode
+            channelCountMode => ["SFString","max","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+            channelInterpretation => ["SFString","speakers","inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		pauseTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		resumeTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		startTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		stopTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		tailTime => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isActive => ["SFBool", "FALSE", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		Q => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		gain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		type => ["SFString", "lowpass", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"ConvolverNode" => new VRML::NodeType("ConvolverNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		buffer => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		normalize => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"DelayNode" => new VRML::NodeType("DelayNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		delayTime => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"DynamicsCompressorNode" => new VRML::NodeType("DynamicsCompressorNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		threshold => ["SFFloat", 0.003, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		knee => ["SFInt32", 30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		ratio => ["SFInt32", 12, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		reduction => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		attack => ["SFFloat", .25, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		release => ["SFInt32", -24, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"GainNode" => new VRML::NodeType("GainNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		gain => ["SFInt32", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"WaveShaperNode" => new VRML::NodeType("WaveShaperNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		curve => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		# WaveShaper
+		curve => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		oversample => ["SFString", "none", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
+	],"X3DSoundProcessingNode"),
 
-	"PeriodicWave" => new VRML::NodeType("eriodicWave", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		frequency => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"AudioDestinationNode" => new VRML::NodeType("AudioDestinationNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		maxChannelCount => ["SFInt32", 2, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"MediaStreamAudioDestinationNode" => new VRML::NodeType("MediaStreamAudioDestinationNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		stream => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"MediaStreamTrack" => new VRML::NodeType("MediaStreamTrack", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		stream => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"AnalyserNode" => new VRML::NodeType("AnalyserNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		fftSize => ["SFInt32", 2048, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		frequencyBinCount => ["SFInt32", 1024, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		minDecibels => ["SFFloat", -100, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		maxDecibels => ["SFFloat", -10, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		smoothingTimeConstant => ["SFFloat", .8, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"ChannelSplitterNode" => new VRML::NodeType("ChannelSplitterNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelCount => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelCountMode => ["SFString", "max", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"ChannelMergerNode" => new VRML::NodeType("ChannelMergerNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		numberOfInputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		numberOfOutputs => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelCount => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelCountMode => ["SFString", "max", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		channelInterpretation => ["SFString", "speakers", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"AudioListener" => new VRML::NodeType("AudioListener", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		dopplerFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		speedOfSound => ["SFFloat", 343.3, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
-
-	"PannerNode" => new VRML::NodeType("PannerNode", [
-		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		position => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		orientation => ["SFRotation", [0, 0, 1, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		coneInnerAngle => ["SFFloat", 360, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		coneOuterAngle => ["SFFloat", 360, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		coneGain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		distanceModel => ["SFString", "inverse", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		maxDistance => ["SFFloat", 10000, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		panningModel => ["SFString", "HRTF", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		refDistance => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		rolloffFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-	],"X3DAudioNode"),
 
 
 	###################################################################################
