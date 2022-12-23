@@ -39,7 +39,6 @@ X3D Sound Component
 #include "../opengl/OpenGL_Utils.h"
 
 #include "LinearAlgebra.h"
-//#include "sounds.h"
 
 static int have_labsound = 1;
 int labsound() {
@@ -53,7 +52,7 @@ int labsound() {
 #include <AL/alext.h>
 #ifdef HAVE_ALUT
 #include <AL/alut.h>
-#endif
+#endif //HAVE_ALUT
 /* InitAL opens the default device and sets up a context using default
  * attributes, making the program ready to call OpenAL functions. */
 void* fwInitAL(void)
@@ -106,15 +105,10 @@ void fwCloseAL(void *alctx)
 
 
 typedef struct pComponent_Sound{
-	/* for printing warnings about Sound node problems - only print once per invocation */
-	int soundWarned;// = FALSE;
-	int SoundSourceNumber;
+#ifdef HAVE_OPENAL
 	void *alContext;
+#endif //HAVE_OPENAL
 	Stack *audio_context_stack;
-/* this is used to return the duration of an audioclip to the perl
-   side of things. works, but need to figure out all
-   references, etc. to bypass this fudge JAS */
-	float AC_LastDuration[50];
 }* ppComponent_Sound;
 void *Component_Sound_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_Sound));
@@ -135,18 +129,9 @@ void Component_Sound_init(struct tComponent_Sound *t){
 		ppComponent_Sound p = (ppComponent_Sound)t->prv;
 		/* for printing warnings about Sound node problems - only print once per invocation */
 		p->audio_context_stack = newStack(struct X3D_Node*);
-
-		p->soundWarned = FALSE;
-		p->SoundSourceNumber = 0;
+#ifdef HAVE_OPENAL
 		p->alContext = NULL;
-		/* this is used to return the duration of an audioclip to the perl
-		   side of things. works, but need to figure out all
-		   references, etc. to bypass this fudge JAS */
-		{
-			int i;
-			for(i=0;i<50;i++)
-				p->AC_LastDuration[i]  = -1.0f;
-		}
+#endif //HAVE_OPENAL
 	}
 }
 void Component_Sound_clear(struct tComponent_Sound *t){
@@ -154,8 +139,6 @@ void Component_Sound_clear(struct tComponent_Sound *t){
 	deleteVector(struct X3D_Node*,p->audio_context_stack);
 }
 //ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-void Sound_toserver(char *message)
-{}
 
 // Position of the listener.
 float ListenerPos[] = { 0.0, 0.0, 0.0 };
@@ -212,25 +195,6 @@ int SoundEngineInit(void)
 	gglobal()->Component_Sound.SoundEngineStarted = retval;
 	return retval;
 }
-
-void waitformessage(void)
-{}
-
-void SoundEngineDestroy(void)
-{}
-
-int SoundSourceRegistered(int num)
-{ 
-	if(num > -1) return TRUE;
-	return FALSE;
-}
-
-float SoundSourceInit(int num, int loop, double pitch, double start_time, double stop_time, char *url)
-{return 0.0f;}
-
-void SetAudioActive(int num, int stat)
-{}
-
 
 int haveSoundEngine(){
 	ttglobal tg = gglobal();

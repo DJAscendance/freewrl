@@ -4292,12 +4292,6 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 	}
 #endif
 
-// OLD_IPHONE_AQUA	#ifndef AQUA
-		sprintf (mystring, "QUIT");
-		Sound_toserver(mystring);
-// OLD_IPHONE_AQUA	#endif
-
-
 	/* reset any VRML Parser data */
 	if (globalParser != NULL) {
 		parser_destroyData(globalParser);

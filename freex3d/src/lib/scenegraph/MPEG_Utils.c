@@ -222,7 +222,16 @@ int movie_load_from_file(char *fname, void **opaque);
 double movie_get_duration(void *opaque);
 unsigned char *movie_get_frame_by_fraction(void *opaque, float fraction, int *width, int *height, int *nchan);
 unsigned char * movie_get_audio_PCM_buffer(void *opaque,int *freq, int *channels, int *size, int *bits);
-#include "sounds.h"
+
+#ifdef HAVE_OPENAL
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
+#ifdef HAVE_ALUT
+#include <AL/alut.h>
+#endif //HAVE_ALUT
+#endif //HAVE_OPENAL
+
 //BufferData * alutBufferDataConstruct (ALvoid *data, size_t length, ALint numChannels,
 //                          ALint bitsPerSample, ALfloat sampleFrequency);
 
