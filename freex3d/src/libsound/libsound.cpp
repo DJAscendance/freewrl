@@ -158,6 +158,9 @@ void Wait(Duration duration)
 extern "C" {
 #endif
 #include "libsound.h"
+    static void* busbuffers[30];
+    static int n_busbuffers = 0;
+
     void libsound_testNoise()
     {
         std::unique_ptr<lab::AudioContext> context;
@@ -332,7 +335,13 @@ extern "C" {
         //context->connect(destination,source);
 
     }
-
+    int libsound_createAudioClip() {
+        //convert size_t busbuffer pointer to an int to be compatible with openAL int buffer number.
+        int ibusbuffer = n_busbuffers;
+     //   busbuffers[ibusbuffer] = (void*)Bus;
+        n_busbuffers++;
+        return ibusbuffer;
+    }
 
 #ifdef __cplusplus
 }

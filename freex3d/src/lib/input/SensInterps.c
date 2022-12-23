@@ -50,7 +50,6 @@ Interps are the "EventsProcessed" fields of interpolators.
 #include "../scenegraph/LinearAlgebra.h"
 #include "../scenegraph/Collision.h"
 #include "../scenegraph/quaternion.h"
-#include "../scenegraph/sounds.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"            /* for finding a texture url in a multi url */

@@ -49,7 +49,6 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include "../vrml_parser/CRoutes.h"
 #include "../scenegraph/quaternion.h"
 #include "../scenegraph/Viewer.h"
-#include "../scenegraph/sounds.h"
 #include "../scenegraph/LinearAlgebra.h"
 #include "../scenegraph/Component_KeyDevice.h"	/* resolving implicit declarations */
 #include "../input/EAIHeaders.h"		/* resolving implicit declarations */
