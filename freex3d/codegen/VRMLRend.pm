@@ -460,8 +460,6 @@ our %RendC = map {($_=>1)} qw/
 	ComposedCubeMapTexture
 	GeneratedCubeMapTexture
 	ImageCubeMapTexture
-	Sound
-	AudioClip
 	DirectionalLight
 	SpotLight
 	PointLight
@@ -486,25 +484,30 @@ our %RendC = map {($_=>1)} qw/
 	ProximitySensor
 	
 	AcousticProperties
-	OscillatorNode
-	BufferAudioSource
-	StreamAudioSource
+
+	Analyser
+      AudioClip
+	AudioDestination
 	BiquadFilter
+	BufferAudioSource
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	StreamAudioSource
 	Convolver
 	Delay
 	DynamicsCompressor
 	Gain
-	WaveShaper
-	PeriodicWave
-	AudioDestination
-	StreamAudioDestination
-	Analyser
-	ChannelMerger
-	ChannelSelector
-	ChannelSplitter
 	ListenerPointSource
 	MicrophoneSource
+	OscillatorSource
+	PeriodicWave
+      Sound
 	SpatialSound
+	StreamAudioDestination
+      StreamAudioSource
+	WaveShaper
+
 
 	GeoSRF
 	MultiTouchSensor
@@ -582,6 +585,22 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableShape
 	EspduTransform
 	Tile
+
+	Analyser
+	AudioDestination
+	BiquadFilter
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+      Sound
+	SpatialSound
+	StreamAudioDestination
+	WaveShaper
+
 /;
 
 #######################################################################
@@ -614,6 +633,23 @@ our %FinC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape	
 	EspduTransform
+
+	Analyser
+	AudioDestination
+	BiquadFilter
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+      Sound
+	SpatialSound
+	StreamAudioDestination
+	WaveShaper
+
+
 /;
 
 #######################################################################
@@ -675,6 +711,22 @@ our %ChildC = map {($_=>1)} qw/
 	SignalPdu
 	DISEntityManager
 	Tile
+
+	Analyser
+	AudioDestination
+	BiquadFilter
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+      Sound
+	SpatialSound
+	StreamAudioDestination
+	WaveShaper
+
 /;
 
 
@@ -820,25 +872,28 @@ our %CompileC = map {($_=>1)} qw/
 
 	AcousticProperties
 	
-	Oscillator
-	BufferAudioSource
-	StreamAudioSource
+	Analyser
+      AudioClip
+	AudioDestination
 	BiquadFilter
+	BufferAudioSource
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	StreamAudioSource
 	Convolver
 	Delay
 	DynamicsCompressor
 	Gain
-	WaveShaper
-	PeriodicWave
-	AudioDestination
-	StreamAudioDestination
-	Analyser
-	ChannelMerger
-	ChannelSelector
-	ChannelSplitter
 	ListenerPointSource
 	MicrophoneSource
+	OscillatorSource
+	PeriodicWave
+      Sound
 	SpatialSound
+	StreamAudioDestination
+      StreamAudioSource
+	WaveShaper
 
 	GeoSRF
 	BufferGeometry

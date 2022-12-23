@@ -3276,9 +3276,12 @@ void render_AcousticProperties(struct X3D_AcousticProperties *);
 void compile_AcousticProperties(struct X3D_AcousticProperties *);
 struct X3D_Virt virt_AcousticProperties = { NULL,(void *)render_AcousticProperties,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AcousticProperties};
 
+void prep_Analyser(struct X3D_Analyser *);
 void render_Analyser(struct X3D_Analyser *);
+void child_Analyser(struct X3D_Analyser *);
+void fin_Analyser(struct X3D_Analyser *);
 void compile_Analyser(struct X3D_Analyser *);
-struct X3D_Virt virt_Analyser = { NULL,(void *)render_Analyser,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Analyser};
+struct X3D_Virt virt_Analyser = { (void *)prep_Analyser,(void *)render_Analyser,(void *)child_Analyser,(void *)fin_Analyser,NULL,NULL,NULL,NULL,NULL,(void *)compile_Analyser};
 
 void child_Anchor(struct X3D_Anchor *);
 struct X3D_Virt virt_Anchor = { NULL,NULL,(void *)child_Anchor,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -3295,11 +3298,15 @@ void compile_ArcClose2D(struct X3D_ArcClose2D *);
 struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ArcClose2D};
 
 void render_AudioClip(struct X3D_AudioClip *);
-struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void compile_AudioClip(struct X3D_AudioClip *);
+struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioClip};
 
+void prep_AudioDestination(struct X3D_AudioDestination *);
 void render_AudioDestination(struct X3D_AudioDestination *);
+void child_AudioDestination(struct X3D_AudioDestination *);
+void fin_AudioDestination(struct X3D_AudioDestination *);
 void compile_AudioDestination(struct X3D_AudioDestination *);
-struct X3D_Virt virt_AudioDestination = { NULL,(void *)render_AudioDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioDestination};
+struct X3D_Virt virt_AudioDestination = { (void *)prep_AudioDestination,(void *)render_AudioDestination,(void *)child_AudioDestination,(void *)fin_AudioDestination,NULL,NULL,NULL,NULL,NULL,(void *)compile_AudioDestination};
 
 struct X3D_Virt virt_BackdropBackground = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3314,9 +3321,12 @@ void fin_Billboard(struct X3D_Billboard *);
 void proximity_Billboard(struct X3D_Billboard *);
 struct X3D_Virt virt_Billboard = { (void *)prep_Billboard,NULL,(void *)child_Billboard,(void *)fin_Billboard,NULL,NULL,(void *)proximity_Billboard,NULL,NULL,NULL};
 
+void prep_BiquadFilter(struct X3D_BiquadFilter *);
 void render_BiquadFilter(struct X3D_BiquadFilter *);
+void child_BiquadFilter(struct X3D_BiquadFilter *);
+void fin_BiquadFilter(struct X3D_BiquadFilter *);
 void compile_BiquadFilter(struct X3D_BiquadFilter *);
-struct X3D_Virt virt_BiquadFilter = { NULL,(void *)render_BiquadFilter,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_BiquadFilter};
+struct X3D_Virt virt_BiquadFilter = { (void *)prep_BiquadFilter,(void *)render_BiquadFilter,(void *)child_BiquadFilter,(void *)fin_BiquadFilter,NULL,NULL,NULL,NULL,NULL,(void *)compile_BiquadFilter};
 
 struct X3D_Virt virt_BlendedVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3372,17 +3382,26 @@ struct X3D_Virt virt_CalibratedCameraSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NU
 
 struct X3D_Virt virt_CartoonVolumeStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_ChannelMerger(struct X3D_ChannelMerger *);
 void render_ChannelMerger(struct X3D_ChannelMerger *);
+void child_ChannelMerger(struct X3D_ChannelMerger *);
+void fin_ChannelMerger(struct X3D_ChannelMerger *);
 void compile_ChannelMerger(struct X3D_ChannelMerger *);
-struct X3D_Virt virt_ChannelMerger = { NULL,(void *)render_ChannelMerger,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelMerger};
+struct X3D_Virt virt_ChannelMerger = { (void *)prep_ChannelMerger,(void *)render_ChannelMerger,(void *)child_ChannelMerger,(void *)fin_ChannelMerger,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelMerger};
 
+void prep_ChannelSelector(struct X3D_ChannelSelector *);
 void render_ChannelSelector(struct X3D_ChannelSelector *);
+void child_ChannelSelector(struct X3D_ChannelSelector *);
+void fin_ChannelSelector(struct X3D_ChannelSelector *);
 void compile_ChannelSelector(struct X3D_ChannelSelector *);
-struct X3D_Virt virt_ChannelSelector = { NULL,(void *)render_ChannelSelector,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelSelector};
+struct X3D_Virt virt_ChannelSelector = { (void *)prep_ChannelSelector,(void *)render_ChannelSelector,(void *)child_ChannelSelector,(void *)fin_ChannelSelector,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelSelector};
 
+void prep_ChannelSplitter(struct X3D_ChannelSplitter *);
 void render_ChannelSplitter(struct X3D_ChannelSplitter *);
+void child_ChannelSplitter(struct X3D_ChannelSplitter *);
+void fin_ChannelSplitter(struct X3D_ChannelSplitter *);
 void compile_ChannelSplitter(struct X3D_ChannelSplitter *);
-struct X3D_Virt virt_ChannelSplitter = { NULL,(void *)render_ChannelSplitter,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelSplitter};
+struct X3D_Virt virt_ChannelSplitter = { (void *)prep_ChannelSplitter,(void *)render_ChannelSplitter,(void *)child_ChannelSplitter,(void *)fin_ChannelSplitter,NULL,NULL,NULL,NULL,NULL,(void *)compile_ChannelSplitter};
 
 void render_Circle2D(struct X3D_Circle2D *);
 void compile_Circle2D(struct X3D_Circle2D *);
@@ -3450,9 +3469,12 @@ struct X3D_Virt virt_Contour2D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 void compile_ContourPolyline2D(struct X3D_ContourPolyline2D *);
 struct X3D_Virt virt_ContourPolyline2D = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ContourPolyline2D};
 
+void prep_Convolver(struct X3D_Convolver *);
 void render_Convolver(struct X3D_Convolver *);
+void child_Convolver(struct X3D_Convolver *);
+void fin_Convolver(struct X3D_Convolver *);
 void compile_Convolver(struct X3D_Convolver *);
-struct X3D_Virt virt_Convolver = { NULL,(void *)render_Convolver,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Convolver};
+struct X3D_Virt virt_Convolver = { (void *)prep_Convolver,(void *)render_Convolver,(void *)child_Convolver,(void *)fin_Convolver,NULL,NULL,NULL,NULL,NULL,(void *)compile_Convolver};
 
 struct X3D_Virt virt_Coordinate = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3480,9 +3502,12 @@ struct X3D_Virt virt_DISEntityManager = { NULL,NULL,(void *)child_DISEntityManag
 
 struct X3D_Virt virt_DISEntityTypeMapping = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_Delay(struct X3D_Delay *);
 void render_Delay(struct X3D_Delay *);
+void child_Delay(struct X3D_Delay *);
+void fin_Delay(struct X3D_Delay *);
 void compile_Delay(struct X3D_Delay *);
-struct X3D_Virt virt_Delay = { NULL,(void *)render_Delay,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Delay};
+struct X3D_Virt virt_Delay = { (void *)prep_Delay,(void *)render_Delay,(void *)child_Delay,(void *)fin_Delay,NULL,NULL,NULL,NULL,NULL,(void *)compile_Delay};
 
 void prep_DirectionalLight(struct X3D_DirectionalLight *);
 void render_DirectionalLight(struct X3D_DirectionalLight *);
@@ -3496,9 +3521,12 @@ struct X3D_Virt virt_Disk2D = { NULL,(void *)render_Disk2D,NULL,NULL,NULL,NULL,N
 
 struct X3D_Virt virt_DoubleAxisHingeJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_DynamicsCompressor(struct X3D_DynamicsCompressor *);
 void render_DynamicsCompressor(struct X3D_DynamicsCompressor *);
+void child_DynamicsCompressor(struct X3D_DynamicsCompressor *);
+void fin_DynamicsCompressor(struct X3D_DynamicsCompressor *);
 void compile_DynamicsCompressor(struct X3D_DynamicsCompressor *);
-struct X3D_Virt virt_DynamicsCompressor = { NULL,(void *)render_DynamicsCompressor,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_DynamicsCompressor};
+struct X3D_Virt virt_DynamicsCompressor = { (void *)prep_DynamicsCompressor,(void *)render_DynamicsCompressor,(void *)child_DynamicsCompressor,(void *)fin_DynamicsCompressor,NULL,NULL,NULL,NULL,NULL,(void *)compile_DynamicsCompressor};
 
 struct X3D_Virt virt_EaseInEaseOut = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -3544,9 +3572,12 @@ struct X3D_Virt virt_FontStyle = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 
 struct X3D_Virt virt_ForcePhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_Gain(struct X3D_Gain *);
 void render_Gain(struct X3D_Gain *);
+void child_Gain(struct X3D_Gain *);
+void fin_Gain(struct X3D_Gain *);
 void compile_Gain(struct X3D_Gain *);
-struct X3D_Virt virt_Gain = { NULL,(void *)render_Gain,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_Gain};
+struct X3D_Virt virt_Gain = { (void *)prep_Gain,(void *)render_Gain,(void *)child_Gain,(void *)fin_Gain,NULL,NULL,NULL,NULL,NULL,(void *)compile_Gain};
 
 void render_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 void compile_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
@@ -4015,7 +4046,9 @@ void prep_OrthoViewpoint(struct X3D_OrthoViewpoint *);
 void render_OrthoViewpoint(struct X3D_OrthoViewpoint *);
 struct X3D_Virt virt_OrthoViewpoint = { (void *)prep_OrthoViewpoint,(void *)render_OrthoViewpoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
-struct X3D_Virt virt_OscillatorSource = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_OscillatorSource(struct X3D_OscillatorSource *);
+void compile_OscillatorSource(struct X3D_OscillatorSource *);
+struct X3D_Virt virt_OscillatorSource = { NULL,(void *)render_OscillatorSource,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_OscillatorSource};
 
 void render_PackagedShader(struct X3D_PackagedShader *);
 void compile_PackagedShader(struct X3D_PackagedShader *);
@@ -4166,12 +4199,19 @@ struct X3D_Virt virt_SingleAxisHingeJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL
 
 struct X3D_Virt virt_SliderJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_Sound(struct X3D_Sound *);
 void render_Sound(struct X3D_Sound *);
-struct X3D_Virt virt_Sound = { NULL,(void *)render_Sound,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void child_Sound(struct X3D_Sound *);
+void fin_Sound(struct X3D_Sound *);
+void compile_Sound(struct X3D_Sound *);
+struct X3D_Virt virt_Sound = { (void *)prep_Sound,(void *)render_Sound,(void *)child_Sound,(void *)fin_Sound,NULL,NULL,NULL,NULL,NULL,(void *)compile_Sound};
 
+void prep_SpatialSound(struct X3D_SpatialSound *);
 void render_SpatialSound(struct X3D_SpatialSound *);
+void child_SpatialSound(struct X3D_SpatialSound *);
+void fin_SpatialSound(struct X3D_SpatialSound *);
 void compile_SpatialSound(struct X3D_SpatialSound *);
-struct X3D_Virt virt_SpatialSound = { NULL,(void *)render_SpatialSound,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_SpatialSound};
+struct X3D_Virt virt_SpatialSound = { (void *)prep_SpatialSound,(void *)render_SpatialSound,(void *)child_SpatialSound,(void *)fin_SpatialSound,NULL,NULL,NULL,NULL,NULL,(void *)compile_SpatialSound};
 
 void render_Sphere(struct X3D_Sphere *);
 void rendray_Sphere(struct X3D_Sphere *);
@@ -4198,9 +4238,12 @@ struct X3D_Virt virt_SquadOrientationInterpolator = { NULL,NULL,NULL,NULL,NULL,N
 void child_StaticGroup(struct X3D_StaticGroup *);
 struct X3D_Virt virt_StaticGroup = { NULL,NULL,(void *)child_StaticGroup,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_StreamAudioDestination(struct X3D_StreamAudioDestination *);
 void render_StreamAudioDestination(struct X3D_StreamAudioDestination *);
+void child_StreamAudioDestination(struct X3D_StreamAudioDestination *);
+void fin_StreamAudioDestination(struct X3D_StreamAudioDestination *);
 void compile_StreamAudioDestination(struct X3D_StreamAudioDestination *);
-struct X3D_Virt virt_StreamAudioDestination = { NULL,(void *)render_StreamAudioDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_StreamAudioDestination};
+struct X3D_Virt virt_StreamAudioDestination = { (void *)prep_StreamAudioDestination,(void *)render_StreamAudioDestination,(void *)child_StreamAudioDestination,(void *)fin_StreamAudioDestination,NULL,NULL,NULL,NULL,NULL,(void *)compile_StreamAudioDestination};
 
 void render_StreamAudioSource(struct X3D_StreamAudioSource *);
 void compile_StreamAudioSource(struct X3D_StreamAudioSource *);
@@ -4343,9 +4386,12 @@ struct X3D_Virt virt_VolumeEmitter = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,N
 
 struct X3D_Virt virt_VolumePickSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
+void prep_WaveShaper(struct X3D_WaveShaper *);
 void render_WaveShaper(struct X3D_WaveShaper *);
+void child_WaveShaper(struct X3D_WaveShaper *);
+void fin_WaveShaper(struct X3D_WaveShaper *);
 void compile_WaveShaper(struct X3D_WaveShaper *);
-struct X3D_Virt virt_WaveShaper = { NULL,(void *)render_WaveShaper,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_WaveShaper};
+struct X3D_Virt virt_WaveShaper = { (void *)prep_WaveShaper,(void *)render_WaveShaper,(void *)child_WaveShaper,(void *)fin_WaveShaper,NULL,NULL,NULL,NULL,NULL,(void *)compile_WaveShaper};
 
 struct X3D_Virt virt_WindPhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
