@@ -394,7 +394,7 @@ static void* load_file_mmap(const char *filename)
 	close(fd);
 	fd = 0; //NULL;
 	*blob = text;
-	*len = ss.st_size+1;
+	*len = ss.st_size;
 	//if(1){
 	//	FILE *fp = fopen("C:/tmp/test_output.wrl","wb");
 	//	//fwrite("test string\n",1,strlen("test string\n")+1,fp);

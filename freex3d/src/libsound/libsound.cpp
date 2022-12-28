@@ -497,10 +497,17 @@ typedef ptw32_handle_t pthread_t;
 
 
     int libsound_createBusFromBuffer(char* bbuffer, int len) {
+        //const std::string path = "C:/Users/dougs/Documents/dev/source2/freewrlwebpages/htdocs/tests/16_Sound/helpers/Checkin2.wav";
+        //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\cnote.wav";
+       // const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\file1.wav";
+        //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\Piano11.mp3";
+       // std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, true);
 
         int ibusbuffer = n_busbuffers;
+        //std::vector<uint8_t>* b0 = new std::vector<uint8_t>(len);
+       // memcpy(b0->data(), bbuffer, len);
         std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
-        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
+        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false); //bombs, don't know why
 
         busbuffers[ibusbuffer] = (void*)Bus.get();
         n_busbuffers++;

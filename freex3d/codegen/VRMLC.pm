@@ -1661,7 +1661,7 @@ END_NODE(NodeName)
 #ifndef __FREEWRL_STRUCTS_H__
 #define __FREEWRL_STRUCTS_H__
 
-#include <system_threads.h>
+//#include <system_threads.h>
 struct point_XYZ {GLDOUBLE x,y,z;};
 struct orient_XYZA {GLDOUBLE x,y,z,a;};
 
