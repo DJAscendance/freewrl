@@ -40,12 +40,10 @@ X3D Sound Component
 
 #include "LinearAlgebra.h"
 
-static int have_labsound = 1;
-int labsound() {
-	return have_labsound;
-}
 #define BADAUDIOSOURCE -9999
-
+#ifdef HAVE_LIBSOUND
+#undef HAVE_OPENAL
+#endif //HAVE_LIBSOUND
 #ifdef HAVE_OPENAL
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -102,7 +100,11 @@ void fwCloseAL(void *alctx)
 }
 
 #endif
-
+#ifdef HAVE_LIBSOUND
+#include "../../libsound/libsound.h"
+//libsound is our /src/libsound C wrapper lib over 
+// LabSound https://github.com/LabSound/LabSound 
+#endif //HAVE_LIBSOUND
 
 typedef struct pComponent_Sound{
 #ifdef HAVE_OPENAL
@@ -128,7 +130,8 @@ void Component_Sound_init(struct tComponent_Sound *t){
 	{
 		ppComponent_Sound p = (ppComponent_Sound)t->prv;
 		/* for printing warnings about Sound node problems - only print once per invocation */
-		p->audio_context_stack = newStack(struct X3D_Node*);
+		p->audio_context_stack = newStack(int);
+		stack_push(int, p->audio_context_stack, 0); //a null will signal we have no audio context yet.
 #ifdef HAVE_OPENAL
 		p->alContext = NULL;
 #endif //HAVE_OPENAL
@@ -192,6 +195,11 @@ int SoundEngineInit(void)
 		//alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED); //seems a bit faint
 	}
 #endif //HAVE_OPENAL
+#ifdef HAVE_LIBSOUND
+	// labsound does have some resources --HRDF table and a few more things I think-- which would be 'installed' 
+	//  and would need to be loaded at some point from a known path. Maybe loaded here.
+	retval = TRUE;
+#endif //HAVE_LIBSOUND
 	gglobal()->Component_Sound.SoundEngineStarted = retval;
 	return retval;
 }
@@ -466,18 +474,118 @@ void render_Sound (struct X3D_Sound *node) {
 			}
 		}
 	}
+#elif HAVE_LIBSOUND
+	if (acp) {
+		if (haveSoundEngine()) {
+			if (acp->__sourceNumber < 0) {
+				render_AudioClip(acp);
+			}
+			if (acp->__sourceNumber > -1) {
+				//have a buffer loaded
+				int i;
+				GLDOUBLE modelMatrix[16];
+				GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
+				float SourcePos[3];
 
+				//transform source local coordinate 0,0,0 location into avatar/listener space
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+				transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
+				for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
+
+				if (node->__sourceNumber < 0) {
+					node->__lasttime = TickTime();
+					veccopy3f(node->__lastlocation.c, SourcePos);
+
+					node->__sourceNumber = 0;
+				}
+				if (node->__sourceNumber > -1) {
+					int istate;
+					float SourceVel[3] = { 0.0f, 0.0f, 0.0f };
+					float travelled[3];
+					double traveltime;
+
+					//update velocity for doppler effect
+					vecdif3f(travelled, node->__lastlocation.c, SourcePos);
+					traveltime = TickTime() - node->__lasttime;
+					if (traveltime > 0.0)
+						vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
+
+					node->__lasttime = TickTime();
+					veccopy3f(node->__lastlocation.c, SourcePos);
+
+					//directional sound 
+					if (node->spatialize) {
+						double dird[3];
+						float dirf[3];
+						//transform source direction into avatar/listener space
+						for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
+						transformAFFINEd(dird, dird, modelMatrix);
+						for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
+					}
+
+					// for routed values going to audioclip, update values
+					// update to audioclip start,stop,pause,resume is done in do_AudioTick()
+					if (acp->isActive) {
+							//printf(".play.");
+					}
+					else {
+						//stop
+					}
+				}
+			}
+		}
+	}
 #endif
 
 }
-void prep_Sound(struct X3D_Sound* node) {
 
+
+
+// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+void push_audio_context(int audio_context) {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_push(int, p->audio_context_stack, audio_context);
+}
+void super_push_audio_context(struct X3D_AudioNode* node) {
+	struct X3D_SoundRep* srep = getSoundRep(node);
+	if (!srep->icontext) {
+		int jcontext = peek_audio_context();
+		if (!jcontext) {
+#ifdef HAVE_LIBSOUND
+			jcontext = libsound_createContext();
+#endif //HAVE_LIBSOUND
+		}
+		srep->icontext = jcontext;
+	}
+	push_audio_context(srep->icontext);
+}
+void pop_audio_context() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_pop(int, p->audio_context_stack);
+}
+int peek_audio_context() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	return stack_top(int, p->audio_context_stack);
+}
+
+
+void prep_Sound(struct X3D_Sound* node) {
+	if (!node->_context) {
+		node->_context = peek_audio_context();
+		if (!node->_context) {
+#ifdef HAVE_LIBSOUND
+			node->_context = libsound_createContext();
+#endif //HAVE_LIBSOUND
+		}
+	}
+	push_audio_context(node->_context);
 }
 void child_Sound(struct X3D_Sound* node) {
+	normalChildren(node->children);
 
 }
 void fin_Sound(struct X3D_Sound* node) {
-
+	pop_audio_context();
 }
 
 
@@ -492,6 +600,8 @@ int	parse_audioclip(struct X3D_AudioClip *node,char *bbuffer, int len){
 #endif
 	if (buffer == AL_NONE)
 		buffer = BADAUDIOSOURCE;
+#elif HAVE_LIBSOUND
+	int buffer = libsound_createBusFromBuffer(bbuffer, len);
 #else
 	int buffer = BADAUDIOSOURCE;
 #endif
@@ -591,36 +701,18 @@ double return_Duration (struct X3D_AudioClip *node) {
 
 #ifdef HAVE_LIBSOUND
 
-// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
-void push_audio_context(void *audio_context){
-	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	stack_push(void*,p->audio_context_stack,audio_context);
-}
-void pop_audio_context(){
-	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	stack_pop(void *,p->audio_context_stack);
-}
-void* peek_audio_context(){
-	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	return stack_top(void*,p->audio_context_stack);
-}
 
 
-#include "../../libsound/libsound.h"
-//libsound is our /src/libsound C wrapper lib over 
-// LabSound https://github.com/LabSound/LabSound 
+//void render_connect(struct X3D_AudioNode *source, struct X3D_AudioNode *destination){
+//	//ls_connect(peek_audio_context()->_context,source->_self);
+//}
 
-
-void render_connect(struct X3D_AudioNode *source, struct X3D_AudioNode *destination){
-	//ls_connect(peek_audio_context()->_context,source->_self);
-}
-
-void render_connections(struct X3D_AudioNode *source, struct Multi_Node *connections){
-	for(int i=0;i<connections->n;i++){
-		render_node(connections->p[i]);
-		render_connect(source,X3D_AUDIO(connections->p[i]));
-	}
-}
+//void render_connections(struct X3D_AudioNode *source, struct Multi_Node *connections){
+//	for(int i=0;i<connections->n;i++){
+//		render_node(connections->p[i]);
+//		render_connect(source,X3D_AUDIO(connections->p[i]));
+//	}
+//}
 
 void compile_OscillatorSource(struct X3D_OscillatorSource *node){
 	MARK_NODE_COMPILED

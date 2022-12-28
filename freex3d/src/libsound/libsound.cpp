@@ -1,7 +1,6 @@
 
 // license: MIT or equivalent permissive
 //
-
 #include "LabSound.h"
 #include <algorithm>
 #include <array>
@@ -157,6 +156,15 @@ void Wait(Duration duration)
 #ifdef __cplusplus
 extern "C" {
 #endif
+#define GLDOUBLE double
+typedef struct {
+    void* p;                   /* Pointer to actual object */
+    unsigned int x;             /* Extra information - reuse count etc */
+} ptw32_handle_t;
+
+typedef ptw32_handle_t pthread_t;
+#include "../lib/vrml_parser/Structs.h"
+
 #include "libsound.h"
     static void* busbuffers[30];
     static int n_busbuffers = 0;
@@ -211,6 +219,16 @@ extern "C" {
     };
     static std::vector<per_context_stuff> active_contexts;
     void* libsound_createContext()
+    {
+        std::shared_ptr<lab::AudioContext> context;
+        lab::AudioContext *ccontext;
+        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        ccontext = context.get(); //gimme the raw context pointer from smart pointer 
+        //context.release(); //and dont garbage collect the context when we go out of scope, C taking ownership
+        return (void*)ccontext;
+    }
+    void* libsound_createContext2()
     {
         std::unique_ptr<lab::AudioContext> context;
         lab::AudioContext* ccontext;
@@ -324,30 +342,191 @@ extern "C" {
         }
         return node;
     }
-    void libsound_connect(void* ccontext, void* cdestination, void* csource) {
+
+    //attempt 4
+    struct anstruct { std::shared_ptr<lab::AudioNode> anode; };
+    struct acstruct {
+        lab::AudioContext* context;
+        int next_node;
+        int next_bus;
+        std::map<int, std::shared_ptr<lab::AudioNode>> nodes;
+        std::map<int, std::shared_ptr<lab::AudioBus>> busses;
+    };
+    static int next_audio_context;
+    static std::map<int, struct acstruct*> audio_contexts;
+    int libsound_createContextData() {
+        struct acstruct *ac = new acstruct();
+        ac->context = static_cast<lab::AudioContext*>(libsound_createContext());
+        next_audio_context++;
+        audio_contexts[next_audio_context] = ac;
+        return next_audio_context;
+    }
+    //this one uses int index lookup in a map, much like a vector except can deleted elements
+    void libsound_connect0(int icontext, int idestination, int isource) {
+        struct acstruct* ac = audio_contexts[icontext];
+        std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
+        std::shared_ptr<AudioNode> source = ac->nodes[isource];
+        ac->context->connect(destination, source);
+    }
+    int libsound_createBusFromBuffer0(int icontext, char* bbuffer, int len) {
+        struct acstruct* ac = audio_contexts[icontext];
+        std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
+        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
+        ac->next_bus++;
+        ac->busses[ac->next_bus] = Bus;
+        return ac->next_bus;
+    }
+    struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
+        //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
+        // to get specific common fields used for internal processing only
+        // -- just put the common fields in the Rep
+        // in our case it would be our lookup table int, maybe some AudioNode fields related to connecting, starting, stopping
+        struct X3D_SoundRep* srep = NULL;
+        if (pnode) {
+            srep = (struct X3D_SoundRep*)pnode->_intern;
+            if (!srep) {
+                srep = (struct X3D_SoundRep*)malloc(sizeof(struct X3D_SoundRep));
+                memset(srep, 0, sizeof(struct X3D_SoundRep));
+                srep->itype = 7; //SoundRep
+                pnode->_intern = (struct X3D_GeomRep*)srep;
+            }
+        }
+        return srep;
+    }
+    void libsound_updateNode0(int icontext, struct X3D_Node* connect_parent, struct X3D_Node* node) {
+        struct acstruct* ac = audio_contexts[icontext];
+        //goal- switch-case on x3d nodeType and do any labsound node create+connect, update input or update output
+        // - then this can be called from 
+        struct X3D_SoundRep* srepp = getSoundRep(connect_parent);
+        struct X3D_SoundRep* srepn = getSoundRep(node);
+        switch (node->_nodeType) {
+        case NODE_OscillatorSource:
+        {
+            struct X3D_OscillatorSource* pnode = (struct X3D_OscillatorSource*)node;
+            //if (!pnode->_self) {
+            std::shared_ptr<OscillatorNode> oscillator;
+            OscillatorNode *oscillator_ptr;
+            if(!srepn->inode){
+                //create labsound node
+                oscillator = std::make_shared<OscillatorNode>(ac->context->sampleRate());
+                oscillator_ptr = oscillator.get();
+                //oscillator->detune( pnode->detune);
+                ac->next_node++;
+                ac->nodes[ac->next_node] = oscillator; // std::shared_ptr<AudioNode>(oscillator);
+                //pnode->_self = (void*)(uint64_t)ac->next_node;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                //libsound_connect0(icontext, connect_parent->_self, pnode->_self);
+                if(srepp)
+                    libsound_connect0(icontext, srepp->inode, srepn->inode);
+            }
+            //oscillator = static_cast<std::shared_ptr<OscillatorNode>>(ac->nodes[srepn->inode]);
+            oscillator_ptr = dynamic_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
+            //copy changed values from x3d to labsound
+            oscillator_ptr->detune()->setValue(pnode->detune);
+
+            //copy outputs from labsound to x3d
+            //pnode->elapsedTime = oscillator_ptr->param("time")->value(;
+        }
+        break;
+        case NODE_Gain:
+        {
+            struct X3D_Gain* pnode = (struct X3D_Gain*)node;
+            std::shared_ptr<GainNode> gain;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                gain = std::make_shared<GainNode>();
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                if (srepp)
+                    libsound_connect0(icontext, srepp->inode, srepn->inode);
+            }
+            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->inode].get());
+            //copy changed values from x3d to labsound
+            gain_ptr->gain()->setValue(pnode->gain);
+
+            //copy outputs from labsound to x3d
+
+        }
+        break;
+        default:
+            return;
+
+        }
+    }
+
+    void libsound_connect(void* ccontext, void * cdestination, void * csource) {
         lab::AudioContext* context = (lab::AudioContext*)ccontext;
+        struct anstruct* destination = (struct anstruct*)cdestination;
+        struct anstruct* source = (struct anstruct*)csource;
         // even if I pass around a shared_ptr, how will it know its type
         //    - don't the incoming paramters need to be strongly typed?
-        //std::shared_ptr < lab::AudioNode> destination = dynamic_cast<std::shared_ptr < void *>>cdestination;
+        // - C++ needs to recover the vtable of the derived type
+        // -- either drag around an int itype and switch-case to cast to appropriate derived class
+        // -- or keep the vtable-aware structs/variables alive.
+        //std::shared_ptr < lab::AudioNode> destination = static_cast<lab::AudioNode>(cdestination);
         //std::shared_ptr < lab::AudioNode> source = std::make_shared<lab::AudioNode>(csource);
-        //std::shared_ptr < lab::AudioNode> destination = std::(destination);
+        //std::shared_ptr < lab::AudioNode> destination = std::make_shared<lab::AudioNode>(cdestination);
 
-        //context->connect(destination,source);
+       context->connect(destination->anode,source->anode);
 
     }
-    int libsound_createAudioClip() {
-        //convert size_t busbuffer pointer to an int to be compatible with openAL int buffer number.
+    typedef std::shared_ptr<lab::AudioNode> anode; //but how to persist a local shared_ptr so not itself garbage collected?
+    void libsound_connect3(void* ccontext, void* cdestination, void* csource) {
+        lab::AudioContext* context = (lab::AudioContext*)ccontext;
+        anode *destination = (anode*)cdestination;
+        anode* source = (anode*)csource;
+        // even if I pass around a shared_ptr, how will it know its type
+        //    - don't the incoming paramters need to be strongly typed?
+        // - C++ needs to recover the vtable of the derived type
+        // -- either drag around an int itype and switch-case to cast to appropriate derived class
+        // -- or keep the vtable-aware structs/variables alive.
+        //std::shared_ptr < lab::AudioNode> destination = static_cast<lab::AudioNode>(cdestination);
+        //std::shared_ptr < lab::AudioNode> source = std::make_shared<lab::AudioNode>(csource);
+        //std::shared_ptr < lab::AudioNode> destination = std::make_shared<lab::AudioNode>(cdestination);
+
+        context->connect(*(destination), *source);
+
+    }
+
+
+    int libsound_createBusFromBuffer(char* bbuffer, int len) {
+
         int ibusbuffer = n_busbuffers;
-     //   busbuffers[ibusbuffer] = (void*)Bus;
+        std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
+        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
+
+        busbuffers[ibusbuffer] = (void*)Bus.get();
         n_busbuffers++;
         return ibusbuffer;
+
+    }
+
+
+    int libsound_createAudioClip() {
+        return 0;
     }
 
 #ifdef __cplusplus
 }
 #endif
 
-
+/*
+    Dec 25, 2022 prototype III
+    0) make an ls_create_context function and cast back to void to return to C.
+    1) make an ls_render_node for each of 22 x3d audio nodes, 
+        and in each specific ls_render_node create the appropriate labsound node type, 
+        and cast back to void* and store in the x3d node
+    2) make a ls_connect(ls_context, x3dnode1, x3dnode2)
+       in the function, switch-case on x3dnode type to caste void* to appropriate labsound node type
+       then call the labsound context.connect(labsound_node1, labsound_node2);
+ */
 // June 22, 2020 - the above is a prototype I,
 // proposed prototype II:
 // 1) create_context launches a worker thread per context
