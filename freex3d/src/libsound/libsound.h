@@ -28,8 +28,9 @@ enum {
 	AN_AudioDestinationNode,
 };
 EXPORT_DLL extern struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode);
+EXPORT_DLL extern void libsound_updateNode0(int icontext, int connect_parent, struct X3D_Node* node);
 EXPORT_DLL extern void libsound_testNoise();
-EXPORT_DLL extern void* libsound_createContext();
+EXPORT_DLL extern int libsound_createContext0();
 EXPORT_DLL extern int libsound_createBusFromBuffer(char* bbuffer, int len);
 EXPORT_DLL extern void* libsound_createNode(void *context, int type);
 EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);

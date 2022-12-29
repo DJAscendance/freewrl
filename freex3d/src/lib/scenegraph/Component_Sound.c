@@ -41,6 +41,7 @@ X3D Sound Component
 #include "LinearAlgebra.h"
 
 #define BADAUDIOSOURCE -9999
+#undef HAVE_LIBSOUND
 #ifdef HAVE_LIBSOUND
 #undef HAVE_OPENAL
 #endif //HAVE_LIBSOUND
@@ -111,6 +112,7 @@ typedef struct pComponent_Sound{
 	void *alContext;
 #endif //HAVE_OPENAL
 	Stack *audio_context_stack;
+	Stack *audio_parent_stack;
 }* ppComponent_Sound;
 void *Component_Sound_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_Sound));
@@ -132,6 +134,8 @@ void Component_Sound_init(struct tComponent_Sound *t){
 		/* for printing warnings about Sound node problems - only print once per invocation */
 		p->audio_context_stack = newStack(int);
 		stack_push(int, p->audio_context_stack, 0); //a null will signal we have no audio context yet.
+		p->audio_parent_stack = newStack(int);
+		stack_push(int, p->audio_parent_stack, 0); //a null will signal we have no audio parent yet.
 #ifdef HAVE_OPENAL
 		p->alContext = NULL;
 #endif //HAVE_OPENAL
@@ -319,6 +323,116 @@ void render_AudioClip (struct X3D_AudioClip *node) {
 
 
 
+
+int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len) {
+#ifdef HAVE_OPENAL
+	ALint buffer = AL_NONE;
+#ifdef HAVE_ALUT
+	buffer = alutCreateBufferFromFileImage(bbuffer, len);
+	//#elif HAVE_SDL
+#endif
+	if (buffer == AL_NONE)
+		buffer = BADAUDIOSOURCE;
+#elif HAVE_LIBSOUND
+	int buffer = libsound_createBusFromBuffer(bbuffer, len);
+#else
+	int buffer = BADAUDIOSOURCE;
+#endif
+	//printf("parse_audioclip buffer=%d\n",buffer);
+	return buffer;
+}
+
+double compute_duration(int ibuffer) {
+
+	double retval = 1.0;
+#ifdef HAVE_OPENAL
+	int ibytes;
+	int ibits;
+	int ichannels;
+	int ifreq;
+	double framesizebytes, bytespersecond;
+	alGetBufferi(ibuffer, AL_FREQUENCY, &ifreq);
+	alGetBufferi(ibuffer, AL_BITS, &ibits);
+	alGetBufferi(ibuffer, AL_CHANNELS, &ichannels);
+	alGetBufferi(ibuffer, AL_SIZE, &ibytes);
+	framesizebytes = (double)(ibits * ichannels) / 8.0;
+	bytespersecond = framesizebytes * (double)ifreq;
+	if (bytespersecond > 0.0)
+		retval = (double)(ibytes) / bytespersecond;
+	else
+		retval = 1.0;
+#endif
+	return retval;
+}
+bool  process_res_audio(resource_item_t* res) {
+	//s_list_t *l;
+	openned_file_t* of;
+	//struct Shader_Script* ss;
+	char* buffer;
+	int len;
+	struct X3D_AudioClip* node;
+
+	buffer = NULL;
+	len = 0;
+	switch (res->type) {
+	case rest_invalid:
+		return FALSE;
+		break;
+
+	case rest_string:
+		buffer = res->URLrequest;
+		break;
+	case rest_url:
+	case rest_file:
+	case rest_multi:
+		//l = (s_list_t *) res->openned_files;
+		//if (!l) {
+		//	/* error */
+		//	return FALSE;
+		//}
+
+		//of = ml_elem(l);
+		of = res->openned_files;
+		if (!of) {
+			/* error */
+			return FALSE;
+		}
+
+		buffer = of->fileData;
+		len = of->fileDataSize;
+		break;
+	}
+
+	node = (struct X3D_AudioClip*)res->whereToPlaceData;
+	//node->__FILEBLOB = buffer;
+	node->__sourceNumber = parse_audioclip(node, buffer, len); //__sourceNumber will be openAL buffer number
+	if (node->__sourceNumber > -1) {
+		node->duration_changed = compute_duration(node->__sourceNumber);
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, duration_changed));
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
+/* returns the audio duration, unscaled by pitch */
+double return_Duration(struct X3D_AudioClip* node) {
+	double retval;
+	int indx;
+	indx = node->__sourceNumber;
+	if (indx < 0)  retval = 1.0;
+	else if (indx > 50) retval = 1.0;
+	else
+	{
+#ifdef HAVE_OPENAL
+		retval = node->duration_changed;
+#endif
+	}
+	return retval;
+}
+
+
+#ifdef HAVE_OPENAL
 void render_Sound (struct X3D_Sound *node) {
 /*  updates the position and velocity vector of the sound source relative to the listener/avatar
 	so 3D sound effects can be rendered: distance attenuation, stereo left/right volume balance, 
@@ -359,7 +473,7 @@ void render_Sound (struct X3D_Sound *node) {
 		return;
 	}
 
-#ifdef HAVE_OPENAL
+
 	/*  4 sources of openAL explanations and examples:
 		- http://open-activewrl.sourceforge.net/data/OpenAL_PGuide.pdf  
 		- http://forum.devmaster.net/t  and type 'openal' in the search box to get several lessons on openal
@@ -472,86 +586,25 @@ void render_Sound (struct X3D_Sound *node) {
 			}
 		}
 	}
-#elif HAVE_LIBSOUND
-	if (acp) {
-		if (haveSoundEngine()) {
-			if (acp->__sourceNumber < 0) {
-				render_AudioClip(acp);
-			}
-			if (acp->__sourceNumber > -1) {
-				//have a buffer loaded
-				int i;
-				GLDOUBLE modelMatrix[16];
-				GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
-				float SourcePos[3];
-
-				//transform source local coordinate 0,0,0 location into avatar/listener space
-				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-				transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
-				for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
-
-				if (node->__sourceNumber < 0) {
-					node->__lasttime = TickTime();
-					veccopy3f(node->__lastlocation.c, SourcePos);
-
-					node->__sourceNumber = 0;
-				}
-				if (node->__sourceNumber > -1) {
-					int istate;
-					float SourceVel[3] = { 0.0f, 0.0f, 0.0f };
-					float travelled[3];
-					double traveltime;
-
-					//update velocity for doppler effect
-					vecdif3f(travelled, node->__lastlocation.c, SourcePos);
-					traveltime = TickTime() - node->__lasttime;
-					if (traveltime > 0.0)
-						vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
-
-					node->__lasttime = TickTime();
-					veccopy3f(node->__lastlocation.c, SourcePos);
-
-					//directional sound 
-					if (node->spatialize) {
-						double dird[3];
-						float dirf[3];
-						//transform source direction into avatar/listener space
-						for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
-						transformAFFINEd(dird, dird, modelMatrix);
-						for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
-					}
-
-					// for routed values going to audioclip, update values
-					// update to audioclip start,stop,pause,resume is done in do_AudioTick()
-					if (acp->isActive) {
-							//printf(".play.");
-					}
-					else {
-						//stop
-					}
-				}
-			}
-		}
-	}
-#endif
 
 }
 
+#endif //HAVE_OPENAL
 
+#ifdef HAVE_LIBSOUND
 
 // v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
 void push_audio_context(int audio_context) {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	stack_push(int, p->audio_context_stack, audio_context);
 }
-void super_push_audio_context(struct X3D_AudioNode* node) {
+void create_and_push_audio_context(struct X3D_Node* node) {
+	//Hypothesis: Destination / output audio nodes create a context, and child source and processing audio nodes use the context
 	struct X3D_SoundRep* srep = getSoundRep(node);
 	if (!srep->icontext) {
 		int jcontext = peek_audio_context();
 		if (!jcontext) {
-#ifdef HAVE_LIBSOUND
-			jcontext = libsound_createContext();
-#endif //HAVE_LIBSOUND
+			jcontext = libsound_createContext0();
 		}
 		srep->icontext = jcontext;
 	}
@@ -566,155 +619,120 @@ int peek_audio_context() {
 	return stack_top(int, p->audio_context_stack);
 }
 
-
-void prep_Sound(struct X3D_Sound* node) {
-	if (!node->_context) {
-		node->_context = peek_audio_context();
-		if (!node->_context) {
-#ifdef HAVE_LIBSOUND
-			node->_context = libsound_createContext();
-#endif //HAVE_LIBSOUND
-		}
+void push_audio_parent(struct X3D_Node* node) {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	struct X3D_SoundRep* srep = getSoundRep(node);
+	stack_push(int, p->audio_parent_stack, srep->inode);
+}
+void pop_audio_parent() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_pop(int, p->audio_parent_stack);
+}
+int peek_audio_parent() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	return stack_top(int, p->audio_parent_stack);
+}
+void render_Sound(struct X3D_Sound* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
+	int icontext = peek_audio_context();
+	libsound_updateNode0(icontext,0,anode);
+	push_audio_parent(anode);
+	if (node->source)
+		//libsound_updateNode0(icontext,anode,node->source);
+		render_node(node->source);
+	if (node->children.n) {
+		for (int i = 0; i < node->children.n; i++)
+			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
+			render_node(X3D_NODE(node->children.p[i]));
 	}
-	push_audio_context(node->_context);
-}
-void child_Sound(struct X3D_Sound* node) {
-	normalChildren(node->children);
-
-}
-void fin_Sound(struct X3D_Sound* node) {
+	pop_audio_parent();
 	pop_audio_context();
 }
-
-
-
-
-int	parse_audioclip(struct X3D_AudioClip *node,char *bbuffer, int len){
-#ifdef HAVE_OPENAL
-	ALint buffer = AL_NONE;
-#ifdef HAVE_ALUT
-	buffer = alutCreateBufferFromFileImage (bbuffer, len);
-//#elif HAVE_SDL
-#endif
-	if (buffer == AL_NONE)
-		buffer = BADAUDIOSOURCE;
-#elif HAVE_LIBSOUND
-	int buffer = libsound_createBusFromBuffer(bbuffer, len);
-#else
-	int buffer = BADAUDIOSOURCE;
-#endif
-	//printf("parse_audioclip buffer=%d\n",buffer);
-	return buffer;
-}
-
-double compute_duration(int ibuffer){
-
-	double retval = 1.0;
-#ifdef HAVE_OPENAL
-	int ibytes;
-	int ibits;
-	int ichannels;
-	int ifreq;
-	double framesizebytes, bytespersecond;
-	alGetBufferi(ibuffer,AL_FREQUENCY,&ifreq);
-	alGetBufferi(ibuffer,AL_BITS,&ibits);
-	alGetBufferi(ibuffer,AL_CHANNELS,&ichannels);
-	alGetBufferi(ibuffer,AL_SIZE,&ibytes);
-	framesizebytes = (double)(ibits * ichannels)/8.0;
-	bytespersecond = framesizebytes * (double)ifreq;
-	if(bytespersecond > 0.0)
-		retval = (double)(ibytes) / bytespersecond;
-	else
-		retval = 1.0;
-#endif
-	return retval;
-}
-bool  process_res_audio(resource_item_t *res){
-	//s_list_t *l;
-	openned_file_t *of;
-	//struct Shader_Script* ss;
-	char *buffer;
-	int len;
-	struct X3D_AudioClip *node;
-
-	buffer = NULL;
-	len = 0;
-	switch (res->type) {
-	case rest_invalid:
-		return FALSE;
-		break;
-
-	case rest_string:
-		buffer = res->URLrequest;
-		break;
-	case rest_url:
-	case rest_file:
-	case rest_multi:
-		//l = (s_list_t *) res->openned_files;
-		//if (!l) {
-		//	/* error */
-		//	return FALSE;
-		//}
-
-		//of = ml_elem(l);
-		of = res->openned_files;
-		if (!of) {
-			/* error */
-			return FALSE;
+/*
+// this would go in the libsound_updateAudioNode?
+if (acp) {
+	if (haveSoundEngine()) {
+		if (acp->__sourceNumber < 0) {
+			render_AudioClip(acp);
 		}
+		if (acp->__sourceNumber > -1) {
+			//have a buffer loaded
+			int i;
+			GLDOUBLE modelMatrix[16];
+			GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
+			float SourcePos[3];
 
-		buffer = of->fileData;
-		len = of->fileDataSize;
-		break;
+			//transform source local coordinate 0,0,0 location into avatar/listener space
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+			transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
+			for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
+
+			if (node->__sourceNumber < 0) {
+				node->__lasttime = TickTime();
+				veccopy3f(node->__lastlocation.c, SourcePos);
+
+				node->__sourceNumber = 0;
+			}
+			if (node->__sourceNumber > -1) {
+				int istate;
+				float SourceVel[3] = { 0.0f, 0.0f, 0.0f };
+				float travelled[3];
+				double traveltime;
+
+				//update velocity for doppler effect
+				vecdif3f(travelled, node->__lastlocation.c, SourcePos);
+				traveltime = TickTime() - node->__lasttime;
+				if (traveltime > 0.0)
+					vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
+
+				node->__lasttime = TickTime();
+				veccopy3f(node->__lastlocation.c, SourcePos);
+
+				//directional sound 
+				if (node->spatialize) {
+					double dird[3];
+					float dirf[3];
+					//transform source direction into avatar/listener space
+					for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
+					transformAFFINEd(dird, dird, modelMatrix);
+					for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
+				}
+
+				// for routed values going to audioclip, update values
+				// update to audioclip start,stop,pause,resume is done in do_AudioTick()
+				if (acp->isActive) {
+					//printf(".play.");
+				}
+				else {
+					//stop
+				}
+			}
+		}
 	}
-
-	node = (struct X3D_AudioClip *) res->whereToPlaceData;
-	//node->__FILEBLOB = buffer;
-	node->__sourceNumber = parse_audioclip(node,buffer,len); //__sourceNumber will be openAL buffer number
-	if(node->__sourceNumber > -1) {
-		node->duration_changed = compute_duration(node->__sourceNumber);
-		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_AudioClip, duration_changed));
-		return TRUE;
-	} 
-	return FALSE;
 }
-
-
-/* returns the audio duration, unscaled by pitch */
-double return_Duration (struct X3D_AudioClip *node) {
-	double retval;
-	int indx;
-	indx = node->__sourceNumber;
-	if (indx < 0)  retval = 1.0;
-	else if (indx > 50) retval = 1.0;
-	else 
-	{
-#ifdef HAVE_OPENAL
-		retval = node->duration_changed;
-#endif
-	}
-	return retval;
-}
+*/
+#endif //HAVE_LIBSOUND
 
 
 #ifdef HAVE_LIBSOUND
 
 
 void render_OscillatorSource(struct X3D_OscillatorSource *node){
-	COMPILE_IF_REQUIRED
+	//COMPILE_IF_REQUIRED
+	if (node->_ichange != node->_change) {
+		//if (node->_ichange == 0) return;
+
+		struct X3D_Node* anode = (struct X3D_Node*)node;
+		int icontext = peek_audio_context();
+		int iparent = peek_audio_parent();
+		libsound_updateNode0(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+		node->_ichange = node->_change;
+	}
 }
 
-//void compile_BufferAudioSource(struct X3D_BufferAudioSource *node){
-//	if(!node->_self && peek_audio_context()){
-//		node->_self = libsound_createNode(peek_audio_context(),AN_AudioBuffer); //,node type, parameter list
-//		node->_context = peek_audio_context();
-//	}else if(peek_audio_context() == node->_context){
-//		//which field changed
-//		//libsound_updatenode(,,parameter_list);
-//	}
-//
-//	MARK_NODE_COMPILED
-//}
+
 void render_BufferAudioSource(struct X3D_BufferAudioSource *node){
 	COMPILE_IF_REQUIRED
 }
@@ -783,5 +801,25 @@ void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {
 void render_SpatialSound(struct X3D_SpatialSound *node){
 	COMPILE_IF_REQUIRED
 }
-
+#else //HAVE_LIBSOUND
+//HAVE_OPENAL
+void render_OscillatorSource(struct X3D_OscillatorSource* node) {}
+void render_BufferAudioSource(struct X3D_BufferAudioSource* node) {}
+void render_StreamAudioSource(struct X3D_StreamAudioSource* node) {}
+void render_WaveShaper(struct X3D_WaveShaper* node) {}
+void render_PeriodicWave(struct X3D_PeriodicWave* node) {}
+void render_AudioDestination(struct X3D_AudioDestination* node) {}
+void render_StreamAudioDestination(struct X3D_StreamAudioDestination* node) {}
+void render_Analyser(struct X3D_Analyser* node) {}
+void render_ChannelMerger(struct X3D_ChannelMerger* node) {}
+void render_ChannelSelector(struct X3D_ChannelSelector* node) {}
+void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {}
+void render_BiquadFilter(struct X3D_BiquadFilter* node) {}
+void render_Convolver(struct X3D_Convolver* node) {}
+void render_Delay(struct X3D_Delay* node) {}
+void render_DynamicsCompressor(struct X3D_DynamicsCompressor* node) {}
+void render_Gain(struct X3D_Gain* node) {}
+void render_ListenerPointSource(struct X3D_ListenerPointSource* node) {}
+void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {}
+void render_SpatialSound(struct X3D_SpatialSound* node) {}
 #endif //HAVE_LIBSOUND

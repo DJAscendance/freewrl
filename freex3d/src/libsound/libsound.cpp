@@ -354,7 +354,7 @@ typedef ptw32_handle_t pthread_t;
     };
     static int next_audio_context;
     static std::map<int, struct acstruct*> audio_contexts;
-    int libsound_createContextData() {
+    int libsound_createContext0() {
         struct acstruct *ac = new acstruct();
         ac->context = static_cast<lab::AudioContext*>(libsound_createContext());
         next_audio_context++;
@@ -393,11 +393,10 @@ typedef ptw32_handle_t pthread_t;
         }
         return srep;
     }
-    void libsound_updateNode0(int icontext, struct X3D_Node* connect_parent, struct X3D_Node* node) {
+    void libsound_updateNode0(int icontext, int iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         //goal- switch-case on x3d nodeType and do any labsound node create+connect, update input or update output
         // - then this can be called from 
-        struct X3D_SoundRep* srepp = getSoundRep(connect_parent);
         struct X3D_SoundRep* srepn = getSoundRep(node);
         switch (node->_nodeType) {
         case NODE_OscillatorSource:
@@ -418,8 +417,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, connect_parent->_self, pnode->_self);
-                if(srepp)
-                    libsound_connect0(icontext, srepp->inode, srepn->inode);
+                if(iparent)
+                    libsound_connect0(icontext, iparent, srepn->inode);
             }
             //oscillator = static_cast<std::shared_ptr<OscillatorNode>>(ac->nodes[srepn->inode]);
             oscillator_ptr = dynamic_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
@@ -444,8 +443,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                if (srepp)
-                    libsound_connect0(icontext, srepp->inode, srepn->inode);
+                if (iparent)
+                    libsound_connect0(icontext, iparent, srepn->inode);
             }
             gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->inode].get());
             //copy changed values from x3d to labsound
