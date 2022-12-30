@@ -166,8 +166,10 @@ typedef ptw32_handle_t pthread_t;
 #include "../lib/vrml_parser/Structs.h"
 
 #include "libsound.h"
-    static void* busbuffers[30];
-    static int n_busbuffers = 0;
+    //static void* busbuffers[30];
+    //static int n_busbuffers = 0;
+    static std::map<int, std::shared_ptr<lab::AudioBus>> busses;
+    static int next_bus;
 
     void libsound_testNoise()
     {
@@ -218,16 +220,16 @@ typedef ptw32_handle_t pthread_t;
         std::vector < variant_record > nodes;
     };
     static std::vector<per_context_stuff> active_contexts;
-    void* libsound_createContext()
-    {
-        std::shared_ptr<lab::AudioContext> context;
-        lab::AudioContext *ccontext;
-        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
-        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
-        ccontext = context.get(); //gimme the raw context pointer from smart pointer 
-        //context.release(); //and dont garbage collect the context when we go out of scope, C taking ownership
-        return (void*)ccontext;
-    }
+    //std::shared_ptr<lab::AudioContext> libsound_createContext()
+    //{
+    //    std::shared_ptr<lab::AudioContext> context;
+    //    //lab::AudioContext *ccontext;
+    //    const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+    //    context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+    //    //ccontext = context.get(); //gimme the raw context pointer from smart pointer 
+    //    //context.release(); //and dont garbage collect the context when we go out of scope, C taking ownership
+    //    return context; // (void*)ccontext;
+    //}
     void* libsound_createContext2()
     {
         std::unique_ptr<lab::AudioContext> context;
@@ -346,17 +348,22 @@ typedef ptw32_handle_t pthread_t;
     //attempt 4
     struct anstruct { std::shared_ptr<lab::AudioNode> anode; };
     struct acstruct {
-        lab::AudioContext* context;
+        std::shared_ptr<lab::AudioContext> context;
         int next_node;
-        int next_bus;
+        //int next_bus;
         std::map<int, std::shared_ptr<lab::AudioNode>> nodes;
-        std::map<int, std::shared_ptr<lab::AudioBus>> busses;
+        //std::map<int, std::shared_ptr<lab::AudioBus>> busses;
     };
     static int next_audio_context;
     static std::map<int, struct acstruct*> audio_contexts;
     int libsound_createContext0() {
         struct acstruct *ac = new acstruct();
-        ac->context = static_cast<lab::AudioContext*>(libsound_createContext());
+        std::shared_ptr<lab::AudioContext> context;
+        //lab::AudioContext *ccontext;
+        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+
+        ac->context = context; // libsound_createContext(); // static_cast<lab::AudioContext*>(libsound_createContext());
         next_audio_context++;
         audio_contexts[next_audio_context] = ac;
         return next_audio_context;
@@ -368,13 +375,20 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         ac->context->connect(destination, source);
     }
-    int libsound_createBusFromBuffer0(int icontext, char* bbuffer, int len) {
-        struct acstruct* ac = audio_contexts[icontext];
+    //int libsound_createBusFromBuffer0_old(int icontext, char* bbuffer, int len) {
+    //    struct acstruct* ac = audio_contexts[icontext];
+    //    std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
+    //    std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
+    //    ac->next_bus++;
+    //    ac->busses[ac->next_bus] = Bus;
+    //    return ac->next_bus;
+    //}
+    int libsound_createBusFromBuffer0(char* bbuffer, int len) {
         std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
         std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
-        ac->next_bus++;
-        ac->busses[ac->next_bus] = Bus;
-        return ac->next_bus;
+        next_bus++;
+        busses[next_bus] = Bus;
+        return next_bus;
     }
     struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
         //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
@@ -399,34 +413,61 @@ typedef ptw32_handle_t pthread_t;
         // - then this can be called from 
         struct X3D_SoundRep* srepn = getSoundRep(node);
         switch (node->_nodeType) {
+        case NODE_Sound:
+        {
+            struct X3D_Sound* pnode = (struct X3D_Sound*)node;
+            if (!srepn->inode) {
+                ac->next_node++;
+                ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+            }
+            //ac->context->connect(ac->context->device(), child, 0, 0);
+        }
+        break;
+        case NODE_AudioClip:
+        {
+            struct X3D_AudioClip* pnode = (struct X3D_AudioClip*)node;
+            std::shared_ptr<SampledAudioNode> musicClipNode;
+            if(!srepn->inode){
+                //create labsound node
+                musicClipNode = std::make_shared<SampledAudioNode>();
+                {
+                    ContextRenderLock r(ac->context.get(), "ex_simple");
+                    musicClipNode->setBus(r, busses[srepn->ibuffer]);
+                }
+                ac->next_node++;
+                ac->nodes[ac->next_node] = musicClipNode;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                if (iparent)
+                    libsound_connect0(icontext, iparent, srepn->inode);
+                musicClipNode->start(0.0f);
+
+            }
+            //copy changed values from x3d to labsound
+            //copy outputs from labsound to x3d
+        }
+        break;
         case NODE_OscillatorSource:
         {
             struct X3D_OscillatorSource* pnode = (struct X3D_OscillatorSource*)node;
             //if (!pnode->_self) {
             std::shared_ptr<OscillatorNode> oscillator;
-            OscillatorNode *oscillator_ptr;
-            if(!srepn->inode){
+            if (!srepn->inode) {
                 //create labsound node
                 oscillator = std::make_shared<OscillatorNode>(ac->context->sampleRate());
-                oscillator_ptr = oscillator.get();
-                //oscillator->detune( pnode->detune);
-                ac->next_node++;
-                ac->nodes[ac->next_node] = oscillator; // std::shared_ptr<AudioNode>(oscillator);
-                //pnode->_self = (void*)(uint64_t)ac->next_node;
+                  ac->next_node++;
+                ac->nodes[ac->next_node] = oscillator;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                //libsound_connect0(icontext, connect_parent->_self, pnode->_self);
-                if(iparent)
+                if (iparent)
                     libsound_connect0(icontext, iparent, srepn->inode);
             }
-            //oscillator = static_cast<std::shared_ptr<OscillatorNode>>(ac->nodes[srepn->inode]);
-            oscillator_ptr = dynamic_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
             //copy changed values from x3d to labsound
-            oscillator_ptr->detune()->setValue(pnode->detune);
-
+            oscillator->detune()->setValue(pnode->detune);
             //copy outputs from labsound to x3d
-            //pnode->elapsedTime = oscillator_ptr->param("time")->value(;
         }
         break;
         case NODE_Gain:
@@ -495,24 +536,24 @@ typedef ptw32_handle_t pthread_t;
     }
 
 
-    int libsound_createBusFromBuffer(char* bbuffer, int len) {
-        //const std::string path = "C:/Users/dougs/Documents/dev/source2/freewrlwebpages/htdocs/tests/16_Sound/helpers/Checkin2.wav";
-        //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\cnote.wav";
-       // const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\file1.wav";
-        //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\Piano11.mp3";
-       // std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, true);
+    //int libsound_createBusFromBuffer(char* bbuffer, int len) {
+    //    //const std::string path = "C:/Users/dougs/Documents/dev/source2/freewrlwebpages/htdocs/tests/16_Sound/helpers/Checkin2.wav";
+    //    //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\cnote.wav";
+    //   // const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\helpers\\file1.wav";
+    //    //const std::string path = "C:\\Users\\dougs\\Documents\\dev\\source2\\freewrlwebpages\\htdocs\\tests\\16_Sound\\Piano11.mp3";
+    //   // std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, true);
+    //    n_busbuffers++;
 
-        int ibusbuffer = n_busbuffers;
-        //std::vector<uint8_t>* b0 = new std::vector<uint8_t>(len);
-       // memcpy(b0->data(), bbuffer, len);
-        std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
-        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false); //bombs, don't know why
+    //    int ibusbuffer = n_busbuffers;
+    //    //std::vector<uint8_t>* b0 = new std::vector<uint8_t>(len);
+    //   // memcpy(b0->data(), bbuffer, len);
+    //    std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
+    //    std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false); //bombs, don't know why
 
-        busbuffers[ibusbuffer] = (void*)Bus.get();
-        n_busbuffers++;
-        return ibusbuffer;
+    //    busbuffers[ibusbuffer] = (void*)Bus.get();
+    //    return ibusbuffer;
 
-    }
+    //}
 
 
     int libsound_createAudioClip() {

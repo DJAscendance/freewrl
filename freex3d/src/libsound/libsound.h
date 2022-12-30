@@ -17,6 +17,7 @@ struct X3D_SoundRep {
 	int inode; //map nodes[inode] = lab node
 	//int inodetype; // x3d 1:1 labsound nodes, shouldn't need if know X3DNode->_nodeType
 	//int iparent; //x3d parent.inode should become destination labnode
+	int ibuffer; //just for source nodes with a buffer, like audioclip
 };
 
 enum {
@@ -31,6 +32,6 @@ EXPORT_DLL extern struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode);
 EXPORT_DLL extern void libsound_updateNode0(int icontext, int connect_parent, struct X3D_Node* node);
 EXPORT_DLL extern void libsound_testNoise();
 EXPORT_DLL extern int libsound_createContext0();
-EXPORT_DLL extern int libsound_createBusFromBuffer(char* bbuffer, int len);
+EXPORT_DLL extern int libsound_createBusFromBuffer0(char* bbuffer, int len);
 EXPORT_DLL extern void* libsound_createNode(void *context, int type);
 EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);

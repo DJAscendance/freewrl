@@ -41,7 +41,7 @@ X3D Sound Component
 #include "LinearAlgebra.h"
 
 #define BADAUDIOSOURCE -9999
-#undef HAVE_LIBSOUND
+//#undef HAVE_LIBSOUND
 #ifdef HAVE_LIBSOUND
 #undef HAVE_OPENAL
 #endif //HAVE_LIBSOUND
@@ -301,25 +301,9 @@ int loadstatus_AudioClip(struct X3D_AudioClip *node){
 	}
 	return istate;
 }
-void compile_AudioClip(struct X3D_AudioClip* node) {
-
-}
-void render_AudioClip (struct X3D_AudioClip *node) {
-/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
-	specs: if an audioclip can't be reached in the scenegraph, then it doesn't play
-*/
-
-	/* is this audio wavelet initialized yet? */
-	if (node->__loadstatus != LOAD_STABLE) {
-		locateAudioSource (node);
-	}
-	if(node->__loadstatus != LOAD_STABLE) return;
-	/* is this audio ok? if so, the sourceNumber will range
-	 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
-	 * check out locateAudioSource to find out reasons */
-	if (node->__sourceNumber == BADAUDIOSOURCE) return;
-
-}
+//void compile_AudioClip(struct X3D_AudioClip* node) {
+//
+//}
 
 
 
@@ -334,7 +318,7 @@ int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len) {
 	if (buffer == AL_NONE)
 		buffer = BADAUDIOSOURCE;
 #elif HAVE_LIBSOUND
-	int buffer = libsound_createBusFromBuffer(bbuffer, len);
+	int buffer = libsound_createBusFromBuffer0(bbuffer, len);
 #else
 	int buffer = BADAUDIOSOURCE;
 #endif
@@ -424,7 +408,7 @@ double return_Duration(struct X3D_AudioClip* node) {
 	else if (indx > 50) retval = 1.0;
 	else
 	{
-#ifdef HAVE_OPENAL
+#if defined(HAVE_OPENAL) || defined(HAVE_LIBSOUND)
 		retval = node->duration_changed;
 #endif
 	}
@@ -432,7 +416,27 @@ double return_Duration(struct X3D_AudioClip* node) {
 }
 
 
+
+
 #ifdef HAVE_OPENAL
+
+void render_AudioClip(struct X3D_AudioClip* node) {
+	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
+		specs: if an audioclip can't be reached in the scenegraph, then it doesn't play
+	*/
+
+	/* is this audio wavelet initialized yet? */
+	if (node->__loadstatus != LOAD_STABLE) {
+		locateAudioSource(node);
+	}
+	if (node->__loadstatus != LOAD_STABLE) return;
+	/* is this audio ok? if so, the sourceNumber will range
+	 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
+	 * check out locateAudioSource to find out reasons */
+	if (node->__sourceNumber == BADAUDIOSOURCE) return;
+
+}
+
 void render_Sound (struct X3D_Sound *node) {
 /*  updates the position and velocity vector of the sound source relative to the listener/avatar
 	so 3D sound effects can be rendered: distance attenuation, stereo left/right volume balance, 
@@ -632,6 +636,29 @@ int peek_audio_parent() {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	return stack_top(int, p->audio_parent_stack);
 }
+
+void render_AudioClip(struct X3D_AudioClip* node) {
+	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
+		specs: if an audioclip can't be reached in the scenegraph, then it doesn't play
+	*/
+
+	/* is this audio wavelet initialized yet? */
+	if (node->__loadstatus != LOAD_STABLE) {
+		locateAudioSource(node);
+	}
+	if (node->__loadstatus != LOAD_STABLE) return;
+	/* is this audio ok? if so, the sourceNumber will range
+	 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
+	 * check out locateAudioSource to find out reasons */
+	if (node->__sourceNumber == BADAUDIOSOURCE) return;
+	struct X3D_SoundRep* srep = getSoundRep(node);
+	srep->ibuffer = node->__sourceNumber;
+	int icontext = peek_audio_context();
+	int iparent = peek_audio_parent();
+	libsound_updateNode0(icontext, iparent, node);
+
+}
+
 void render_Sound(struct X3D_Sound* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
