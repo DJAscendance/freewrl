@@ -651,11 +651,11 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
 	 * check out locateAudioSource to find out reasons */
 	if (node->__sourceNumber == BADAUDIOSOURCE) return;
-	struct X3D_SoundRep* srep = getSoundRep(node);
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->ibuffer = node->__sourceNumber;
 	int icontext = peek_audio_context();
 	int iparent = peek_audio_parent();
-	libsound_updateNode0(icontext, iparent, node);
+	libsound_updateNode0(icontext, iparent, X3D_NODE(node));
 
 }
 

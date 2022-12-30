@@ -20,18 +20,18 @@ struct X3D_SoundRep {
 	int ibuffer; //just for source nodes with a buffer, like audioclip
 };
 
-enum {
-	AN_AudioClip = 1,
-	AN_AudioBuffer,
-	AN_AudioBufferSourceNode,
-	AN_GainNode,
-	AN_OscillatorNode,
-	AN_AudioDestinationNode,
-};
+//enum {
+//	AN_AudioClip = 1,
+//	AN_AudioBuffer,
+//	AN_AudioBufferSourceNode,
+//	AN_GainNode,
+//	AN_OscillatorNode,
+//	AN_AudioDestinationNode,
+//};
 EXPORT_DLL extern struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode);
 EXPORT_DLL extern void libsound_updateNode0(int icontext, int connect_parent, struct X3D_Node* node);
 EXPORT_DLL extern void libsound_testNoise();
 EXPORT_DLL extern int libsound_createContext0();
 EXPORT_DLL extern int libsound_createBusFromBuffer0(char* bbuffer, int len);
-EXPORT_DLL extern void* libsound_createNode(void *context, int type);
-EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);
+//EXPORT_DLL extern void* libsound_createNode(void *context, int type);
+//EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);
