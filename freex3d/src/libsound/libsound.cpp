@@ -425,6 +425,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
             }
+            //std::shared_ptr<PannerNode> pannerNode = std::make_shared<PannerNode>();
+            //pannerNode->coneGain()->setValue(pnode->)
             //else {
             //    ac->nodes[srepn->inode]->gain()->setGain(pnode->intensity);
             //}

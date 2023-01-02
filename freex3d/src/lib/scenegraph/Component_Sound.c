@@ -655,7 +655,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	srep->ibuffer = node->__sourceNumber;
 	int icontext = peek_audio_context();
 	int iparent = peek_audio_parent();
-	node->gain = 1.0;
+	//node->gain = 1.0;
 	libsound_updateNode0(icontext, iparent, X3D_NODE(node));
 
 }
