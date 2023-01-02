@@ -466,6 +466,7 @@ typedef ptw32_handle_t pthread_t;
             //bool isactive = musicClipNode_ptr->loop();
             //musicClipNode_ptr->setLoop(pnode->loop ? true : false);
             //if (!isactive && pnode->loop) musicClipNode_ptr->start(0.0f);
+            musicClipNode_ptr->playbackRate()->setValue(pnode->pitch);
             musicClipNode_ptr->gain()->setValue(pnode->gain);
             //copy outputs from labsound to x3d
             pnode->duration_changed = musicClipNode_ptr->duration();
