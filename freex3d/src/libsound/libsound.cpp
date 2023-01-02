@@ -408,6 +408,8 @@ typedef ptw32_handle_t pthread_t;
         }
         return srep;
     }
+#define TRUE 1
+#define FALSE 0
     void libsound_updateNode0(int icontext, int iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         //goal- switch-case on x3d nodeType and do any labsound node create+connect, update input or update output
@@ -423,6 +425,9 @@ typedef ptw32_handle_t pthread_t;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
             }
+            //else {
+            //    ac->nodes[srepn->inode]->gain()->setGain(pnode->intensity);
+            //}
             //ac->context->connect(ac->context->device(), child, 0, 0);
         }
         break;
@@ -430,26 +435,40 @@ typedef ptw32_handle_t pthread_t;
         {
             struct X3D_AudioClip* pnode = (struct X3D_AudioClip*)node;
             std::shared_ptr<SampledAudioNode> musicClipNode;
-            if(!srepn->inode){
+            SampledAudioNode* musicClipNode_ptr;
+            if (!srepn->inode) {
                 //create labsound node
                 musicClipNode = std::make_shared<SampledAudioNode>();
                 {
                     ContextRenderLock r(ac->context.get(), "ex_simple");
                     musicClipNode->setBus(r, busses[srepn->ibuffer]);
                 }
-                musicClipNode->setLoop(pnode->loop ? true : false);
-                pnode->duration_changed = musicClipNode->duration();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = musicClipNode;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 if (iparent)
                     libsound_connect0(icontext, iparent, srepn->inode);
-                musicClipNode->start(0.0f);
+                musicClipNode->start(pnode->startTime);
 
             }
             //copy changed values from x3d to labsound
+            //musicClipNode = static_cast<std::shared_ptr<SampledAudioNode>>( ac->nodes[srepn->inode] );
+            musicClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
+            // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
+            // here we turn on / off the playback depending on isActive 
+            int status = musicClipNode_ptr->playbackState();
+            if (status == musicClipNode_ptr->PLAYING_STATE && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+                musicClipNode_ptr->stop(0.0);
+            else if (status != musicClipNode_ptr->PLAYING_STATE && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                musicClipNode_ptr->start(0.0);
+            
+            //bool isactive = musicClipNode_ptr->loop();
+            //musicClipNode_ptr->setLoop(pnode->loop ? true : false);
+            //if (!isactive && pnode->loop) musicClipNode_ptr->start(0.0f);
+            musicClipNode_ptr->gain()->setValue(pnode->gain);
             //copy outputs from labsound to x3d
+            pnode->duration_changed = musicClipNode_ptr->duration();
         }
         break;
         case NODE_OscillatorSource:
