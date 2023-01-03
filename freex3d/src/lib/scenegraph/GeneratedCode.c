@@ -10899,7 +10899,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2 = (struct X3D_AudioClip *) tmp;
 			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
-			tmp2->gain = 0.0f;
+			tmp2->gain = 1.0f;
 			tmp2->metadata = NULL;
 			tmp2->pauseTime = 0;
 			tmp2->resumeTime = 0;
