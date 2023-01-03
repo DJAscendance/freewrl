@@ -622,11 +622,15 @@ int peek_audio_context() {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	return stack_top(int, p->audio_context_stack);
 }
+void push_audio_parent(int inode) {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_push(int, p->audio_parent_stack, inode);
+}
 
-void push_audio_parent(struct X3D_Node* node) {
+void push_audio_parentnode(struct X3D_Node* node) {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	struct X3D_SoundRep* srep = getSoundRep(node);
-	stack_push(int, p->audio_parent_stack, srep->inode);
+	push_audio_parent(srep->inode);
 }
 void pop_audio_parent() {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
@@ -663,9 +667,10 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 void render_Sound(struct X3D_Sound* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
+	push_audio_parent(1); //should be the audio context device node
 	int icontext = peek_audio_context();
-	libsound_updateNode0(icontext,0,anode);
-	push_audio_parent(anode);
+	libsound_updateNode0(icontext,peek_audio_parent(), anode);
+	push_audio_parentnode(anode);
 	if (node->source)
 		//libsound_updateNode0(icontext,anode,node->source);
 		render_node(node->source);
@@ -674,7 +679,8 @@ void render_Sound(struct X3D_Sound* node) {
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			render_node(X3D_NODE(node->children.p[i]));
 	}
-	pop_audio_parent();
+	pop_audio_parent(); // sound panner node
+	pop_audio_parent(); //audio context device node 1
 	pop_audio_context();
 }
 /*
