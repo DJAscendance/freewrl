@@ -285,7 +285,7 @@ typedef ptw32_handle_t pthread_t;
             std::shared_ptr<PannerNode> pannerNode;
             PannerNode* pannerNode_ptr;
             if (!srepn->inode) {
-                pannerNode = std::make_shared<PannerNode>(0.0f,"NONE");
+                pannerNode = std::make_shared<PannerNode>(0.0f,"");
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
                 srepn->inode = ac->next_node;
@@ -296,6 +296,7 @@ typedef ptw32_handle_t pthread_t;
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             pannerNode_ptr->coneGain()->setValue(pnode->intensity);
+            
         }
         break;
         case NODE_AudioClip:
