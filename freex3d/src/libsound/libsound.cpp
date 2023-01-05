@@ -232,10 +232,23 @@ typedef ptw32_handle_t pthread_t;
         //lab::AudioContext *ccontext;
         const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
-
+        auto listener = context->listener();
+        // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
+        listener->forwardX()->setValue(0.0f);
+        listener->forwardY()->setValue(0.0f);
+        listener->forwardZ()->setValue(-1.0f);
+        listener->upX()->setValue(0.0f);
+        listener->upY()->setValue(1.0f);
+        listener->upZ()->setValue(0.0f);
+        listener->positionX()->setValue(0.0f);
+        listener->positionY()->setValue(0.0f);
+        listener->positionZ()->setValue(0.0f);
+        //doppler is deprecated in web audio (web browsers)
+        //listener->dopplerFactor()->setValue(1.0f);
         ac->context = context; // libsound_createContext(); // static_cast<lab::AudioContext*>(libsound_createContext());
         next_audio_context++;
         audio_contexts[next_audio_context] = ac;
+        
 
         ac->next_node++;
         ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
@@ -296,7 +309,12 @@ typedef ptw32_handle_t pthread_t;
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             pannerNode_ptr->coneGain()->setValue(pnode->intensity);
-            
+            pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
+            pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
+            pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
+            pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
+            pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
+            pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
         }
         break;
         case NODE_AudioClip:

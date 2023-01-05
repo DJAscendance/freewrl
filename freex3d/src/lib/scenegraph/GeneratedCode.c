@@ -134,6 +134,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__inittime",
 	"__isX3D",
 	"__last_time",
+	"__lastdirection",
 	"__lastlocation",
 	"__lasttime",
 	"__leftTexture",
@@ -8921,6 +8922,7 @@ const int OFFSETS_Sound[] = {
 	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_Sound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_Sound, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_Sound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_Sound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_Sound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -8949,6 +8951,7 @@ const int OFFSETS_SpatialSound[] = {
 	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_SpatialSound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_SpatialSound, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_SpatialSound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_SpatialSound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_SpatialSound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
@@ -16020,6 +16023,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
+			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 0.0f;
 			tmp2->__lasttime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -16051,6 +16055,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
+			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 0.0f;
 			tmp2->__lasttime = 0;
 			tmp2->_defaultContainer = 0;
 		break;

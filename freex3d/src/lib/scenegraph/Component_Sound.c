@@ -664,9 +664,68 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 }
 
+void update_Sound_pose(struct X3D_Sound* node){
+	// update the pose of this sound source node relative to avatar 
+	// avatar listener is always at location 0,0,0 looking 0 0 -1, up 0 1 0
+	// and sound source node does all the work transforming relative to moving avatar via modelMatrix on each frame
+	// transformed location, direction are stored in node.__lastlocation and node.__lastdirection
+	int i;
+	GLDOUBLE modelMatrix[16];
+	GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
+	float SourcePos[3];
+
+	//transform source local coordinate 0,0,0 location into avatar/listener space
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+	transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
+	for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
+
+	if (node->__sourceNumber < 0) {
+		node->__lasttime = TickTime();
+		veccopy3f(node->__lastlocation.c, SourcePos); //transformed location
+
+		node->__sourceNumber = 0;
+	}
+	if (node->__sourceNumber > -1) {
+		int istate;
+		float SourceVel[3] = { 0.0f, 0.0f, 0.0f };
+		float travelled[3];
+		double traveltime;
+
+		//update velocity for doppler effect
+		vecdif3f(travelled, node->__lastlocation.c, SourcePos);
+		traveltime = TickTime() - node->__lasttime;
+		if (traveltime > 0.0)
+			vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
+
+		node->__lasttime = TickTime();
+		veccopy3f(node->__lastlocation.c, SourcePos);
+
+		//directional sound
+		if (node->spatialize) {
+			double dird[3];
+			float dirf[3];
+			//transform source direction into avatar/listener space
+			for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
+			transformAFFINEd(dird, dird, modelMatrix);
+			for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
+			veccopy3f(node->__lastdirection.c, dirf); //transformed direction
+			/*
+			if (1)
+				alSourcefv(node->__sourceNumber, AL_DIRECTION, dirf);
+			else
+				alSource3f(node->__sourceNumber, AL_DIRECTION, dirf[0], dirf[1], dirf[2]);
+			alSourcef(node->__sourceNumber, AL_CONE_OUTER_GAIN, .5f);
+			alSourcef(node->__sourceNumber, AL_CONE_INNER_ANGLE, 90.0f);
+			alSourcef(node->__sourceNumber, AL_CONE_OUTER_ANGLE, 135.0f);
+			*/
+		}
+	}
+}
+
 void render_Sound(struct X3D_Sound* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
+	update_Sound_pose(node);
 	push_audio_parent(1); //should be the audio context device node
 	int icontext = peek_audio_context();
 	libsound_updateNode0(icontext,peek_audio_parent(), anode);
@@ -683,69 +742,7 @@ void render_Sound(struct X3D_Sound* node) {
 	pop_audio_parent(); //audio context device node 1
 	pop_audio_context();
 }
-/*
-// this would go in the libsound_updateAudioNode?
-if (acp) {
-	if (haveSoundEngine()) {
-		if (acp->__sourceNumber < 0) {
-			render_AudioClip(acp);
-		}
-		if (acp->__sourceNumber > -1) {
-			//have a buffer loaded
-			int i;
-			GLDOUBLE modelMatrix[16];
-			GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
-			float SourcePos[3];
 
-			//transform source local coordinate 0,0,0 location into avatar/listener space
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-			transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
-			for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
-
-			if (node->__sourceNumber < 0) {
-				node->__lasttime = TickTime();
-				veccopy3f(node->__lastlocation.c, SourcePos);
-
-				node->__sourceNumber = 0;
-			}
-			if (node->__sourceNumber > -1) {
-				int istate;
-				float SourceVel[3] = { 0.0f, 0.0f, 0.0f };
-				float travelled[3];
-				double traveltime;
-
-				//update velocity for doppler effect
-				vecdif3f(travelled, node->__lastlocation.c, SourcePos);
-				traveltime = TickTime() - node->__lasttime;
-				if (traveltime > 0.0)
-					vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
-
-				node->__lasttime = TickTime();
-				veccopy3f(node->__lastlocation.c, SourcePos);
-
-				//directional sound 
-				if (node->spatialize) {
-					double dird[3];
-					float dirf[3];
-					//transform source direction into avatar/listener space
-					for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
-					transformAFFINEd(dird, dird, modelMatrix);
-					for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
-				}
-
-				// for routed values going to audioclip, update values
-				// update to audioclip start,stop,pause,resume is done in do_AudioTick()
-				if (acp->isActive) {
-					//printf(".play.");
-				}
-				else {
-					//stop
-				}
-			}
-		}
-	}
-}
-*/
 #endif //HAVE_LIBSOUND
 
 
