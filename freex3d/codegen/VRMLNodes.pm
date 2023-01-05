@@ -1484,7 +1484,7 @@ our %Nodes = (
 		# openal sound source number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
-		__lastdirection => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
+		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
 	],"X3DSoundNode"),
 
@@ -1516,7 +1516,7 @@ our %Nodes = (
 		# openal sound source number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
-		__lastdirection => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
+		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
 	],"X3DSoundNode"),
 

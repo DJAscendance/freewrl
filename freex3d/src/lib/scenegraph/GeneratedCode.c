@@ -16023,7 +16023,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
-			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 0.0f;
+			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -16055,7 +16055,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
-			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 0.0f;
+			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
