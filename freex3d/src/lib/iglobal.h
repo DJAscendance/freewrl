@@ -145,7 +145,7 @@ typedef struct iiglobal //InstanceGlobal
 		int HaveSensitive;// = FALSE;
 		int AllowNavDrag;
 		int trisThisLoop;
-		int iframe;
+		unsigned int iframe;
 		int clipPlane;// = 0;
 		int SHIFT; //state of shift key up = 0, down = 1
 		int CTRL; //state of ctrl key up = 0, down = 1

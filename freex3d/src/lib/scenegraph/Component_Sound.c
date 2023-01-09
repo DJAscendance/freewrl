@@ -592,11 +592,23 @@ void render_Sound (struct X3D_Sound *node) {
 	}
 
 }
-
+void visit_check_sound(struct X3D_Node* node, unsigned int iframe) {}
 #endif //HAVE_OPENAL
 
 #ifdef HAVE_LIBSOUND
-
+void register_visit_check(struct X3D_Node* node);
+void visit_check_sound(struct X3D_Node* node, unsigned int iframe) {
+	struct X3D_SoundRep* srep = getSoundRep(node);
+	if (srep->icontext) {
+		if (iframe == srep->iframe) {
+			libsound_resumeContext0(srep->icontext);;
+		} else {
+			//not visited on last frame, perhaps in a switch deactivated branch
+			//lets pause the context
+			libsound_pauseContext0(srep->icontext);
+		}
+	}
+}
 // v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
 void push_audio_context(int audio_context) {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
@@ -611,6 +623,7 @@ void create_and_push_audio_context(struct X3D_Node* node) {
 			jcontext = libsound_createContext0();
 		}
 		srep->icontext = jcontext;
+		register_visit_check(node);
 	}
 	push_audio_context(srep->icontext);
 }
@@ -656,6 +669,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	 * check out locateAudioSource to find out reasons */
 	if (node->__sourceNumber == BADAUDIOSOURCE) return;
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
 	srep->ibuffer = node->__sourceNumber;
 	int icontext = peek_audio_context();
 	int iparent = peek_audio_parent();
@@ -730,6 +744,9 @@ void render_Sound(struct X3D_Sound* node) {
 	int icontext = peek_audio_context();
 	libsound_updateNode0(icontext,peek_audio_parent(), anode);
 	push_audio_parentnode(anode);
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+
 	if (node->source)
 		//libsound_updateNode0(icontext,anode,node->source);
 		render_node(node->source);
@@ -751,6 +768,8 @@ void render_Sound(struct X3D_Sound* node) {
 
 void render_OscillatorSource(struct X3D_OscillatorSource *node){
 	//COMPILE_IF_REQUIRED
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 

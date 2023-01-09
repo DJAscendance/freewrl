@@ -3112,6 +3112,7 @@ typedef struct pMainloop{
 	int mouseDown;
 	int mouseOver;
 	struct pedal_state pedalstate;
+	Stack* visit_stack;
 }* ppMainloop;
 void *Mainloop_constructor(){
 	void *v = MALLOCV(sizeof(struct pMainloop));
@@ -3215,6 +3216,7 @@ void Mainloop_init(struct tMainloop *t){
 		p->mouseDown = 0;
 		p->mouseOver = 0;
 		memset(&p->pedalstate,0,sizeof(struct pedal_state));
+		p->visit_stack = NULL;
 	}
 }
 void Mainloop_clear(struct tMainloop *t){
@@ -4653,6 +4655,65 @@ int is_vp_new_way() {
 	return vp_new_way;
 }
 
+// Switch node children may want to know if they were visited on the last frame
+// and if not or if so, do something 
+// for example playing media nodes like to know if they are un-selected so they can pause
+// but switch sensitive nodes can be great grandchildern or 
+// subject to multiple switch node logic 
+// the most reliable is to keep track if they were visited on the last frame
+// visitation usually defined by render_<nodetype>(node) called from scenegraph traversal
+// -- but its up to the node type to decide where to register from, how to record the iframe
+// -- and what to do if / if not visited last frame.
+void visit_check_sound(struct X3D_Node* node, unsigned int iframe);
+void visit_check(unsigned int iframe) {
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	Stack* visit_stack = p->visit_stack;
+	if (!visit_stack) return;
+	for (int i = 0; i < vectorSize(visit_stack); i++) {
+		struct X3D_Node* node = vector_get(void*, visit_stack, i);
+		switch (node->_nodeType) {
+		case NODE_AudioClip:
+		case NODE_Analyser:
+		case NODE_AudioDestination:
+		case NODE_BiquadFilter:
+		case NODE_BufferAudioSource:
+		case NODE_ChannelMerger:
+		case NODE_ChannelSelector:
+		case NODE_ChannelSplitter:
+		case NODE_Convolver:
+		case NODE_Delay:
+		case NODE_DynamicsCompressor:
+		case NODE_Gain:
+		case NODE_ListenerPointSource:
+		case NODE_MicrophoneSource:
+		case NODE_OscillatorSource:
+		case NODE_PeriodicWave:
+		case NODE_Sound:
+		case NODE_SpatialSound:
+		case NODE_StreamAudioDestination:
+		case NODE_StreamAudioSource:
+		case NODE_WaveShaper:
+			visit_check_sound(node, iframe);
+			break;
+		default:
+			break;
+		}
+	}
+}
+void register_visit_check(struct X3D_Node* node) {
+	ttglobal tg = gglobal();
+	ppMainloop p = (ppMainloop)tg->Mainloop.prv;
+
+	Stack* visit_stack = p->visit_stack;
+
+	if (!visit_stack) {
+		visit_stack = newStack(void*);
+		p->visit_stack = visit_stack;
+	}
+	stack_push(void*, visit_stack, node);
+}
 void fwl_RenderSceneUpdateScene0(double dtime) {
 	//Nov 2015 change: just viewport-independent, once-per-frame-scene-updates here
 	//-functionality relying on a viewport -setup_projection(), setup_picking()- has been 
@@ -4815,6 +4876,7 @@ void fwl_RenderSceneUpdateScene0(double dtime) {
 	} else {
 		p->loop_count++;
 	}
+	visit_check(tg->Mainloop.iframe); //switch children such as playing media may want to be turned off if not visited on last frame
 	tg->Mainloop.iframe++;
 	tg->Mainloop.trisThisLoop = 0;
 

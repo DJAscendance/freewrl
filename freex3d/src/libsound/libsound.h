@@ -17,6 +17,7 @@ struct X3D_SoundRep {
 	int inode; //map nodes[inode] = lab node
 	//int inodetype; // x3d 1:1 labsound nodes, shouldn't need if know X3DNode->_nodeType
 	//int iparent; //x3d parent.inode should become destination labnode
+	unsigned int iframe; //last frame visited on scenegraph traversal
 	int ibuffer; //just for source nodes with a buffer, like audioclip
 };
 
@@ -30,6 +31,8 @@ struct X3D_SoundRep {
 //};
 EXPORT_DLL extern struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode);
 EXPORT_DLL extern void libsound_updateNode0(int icontext, int connect_parent, struct X3D_Node* node);
+EXPORT_DLL extern void libsound_pauseContext0(int icontext);
+EXPORT_DLL extern void libsound_resumeContext0(int icontext);
 EXPORT_DLL extern void libsound_testNoise();
 EXPORT_DLL extern int libsound_createContext0();
 EXPORT_DLL extern int libsound_createBusFromBuffer0(char* bbuffer, int len);

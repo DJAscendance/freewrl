@@ -218,6 +218,7 @@ typedef ptw32_handle_t pthread_t;
     struct anstruct { std::shared_ptr<lab::AudioNode> anode; };
     struct acstruct {
         std::shared_ptr<lab::AudioContext> context;
+        bool running;
         int next_node;
         //int next_bus;
         std::map<int, std::shared_ptr<lab::AudioNode>> nodes;
@@ -253,9 +254,9 @@ typedef ptw32_handle_t pthread_t;
             //listener->dopplerFactor()->setValue(1.0f);
         }
         ac->context = context; // libsound_createContext(); // static_cast<lab::AudioContext*>(libsound_createContext());
+        ac->running = true; //for pause / resume
         next_audio_context++;
         audio_contexts[next_audio_context] = ac;
-        
 
         ac->next_node++;
         ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
@@ -268,6 +269,21 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         ac->context->connect(destination, source);
     }
+    void libsound_pauseContext0(int icontext) {
+        struct acstruct* ac = audio_contexts[icontext];
+        if (ac->running) {
+            ac->context->suspend(); //"any queued samples will (still) play" maybe not the right way to turn off.
+            ac->running = false;
+        }
+    }
+    void libsound_resumeContext0(int icontext) {
+        struct acstruct* ac = audio_contexts[icontext];
+        if (!ac->running) {
+            ac->context->resume(); //"any queued samples will (still) play" maybe not the right way to turn off.
+            ac->running = true;
+        }
+    }
+
     int libsound_createBusFromBuffer0(char* bbuffer, int len) {
         //static list of busses, independent of audio context, so can DEF/USE?
         std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
