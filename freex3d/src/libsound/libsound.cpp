@@ -33,14 +33,14 @@ inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConf
     AudioStreamConfig outputConfig;
 
     const std::vector<AudioDeviceInfo> audioDevices = lab::MakeAudioDeviceList();
-    const uint32_t default_output_device = lab::GetDefaultOutputAudioDeviceIndex();
-    const uint32_t default_input_device = lab::GetDefaultInputAudioDeviceIndex();
+    const AudioDeviceIndex default_output_device = lab::GetDefaultOutputAudioDeviceIndex();
+    const AudioDeviceIndex default_input_device = lab::GetDefaultInputAudioDeviceIndex();
 
     AudioDeviceInfo defaultOutputInfo, defaultInputInfo;
     for (auto& info : audioDevices)
     {
-        if (info.index == default_output_device) defaultOutputInfo = info;
-        else if (info.index == default_input_device) defaultInputInfo = info;
+        if (info.is_default_output) defaultOutputInfo = info;
+        else if (info.is_default_input) defaultInputInfo = info;
     }
 
     if (defaultOutputInfo.index != -1)
@@ -179,7 +179,7 @@ typedef ptw32_handle_t pthread_t;
         std::unique_ptr<lab::AudioContext> context;
          const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
-
+        lab::AudioContext& ac = *context.get();
         //auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", argc, argv);
         const std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
         std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false);
@@ -191,11 +191,11 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<SampledAudioNode> musicClipNode;
         std::shared_ptr<GainNode> gain;
 
-        oscillator = std::make_shared<OscillatorNode>(context->sampleRate());
-        gain = std::make_shared<GainNode>();
+        oscillator = std::make_shared<OscillatorNode>(ac);
+        gain = std::make_shared<GainNode>(ac);
         gain->gain()->setValue(0.0625f);
 
-        musicClipNode = std::make_shared<SampledAudioNode>();
+        musicClipNode = std::make_shared<SampledAudioNode>(ac);
         {
             ContextRenderLock r(context.get(), "ex_simple");
             musicClipNode->setBus(r, musicClip);
@@ -229,21 +229,25 @@ typedef ptw32_handle_t pthread_t;
         // destination, listener, sampleRate, channel_type
         struct acstruct *ac = new acstruct();
         std::shared_ptr<lab::AudioContext> context;
+
         //lab::AudioContext *ccontext;
         const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
         if (1) {
             auto listener = context->listener();
             // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
-            listener->forwardX()->setValue(0.0f);
-            listener->forwardY()->setValue(0.0f);
-            listener->forwardZ()->setValue(-1.0f);
-            listener->upX()->setValue(0.0f);
-            listener->upY()->setValue(1.0f);
-            listener->upZ()->setValue(0.0f);
-            listener->positionX()->setValue(0.0f);
-            listener->positionY()->setValue(0.0f);
-            listener->positionZ()->setValue(0.0f);
+            //listener->forwardX()->setValue(0.0f);
+            //listener->forwardY()->setValue(0.0f);
+            //listener->forwardZ()->setValue(-1.0f);
+            //listener->upX()->setValue(0.0f);
+            //listener->upY()->setValue(1.0f);
+            //listener->upZ()->setValue(0.0f);
+            listener->setForward({ 0.0,0.0,-1.0 });
+            listener->setUpVector({ 0.0,1.0,0.0 });
+            listener->setPosition({ 0.0,0.0,0.0 });
+            //listener->positionX()->setValue(0.0f);
+            //listener->positionY()->setValue(0.0f);
+            //listener->positionZ()->setValue(0.0f);
 
             //doppler is deprecated in web audio (web browsers)
             //listener->dopplerFactor()->setValue(1.0f);
@@ -291,6 +295,8 @@ typedef ptw32_handle_t pthread_t;
     }
     void libsound_updateNode0(int icontext, int iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
+        AudioContext& context = *ac->context.get();
+        //lab::AudioContext& ac = *context.get();
         //goal- switch-case on x3d nodeType and do any labsound node create+connect, update input or update output
         // - then this can be called from 
         struct X3D_SoundRep* srepn = getSoundRep(node);
@@ -301,8 +307,8 @@ typedef ptw32_handle_t pthread_t;
             std::shared_ptr<PannerNode> pannerNode;
             PannerNode* pannerNode_ptr;
             if (!srepn->inode) {
-                pannerNode = std::make_shared<PannerNode>(ac->context->sampleRate());
-                pannerNode->setPanningModel(PanningMode::EQUALPOWER); //HRTF); //EQUALPOWER); // :
+                pannerNode = std::make_shared<PannerNode>(context);
+                pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // :
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
@@ -324,13 +330,17 @@ typedef ptw32_handle_t pthread_t;
             pannerNode_ptr->setRefDistance(pnode->minFront);
             pannerNode_ptr->setMaxDistance(pnode->maxFront);
             //pannerNode_ptr->coneGain()->setValue(pnode->intensity);
-            pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
-            pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
-            pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
+            float *xyz = pnode->__lastlocation.c;
+            pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
+            //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
+            //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
+            //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
             if (pnode->spatialize == TRUE || TRUE) {
-                pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
-                pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
-                pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
+                float* rxyz = pnode->__lastdirection.c;
+                pannerNode_ptr->setOrientation({ rxyz[0], rxyz[1], rxyz[2] });
+                //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
+                //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
+                //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
             }
         }
         break;
@@ -341,7 +351,7 @@ typedef ptw32_handle_t pthread_t;
             SampledAudioNode* musicClipNode_ptr;
             if (!srepn->inode) {
                 //create labsound node
-                musicClipNode = std::make_shared<SampledAudioNode>();
+                musicClipNode = std::make_shared<SampledAudioNode>(context);
                 {
                     ContextRenderLock r(ac->context.get(), "ex_simple");
                     musicClipNode->setBus(r, busses[srepn->ibuffer]);
@@ -352,7 +362,9 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 if (iparent)
                     libsound_connect0(icontext, iparent, srepn->inode);
-                musicClipNode->start(pnode->startTime);
+                //musicClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
+                musicClipNode->schedule(0.0, -1); // -1 to loop forever
+
 
             }
             //copy changed values from x3d to labsound
@@ -360,19 +372,19 @@ typedef ptw32_handle_t pthread_t;
             musicClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
-            int status = musicClipNode_ptr->playbackState();
-            if (status == musicClipNode_ptr->PLAYING_STATE && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+            SchedulingState status = musicClipNode_ptr->playbackState();
+            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
                 musicClipNode_ptr->stop(0.0);
-            else if (status != musicClipNode_ptr->PLAYING_STATE && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
                 musicClipNode_ptr->start(0.0);
             
             //bool isactive = musicClipNode_ptr->loop();
             //musicClipNode_ptr->setLoop(pnode->loop ? true : false);
             //if (!isactive && pnode->loop) musicClipNode_ptr->start(0.0f);
             musicClipNode_ptr->playbackRate()->setValue(pnode->pitch);
-            musicClipNode_ptr->gain()->setValue(pnode->gain);
+           // musicClipNode_ptr->gain()->setValue(pnode->gain);
             //copy outputs from labsound to x3d
-            pnode->duration_changed = musicClipNode_ptr->duration();
+            //pnode->duration_changed = musicClipNode_ptr->duration();
         }
         break;
         case NODE_OscillatorSource:
@@ -382,7 +394,7 @@ typedef ptw32_handle_t pthread_t;
             std::shared_ptr<OscillatorNode> oscillator;
             if (!srepn->inode) {
                 //create labsound node
-                oscillator = std::make_shared<OscillatorNode>(ac->context->sampleRate());
+                oscillator = std::make_shared<OscillatorNode>(context);
                   ac->next_node++;
                 ac->nodes[ac->next_node] = oscillator;
                 srepn->inode = ac->next_node;
@@ -403,7 +415,7 @@ typedef ptw32_handle_t pthread_t;
             GainNode* gain_ptr;
             if (!srepn->inode) {
                 //create labsound node
-                gain = std::make_shared<GainNode>();
+                gain = std::make_shared<GainNode>(context);
                 gain_ptr = gain.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = gain;
