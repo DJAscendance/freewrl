@@ -15,6 +15,7 @@ struct X3D_SoundRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep
 	int icontext; //map audio_contexts[icontext] = lab context
 	int inode; //map nodes[inode] = lab node
+	int igain; //just for nodes that need a separate gain node (Sound)
 	//int inodetype; // x3d 1:1 labsound nodes, shouldn't need if know X3DNode->_nodeType
 	//int iparent; //x3d parent.inode should become destination labnode
 	unsigned int iframe; //last frame visited on scenegraph traversal

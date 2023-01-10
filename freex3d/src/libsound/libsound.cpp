@@ -284,6 +284,7 @@ typedef ptw32_handle_t pthread_t;
         }
     }
     void libsound_pauseNode0(struct X3D_Node* node) {
+        //this didn't work
         struct X3D_SoundRep* srepn = getSoundRep(X3D_NODE(node));
         int icontext = srepn->icontext;
         if(icontext){
@@ -310,6 +311,7 @@ typedef ptw32_handle_t pthread_t;
         }
     }
     void libsound_resumeNode0(struct X3D_Node* node) {
+        // this didn't work
         struct X3D_SoundRep* srepn = getSoundRep(X3D_NODE(node));
         int icontext = srepn->icontext;
         if (icontext) {
@@ -374,7 +376,20 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_Sound* pnode = (struct X3D_Sound*)node;
             std::shared_ptr<PannerNode> pannerNode;
             PannerNode* pannerNode_ptr;
+            GainNode* gain_ptr;
             if (!srepn->inode) {
+                //gain node on output
+                std::shared_ptr<GainNode> gain;
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                //connect gain output to parent node input
+                if (iparent)
+                    libsound_connect0(icontext, iparent, srepn->igain);
+
                 pannerNode = std::make_shared<PannerNode>(context);
                 pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // :
 
@@ -382,11 +397,12 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodes[ac->next_node] = pannerNode;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                if (iparent)
-                    libsound_connect0(icontext, iparent, srepn->inode);
+                // connect Sound output to gain input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
 
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+            gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
             //we don't have the inner/outer ellipsoid so we emulate with inner/outer sphere
             pannerNode_ptr->setConeInnerAngle(360.0f);
             pannerNode_ptr->setConeOuterAngle(360.0f);
@@ -398,6 +414,7 @@ typedef ptw32_handle_t pthread_t;
             pannerNode_ptr->setRefDistance(pnode->minFront);
             pannerNode_ptr->setMaxDistance(pnode->maxFront);
             //pannerNode_ptr->coneGain()->setValue(pnode->intensity);
+            gain_ptr->gain()->setValue(pnode->intensity);
             float *xyz = pnode->__lastlocation.c;
             pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
             //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
