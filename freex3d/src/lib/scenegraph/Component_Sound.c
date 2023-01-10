@@ -345,7 +345,10 @@ double compute_duration(int ibuffer) {
 		retval = (double)(ibytes) / bytespersecond;
 	else
 		retval = 1.0;
-#endif
+#endif //HAVE_OPENAL
+#ifdef HAVE_LIBSOUND
+	retval = libsound_computeDuration0(ibuffer);
+#endif //HAVE_LIBSOUND
 	return retval;
 }
 bool  process_res_audio(resource_item_t* res) {

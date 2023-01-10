@@ -346,6 +346,11 @@ typedef ptw32_handle_t pthread_t;
         busses[next_bus] = Bus;
         return next_bus;
     }
+    double libsound_computeDuration0(int ibuffer) {
+        AudioBus *bus = static_cast<AudioBus*>(busses[ibuffer].get()); 
+        double duration = bus->length()* bus->sampleRate();
+        return duration;
+    }
     struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
         //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
         // to get specific common fields used for internal processing only

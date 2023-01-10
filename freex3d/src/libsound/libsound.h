@@ -39,5 +39,6 @@ EXPORT_DLL extern void libsound_resumeNode0(struct X3D_Node* node);
 EXPORT_DLL extern void libsound_testNoise();
 EXPORT_DLL extern int libsound_createContext0();
 EXPORT_DLL extern int libsound_createBusFromBuffer0(char* bbuffer, int len);
+EXPORT_DLL extern double libsound_computeDuration0(int ibuffer);
 //EXPORT_DLL extern void* libsound_createNode(void *context, int type);
 //EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);
