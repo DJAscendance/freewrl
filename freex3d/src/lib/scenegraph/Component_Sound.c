@@ -719,10 +719,15 @@ void update_Sound_pose(struct X3D_Sound* node){
 		//directional sound
 		if (node->spatialize) {
 			double dird[3];
+			double zero[3];
 			float dirf[3];
 			//transform source direction into avatar/listener space
 			for (i = 0; i < 3; i++) dird[i] = node->direction.c[i];
+			zero[0] = zero[1] = zero[2] = 0.0;
 			transformAFFINEd(dird, dird, modelMatrix);
+			transformAFFINEd(zero, zero, modelMatrix);
+			vecdifd(dird, dird, zero);
+			vecnormald(dird, dird);
 			for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
 			veccopy3f(node->__lastdirection.c, dirf); //transformed direction
 			/*

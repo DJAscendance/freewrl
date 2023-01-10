@@ -400,20 +400,34 @@ typedef ptw32_handle_t pthread_t;
                 // connect Sound output to gain input
                 libsound_connect0(icontext, srepn->igain, srepn->inode);
 
+                pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+                //we don't have the inner/outer ellipsoid so we emulate with inner/outer sphere
+                pannerNode_ptr->setConeInnerAngle( 90.0f);
+                pannerNode_ptr->setConeOuterAngle(135.0f);
+                pannerNode_ptr->setConeOuterGain(.07f);
+                pannerNode_ptr->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
+                //pannerNode_ptr->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE);
+                //pannerNode_ptr->distanceGain()->setValue(0.1f);
+                pannerNode_ptr->setRolloffFactor(1.0f);
+                pannerNode_ptr->setRefDistance(pnode->minFront);
+                pannerNode_ptr->setMaxDistance(pnode->maxFront);
+
+
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
             //we don't have the inner/outer ellipsoid so we emulate with inner/outer sphere
-            pannerNode_ptr->setConeInnerAngle(360.0f);
-            pannerNode_ptr->setConeOuterAngle(360.0f);
-            pannerNode_ptr->setConeOuterGain(0.1f);
-            pannerNode_ptr->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
-            //pannerNode_ptr->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE);
-            //pannerNode_ptr->distanceGain()->setValue(0.1f);
-            pannerNode_ptr->setRolloffFactor(1.0f);
-            pannerNode_ptr->setRefDistance(pnode->minFront);
-            pannerNode_ptr->setMaxDistance(pnode->maxFront);
+            //pannerNode_ptr->setConeInnerAngle(360.0f);
+            //pannerNode_ptr->setConeOuterAngle(360.0f);
+            //pannerNode_ptr->setConeOuterGain(0.1f);
+            //pannerNode_ptr->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
+            ////pannerNode_ptr->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE);
+            ////pannerNode_ptr->distanceGain()->setValue(0.1f);
+            //pannerNode_ptr->setRolloffFactor(1.0f);
+            //pannerNode_ptr->setRefDistance(pnode->minFront);
+            //pannerNode_ptr->setMaxDistance(pnode->maxFront);
             //pannerNode_ptr->coneGain()->setValue(pnode->intensity);
+            //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity);
             float *xyz = pnode->__lastlocation.c;
             pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
@@ -422,6 +436,7 @@ typedef ptw32_handle_t pthread_t;
             //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
             if (pnode->spatialize == TRUE || TRUE) {
                 float* rxyz = pnode->__lastdirection.c;
+                //std::cout << " rxyz " << rxyz[0] << " " << rxyz[1] << " " << rxyz[2] << std::endl;
                 pannerNode_ptr->setOrientation({ rxyz[0], rxyz[1], rxyz[2] });
                 //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
                 //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
