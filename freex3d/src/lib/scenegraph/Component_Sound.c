@@ -601,11 +601,13 @@ void visit_check_sound(struct X3D_Node* node, unsigned int iframe) {
 	struct X3D_SoundRep* srep = getSoundRep(node);
 	if (srep->icontext) {
 		if (iframe == srep->iframe) {
-			libsound_resumeContext0(srep->icontext);;
+			libsound_resumeContext0(srep->icontext);
+			//libsound_resumeNode0(node);
 		} else {
 			//not visited on last frame, perhaps in a switch deactivated branch
 			//lets pause the context
 			libsound_pauseContext0(srep->icontext);
+			//libsound_pauseNode0(node);
 		}
 	}
 }

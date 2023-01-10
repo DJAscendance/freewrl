@@ -283,6 +283,58 @@ typedef ptw32_handle_t pthread_t;
             ac->running = true;
         }
     }
+    void libsound_pauseNode0(struct X3D_Node* node) {
+        struct X3D_SoundRep* srepn = getSoundRep(X3D_NODE(node));
+        int icontext = srepn->icontext;
+        if(icontext){
+            struct acstruct* ac = audio_contexts[icontext];
+            //AudioContext& context = *ac->context.get();
+            switch (node->_nodeType) {
+            case NODE_Sound:
+            {
+                struct X3D_Sound* pnode = (struct X3D_Sound*)node;
+                std::shared_ptr<PannerNode> pannerNode;
+                PannerNode* pannerNode_ptr;
+                if (srepn->inode) {
+                    pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+                    {
+                        ContextRenderLock r(ac->context.get(), "ex_simple");
+                        pannerNode_ptr->silenceOutputs(r);
+                    }
+                }
+            }
+            break;
+            default:
+                break;
+            }
+        }
+    }
+    void libsound_resumeNode0(struct X3D_Node* node) {
+        struct X3D_SoundRep* srepn = getSoundRep(X3D_NODE(node));
+        int icontext = srepn->icontext;
+        if (icontext) {
+            struct acstruct* ac = audio_contexts[icontext];
+            //AudioContext& context = *ac->context.get();
+            switch (node->_nodeType) {
+            case NODE_Sound:
+            {
+                struct X3D_Sound* pnode = (struct X3D_Sound*)node;
+                std::shared_ptr<PannerNode> pannerNode;
+                PannerNode* pannerNode_ptr;
+                if (srepn->inode) {
+                    pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+                    {
+                        ContextRenderLock r(ac->context.get(), "ex_simple");
+                        pannerNode_ptr->unsilenceOutputs(r);
+                    }
+                }
+            }
+            break;
+            default:
+                break;
+            }
+        }
+    }
 
     int libsound_createBusFromBuffer0(char* bbuffer, int len) {
         //static list of busses, independent of audio context, so can DEF/USE?
