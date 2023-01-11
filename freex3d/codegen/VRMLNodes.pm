@@ -1470,54 +1470,54 @@ our %Nodes = (
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		# Sound
 		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		intensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		maxBack => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		maxFront => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		minBack => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		minFront => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
-		priority => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		source => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# openal sound source number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
 		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+		# Sound
+		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		priority => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		maxBack => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		maxFront => ["SFFloat", 10.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		minBack => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		minFront => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		source => ["SFNode", "NULL", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DSoundNode"),
 
 	"SpatialSound" => new VRML::NodeType("SpatialSound", [
-            # X3DSoundNode
+            # X3DSoundNode - keep same as above Sound node for a few shared functions
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		# SpatialSound
-		coneInnerAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		coneOuterAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		coneOuterGain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		distanceModel => ["SFString", "INVERSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		enableHRTF => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		location => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		maxDistance => ["SFFloat", 10000, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		priority => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		referenceDistance => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		rolloffFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# openal sound source number
 		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
 		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+		# SpatialSound
+		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		priority => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		coneInnerAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		coneOuterAngle => ["SFFloat", 6.2832, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		coneOuterGain => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		distanceModel => ["SFString", "INVERSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		enableHRTF => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		maxDistance => ["SFFloat", 10000, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		referenceDistance => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		rolloffFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundNode"),
 
 	"StreamAudioDestination" => new VRML::NodeType("StreamAudioDestination", [

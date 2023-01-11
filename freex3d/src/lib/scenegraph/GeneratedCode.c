@@ -8911,19 +8911,19 @@ const int OFFSETS_Sound[] = {
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_Sound, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_Sound, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_Sound, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_Sound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_location, (int) offsetof (struct X3D_Sound, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_maxBack, (int) offsetof (struct X3D_Sound, maxBack),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_maxFront, (int) offsetof (struct X3D_Sound, maxFront),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_minBack, (int) offsetof (struct X3D_Sound, minBack),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_minFront, (int) offsetof (struct X3D_Sound, minFront),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
-	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_Sound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_source, (int) offsetof (struct X3D_Sound, source),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_Sound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_Sound, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_Sound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_Sound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_Sound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_Sound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_Sound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_Sound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxBack, (int) offsetof (struct X3D_Sound, maxBack),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_maxFront, (int) offsetof (struct X3D_Sound, maxFront),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_minBack, (int) offsetof (struct X3D_Sound, minBack),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_minFront, (int) offsetof (struct X3D_Sound, minFront),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_source, (int) offsetof (struct X3D_Sound, source),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_SpatialSound[] = {
@@ -8933,26 +8933,26 @@ const int OFFSETS_SpatialSound[] = {
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_SpatialSound, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_SpatialSound, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_SpatialSound, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_coneInnerAngle, (int) offsetof (struct X3D_SpatialSound, coneInnerAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_coneOuterAngle, (int) offsetof (struct X3D_SpatialSound, coneOuterAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_coneOuterGain, (int) offsetof (struct X3D_SpatialSound, coneOuterGain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_SpatialSound, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_distanceModel, (int) offsetof (struct X3D_SpatialSound, distanceModel),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_dopplerEnabled, (int) offsetof (struct X3D_SpatialSound, dopplerEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_enableHRTF, (int) offsetof (struct X3D_SpatialSound, enableHRTF),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_SpatialSound, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_SpatialSound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_location, (int) offsetof (struct X3D_SpatialSound, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_velocity, (int) offsetof (struct X3D_SpatialSound, velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_maxDistance, (int) offsetof (struct X3D_SpatialSound, maxDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_SpatialSound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_referenceDistance, (int) offsetof (struct X3D_SpatialSound, referenceDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_rolloffFactor, (int) offsetof (struct X3D_SpatialSound, rolloffFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_SpatialSound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_SpatialSound, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_SpatialSound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_SpatialSound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_SpatialSound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_SpatialSound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_SpatialSound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_SpatialSound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_coneInnerAngle, (int) offsetof (struct X3D_SpatialSound, coneInnerAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_coneOuterAngle, (int) offsetof (struct X3D_SpatialSound, coneOuterAngle),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_coneOuterGain, (int) offsetof (struct X3D_SpatialSound, coneOuterGain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_distanceModel, (int) offsetof (struct X3D_SpatialSound, distanceModel),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_dopplerEnabled, (int) offsetof (struct X3D_SpatialSound, dopplerEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enableHRTF, (int) offsetof (struct X3D_SpatialSound, enableHRTF),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_SpatialSound, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_velocity, (int) offsetof (struct X3D_SpatialSound, velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_maxDistance, (int) offsetof (struct X3D_SpatialSound, maxDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_referenceDistance, (int) offsetof (struct X3D_SpatialSound, referenceDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_rolloffFactor, (int) offsetof (struct X3D_SpatialSound, rolloffFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Sphere[] = {
@@ -16012,19 +16012,19 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_self = 0;
 			tmp2->_context = 0;
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
-			tmp2->intensity = 1.0f;
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 0.0f;
-			tmp2->maxBack = 10.0f;
-			tmp2->maxFront = 10.0f;
-			tmp2->minBack = 1.0f;
-			tmp2->minFront = 1.0f;
-			tmp2->priority = 0.0f;
-			tmp2->source = NULL;
-			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
 			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
+			tmp2->spatialize = TRUE;
+			tmp2->priority = 0.0f;
+			tmp2->intensity = 1.0f;
+			tmp2->maxBack = 10.0f;
+			tmp2->maxFront = 10.0f;
+			tmp2->minBack = 1.0f;
+			tmp2->minFront = 1.0f;
+			tmp2->source = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16037,26 +16037,26 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
-			tmp2->coneInnerAngle = 6.2832f;
-			tmp2->coneOuterAngle = 6.2832f;
-			tmp2->coneOuterGain = 0.0f;
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
-			tmp2->distanceModel = newASCIIString("INVERSE");
-			tmp2->dopplerEnabled = FALSE;
-			tmp2->enableHRTF = FALSE;
-			tmp2->gain = 1.0f;
-			tmp2->intensity = 1.0f;
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 0.0f;
-			tmp2->velocity.c[0] = 0.0f;tmp2->velocity.c[1] = 0.0f;tmp2->velocity.c[2] = 0.0f;
-			tmp2->maxDistance = 10000.0f;
-			tmp2->priority = 0.0f;
-			tmp2->referenceDistance = 1.0f;
-			tmp2->rolloffFactor = 1.0f;
-			tmp2->spatialize = TRUE;
 			tmp2->__sourceNumber = -1;
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
 			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
+			tmp2->spatialize = TRUE;
+			tmp2->priority = 0.0f;
+			tmp2->intensity = 1.0f;
+			tmp2->coneInnerAngle = 6.2832f;
+			tmp2->coneOuterAngle = 6.2832f;
+			tmp2->coneOuterGain = 0.0f;
+			tmp2->distanceModel = newASCIIString("INVERSE");
+			tmp2->dopplerEnabled = FALSE;
+			tmp2->enableHRTF = FALSE;
+			tmp2->gain = 1.0f;
+			tmp2->velocity.c[0] = 0.0f;tmp2->velocity.c[1] = 0.0f;tmp2->velocity.c[2] = 0.0f;
+			tmp2->maxDistance = 10000.0f;
+			tmp2->referenceDistance = 1.0f;
+			tmp2->rolloffFactor = 1.0f;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -22237,15 +22237,15 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," direction (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
 			fprintf (fp,"\n");
-			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
 			spacer fprintf (fp," location (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
+			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
 			spacer fprintf (fp," maxBack (SFFloat) \t%4.3f\n",tmp->maxBack);
 			spacer fprintf (fp," maxFront (SFFloat) \t%4.3f\n",tmp->maxFront);
 			spacer fprintf (fp," minBack (SFFloat) \t%4.3f\n",tmp->minBack);
 			spacer fprintf (fp," minFront (SFFloat) \t%4.3f\n",tmp->minFront);
-			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
 			spacer fprintf (fp," source (SFNode):\n"); dump_scene(fp,level+1,tmp->source); 
 		    break;
 		}
@@ -22260,25 +22260,25 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," children (MFNode):\n");
 			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
-			spacer fprintf (fp," coneInnerAngle (SFFloat) \t%4.3f\n",tmp->coneInnerAngle);
-			spacer fprintf (fp," coneOuterAngle (SFFloat) \t%4.3f\n",tmp->coneOuterAngle);
-			spacer fprintf (fp," coneOuterGain (SFFloat) \t%4.3f\n",tmp->coneOuterGain);
 			spacer fprintf (fp," direction (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->direction.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," location (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
+			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
+			spacer fprintf (fp," coneInnerAngle (SFFloat) \t%4.3f\n",tmp->coneInnerAngle);
+			spacer fprintf (fp," coneOuterAngle (SFFloat) \t%4.3f\n",tmp->coneOuterAngle);
+			spacer fprintf (fp," coneOuterGain (SFFloat) \t%4.3f\n",tmp->coneOuterGain);
 			spacer fprintf (fp," distanceModel (SFString) \t%s\n",tmp->distanceModel->strptr);
 			spacer fprintf (fp," dopplerEnabled (SFBool) \t%d\n",tmp->dopplerEnabled);
 			spacer fprintf (fp," enableHRTF (SFBool) \t%d\n",tmp->enableHRTF);
 			spacer fprintf (fp," gain (SFFloat) \t%4.3f\n",tmp->gain);
-			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
-			spacer fprintf (fp," location (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
-			fprintf (fp,"\n");
 			spacer fprintf (fp," velocity (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->velocity.c[i]); }
 			fprintf (fp,"\n");
 			spacer fprintf (fp," maxDistance (SFFloat) \t%4.3f\n",tmp->maxDistance);
-			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
 			spacer fprintf (fp," referenceDistance (SFFloat) \t%4.3f\n",tmp->referenceDistance);
 			spacer fprintf (fp," rolloffFactor (SFFloat) \t%4.3f\n",tmp->rolloffFactor);
 		    break;

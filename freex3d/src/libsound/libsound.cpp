@@ -183,6 +183,10 @@ unsigned int name_lookup(char* cname, struct key_name* keynames) {
 
 }
 
+#ifndef DEGREES_PER_RADIAN
+#define DEGREES_PER_RADIAN 57.2957795130823208768
+#endif
+#define RAD2DEGF(x) ((float)((x)*DEGREES_PER_RADIAN))
 
 //make the interface flat C
 #ifdef __cplusplus
@@ -509,9 +513,19 @@ typedef ptw32_handle_t pthread_t;
                     pannerNode->setPanningModel(lab::PanningModel::EQUALPOWER);
                 }
 
-                //pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // :
+                //pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // 
                 pannerNode->setDistanceModel(lab::PannerNode::EXPONENTIAL_DISTANCE);
-                pannerNode->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
+                unsigned int distance_enum = name_lookup(pnode->distanceModel->strptr, distance_models);
+                switch (distance_enum) {
+                case lab::PannerNode::LINEAR_DISTANCE:
+                    pannerNode->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE); break;
+                case lab::PannerNode::INVERSE_DISTANCE:
+                    pannerNode->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE); break;
+                case lab::PannerNode::EXPONENTIAL_DISTANCE:
+                    pannerNode->setDistanceModel(lab::PannerNode::EXPONENTIAL_DISTANCE); break;
+                default:
+                    break;
+                }
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
@@ -522,12 +536,9 @@ typedef ptw32_handle_t pthread_t;
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            pannerNode_ptr->setConeInnerAngle(360.0f);
-            pannerNode_ptr->setConeOuterAngle(360.0f);
+            pannerNode_ptr->setConeInnerAngle(RAD2DEGF(pnode->coneInnerAngle));
+            pannerNode_ptr->setConeOuterAngle(RAD2DEGF(pnode->coneOuterAngle));
             pannerNode_ptr->setConeOuterGain(0.1f);
-            unsigned int distance_enum = name_lookup(pnode->distanceModel->strptr, distance_models);
-            lab::PannerNode::DistanceModel dm = (lab::PannerNode::DistanceModel) distance_enum;
-            pannerNode->setDistanceModel((lab::PannerNode::DistanceModel)distance_enum); // lab::PannerNode::LINEAR_DISTANCE);
             // something you would query, not set: pannerNode_ptr->distanceGain()->setValue(0.1f);
             pannerNode_ptr->setRolloffFactor(1.0f);
             pannerNode_ptr->setRefDistance(pnode->referenceDistance);
