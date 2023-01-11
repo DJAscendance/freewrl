@@ -995,9 +995,9 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_emissiveTexture	568
 #define FIELDNAMES_emissiveTextureMapping	569
 #define FIELDNAMES_emitter	570
-#define FIELDNAMES_enabled	571
-#define FIELDNAMES_enabledAxes	572
-#define FIELDNAMES_enabledHRTF	573
+#define FIELDNAMES_enableHRTF	571
+#define FIELDNAMES_enabled	572
+#define FIELDNAMES_enabledAxes	573
 #define FIELDNAMES_encodingScheme	574
 #define FIELDNAMES_endAngle	575
 #define FIELDNAMES_endCap	576
@@ -1987,9 +1987,9 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_emissiveColor	152
 #define EXPOSED_FIELD_emissiveTexture	153
 #define EXPOSED_FIELD_emissiveTextureMapping	154
-#define EXPOSED_FIELD_enabled	155
-#define EXPOSED_FIELD_enabledAxes	156
-#define EXPOSED_FIELD_enabledHRTF	157
+#define EXPOSED_FIELD_enableHRTF	155
+#define EXPOSED_FIELD_enabled	156
+#define EXPOSED_FIELD_enabledAxes	157
 #define EXPOSED_FIELD_encodingScheme	158
 #define EXPOSED_FIELD_endFrame	159
 #define EXPOSED_FIELD_entities	160
@@ -12019,7 +12019,7 @@ struct X3D_SpatialSound {
 	struct SFVec3f direction;
 	struct Uni_String *distanceModel;
 	int dopplerEnabled;
-	int enabledHRTF;
+	int enableHRTF;
 	float gain;
 	float intensity;
 	struct SFVec3f location;

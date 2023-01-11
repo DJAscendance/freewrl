@@ -639,9 +639,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"emissiveTexture",
 	"emissiveTextureMapping",
 	"emitter",
+	"enableHRTF",
 	"enabled",
 	"enabledAxes",
-	"enabledHRTF",
 	"encodingScheme",
 	"endAngle",
 	"endCap",
@@ -1633,9 +1633,9 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"emissiveColor",
 	"emissiveTexture",
 	"emissiveTextureMapping",
+	"enableHRTF",
 	"enabled",
 	"enabledAxes",
-	"enabledHRTF",
 	"encodingScheme",
 	"endFrame",
 	"entities",
@@ -8939,7 +8939,7 @@ const int OFFSETS_SpatialSound[] = {
 	(int) FIELDNAMES_direction, (int) offsetof (struct X3D_SpatialSound, direction),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_distanceModel, (int) offsetof (struct X3D_SpatialSound, distanceModel),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_dopplerEnabled, (int) offsetof (struct X3D_SpatialSound, dopplerEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_enabledHRTF, (int) offsetof (struct X3D_SpatialSound, enabledHRTF),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enableHRTF, (int) offsetof (struct X3D_SpatialSound, enableHRTF),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_SpatialSound, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_SpatialSound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_location, (int) offsetof (struct X3D_SpatialSound, location),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -16043,7 +16043,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->direction.c[0] = 0.0f;tmp2->direction.c[1] = 0.0f;tmp2->direction.c[2] = 1.0f;
 			tmp2->distanceModel = newASCIIString("INVERSE");
 			tmp2->dopplerEnabled = FALSE;
-			tmp2->enabledHRTF = FALSE;
+			tmp2->enableHRTF = FALSE;
 			tmp2->gain = 1.0f;
 			tmp2->intensity = 1.0f;
 			tmp2->location.c[0] = 0.0f;tmp2->location.c[1] = 0.0f;tmp2->location.c[2] = 0.0f;
@@ -22268,7 +22268,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 			spacer fprintf (fp," distanceModel (SFString) \t%s\n",tmp->distanceModel->strptr);
 			spacer fprintf (fp," dopplerEnabled (SFBool) \t%d\n",tmp->dopplerEnabled);
-			spacer fprintf (fp," enabledHRTF (SFBool) \t%d\n",tmp->enabledHRTF);
+			spacer fprintf (fp," enableHRTF (SFBool) \t%d\n",tmp->enableHRTF);
 			spacer fprintf (fp," gain (SFFloat) \t%4.3f\n",tmp->gain);
 			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
 			spacer fprintf (fp," location (SFVec3f): \t");

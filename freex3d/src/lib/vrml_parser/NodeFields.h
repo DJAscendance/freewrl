@@ -3799,7 +3799,7 @@ EXPOSED_FIELD(SpatialSound,coneOuterGain,sffloat,coneOuterGain,FIELDTYPE_SFFloat
 EXPOSED_FIELD(SpatialSound,direction,sfvec3f,direction,FIELDTYPE_SFVec3f,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,distanceModel,sfstring,distanceModel,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,dopplerEnabled,sfbool,dopplerEnabled,FIELDTYPE_SFBool,UNCA_NONE)
-EXPOSED_FIELD(SpatialSound,enabledHRTF,sfbool,enabledHRTF,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(SpatialSound,enableHRTF,sfbool,enableHRTF,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,intensity,sffloat,intensity,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,location,sfvec3f,location,FIELDTYPE_SFVec3f,UNCA_NONE)

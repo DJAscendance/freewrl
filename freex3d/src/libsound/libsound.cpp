@@ -151,6 +151,38 @@ void Wait(Duration duration)
     std::this_thread::sleep_for(duration);
 }
 
+enum {
+    DIST_LINEAR = lab::PannerNode::LINEAR_DISTANCE,
+    DIST_INVERSE = lab::PannerNode::INVERSE_DISTANCE,
+    DIST_EXPONENTIAL = lab::PannerNode::EXPONENTIAL_DISTANCE,
+    DIST_NONE = 0,
+};
+static struct key_name {
+    int iname;
+    const char* cname;
+} distance_models[] = {
+{DIST_LINEAR, "LINEAR"},
+{DIST_INVERSE, "INVERSE"},
+{DIST_EXPONENTIAL, "EXPONENTIAL"},
+{DIST_NONE, NULL},
+};
+unsigned int name_lookup(char* cname, struct key_name* keynames) {
+    unsigned int i, iname;
+    struct key_name* cn;
+    i = 0;
+    iname = 0;
+    do {
+        cn = &keynames[i];
+        if (!strcmp(cn->cname, cname)) {
+            iname = cn->iname;
+            break;
+        }
+        i++;
+    } while (cn->cname != NULL);
+    return iname;
+
+}
+
 
 //make the interface flat C
 #ifdef __cplusplus
@@ -249,7 +281,6 @@ typedef ptw32_handle_t pthread_t;
             //listener->positionX()->setValue(0.0f);
             //listener->positionY()->setValue(0.0f);
             //listener->positionZ()->setValue(0.0f);
-
             //doppler is deprecated in web audio (web browsers)
             //listener->dopplerFactor()->setValue(1.0f);
         }
@@ -368,12 +399,12 @@ typedef ptw32_handle_t pthread_t;
         }
         return srep;
     }
+
     void libsound_updateNode0(int icontext, int iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         AudioContext& context = *ac->context.get();
         //lab::AudioContext& ac = *context.get();
         //goal- switch-case on x3d nodeType and do any labsound node create+connect, update input or update output
-        // - then this can be called from 
         struct X3D_SoundRep* srepn = getSoundRep(node);
         switch (node->_nodeType) {
         case NODE_Sound:
@@ -395,9 +426,15 @@ typedef ptw32_handle_t pthread_t;
                 if (iparent)
                     libsound_connect0(icontext, iparent, srepn->igain);
 
-                pannerNode = std::make_shared<PannerNode>(context);
-                pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // :
+                if (pnode->spatialize != TRUE) {
+                    //I don't know how to turn off spatialization
+                    //EQUALPOWER doesn't do it
+                    //so I will ignore
+                }
 
+                pannerNode = std::make_shared<PannerNode>(context);
+                pannerNode->setPanningModel(PanningModel::EQUALPOWER);
+                //pannerNode->setPanningModel(PanningModel::HRTF);
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
                 srepn->inode = ac->next_node;
@@ -410,6 +447,10 @@ typedef ptw32_handle_t pthread_t;
                 pannerNode_ptr->setConeInnerAngle( 90.0f);
                 pannerNode_ptr->setConeOuterAngle(135.0f);
                 pannerNode_ptr->setConeOuterGain(.07f);
+                // LabSound bug - it can't switch directly to linear 
+                // because it erroneously thinks its on LINEAR but its on INVERSE
+                // so we to exponential first, then linear to get to linear
+                pannerNode_ptr->setDistanceModel(lab::PannerNode::EXPONENTIAL_DISTANCE);
                 pannerNode_ptr->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
                 //pannerNode_ptr->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE);
                 //pannerNode_ptr->distanceGain()->setValue(0.1f);
@@ -417,38 +458,96 @@ typedef ptw32_handle_t pthread_t;
                 pannerNode_ptr->setRefDistance(pnode->minFront);
                 pannerNode_ptr->setMaxDistance(pnode->maxFront);
 
-
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //we don't have the inner/outer ellipsoid so we emulate with inner/outer sphere
-            //pannerNode_ptr->setConeInnerAngle(360.0f);
-            //pannerNode_ptr->setConeOuterAngle(360.0f);
-            //pannerNode_ptr->setConeOuterGain(0.1f);
-            //pannerNode_ptr->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
-            ////pannerNode_ptr->setDistanceModel(lab::PannerNode::INVERSE_DISTANCE);
-            ////pannerNode_ptr->distanceGain()->setValue(0.1f);
-            //pannerNode_ptr->setRolloffFactor(1.0f);
-            //pannerNode_ptr->setRefDistance(pnode->minFront);
-            //pannerNode_ptr->setMaxDistance(pnode->maxFront);
-            //pannerNode_ptr->coneGain()->setValue(pnode->intensity);
-            //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
+             //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity);
             float *xyz = pnode->__lastlocation.c;
             pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
             //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
             //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
             //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
-            if (pnode->spatialize == TRUE || TRUE) {
                 float* rxyz = pnode->__lastdirection.c;
                 //std::cout << " rxyz " << rxyz[0] << " " << rxyz[1] << " " << rxyz[2] << std::endl;
                 pannerNode_ptr->setOrientation({ rxyz[0], rxyz[1], rxyz[2] });
                 //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
                 //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
                 //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
-            }
         }
         break;
+        case NODE_SpatialSound:
+        {
+            struct X3D_SpatialSound* pnode = (struct X3D_SpatialSound*)node;
+            std::shared_ptr<PannerNode> pannerNode;
+            PannerNode* pannerNode_ptr;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //gain node on output
+                std::shared_ptr<GainNode> gain;
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                //connect gain output to parent node input
+                if (iparent)
+                    libsound_connect0(icontext, iparent, srepn->igain);
+
+                if (pnode->spatialize != TRUE) {
+                    //I don't know how to turn off spatialization
+                    //EQUALPOWER doesn't do it
+                    //so I will ignore
+                }
+
+                pannerNode = std::make_shared<PannerNode>(context);
+                if (pnode->enableHRTF == TRUE) {
+                    pannerNode->setPanningModel(lab::PanningModel::HRTF);
+                }
+                else {
+                    pannerNode->setPanningModel(lab::PanningModel::EQUALPOWER);
+                }
+
+                //pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // :
+                pannerNode->setDistanceModel(lab::PannerNode::EXPONENTIAL_DISTANCE);
+                pannerNode->setDistanceModel(lab::PannerNode::LINEAR_DISTANCE);
+
+                ac->next_node++;
+                ac->nodes[ac->next_node] = pannerNode;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                // connect Sound output to gain input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+            }
+            pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+            gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            pannerNode_ptr->setConeInnerAngle(360.0f);
+            pannerNode_ptr->setConeOuterAngle(360.0f);
+            pannerNode_ptr->setConeOuterGain(0.1f);
+            unsigned int distance_enum = name_lookup(pnode->distanceModel->strptr, distance_models);
+            lab::PannerNode::DistanceModel dm = (lab::PannerNode::DistanceModel) distance_enum;
+            pannerNode->setDistanceModel((lab::PannerNode::DistanceModel)distance_enum); // lab::PannerNode::LINEAR_DISTANCE);
+            // something you would query, not set: pannerNode_ptr->distanceGain()->setValue(0.1f);
+            pannerNode_ptr->setRolloffFactor(1.0f);
+            pannerNode_ptr->setRefDistance(pnode->referenceDistance);
+            pannerNode_ptr->setMaxDistance(pnode->maxDistance);
+            //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
+            gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
+            float* xyz = pnode->__lastlocation.c;
+            pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
+            //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
+            //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
+            //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
+            float* rxyz = pnode->__lastdirection.c;
+            //std::cout << " rxyz " << rxyz[0] << " " << rxyz[1] << " " << rxyz[2] << std::endl;
+            pannerNode_ptr->setOrientation({ rxyz[0], rxyz[1], rxyz[2] });
+            //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
+            //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
+            //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
+        }
+        break;
+
         case NODE_AudioClip:
         {
             struct X3D_AudioClip* pnode = (struct X3D_AudioClip*)node;
