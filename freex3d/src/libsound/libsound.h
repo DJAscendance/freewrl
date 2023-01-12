@@ -20,6 +20,7 @@ struct X3D_SoundRep {
 	//int iparent; //x3d parent.inode should become destination labnode
 	unsigned int iframe; //last frame visited on scenegraph traversal
 	int ibuffer; //just for source nodes with a buffer, like audioclip
+	float dopplerFactor; //used by AudioClip (computed by SpatialSound in libsound.cpp)
 };
 
 //enum {

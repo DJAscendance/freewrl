@@ -118,6 +118,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__do_scale",
 	"__do_scaleO",
 	"__do_trans",
+	"__dopplerFactor",
 	"__externProtoDeclares",
 	"__finishedloading",
 	"__fogScale",
@@ -231,6 +232,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__transparency",
 	"__typename",
 	"__unitlengthfactor",
+	"__velocity",
 	"__vertArr",
 	"__vertIndx",
 	"__vertexCount",
@@ -1262,7 +1264,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"values",
 	"variation",
 	"vector",
-	"velocity",
 	"version",
 	"vertexCount",
 	"vertices",
@@ -2036,7 +2037,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"values",
 	"variation",
 	"vector",
-	"velocity",
 	"version",
 	"vertexCount",
 	"vertices",
@@ -8916,6 +8916,8 @@ const int OFFSETS_Sound[] = {
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_Sound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_Sound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_Sound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___velocity, (int) offsetof (struct X3D_Sound, __velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___dopplerFactor, (int) offsetof (struct X3D_Sound, __dopplerFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_Sound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_Sound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_Sound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8939,6 +8941,8 @@ const int OFFSETS_SpatialSound[] = {
 	(int) FIELDNAMES___lastlocation, (int) offsetof (struct X3D_SpatialSound, __lastlocation),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lastdirection, (int) offsetof (struct X3D_SpatialSound, __lastdirection),  (int) FIELDTYPE_SFVec3f, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_SpatialSound, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___velocity, (int) offsetof (struct X3D_SpatialSound, __velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES___dopplerFactor, (int) offsetof (struct X3D_SpatialSound, __dopplerFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_spatialize, (int) offsetof (struct X3D_SpatialSound, spatialize),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_priority, (int) offsetof (struct X3D_SpatialSound, priority),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_intensity, (int) offsetof (struct X3D_SpatialSound, intensity),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -8949,7 +8953,6 @@ const int OFFSETS_SpatialSound[] = {
 	(int) FIELDNAMES_dopplerEnabled, (int) offsetof (struct X3D_SpatialSound, dopplerEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_enableHRTF, (int) offsetof (struct X3D_SpatialSound, enableHRTF),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_SpatialSound, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_velocity, (int) offsetof (struct X3D_SpatialSound, velocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_maxDistance, (int) offsetof (struct X3D_SpatialSound, maxDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_referenceDistance, (int) offsetof (struct X3D_SpatialSound, referenceDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_rolloffFactor, (int) offsetof (struct X3D_SpatialSound, rolloffFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -16017,6 +16020,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
 			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
+			tmp2->__velocity.c[0] = 0.0f;tmp2->__velocity.c[1] = 0.0f;tmp2->__velocity.c[2] = 0.0f;
+			tmp2->__dopplerFactor = 1.0f;
 			tmp2->spatialize = TRUE;
 			tmp2->priority = 0.0f;
 			tmp2->intensity = 1.0f;
@@ -16043,6 +16048,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__lastlocation.c[0] = 0.0f;tmp2->__lastlocation.c[1] = 0.0f;tmp2->__lastlocation.c[2] = 0.0f;
 			tmp2->__lastdirection.c[0] = 0.0f;tmp2->__lastdirection.c[1] = 0.0f;tmp2->__lastdirection.c[2] = 1.0f;
 			tmp2->__lasttime = 0;
+			tmp2->__velocity.c[0] = 0.0f;tmp2->__velocity.c[1] = 0.0f;tmp2->__velocity.c[2] = 0.0f;
+			tmp2->__dopplerFactor = 1.0f;
 			tmp2->spatialize = TRUE;
 			tmp2->priority = 0.0f;
 			tmp2->intensity = 1.0f;
@@ -16053,7 +16060,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->dopplerEnabled = FALSE;
 			tmp2->enableHRTF = FALSE;
 			tmp2->gain = 1.0f;
-			tmp2->velocity.c[0] = 0.0f;tmp2->velocity.c[1] = 0.0f;tmp2->velocity.c[2] = 0.0f;
 			tmp2->maxDistance = 10000.0f;
 			tmp2->referenceDistance = 1.0f;
 			tmp2->rolloffFactor = 1.0f;
@@ -22240,6 +22246,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," location (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
 			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," __velocity (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__velocity.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __dopplerFactor (SFFloat) \t%4.3f\n",tmp->__dopplerFactor);
+		    }
 			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
 			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
 			spacer fprintf (fp," maxBack (SFFloat) \t%4.3f\n",tmp->maxBack);
@@ -22266,6 +22280,14 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," location (SFVec3f): \t");
 			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->location.c[i]); }
 			fprintf (fp,"\n");
+		    if(allFields) {
+			spacer fprintf (fp," __velocity (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->__velocity.c[i]); }
+			fprintf (fp,"\n");
+		    }
+		    if(allFields) {
+			spacer fprintf (fp," __dopplerFactor (SFFloat) \t%4.3f\n",tmp->__dopplerFactor);
+		    }
 			spacer fprintf (fp," priority (SFFloat) \t%4.3f\n",tmp->priority);
 			spacer fprintf (fp," intensity (SFFloat) \t%4.3f\n",tmp->intensity);
 			spacer fprintf (fp," coneInnerAngle (SFFloat) \t%4.3f\n",tmp->coneInnerAngle);
@@ -22275,9 +22297,6 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," dopplerEnabled (SFBool) \t%d\n",tmp->dopplerEnabled);
 			spacer fprintf (fp," enableHRTF (SFBool) \t%d\n",tmp->enableHRTF);
 			spacer fprintf (fp," gain (SFFloat) \t%4.3f\n",tmp->gain);
-			spacer fprintf (fp," velocity (SFVec3f): \t");
-			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->velocity.c[i]); }
-			fprintf (fp,"\n");
 			spacer fprintf (fp," maxDistance (SFFloat) \t%4.3f\n",tmp->maxDistance);
 			spacer fprintf (fp," referenceDistance (SFFloat) \t%4.3f\n",tmp->referenceDistance);
 			spacer fprintf (fp," rolloffFactor (SFFloat) \t%4.3f\n",tmp->rolloffFactor);

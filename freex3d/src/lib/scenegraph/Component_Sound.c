@@ -113,6 +113,7 @@ typedef struct pComponent_Sound{
 #endif //HAVE_OPENAL
 	Stack *audio_context_stack;
 	Stack *audio_parent_stack;
+	Stack* doppler_factor_stack;
 }* ppComponent_Sound;
 void *Component_Sound_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_Sound));
@@ -136,6 +137,8 @@ void Component_Sound_init(struct tComponent_Sound *t){
 		stack_push(int, p->audio_context_stack, 0); //a null will signal we have no audio context yet.
 		p->audio_parent_stack = newStack(int);
 		stack_push(int, p->audio_parent_stack, 0); //a null will signal we have no audio parent yet.
+		p->doppler_factor_stack = newStack(float);
+		stack_push(float, p->doppler_factor_stack, 1.0f);
 #ifdef HAVE_OPENAL
 		p->alContext = NULL;
 #endif //HAVE_OPENAL
@@ -658,6 +661,20 @@ int peek_audio_parent() {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	return stack_top(int, p->audio_parent_stack);
 }
+void push_doppler_factor(float dopplerFactor) {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_push(float, p->doppler_factor_stack, dopplerFactor);
+}
+
+void pop_doppler_factor() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_pop(float, p->doppler_factor_stack);
+}
+float peek_doppler_factor() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	return stack_top(float, p->doppler_factor_stack);
+}
+
 
 void render_AudioClip(struct X3D_AudioClip* node) {
 	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
@@ -676,6 +693,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	srep->ibuffer = node->__sourceNumber;
+	srep->dopplerFactor = peek_doppler_factor();
 	int icontext = peek_audio_context();
 	int iparent = peek_audio_parent();
 	//node->gain = 1.0;
@@ -714,7 +732,8 @@ void update_Sound_pose(struct X3D_Sound* node){
 		vecdif3f(travelled, node->__lastlocation.c, SourcePos);
 		traveltime = TickTime() - node->__lasttime;
 		if (traveltime > 0.0)
-			vecscale3f(SourceVel, travelled, 1.0f / (float)traveltime);
+			vecscale3f(node->__velocity.c, travelled, 1.0f / (float)traveltime);
+
 
 		node->__lasttime = TickTime();
 		veccopy3f(node->__lastlocation.c, SourcePos);
@@ -777,13 +796,10 @@ void render_SpatialSound(struct X3D_SpatialSound* node) {
 	push_audio_parent(1); //should be the audio context device node
 	int icontext = peek_audio_context();
 	libsound_updateNode0(icontext, peek_audio_parent(), anode);
+	push_doppler_factor(node->__dopplerFactor);
 	push_audio_parentnode(anode);
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
-	if (1) {
-		printf(" SpatialSound maxDistance= %f \n", node->maxDistance);
-		printf("\n");
-	}
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
@@ -791,6 +807,7 @@ void render_SpatialSound(struct X3D_SpatialSound* node) {
 	}
 	pop_audio_parent(); // sound panner node
 	pop_audio_parent(); //audio context device node 1
+	pop_doppler_factor(node->__dopplerFactor);
 	pop_audio_context();
 
 }

@@ -1477,6 +1477,8 @@ our %Nodes = (
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
 		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+		__velocity => ["SFVec3f", [0, 0, 0], "inputOutput", 0,0],#ff
+		__dopplerFactor => ["SFFloat", 1, "inputOutput", 0,0],#ff
 		# Sound
 		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		priority => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1503,6 +1505,8 @@ our %Nodes = (
 		__lastlocation => ["SFVec3f", [0, 0, 0], "initializeOnly",0,0],#ff
 		__lastdirection => ["SFVec3f", [0, 0, 1], "initializeOnly",0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
+		__velocity => ["SFVec3f", [0, 0, 0], "inputOutput", 0,0],#ff
+		__dopplerFactor => ["SFFloat", 1, "inputOutput", 0,0],#ff
 		# SpatialSound
 		spatialize => ["SFBool", "TRUE", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		priority => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1514,7 +1518,6 @@ our %Nodes = (
 		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		enableHRTF => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		velocity => ["SFVec3f", [0, 0, 0], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		maxDistance => ["SFFloat", 10000, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		referenceDistance => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		rolloffFactor => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff

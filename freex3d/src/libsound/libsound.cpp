@@ -526,7 +526,7 @@ typedef ptw32_handle_t pthread_t;
                 default:
                     break;
                 }
-
+                
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
                 srepn->inode = ac->next_node;
@@ -543,6 +543,22 @@ typedef ptw32_handle_t pthread_t;
             pannerNode_ptr->setRolloffFactor(1.0f);
             pannerNode_ptr->setRefDistance(pnode->referenceDistance);
             pannerNode_ptr->setMaxDistance(pnode->maxDistance);
+
+            if (pnode->dopplerEnabled == TRUE) {
+                float* v = pnode->__velocity.c;
+                pannerNode_ptr->setVelocity(v[0], v[1], v[2]);
+                //std::cout << " vel= " << v[0] << " " << v[1] << " " << v[2] << std::endl;
+                auto listener = context.listener();
+                listener->setDopplerFactor(1.0f); //default is 1
+                listener->setSpeedOfSound(343.0f); //default is 343 m/s
+                {
+                    ContextRenderLock r(&context, "ex_simple");
+                    float dr = pannerNode_ptr->dopplerRate(r);
+                    //std::cout << " doppRate " << dr << std::endl;
+                    pnode->__dopplerFactor = dr;
+                }
+            }
+
             //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
             float* xyz = pnode->__lastlocation.c;
@@ -562,44 +578,44 @@ typedef ptw32_handle_t pthread_t;
         case NODE_AudioClip:
         {
             struct X3D_AudioClip* pnode = (struct X3D_AudioClip*)node;
-            std::shared_ptr<SampledAudioNode> musicClipNode;
-            SampledAudioNode* musicClipNode_ptr;
+            std::shared_ptr<SampledAudioNode> audioClipNode;
+            SampledAudioNode* audioClipNode_ptr;
             if (!srepn->inode) {
                 //create labsound node
-                musicClipNode = std::make_shared<SampledAudioNode>(context);
+                audioClipNode = std::make_shared<SampledAudioNode>(context);
                 {
                     ContextRenderLock r(ac->context.get(), "ex_simple");
-                    musicClipNode->setBus(r, busses[srepn->ibuffer]);
+                    audioClipNode->setBus(r, busses[srepn->ibuffer]);
                 }
                 ac->next_node++;
-                ac->nodes[ac->next_node] = musicClipNode;
+                ac->nodes[ac->next_node] = audioClipNode;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 if (iparent)
                     libsound_connect0(icontext, iparent, srepn->inode);
-                //musicClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
-                musicClipNode->schedule(0.0, -1); // -1 to loop forever
+                //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
+                audioClipNode->schedule(0.0, -1); // -1 to loop forever
 
 
             }
             //copy changed values from x3d to labsound
-            //musicClipNode = static_cast<std::shared_ptr<SampledAudioNode>>( ac->nodes[srepn->inode] );
-            musicClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
+            //audioClipNode = static_cast<std::shared_ptr<SampledAudioNode>>( ac->nodes[srepn->inode] );
+            audioClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
-            SchedulingState status = musicClipNode_ptr->playbackState();
+            SchedulingState status = audioClipNode_ptr->playbackState();
             if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
-                musicClipNode_ptr->stop(0.0);
+                audioClipNode_ptr->stop(0.0);
             else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
-                musicClipNode_ptr->start(0.0);
+                audioClipNode_ptr->start(0.0);
             
-            //bool isactive = musicClipNode_ptr->loop();
-            //musicClipNode_ptr->setLoop(pnode->loop ? true : false);
-            //if (!isactive && pnode->loop) musicClipNode_ptr->start(0.0f);
-            musicClipNode_ptr->playbackRate()->setValue(pnode->pitch);
-           // musicClipNode_ptr->gain()->setValue(pnode->gain);
+            //bool isactive = audioClipNode_ptr->loop();
+            //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
+            //if (!isactive && pnode->loop) audioClipNode_ptr->start(0.0f);
+            audioClipNode_ptr->playbackRate()->setValue(pnode->pitch*srepn->dopplerFactor);
+           // audioClipNode_ptr->gain()->setValue(pnode->gain);
             //copy outputs from labsound to x3d
-            //pnode->duration_changed = musicClipNode_ptr->duration();
+            //pnode->duration_changed = audioClipNode_ptr->duration();
         }
         break;
         case NODE_OscillatorSource:

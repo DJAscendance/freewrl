@@ -3805,7 +3805,6 @@ EXPOSED_FIELD(SpatialSound,distanceModel,sfstring,distanceModel,FIELDTYPE_SFStri
 EXPOSED_FIELD(SpatialSound,dopplerEnabled,sfbool,dopplerEnabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,enableHRTF,sfbool,enableHRTF,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
-EXPOSED_FIELD(SpatialSound,velocity,sfvec3f,velocity,FIELDTYPE_SFVec3f,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,maxDistance,sffloat,maxDistance,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,referenceDistance,sffloat,referenceDistance,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(SpatialSound,rolloffFactor,sffloat,rolloffFactor,FIELDTYPE_SFFloat,UNCA_NONE)
