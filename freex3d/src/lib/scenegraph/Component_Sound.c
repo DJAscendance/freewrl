@@ -729,7 +729,7 @@ void update_Sound_pose(struct X3D_Sound* node){
 		double traveltime;
 
 		//update velocity for doppler effect
-		vecdif3f(travelled, node->__lastlocation.c, SourcePos);
+		vecdif3f(travelled, SourcePos, node->__lastlocation.c);
 		traveltime = TickTime() - node->__lasttime;
 		if (traveltime > 0.0)
 			vecscale3f(node->__velocity.c, travelled, 1.0f / (float)traveltime);
@@ -739,7 +739,8 @@ void update_Sound_pose(struct X3D_Sound* node){
 		veccopy3f(node->__lastlocation.c, SourcePos);
 
 		//directional sound
-		if (node->spatialize) {
+		//if (node->spatialize) 
+		{
 			double dird[3];
 			double zero[3];
 			float dirf[3];
@@ -748,6 +749,7 @@ void update_Sound_pose(struct X3D_Sound* node){
 			zero[0] = zero[1] = zero[2] = 0.0;
 			transformAFFINEd(dird, dird, modelMatrix);
 			transformAFFINEd(zero, zero, modelMatrix);
+
 			vecdifd(dird, dird, zero);
 			vecnormald(dird, dird);
 			for (i = 0; i < 3; i++) dirf[i] = (float)dird[i];
