@@ -536,11 +536,12 @@ typedef ptw32_handle_t pthread_t;
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            gain_ptr->gain()->setValue(pnode->intensity* pnode->gain);
             pannerNode_ptr->setConeInnerAngle(RAD2DEGF(pnode->coneInnerAngle));
             pannerNode_ptr->setConeOuterAngle(RAD2DEGF(pnode->coneOuterAngle));
-            pannerNode_ptr->setConeOuterGain(0.1f);
+            pannerNode_ptr->setConeOuterGain(pnode->coneOuterGain);
             // something you would query, not set: pannerNode_ptr->distanceGain()->setValue(0.1f);
-            pannerNode_ptr->setRolloffFactor(1.0f);
+            pannerNode_ptr->setRolloffFactor(pnode->rolloffFactor);
             pannerNode_ptr->setRefDistance(pnode->referenceDistance);
             pannerNode_ptr->setMaxDistance(pnode->maxDistance);
 
@@ -561,18 +562,24 @@ typedef ptw32_handle_t pthread_t;
 
             //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
-            float* xyz = pnode->__lastlocation.c;
-            //std::cout << " xyz " << xyz[0] << " " << xyz[1] << " " << xyz[2] << std::endl;
-            pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
-            //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
-            //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
-            //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
+
             float* dir = pnode->__lastdirection.c;
-            //std::cout << " dir " << dir[0] << " " << dir[1] << " " << dir[2] << std::endl;
-            pannerNode_ptr->setOrientation({ dir[0], dir[1], dir[2] });
+            std::cout << " dir " << dir[0] << " " << dir[1] << " " << dir[2] << std::endl;
+            pannerNode_ptr->setOrientation({ dir[0], dir[1] + .001f , dir[2] });
             //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
             //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
             //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
+
+
+            float* xyz = pnode->__lastlocation.c;
+            std::cout << " xyz " << xyz[0] << " " << xyz[1] << " " << xyz[2] << std::endl;
+            static int once = 0;
+            //if(!once)
+                pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
+            once++;
+            //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
+            //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
+            //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
         }
         break;
 
