@@ -687,6 +687,16 @@ typedef ptw32_handle_t pthread_t;
 
         }
         break;
+        //case NODE_AudioDestination:
+        //{
+        //    struct X3D_AudioDestinationn* pnode = (struct X3D_AudioDestination*)node;
+        //    if (!srepn->inode) {
+        //        //create labsound node
+        //    }
+
+        //}
+        //break;
+
         default:
             return;
 

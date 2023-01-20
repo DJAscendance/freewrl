@@ -696,9 +696,35 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	srep->dopplerFactor = peek_doppler_factor();
 	int icontext = peek_audio_context();
 	int iparent = peek_audio_parent();
+	//printf("ac audio_context %d parent_node %d\n", peek_audio_context(), peek_audio_parent());
+
 	//node->gain = 1.0;
 	libsound_updateNode0(icontext, iparent, X3D_NODE(node));
 
+}
+void render_AudioDestination(struct X3D_AudioDestination* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	int have_parent = peek_audio_parent();
+	create_and_push_audio_context(anode);
+	if (!have_parent)
+		push_audio_parent(1); //should be the audio context device node
+
+	//push_audio_parentnode(anode);
+	//libsound_updateNode0(peek_audio_context(), have_parent, anode);
+
+	//printf("ad audio_context %d parent_node %d this node %d\n", peek_audio_context(), have_parent, peek_audio_parent());
+
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->children.n) {
+		for (int i = 0; i < node->children.n; i++)
+			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
+			render_node(X3D_NODE(node->children.p[i]));
+	}
+	//pop_audio_parent(); // sound audio destination node
+	if (!have_parent)
+		pop_audio_parent(); //audio context device node 1
+	pop_audio_context();
 }
 
 void update_Sound_pose(struct X3D_Sound* node){
@@ -773,9 +799,9 @@ void update_Sound_pose(struct X3D_Sound* node){
 
 void render_Sound(struct X3D_Sound* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	int have_parent = peek_audio_parent();
 	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
 	update_Sound_pose(node);
-	int have_parent = peek_audio_parent();
 	if (!have_parent)
 		push_audio_parent(1); //should be the audio context device node
 	int icontext = peek_audio_context();
@@ -800,15 +826,17 @@ void render_Sound(struct X3D_Sound* node) {
 
 void render_SpatialSound(struct X3D_SpatialSound* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	int have_parent = peek_audio_parent();
 	create_and_push_audio_context(anode); //Sound is a destination/output audioNode
 	update_Sound_pose((struct X3D_Sound*)node); //down-cast to Sound, and assume the fields accessed are in same order as Sound
-	int have_parent = peek_audio_parent();
 	if (!have_parent)
 		push_audio_parent(1); //should be the audio context device node
 	int icontext = peek_audio_context();
 	libsound_updateNode0(icontext, peek_audio_parent(), anode);
 	push_doppler_factor(node->__dopplerFactor);
 	push_audio_parentnode(anode);
+	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
+
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->children.n) {
@@ -822,20 +850,6 @@ void render_SpatialSound(struct X3D_SpatialSound* node) {
 		pop_audio_parent(); //audio context device node 1
 	pop_audio_context();
 
-}
-void render_AudioDestination(struct X3D_AudioDestination* node) {
-	struct X3D_Node* anode = (struct X3D_Node*)node;
-	create_and_push_audio_context(anode); 
-	push_audio_parentnode(anode);
-	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
-	srep->iframe = gglobal()->Mainloop.iframe;
-	if (node->children.n) {
-		for (int i = 0; i < node->children.n; i++)
-			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
-			render_node(X3D_NODE(node->children.p[i]));
-	}
-	pop_audio_parent(); // sound panner node
-	pop_audio_context();
 }
 
 #endif //HAVE_LIBSOUND
