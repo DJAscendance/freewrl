@@ -436,8 +436,8 @@ typedef ptw32_handle_t pthread_t;
                     //so I will ignore
                 }
 
-                pannerNode = std::make_shared<PannerNode>(context);
-                pannerNode->setPanningModel(PanningModel::EQUALPOWER);
+                pannerNode = std::make_shared<PannerNode>(context, "");
+                pannerNode->setPanningModel(PanningMode::EQUALPOWER); //PanningModel:: in later LabSound releases
                 //pannerNode->setPanningModel(PanningModel::HRTF);
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
@@ -504,13 +504,15 @@ typedef ptw32_handle_t pthread_t;
                     //EQUALPOWER doesn't do it
                     //so I will ignore
                 }
-
-                pannerNode = std::make_shared<PannerNode>(context);
+                
+                pannerNode = std::make_shared<PannerNode>(context, "../../../../lib_windows_vc12/LabSound/share/hrtf");
+               
                 if (pnode->enableHRTF == TRUE) {
-                    pannerNode->setPanningModel(lab::PanningModel::HRTF);
+                    pannerNode->setPanningModel(lab::PanningMode::HRTF);
+                    printf("SpatialSound HRTF enabled\n");
                 }
                 else {
-                    pannerNode->setPanningModel(lab::PanningModel::EQUALPOWER);
+                    pannerNode->setPanningModel(lab::PanningMode::EQUALPOWER);
                 }
 
                 //pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // 
@@ -563,23 +565,36 @@ typedef ptw32_handle_t pthread_t;
             //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
 
-            float* dir = pnode->__lastdirection.c;
-            std::cout << " dir " << dir[0] << " " << dir[1] << " " << dir[2] << std::endl;
-            pannerNode_ptr->setOrientation({ dir[0], dir[1] + .001f , dir[2] });
-            //pannerNode_ptr->orientationX()->setValue(pnode->__lastdirection.c[0]);
-            //pannerNode_ptr->orientationY()->setValue(pnode->__lastdirection.c[1]);
-            //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
+            float* dir0 = pnode->__lastdirection.c;
+            float dir[3];
+            memcpy(dir, dir0,3*sizeof(float));
+           // dir[0] = fabs(dir[0]) < .001f ? 0.0f : dir[0];
+            //deep mystery: Spatial.x3d when navigating in Fly: sound will cut out
+            // but doesn't cut out if dir.y is either 0 or .001 or bigger.
+            // same { dir, xyz } in LabSound Examples.hpp doesn't have a problem
+            // bizarre because dir/orientation shouldn't be needed when inner and outer cone angles are both 2 PI
+            dir[1] = fabs(dir[1]) < .001f ? copysign(.001f,dir[1]) : dir[1];
+            //std::cout << " { " << dir[0] << ", " << dir[1] << ", " << dir[2] << ", ";
+
+            pannerNode_ptr->setOrientation({ dir[0], dir[1] , dir[2] });
+            //pannerNode_ptr->orientationX()->setValue(dir[0]);
+            //pannerNode_ptr->orientationY()->setValue(dir[1]);
+            //pannerNode_ptr->orientationZ()->setValue(dir[2]); //Q. should it be  -ve
 
 
-            float* xyz = pnode->__lastlocation.c;
-            std::cout << " xyz " << xyz[0] << " " << xyz[1] << " " << xyz[2] << std::endl;
-            static int once = 0;
+            float* xyz0 = pnode->__lastlocation.c;
+            float xyz[3];
+            memcpy(xyz, xyz0, 3 * sizeof(float));
+            //xyz[0] = fabs(xyz[0]) < .001f ? 0.0f : xyz[0];
+            //xyz[1] = fabs(xyz[1]) < .001f ? .001f : xyz[1];
+            //std::cout << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "}," << std::endl;
+            //static int once = 0;
             //if(!once)
-                pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
-            once++;
-            //pannerNode_ptr->positionX()->setValue(pnode->__lastlocation.c[0]);
-            //pannerNode_ptr->positionY()->setValue(pnode->__lastlocation.c[1]);
-            //pannerNode_ptr->positionZ()->setValue(pnode->__lastlocation.c[2]);
+            pannerNode_ptr->setPosition(xyz[0], xyz[1], xyz[2]);
+           // once++;
+            //pannerNode_ptr->positionX()->setValue(xyz[0]);
+            //pannerNode_ptr->positionY()->setValue(xyz[1]);
+            //pannerNode_ptr->positionZ()->setValue(xyz[2]);
         }
         break;
 

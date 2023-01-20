@@ -74,7 +74,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>LabSound_d.lib;libnyquist_d.lib;samplerate.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>LabSound_d.lib;libnyquist_d.lib;libwavpack_d.lib;samplerate_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(LIBWIN)/LabSound/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -97,7 +97,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(LIBWIN)/LabSound/lib/Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LabSound.lib;libnyquist.lib;samplerate.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>LabSound.lib;libnyquist.lib;libwavpack.lib;samplerate.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
