@@ -857,9 +857,9 @@ void render_SpatialSound(struct X3D_SpatialSound* node) {
 
 #ifdef HAVE_LIBSOUND
 
+void render_PeriodicWave(struct X3D_PeriodicWave* node);
 
 void render_OscillatorSource(struct X3D_OscillatorSource *node){
-	//COMPILE_IF_REQUIRED
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->_ichange != node->_change) {
@@ -872,6 +872,27 @@ void render_OscillatorSource(struct X3D_OscillatorSource *node){
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (node->periodicWave) {
+		push_audio_parent(srep->inode);
+		render_PeriodicWave((struct X3D_PeriodicWave*)node->periodicWave); //like rendering a child, check if anything changed.
+		pop_audio_parent();
+	}
+
+
+}
+void render_PeriodicWave(struct X3D_PeriodicWave* node) {
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->_ichange != node->_change) {
+		//if (node->_ichange == 0) return;
+
+		struct X3D_Node* anode = (struct X3D_Node*)node;
+		int icontext = peek_audio_context();
+		int iparent = peek_audio_parent();
+		libsound_updateNode0(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+	}
+
 }
 
 
@@ -883,9 +904,6 @@ void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
 }
 
 void render_WaveShaper(struct X3D_WaveShaper *node){
-	COMPILE_IF_REQUIRED
-}
-void render_PeriodicWave(struct X3D_PeriodicWave *node){
 	COMPILE_IF_REQUIRED
 }
 

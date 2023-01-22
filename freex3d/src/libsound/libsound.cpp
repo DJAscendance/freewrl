@@ -157,15 +157,31 @@ enum {
     DIST_EXPONENTIAL = lab::PannerNode::EXPONENTIAL_DISTANCE,
     DIST_NONE = 0,
 };
-static struct key_name {
+struct key_name {
     int iname;
     const char* cname;
-} distance_models[] = {
+};
+static struct key_name distance_models[] = {
 {DIST_LINEAR, "LINEAR"},
 {DIST_INVERSE, "INVERSE"},
 {DIST_EXPONENTIAL, "EXPONENTIAL"},
 {DIST_NONE, NULL},
 };
+
+
+static struct key_name periodicWave_types[] = {
+{OscillatorType::SINE, "SINE"},
+{OscillatorType::SQUARE, "SQUARE"},
+{OscillatorType::SAWTOOTH, "SAWTOOTH"},
+{OscillatorType::TRIANGLE, "TRIANGLE"},
+{OscillatorType::CUSTOM, "CUSTOM"},
+{OscillatorType::OSCILLATOR_NONE, NULL},
+};
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif //_MSC_VER
+
 unsigned int name_lookup(char* cname, struct key_name* keynames) {
     unsigned int i, iname;
     struct key_name* cn;
@@ -173,9 +189,12 @@ unsigned int name_lookup(char* cname, struct key_name* keynames) {
     iname = 0;
     do {
         cn = &keynames[i];
-        if (!strcmp(cn->cname, cname)) {
-            iname = cn->iname;
-            break;
+        if (cn->cname != NULL) {
+            //if (!strcmp(cn->cname, cname)) {
+            if (!strcasecmp(cn->cname, cname)) {
+                iname = cn->iname;
+                break;
+            }
         }
         i++;
     } while (cn->cname != NULL);
@@ -683,6 +702,40 @@ typedef ptw32_handle_t pthread_t;
             //copy outputs from labsound to x3d
         }
         break;
+        case NODE_PeriodicWave:
+        {
+            struct X3D_PeriodicWave* pnode = (struct X3D_PeriodicWave*)node;
+            std::shared_ptr<WaveTable> pwave; //using an older term but equivalent WaveTable == PeriodicWave
+            if (iparent){
+                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent];
+                OscillatorNode* oscillator_ptr =
+                    static_cast<OscillatorNode*>(oscillator.get());
+               //periodicWave_types
+                unsigned int wave_type = name_lookup(pnode->type->strptr, periodicWave_types);
+                switch (wave_type) {
+                case OscillatorType::SINE:
+                    oscillator_ptr->setType(OscillatorType::SINE); break;
+                case OscillatorType::SQUARE:
+                    oscillator_ptr->setType(OscillatorType::SQUARE); break;
+                case OscillatorType::SAWTOOTH:
+                    oscillator_ptr->setType(OscillatorType::SAWTOOTH); break;
+                case OscillatorType::TRIANGLE:
+                    oscillator_ptr->setType(OscillatorType::TRIANGLE); break;
+                case OscillatorType::CUSTOM:
+                    oscillator_ptr->setType(OscillatorType::CUSTOM); break;
+                default:
+                    oscillator_ptr->setType(OscillatorType::OSCILLATOR_NONE);
+                    break;
+                }
+
+                //oscillator_ptr->setType(static_cast<OscillatorType>(wave_type));
+
+            }
+            //copy changed values from x3d to labsound
+            //copy outputs from labsound to x3d
+
+        }
+
         case NODE_Gain:
         {
             struct X3D_Gain* pnode = (struct X3D_Gain*)node;
