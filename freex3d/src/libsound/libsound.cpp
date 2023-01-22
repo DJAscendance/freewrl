@@ -563,7 +563,7 @@ typedef ptw32_handle_t pthread_t;
             }
 
             //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
-            gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
+            // done above gain_ptr->gain()->setValue(pnode->intensity * pnode->gain);
 
             float* dir0 = pnode->__lastdirection.c;
             float dir[3];
@@ -646,7 +646,21 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_OscillatorSource* pnode = (struct X3D_OscillatorSource*)node;
             //if (!pnode->_self) {
             std::shared_ptr<OscillatorNode> oscillator;
+            OscillatorNode* oscillator_ptr;
+            GainNode* gain_ptr;
             if (!srepn->inode) {
+                //gain node on output
+                std::shared_ptr<GainNode> gain;
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                //connect gain output to parent node input
+                if (iparent)
+                    libsound_connect0(icontext, iparent, srepn->igain);
+
                 //create labsound node
                 oscillator = std::make_shared<OscillatorNode>(context);
                   ac->next_node++;
@@ -654,11 +668,18 @@ typedef ptw32_handle_t pthread_t;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                if (iparent)
-                    libsound_connect0(icontext, iparent, srepn->inode);
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                oscillator->start(0.0f);
             }
             //copy changed values from x3d to labsound
-            oscillator->detune()->setValue(pnode->detune);
+            
+            gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            gain_ptr->gain()->setValue(pnode->gain);
+            oscillator_ptr = static_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
+
+            oscillator_ptr->frequency()->setValue(pnode->frequency);
+            oscillator_ptr->detune()->setValue(pnode->detune);
+            
             //copy outputs from labsound to x3d
         }
         break;

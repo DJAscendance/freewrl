@@ -3165,7 +3165,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_shaders,0,0,0,0,0,0},
 {FIELDNAMES_shape,0,0,0,0,0,0},
-{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_periodicWave,0,0,0,0,0,0},
 {FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_texture,0,0,0,0,0,0},
