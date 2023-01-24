@@ -10339,6 +10339,9 @@ struct X3D_OscillatorSource {
 	float detune;
 	float frequency;
 	struct X3D_Node *periodicWave;
+	int __oldEnabled;
+	double __inittime;
+	double __lasttime;
 };
 extern struct X3D_Virt virt_OscillatorSource;
 /***********************/

@@ -1068,6 +1068,70 @@ void do_AudioTick(void *ptr) {
 	}
 }
 
+void do_OscillatorSourceTick(void* ptr) {
+	struct X3D_OscillatorSource* node = (struct X3D_OscillatorSource*)ptr;
+	int 	oldstatus;
+	double duration; /* gcc and params - make all doubles to do_active_inactive */
+
+	/* can we possibly have started yet? */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, enabled));
+	}
+	if (!node->enabled) return;
+
+	if (node->__inittime == 0.0)
+		node->__inittime = TickTime();
+
+	if (TickTime() < node->startTime) {
+		return;
+	}
+
+	oldstatus = node->isActive;
+
+
+	/* call common time sensor routine */
+	//duration = return_Duration(node->__sourceNumber);
+	duration = 0.0;
+	do_active_inactive(
+		&node->isActive, &node->__inittime, &node->startTime,
+		&node->stopTime, TRUE, duration,
+		node->frequency, node->elapsedTime);
+
+	if (oldstatus != node->isActive) {
+		/* push @e, [$t, "isActive", node->{isActive}]; */
+		if (node->isActive == 1) {
+			/* force code below to generate event */
+			//node->__ctflag = 10.0;
+			node->__lasttime = TickTime();
+			node->elapsedTime = 0.0;
+		}
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, isActive));
+	}
+
+	if (node->isActive) {
+		if (node->pauseTime > node->startTime) {
+			if (node->resumeTime < node->pauseTime && !node->isPaused) {
+				node->isPaused = TRUE;
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, isPaused));
+			}
+			else if (node->resumeTime > node->pauseTime && node->isPaused) {
+				node->isPaused = FALSE;
+				node->__lasttime = TickTime();
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, isPaused));
+			}
+		}
+	}
+	if (node->isActive == 1 && node->isPaused == FALSE) {
+		double dtime = TickTime();
+		node->elapsedTime += dtime - node->__lasttime;
+		node->__lasttime = dtime;
+		//double myFrac = node->elapsedTime / duration;
+		MARK_EVENT(ptr, offsetof(struct X3D_AudioClip, elapsedTime));
+	}
+}
 
 
 /* Similar to AudioClip, this is the Play, Pause, Stop, Resume code

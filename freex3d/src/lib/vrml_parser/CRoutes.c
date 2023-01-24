@@ -751,6 +751,7 @@ void add_first(struct X3D_Node * node) {
 		case NODE_Collision:			myp = do_CollisionTick;			break;
 		case NODE_MovieTexture:			myp = do_MovieTextureTick;		break;
 		case NODE_AudioClip:			myp = do_AudioTick;				break;
+		case NODE_OscillatorSource:		myp = do_OscillatorSourceTick;	break;
 		case NODE_VisibilitySensor:		myp = do_VisibilitySensorTick;	break;
 		case NODE_TransformSensor:		myp = do_TransformSensorTick;	break;
 		case NODE_GeoProximitySensor:	myp = do_GeoProximitySensorTick;break;

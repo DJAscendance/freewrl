@@ -697,9 +697,16 @@ typedef ptw32_handle_t pthread_t;
             oscillator_ptr = static_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
 
             oscillator_ptr->frequency()->setValue(pnode->frequency);
+            //printf("from libsound updateNode0 OscillatorSource > detun %f\n", pnode->detune);
             oscillator_ptr->detune()->setValue(pnode->detune);
+
+            SchedulingState status = oscillator_ptr->playbackState();
+            printf("isActive %d isPaused %d status %d\n", pnode->isActive, pnode->isPaused, status);
+            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+                oscillator_ptr->stop(0.0);
+            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                oscillator_ptr->start(0.0);
             
-            //copy outputs from labsound to x3d
         }
         break;
         case NODE_PeriodicWave:
