@@ -701,11 +701,17 @@ typedef ptw32_handle_t pthread_t;
             oscillator_ptr->detune()->setValue(pnode->detune);
 
             SchedulingState status = oscillator_ptr->playbackState();
-            printf("isActive %d isPaused %d status %d\n", pnode->isActive, pnode->isPaused, status);
-            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+            // printf("isActive %d isPaused %d status %d\n", pnode->isActive, pnode->isPaused, status);
+            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE)) {
                 oscillator_ptr->stop(0.0);
-            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                //printf("called stop \n");
+                //getchar();
+            }
+            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE)) {
                 oscillator_ptr->start(0.0);
+                //printf("called start\n");
+                //getchar();
+            }
             
         }
         break;
