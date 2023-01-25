@@ -864,8 +864,8 @@ void render_OscillatorSource(struct X3D_OscillatorSource *node){
 	srep->iframe = gglobal()->Mainloop.iframe;
 	//SenseInterp.c > OscillatorSourceTick: 
 	//  no exemplar in Ticks of setting _changed, just MARK_EVENT which doesnt seem to (it updates route event)
-	//  could/should it call NODE_NEEDS_COMPILING if any MARK_EVENTs?
-	//if (node->_ichange != node->_change) {
+	//  could/should it set _ichange if any MARK_EVENTs? DONE, WORKS
+	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 		struct X3D_Node* anode = (struct X3D_Node*)node;
@@ -874,7 +874,7 @@ void render_OscillatorSource(struct X3D_OscillatorSource *node){
 		libsound_updateNode0(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
-	//}
+	}
 	if (node->periodicWave) {
 		push_audio_parent(srep->inode);
 		render_PeriodicWave((struct X3D_PeriodicWave*)node->periodicWave); //like rendering a child, check if anything changed.

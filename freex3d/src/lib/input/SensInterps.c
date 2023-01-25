@@ -1070,8 +1070,9 @@ void do_AudioTick(void *ptr) {
 
 void do_OscillatorSourceTick(void* ptr) {
 	struct X3D_OscillatorSource* node = (struct X3D_OscillatorSource*)ptr;
-	int 	oldstatus;
+	int 	oldstatus, ichange;
 	double duration; /* gcc and params - make all doubles to do_active_inactive */
+	ichange = 0; //set this if any MARK_EVENTS in isActive, isPaused, as the render_OscillatorSource does math on these
 
 	/* can we possibly have started yet? */
 	if (!node) return;
@@ -1079,6 +1080,7 @@ void do_OscillatorSourceTick(void* ptr) {
 	if (node->__oldEnabled != node->enabled) {
 		node->__oldEnabled = node->enabled;
 		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, enabled));
+		ichange++;
 	}
 	if (!node->enabled) return;
 
@@ -1109,6 +1111,7 @@ void do_OscillatorSourceTick(void* ptr) {
 			node->elapsedTime = 0.0;
 		}
 		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isActive));
+		ichange++;
 	}
 
 	if (node->isActive) {
@@ -1116,11 +1119,13 @@ void do_OscillatorSourceTick(void* ptr) {
 			if (node->resumeTime < node->pauseTime && !node->isPaused) {
 				node->isPaused = TRUE;
 				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isPaused));
+				ichange++;
 			}
 			else if (node->resumeTime > node->pauseTime && node->isPaused) {
 				node->isPaused = FALSE;
 				node->__lasttime = TickTime();
 				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isPaused));
+				ichange++;
 			}
 		}
 	}
@@ -1130,7 +1135,9 @@ void do_OscillatorSourceTick(void* ptr) {
 		node->__lasttime = dtime;
 		//double myFrac = node->elapsedTime / duration;
 		MARK_EVENT(ptr, offsetof(struct X3D_OscillatorSource, elapsedTime));
+		//ichange++;
 	}
+	if (ichange) node->_ichange++;
 }
 
 
