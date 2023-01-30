@@ -441,7 +441,7 @@ typedef ptw32_handle_t pthread_t;
     //    }
     //    return 0;
     //}
-    void libsound_updateNode0(int icontext, int iparent, struct X3D_Node* node) {
+    void libsound_updateNode3(int icontext, ivec3 iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         AudioContext& context = *ac->context.get();
         //lab::AudioContext& ac = *context.get();
@@ -465,11 +465,11 @@ typedef ptw32_handle_t pthread_t;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
                     //if (isMergerParent(srepn, &ichan))
                     //    libsound_connect2(icontext, iparent, srepn->igain, ichan, 0);
                     //else
-                        libsound_connect0(icontext, iparent, srepn->igain);
+                        libsound_connect0(icontext, iparent.x, srepn->igain);
                 }
 
                 if (pnode->spatialize != TRUE) {
@@ -539,11 +539,11 @@ typedef ptw32_handle_t pthread_t;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
 /*                    if (isMergerParent(srepn, &ichan))
                         libsound_connect2(icontext, iparent, srepn->igain, ichan, 0);
                     else
- */                       libsound_connect0(icontext, iparent, srepn->igain);
+ */                       libsound_connect0(icontext, iparent.x, srepn->igain);
                 }
 
                 if (pnode->spatialize != TRUE) {
@@ -664,11 +664,11 @@ typedef ptw32_handle_t pthread_t;
                 //if (iparent)
                 //    libsound_connect0(icontext, iparent, srepn->inode);
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
                     //if (isMergerParent(srepn, &ichan))
                     //    libsound_connect2(icontext, iparent, srepn->inode, ichan, 0);
                     //else
-                        libsound_connect0(icontext, iparent, srepn->inode);
+                        libsound_connect0(icontext, iparent.x, srepn->inode);
                 }
 
                 //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
@@ -714,11 +714,11 @@ typedef ptw32_handle_t pthread_t;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
                     //if (isMergerParent(srepn, &ichan))
                     //    libsound_connect2(icontext, iparent, srepn->igain, ichan, 0);
                     //else
-                        libsound_connect0(icontext, iparent, srepn->igain);
+                        libsound_connect0(icontext, iparent.x, srepn->igain);
                 }
 
                 //create labsound node
@@ -760,8 +760,8 @@ typedef ptw32_handle_t pthread_t;
         {
             struct X3D_PeriodicWave* pnode = (struct X3D_PeriodicWave*)node;
             std::shared_ptr<WaveTable> pwave; //using an older term but equivalent WaveTable == PeriodicWave
-            if (iparent){
-                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent];
+            if (iparent.x){
+                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.x];
                 OscillatorNode* oscillator_ptr =
                     static_cast<OscillatorNode*>(oscillator.get());
                //periodicWave_types
@@ -810,11 +810,11 @@ typedef ptw32_handle_t pthread_t;
                 //if (iparent)
                 //    libsound_connect0(icontext, iparent, srepn->inode);
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
                     //if (isMergerParent(srepn, &ichan))
                     //    libsound_connect2(icontext, iparent, srepn->inode, ichan, 0);
                     //else
-                        libsound_connect0(icontext, iparent, srepn->inode);
+                        libsound_connect0(icontext, iparent.x, srepn->inode);
                 }
 
             }
@@ -843,11 +843,11 @@ typedef ptw32_handle_t pthread_t;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 int ichan = 0;
-                if (iparent) {
+                if (iparent.x) {
                     //if (isMergerParent(srepn, &ichan))
                     //    libsound_connect2(icontext, iparent, srepn->igain, ichan, 0);
                     //else
-                        libsound_connect0(icontext, iparent, srepn->igain);
+                        libsound_connect0(icontext, iparent.x, srepn->igain);
                 }
 
                 splitter = std::make_shared<ChannelSplitterNode>(context,pnode->channelCount);
@@ -913,8 +913,8 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodes[ac->next_node] = gain;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
-                if (iparent)
-                    libsound_connect0(icontext, iparent, srepn->igain);
+                if (iparent.x)
+                    libsound_connect0(icontext, iparent.x, srepn->igain);
 
                 merger = std::make_shared<ChannelMergerNode>(context);
                 merger_ptr = merger.get();

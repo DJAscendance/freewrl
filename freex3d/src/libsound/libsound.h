@@ -11,6 +11,7 @@
 #define EXPORT_DLL __declspec(dllimport)
 #endif
 #endif /* _WIN32 && EXPORT_DLL */
+typedef struct ivec3 { int x; int y; int z; } ivec3;
 struct X3D_SoundRep {
 	int itype; //=5, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep
 	int icontext; //map audio_contexts[icontext] = lab context
@@ -32,7 +33,7 @@ struct X3D_SoundRep {
 //	AN_AudioDestinationNode,
 //};
 EXPORT_DLL extern struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode);
-EXPORT_DLL extern void libsound_updateNode0(int icontext, int connect_parent, struct X3D_Node* node);
+EXPORT_DLL extern void libsound_updateNode3(int icontext, ivec3 connect_parent, struct X3D_Node* node);
 EXPORT_DLL extern void libsound_pauseContext0(int icontext);
 EXPORT_DLL extern void libsound_resumeContext0(int icontext);
 EXPORT_DLL extern void libsound_pauseNode0(struct X3D_Node* node);
