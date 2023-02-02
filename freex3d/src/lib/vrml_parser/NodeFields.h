@@ -73,6 +73,10 @@ EXPOSED_FIELD(Analyser,frequencyBinCount,sfint32,frequencyBinCount,FIELDTYPE_SFI
 EXPOSED_FIELD(Analyser,minDecibels,sffloat,minDecibels,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Analyser,maxDecibels,sffloat,maxDecibels,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(Analyser,smoothingTimeConstant,sffloat,smoothingTimeConstant,FIELDTYPE_SFFloat,UNCA_NONE)
+EVENT_OUT(Analyser,byteFrequencyData,mfint32,byteFrequencyData,FIELDTYPE_MFInt32)
+EVENT_OUT(Analyser,floatFrequencyData,mffloat,floatFrequencyData,FIELDTYPE_MFFloat)
+EVENT_OUT(Analyser,byteTimeDomainData,mfint32,byteTimeDomainData,FIELDTYPE_MFInt32)
+EVENT_OUT(Analyser,floatTimeDomainData,mffloat,floatTimeDomainData,FIELDTYPE_MFFloat)
 END_NODE(Analyser)
 
 /* Anchor node */

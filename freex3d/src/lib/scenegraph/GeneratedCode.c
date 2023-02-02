@@ -533,6 +533,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"buffer",
 	"bufferDuration",
 	"bufferLength",
+	"byteFrequencyData",
+	"byteTimeDomainData",
 	"castShadow",
 	"category",
 	"ccw",
@@ -686,7 +688,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"firingRange",
 	"firingRate",
 	"fixed",
+	"floatFrequencyData",
 	"floatInp",
+	"floatTimeDomainData",
 	"focalPoint",
 	"fogCoord",
 	"fogType",
@@ -1322,6 +1326,8 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"body2AnchorPoint",
 	"body2Axis",
 	"bufferLength",
+	"byteFrequencyData",
+	"byteTimeDomainData",
 	"centerOfRotation_changed",
 	"channelCount",
 	"children",
@@ -1338,6 +1344,8 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"fieldOfView",
 	"finalText",
 	"firedTime",
+	"floatFrequencyData",
+	"floatTimeDomainData",
 	"focalPoint",
 	"fovMode",
 	"fraction_changed",
@@ -4720,6 +4728,10 @@ const int OFFSETS_Analyser[] = {
 	(int) FIELDNAMES_minDecibels, (int) offsetof (struct X3D_Analyser, minDecibels),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_maxDecibels, (int) offsetof (struct X3D_Analyser, maxDecibels),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_smoothingTimeConstant, (int) offsetof (struct X3D_Analyser, smoothingTimeConstant),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_byteFrequencyData, (int) offsetof (struct X3D_Analyser, byteFrequencyData),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_floatFrequencyData, (int) offsetof (struct X3D_Analyser, floatFrequencyData),  (int) FIELDTYPE_MFFloat, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_byteTimeDomainData, (int) offsetof (struct X3D_Analyser, byteTimeDomainData),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_floatTimeDomainData, (int) offsetof (struct X3D_Analyser, floatTimeDomainData),  (int) FIELDTYPE_MFFloat, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Anchor[] = {
@@ -10833,6 +10845,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->minDecibels = -100.0f;
 			tmp2->maxDecibels = -30.0f;
 			tmp2->smoothingTimeConstant = 0.8f;
+			tmp2->byteFrequencyData.n=0; tmp2->byteFrequencyData.p=0;
+			tmp2->floatFrequencyData.n=0; tmp2->floatFrequencyData.p=0;
+			tmp2->byteTimeDomainData.n=0; tmp2->byteTimeDomainData.p=0;
+			tmp2->floatTimeDomainData.n=0; tmp2->floatTimeDomainData.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

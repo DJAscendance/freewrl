@@ -1062,6 +1062,10 @@ our %Nodes = (
 		minDecibels => ["SFFloat", -100, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		maxDecibels => ["SFFloat", -30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		smoothingTimeConstant => ["SFFloat", .8, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            byteFrequencyData => ["MFInt32", [], "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            floatFrequencyData => ["MFFloat",[], "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            byteTimeDomainData => ["MFInt32",[], "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            floatTimeDomainData => ["MFFloat",[], "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundProcessingNode"),
 
 

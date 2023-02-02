@@ -278,6 +278,8 @@ typedef ptw32_handle_t pthread_t;
         //int next_bus;
         std::map<int, std::shared_ptr<lab::AudioNode>> nodes;
         //std::map<int, std::shared_ptr<lab::AudioBus>> busses;
+        std::shared_ptr<std::vector<std::uint8_t>> bytearray; //analyser 
+        std::shared_ptr<std::vector<std::float_t>> floatarray; //analyser
     };
     static int next_audio_context;
     static std::map<int, struct acstruct*> audio_contexts;
@@ -957,6 +959,95 @@ typedef ptw32_handle_t pthread_t;
  
         }
         break;
+        case NODE_Analyser:
+        {
+            struct X3D_Analyser* pnode = (struct X3D_Analyser*)node;
+            std::shared_ptr<AnalyserNode> analyser;
+            AnalyserNode* analyser_ptr;
+            std::shared_ptr<GainNode> gain;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+
+                analyser = std::make_shared<AnalyserNode>(context,pnode->fftSize);
+                analyser_ptr = analyser.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = analyser;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+
+            }
+            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //copy changed values from x3d to labsound
+            gain_ptr->gain()->setValue(pnode->gain);
+            analyser_ptr = dynamic_cast<AnalyserNode*>(ac->nodes[srepn->inode].get());
+            pnode->frequencyBinCount = (int)analyser_ptr->frequencyBinCount();
+            //printf("start analyser bins=%d\n", pnode->frequencyBinCount);
+
+            analyser_ptr->setMaxDecibels(pnode->maxDecibels);
+            analyser_ptr->setMinDecibels(pnode->minDecibels);
+            analyser_ptr->setSmoothingTimeConstant(pnode->smoothingTimeConstant);
+            {
+                if (ac->bytearray == nullptr)
+                    ac->bytearray = std::make_shared<std::vector<std::uint8_t>>(4096);
+                if (ac->floatarray == nullptr)
+                    ac->floatarray = std::make_shared<std::vector<std::float_t>>(4096);
+
+                std::vector<std::float_t>* floatarray = ac->floatarray.get();
+                std::vector<std::uint8_t>* bytearray = ac->bytearray.get();
+                //analyser_ptr->getByteFrequencyData(*bytearray);
+                analyser_ptr->getFloatFrequencyData(*floatarray);
+                //if (pnode->byteFrequencyData.n == 0){
+                //    pnode->byteFrequencyData.p = (int*)malloc(pnode->frequencyBinCount/4);
+                //    pnode->byteFrequencyData.n = pnode->frequencyBinCount / 4;
+                //}
+                if (pnode->floatFrequencyData.n == 0) {
+                    pnode->floatFrequencyData.p = (float*)malloc(pnode->frequencyBinCount * sizeof(std::float_t));
+                    pnode->floatFrequencyData.n = pnode->frequencyBinCount;
+                }
+
+                std::uint8_t* p8 = (std::uint8_t*)pnode->byteFrequencyData.p;
+                std::float_t* ff = (std::float_t*)pnode->floatFrequencyData.p;
+                for (int i = 0; i < pnode->frequencyBinCount; i++) {
+                    //brute force. Is there a memcpy path?
+                    //p8[i] = (*bytearray)[i];
+                    ff[i] = (*floatarray)[i];
+                }
+                //analyser_ptr->getByteTimeDomainData(*bytearray);
+                analyser_ptr->getFloatTimeDomainData(*floatarray);
+                //if (pnode->byteTimeDomainData.n == 0) {
+                //    pnode->byteTimeDomainData.p = (int*)malloc(pnode->frequencyBinCount / 4);
+                //    pnode->byteTimeDomainData.n = pnode->frequencyBinCount / 4;
+                //}
+                if (pnode->floatTimeDomainData.n == 0) {
+                    pnode->floatTimeDomainData.p = (float*)malloc(pnode->frequencyBinCount * sizeof(std::float_t));
+                    pnode->floatTimeDomainData.n = pnode->frequencyBinCount;
+                }
+
+                //std::uint8_t* p8t = (std::uint8_t*)pnode->byteTimeDomainData.p;
+                std::float_t* fft = (std::float_t*)pnode->floatTimeDomainData.p;
+                for (int i = 0; i < pnode->frequencyBinCount; i++) {
+                    //brute force. Is there a memcpy path?
+                    //p8t[i] = (*bytearray)[i];
+                    fft[i] = (*floatarray)[i];
+                }
+                
+            }
+            //printf("end analyser\n");
+        }
+        break;
+
         //case NODE_AudioDestination:
         //{
         //    struct X3D_AudioDestinationn* pnode = (struct X3D_AudioDestination*)node;
