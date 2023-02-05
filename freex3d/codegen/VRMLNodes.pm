@@ -1351,12 +1351,12 @@ our %Nodes = (
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		# DynamicsCompressor
-		attack => ["SFFloat", .003, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		attack => ["SFTime", .003, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		release => ["SFTime", 0.25, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		knee => ["SFFloat", 30, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		ratio => ["SFFloat", 12, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		reduction => ["SFFloat", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		release => ["SFTime", 0.25, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		threshold => ["SFFloat", -24, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		reduction => ["SFFloat", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundProcessingNode"),
 
 	"Gain" => new VRML::NodeType("Gain", [

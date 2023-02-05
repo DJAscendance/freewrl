@@ -5339,12 +5339,12 @@ struct X3D_DynamicsCompressor {
 	int isPaused;
 	void * _self;
 	void * _context;
-	float attack;
+	double attack;
+	double release;
 	float knee;
 	float ratio;
-	float reduction;
-	double release;
 	float threshold;
+	float reduction;
 };
 extern struct X3D_Virt virt_DynamicsCompressor;
 /***********************/

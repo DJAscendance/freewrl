@@ -978,12 +978,12 @@ EVENT_OUT(DynamicsCompressor,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32
 EVENT_OUT(DynamicsCompressor,elapsedTime,sftime,elapsedTime,FIELDTYPE_SFTime)
 EVENT_OUT(DynamicsCompressor,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(DynamicsCompressor,isPaused,sfbool,isPaused,FIELDTYPE_SFBool)
-EXPOSED_FIELD(DynamicsCompressor,attack,sffloat,attack,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressor,attack,sftime,attack,FIELDTYPE_SFTime,UNCA_NONE)
+EXPOSED_FIELD(DynamicsCompressor,release,sftime,release,FIELDTYPE_SFTime,UNCA_NONE)
 EXPOSED_FIELD(DynamicsCompressor,knee,sffloat,knee,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(DynamicsCompressor,ratio,sffloat,ratio,FIELDTYPE_SFFloat,UNCA_NONE)
-EVENT_OUT(DynamicsCompressor,reduction,sffloat,reduction,FIELDTYPE_SFFloat)
-EXPOSED_FIELD(DynamicsCompressor,release,sftime,release,FIELDTYPE_SFTime,UNCA_NONE)
 EXPOSED_FIELD(DynamicsCompressor,threshold,sffloat,threshold,FIELDTYPE_SFFloat,UNCA_NONE)
+EVENT_OUT(DynamicsCompressor,reduction,sffloat,reduction,FIELDTYPE_SFFloat)
 END_NODE(DynamicsCompressor)
 
 /* EaseInEaseOut node */

@@ -5747,12 +5747,12 @@ const int OFFSETS_DynamicsCompressor[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_DynamicsCompressor, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_DynamicsCompressor, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_DynamicsCompressor, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_attack, (int) offsetof (struct X3D_DynamicsCompressor, attack),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_attack, (int) offsetof (struct X3D_DynamicsCompressor, attack),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_release, (int) offsetof (struct X3D_DynamicsCompressor, release),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_knee, (int) offsetof (struct X3D_DynamicsCompressor, knee),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_ratio, (int) offsetof (struct X3D_DynamicsCompressor, ratio),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_reduction, (int) offsetof (struct X3D_DynamicsCompressor, reduction),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_release, (int) offsetof (struct X3D_DynamicsCompressor, release),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_threshold, (int) offsetof (struct X3D_DynamicsCompressor, threshold),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_reduction, (int) offsetof (struct X3D_DynamicsCompressor, reduction),  (int) FIELDTYPE_SFFloat, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_EaseInEaseOut[] = {
@@ -12116,12 +12116,12 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
-			tmp2->attack = 0.003f;
+			tmp2->attack = 0.003;
+			tmp2->release = 0.25;
 			tmp2->knee = 30.0f;
 			tmp2->ratio = 12.0f;
-			tmp2->reduction = 0.0f;
-			tmp2->release = 0.25;
 			tmp2->threshold = -24.0f;
+			tmp2->reduction = 0.0f;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -18458,10 +18458,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," startTime (SFTime) \t%4.3f\n",tmp->startTime);
 			spacer fprintf (fp," stopTime (SFTime) \t%4.3f\n",tmp->stopTime);
 			spacer fprintf (fp," tailTime (SFTime) \t%4.3f\n",tmp->tailTime);
-			spacer fprintf (fp," attack (SFFloat) \t%4.3f\n",tmp->attack);
+			spacer fprintf (fp," attack (SFTime) \t%4.3f\n",tmp->attack);
+			spacer fprintf (fp," release (SFTime) \t%4.3f\n",tmp->release);
 			spacer fprintf (fp," knee (SFFloat) \t%4.3f\n",tmp->knee);
 			spacer fprintf (fp," ratio (SFFloat) \t%4.3f\n",tmp->ratio);
-			spacer fprintf (fp," release (SFTime) \t%4.3f\n",tmp->release);
 			spacer fprintf (fp," threshold (SFFloat) \t%4.3f\n",tmp->threshold);
 		    break;
 		}
