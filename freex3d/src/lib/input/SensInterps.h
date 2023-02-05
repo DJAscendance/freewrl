@@ -70,7 +70,6 @@ void do_SquadOrientationInterpolator(void *node);
 
 void do_CollisionTick(void *ptr);
 void do_AudioTick(void *ptr);
-void do_AnalyserTick(void* ptr);
 void do_OscillatorSourceTick(void* ptr);
 void do_TimeSensorTick(void *ptr);
 void do_ProximitySensorTick(void *ptr);

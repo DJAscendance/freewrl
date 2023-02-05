@@ -178,6 +178,7 @@ static struct key_name periodicWave_types[] = {
 {OscillatorType::OSCILLATOR_NONE, NULL},
 };
 
+
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #endif //_MSC_VER
@@ -427,6 +428,16 @@ typedef ptw32_handle_t pthread_t;
         AudioBus *bus = static_cast<AudioBus*>(busses[ibuffer].get()); 
         double duration = bus->length()* bus->sampleRate();
         return duration;
+    }
+    void getChannelInterpretation(char *interpretation, char *mode, ChannelInterpretation *interp, ChannelCountMode *cmode) {
+        *interp = lab::ChannelInterpretation::Speakers;
+        if (!_stricmp(interpretation, "DISCRETE"))
+            *interp = lab::ChannelInterpretation::Discrete;
+        // ["max", "clamped-max", "explicit"]
+        *cmode = lab::ChannelCountMode::Max;
+        if (!_stricmp(mode, "CLAMPED-MAX")) *cmode = lab::ChannelCountMode::ClampedMax;
+        else if (!_stricmp(mode, "EXPLICIT")) *cmode = lab::ChannelCountMode::Explicit;
+
     }
     struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
         //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
@@ -1045,6 +1056,67 @@ typedef ptw32_handle_t pthread_t;
                 
             }
             //printf("end analyser\n");
+        }
+        break;
+        case NODE_BiquadFilter:
+        {
+            static struct key_name biquad_types[] = {
+            {FilterType::ALLPASS, "ALLPASS"},
+            {FilterType::BANDPASS, "BANDPASS"},
+            {FilterType::FILTER_NONE, "NONE"},
+            {FilterType::HIGHPASS, "HIGHPASS"},
+            {FilterType::HIGHSHELF, "HIGHSHELF"},
+            {FilterType::LOWPASS, "LOWPASS"},
+            {FilterType::LOWSHELF, "LOWSHELF"},
+            {FilterType::NOTCH, "NOTCH"},
+            {FilterType::NOTCH, "PEAKING"},
+            };
+
+            struct X3D_BiquadFilter* pnode = (struct X3D_BiquadFilter*)node;
+            std::shared_ptr<BiquadFilterNode> biquad;
+            BiquadFilterNode* biquad_ptr;
+            std::shared_ptr<GainNode> gain;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+
+                biquad = std::make_shared<BiquadFilterNode>(context);
+                biquad_ptr = biquad.get();
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                biquad_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    biquad_ptr->setChannelCountMode(g, cmode);
+                }
+
+                ac->next_node++;
+                ac->nodes[ac->next_node] = biquad;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+
+            }
+            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //copy changed values from x3d to labsound
+            gain_ptr->gain()->setValue(pnode->gain);
+            biquad_ptr = dynamic_cast<BiquadFilterNode*>(ac->nodes[srepn->inode].get());
+            FilterType biquad_type = (FilterType)name_lookup(pnode->type->strptr, biquad_types);
+            biquad_ptr->setType(biquad_type);
+            biquad_ptr->detune()->setValue(pnode->detune);
+            biquad_ptr->frequency()->setValue(pnode->frequency);
+            biquad_ptr->q()->setValue(pnode->qualityFactor);  //.Q is quality factor
         }
         break;
 

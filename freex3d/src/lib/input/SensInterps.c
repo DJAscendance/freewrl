@@ -1067,23 +1067,6 @@ void do_AudioTick(void *ptr) {
 		MARK_EVENT (ptr, offsetof(struct X3D_AudioClip, elapsedTime));
 	}
 }
-void do_AnalyserTick(void* ptr) {
-	struct X3D_Analyser* node = (struct X3D_Analyser*)ptr;
-	//experiment to see if its better to MARK_EVENT from here.
-	/* can we possibly have started yet? */
-	if (!node) return;
-
-	//if (node->__oldEnabled != node->enabled) {
-	//	node->__oldEnabled = node->enabled;
-	//	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, enabled));
-	//}
-	//if (!node->enabled) return;
-	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_Analyser, floatFrequencyData));
-	//MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_Analyser, byteFrequencyData));
-	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_Analyser, floatTimeDomainData));
-	//MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_Analyser, byteTimeDomainData));
-
-}
 
 void do_OscillatorSourceTick(void* ptr) {
 	struct X3D_OscillatorSource* node = (struct X3D_OscillatorSource*)ptr;

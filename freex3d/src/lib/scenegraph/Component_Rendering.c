@@ -1038,6 +1038,10 @@ void delete_PointRep(void* _pointrep) {
 void render_PointSet (struct X3D_PointSet *node) {
 	struct X3D_PointRep* pointrep;
 	ttglobal tg = gglobal();
+	if(node->coord && node->coord->_ichange != node->coord->_change)
+		node->_ichange++;
+	if (node->color && node->color->_ichange != node->color->_change)
+		node->_ichange++;
 	COMPILE_IF_REQUIRED
 		
 	pointrep = (struct X3D_PointRep*)node->_intern;
