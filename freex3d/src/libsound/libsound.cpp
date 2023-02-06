@@ -1161,12 +1161,64 @@ typedef ptw32_handle_t pthread_t;
             //copy changed values from x3d to labsound
             gain_ptr->gain()->setValue(pnode->gain);
             dynamics_ptr = dynamic_cast<DynamicsCompressorNode*>(ac->nodes[srepn->inode].get());
-            dynamics_ptr->attack()->setValue(pnode->attack);
+            dynamics_ptr->attack()->setValue((float)pnode->attack);
             dynamics_ptr->knee()->setValue(pnode->knee);
             dynamics_ptr->ratio()->setValue(pnode->ratio);
             dynamics_ptr->release()->setValue((float)pnode->release);
             dynamics_ptr->threshold()->setValue(pnode->threshold);
             pnode->reduction = dynamics_ptr->reduction()->value();
+
+        }
+        break;
+        case NODE_WaveShaper:
+        {
+            struct X3D_WaveShaper* pnode = (struct X3D_WaveShaper*)node;
+            std::shared_ptr<WaveShaperNode> wave;
+            WaveShaperNode* wave_ptr;
+            std::shared_ptr<GainNode> gain;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+
+                wave = std::make_shared<WaveShaperNode>(context);
+                wave_ptr = wave.get();
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                wave_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    wave_ptr->setChannelCountMode(g, cmode);
+                }
+
+                ac->next_node++;
+                ac->nodes[ac->next_node] = wave;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+
+            }
+            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //copy changed values from x3d to labsound
+            gain_ptr->gain()->setValue(pnode->gain);
+            wave_ptr = dynamic_cast<WaveShaperNode*>(ac->nodes[srepn->inode].get());
+            std::vector<float> curve(pnode->curve.n);
+            printf("pnode->curve.n %d p[0] %f p[44100-1] %f", pnode->curve.n, pnode->curve.p[0], pnode->curve.p[pnode->curve.n-1]);
+            for (int i = 0; i < pnode->curve.n; i++)
+                curve[i] = pnode->curve.p[i];
+            printf("curve[0] %f curve[-1] %f", curve[0], curve[curve.size() - 1]);
+            wave_ptr->setCurve(curve);
+            //wave_ptr->oversample()-> there doesn't seem to be an oversample in Labsound, posted an issue Feb 6,2023
 
         }
         break;

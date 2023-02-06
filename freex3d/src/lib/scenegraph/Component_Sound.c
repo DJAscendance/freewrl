@@ -1112,6 +1112,31 @@ void render_DynamicsCompressor(struct X3D_DynamicsCompressor* node) {
 	pop_audio_parent();
 }
 
+void render_WaveShaper(struct X3D_WaveShaper* node) {
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	if (node->_ichange != node->_change) {
+		//if (node->_ichange == 0) return;
+
+
+		int icontext = peek_audio_context();
+		ivec3 iparent = peek_audio_parent();
+		libsound_updateNode3(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+		node->_ichange = node->_change;
+
+	}
+	push_audio_parentnode(anode);
+	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
+	if (node->children.n) {
+		for (int i = 0; i < node->children.n; i++)
+			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
+			render_node(X3D_NODE(node->children.p[i]));
+	}
+	pop_audio_parent();
+
+}
 
 void render_BufferAudioSource(struct X3D_BufferAudioSource *node){
 	COMPILE_IF_REQUIRED
@@ -1120,9 +1145,7 @@ void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
 	COMPILE_IF_REQUIRED
 }
 
-void render_WaveShaper(struct X3D_WaveShaper *node){
-	COMPILE_IF_REQUIRED
-}
+
 
 
 void render_StreamAudioDestination(struct X3D_StreamAudioDestination *node){
