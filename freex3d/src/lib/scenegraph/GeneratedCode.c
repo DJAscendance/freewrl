@@ -1009,6 +1009,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"radius",
 	"range",
 	"ratio",
+	"rawdata",
 	"readInterval",
 	"receivedPower",
 	"receiverState",
@@ -1886,6 +1887,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"radioID",
 	"radius",
 	"ratio",
+	"rawdata",
 	"readInterval",
 	"receivedPower",
 	"receiverState",
@@ -2588,6 +2590,7 @@ const char *NODES[] = {
 	"Appearance",
 	"Arc2D",
 	"ArcClose2D",
+	"AudioBuffer",
 	"AudioClip",
 	"AudioDestination",
 	"BackdropBackground",
@@ -2938,6 +2941,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_appearance,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{0,0,0,0,0,0,0},
 {FIELDNAMES_source,FIELDNAMES_children,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3301,6 +3305,8 @@ struct X3D_Virt virt_Arc2D = { NULL,(void *)render_Arc2D,NULL,NULL,NULL,NULL,NUL
 void render_ArcClose2D(struct X3D_ArcClose2D *);
 void compile_ArcClose2D(struct X3D_ArcClose2D *);
 struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ArcClose2D};
+
+struct X3D_Virt virt_AudioBuffer = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_AudioClip(struct X3D_AudioClip *);
 struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4351,6 +4357,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_Appearance,
 	 &virt_Arc2D,
 	 &virt_ArcClose2D,
+	 &virt_AudioBuffer,
 	 &virt_AudioClip,
 	 &virt_AudioDestination,
 	 &virt_BackdropBackground,
@@ -4787,6 +4794,24 @@ const int OFFSETS_ArcClose2D[] = {
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_ArcClose2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___simpleDisk, (int) offsetof (struct X3D_ArcClose2D, __simpleDisk),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___wireindices, (int) offsetof (struct X3D_ArcClose2D, __wireindices),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_AudioBuffer[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_AudioBuffer, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_AudioBuffer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_AudioBuffer, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__self, (int) offsetof (struct X3D_AudioBuffer, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__context, (int) offsetof (struct X3D_AudioBuffer, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_rawdata, (int) offsetof (struct X3D_AudioBuffer, rawdata),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_AudioBuffer, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_AudioBuffer, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___afterPound, (int) offsetof (struct X3D_AudioBuffer, __afterPound),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioBuffer, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioBuffer, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioBuffer, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_AudioBuffer, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_load, (int) offsetof (struct X3D_AudioBuffer, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_AudioBuffer, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioClip[] = {
@@ -9837,6 +9862,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_Appearance,
 	OFFSETS_Arc2D,
 	OFFSETS_ArcClose2D,
+	OFFSETS_AudioBuffer,
 	OFFSETS_AudioClip,
 	OFFSETS_AudioDestination,
 	OFFSETS_BackdropBackground,
@@ -10443,6 +10469,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_Appearance : {tmp = MALLOC (struct X3D_Appearance *, size = sizeof (struct X3D_Appearance)); break;}
 		case NODE_Arc2D : {tmp = MALLOC (struct X3D_Arc2D *, size = sizeof (struct X3D_Arc2D)); break;}
 		case NODE_ArcClose2D : {tmp = MALLOC (struct X3D_ArcClose2D *, size = sizeof (struct X3D_ArcClose2D)); break;}
+		case NODE_AudioBuffer : {tmp = MALLOC (struct X3D_AudioBuffer *, size = sizeof (struct X3D_AudioBuffer)); break;}
 		case NODE_AudioClip : {tmp = MALLOC (struct X3D_AudioClip *, size = sizeof (struct X3D_AudioClip)); break;}
 		case NODE_AudioDestination : {tmp = MALLOC (struct X3D_AudioDestination *, size = sizeof (struct X3D_AudioDestination)); break;}
 		case NODE_BackdropBackground : {tmp = MALLOC (struct X3D_BackdropBackground *, size = sizeof (struct X3D_BackdropBackground)); break;}
@@ -10916,6 +10943,27 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__numPoints = 0;
 			tmp2->__simpleDisk = TRUE;
 			tmp2->__wireindices = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_AudioBuffer : {
+			struct X3D_AudioBuffer * tmp2;
+			tmp2 = (struct X3D_AudioBuffer *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->channelCount = 2;
+			tmp2->_self = 0;
+			tmp2->_context = 0;
+			tmp2->rawdata.n=0; tmp2->rawdata.p=0;
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
+			tmp2->__afterPound = 0;
+			tmp2->__loadstatus = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__loadResource = 0;
+			tmp2->__typename = 0;
+			tmp2->load = TRUE;
+			tmp2->__oldload = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17301,6 +17349,21 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," radius (SFFloat) \t%4.3f\n",tmp->radius);
 		    break;
 		}
+		case NODE_AudioBuffer : {
+			struct X3D_AudioBuffer *tmp;
+			tmp = (struct X3D_AudioBuffer *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," rawdata (MFFloat):\n");
+			for (i=0; i<tmp->rawdata.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->rawdata.p[i]); }
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
+		    break;
+		}
 		case NODE_AudioClip : {
 			struct X3D_AudioClip *tmp;
 			tmp = (struct X3D_AudioClip *) node;
@@ -23476,6 +23539,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_Appearance: return X3DAppearanceNode; break;
 	case NODE_Arc2D: return X3DGeometryNode; break;
 	case NODE_ArcClose2D: return X3DGeometryNode; break;
+	case NODE_AudioBuffer: return X3DSoundNode; break;
 	case NODE_AudioClip: return X3DSoundSourceNode; break;
 	case NODE_AudioDestination: return X3DSoundDestinationNode; break;
 	case NODE_BackdropBackground: return X3DBackgroundNode; break;

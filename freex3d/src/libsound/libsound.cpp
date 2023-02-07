@@ -25,7 +25,6 @@
 
 using namespace lab;
 
-
 // Returns input, output
 inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConfiguration(const bool with_input = false)
 {
@@ -489,8 +488,8 @@ typedef ptw32_handle_t pthread_t;
                     //so I will ignore
                 }
 
-                pannerNode = std::make_shared<PannerNode>(context, "");
-                pannerNode->setPanningModel(PanningMode::EQUALPOWER); //PanningModel:: in later LabSound releases
+                pannerNode = std::make_shared<PannerNode>(context);
+                pannerNode->setPanningModel(PanningModel::EQUALPOWER); //PanningModel:: in later LabSound releases
                 //pannerNode->setPanningModel(PanningModel::HRTF);
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
@@ -557,15 +556,23 @@ typedef ptw32_handle_t pthread_t;
                     //EQUALPOWER doesn't do it
                     //so I will ignore
                 }
-                
-                pannerNode = std::make_shared<PannerNode>(context, "../../../../lib_windows_vc12/LabSound/share/hrtf");
+                //if (!context.loadHrtfDatabase("hrtf")) {
+                    
+                    std::string path = std::string("../../../../lib_windows_vc12/LabSound/share") + "/hrtf";
+                    if (!context.loadHrtfDatabase(path)) {
+                        printf("Could not load spatialization database");
+                        return;
+                    }
+                //}
+
+                pannerNode = std::make_shared<PannerNode>(context);
                
                 if (pnode->enableHRTF == TRUE) {
-                    pannerNode->setPanningModel(lab::PanningMode::HRTF);
+                    pannerNode->setPanningModel(lab::PanningModel::HRTF);
                     printf("SpatialSound HRTF enabled\n");
                 }
                 else {
-                    pannerNode->setPanningModel(lab::PanningMode::EQUALPOWER);
+                    pannerNode->setPanningModel(lab::PanningModel::EQUALPOWER);
                 }
 
                 //pannerNode->setPanningModel(PanningModel::EQUALPOWER); //HRTF); //EQUALPOWER); // 
@@ -754,7 +761,7 @@ typedef ptw32_handle_t pthread_t;
         case NODE_PeriodicWave:
         {
             struct X3D_PeriodicWave* pnode = (struct X3D_PeriodicWave*)node;
-            std::shared_ptr<WaveTable> pwave; //using an older term but equivalent WaveTable == PeriodicWave
+            std::shared_ptr<PeriodicWave> pwave; //using an older term but equivalent WaveTable == PeriodicWave
             if (iparent.x){
                 std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.x];
                 OscillatorNode* oscillator_ptr =
@@ -1218,7 +1225,53 @@ typedef ptw32_handle_t pthread_t;
                 curve[i] = pnode->curve.p[i];
             printf("curve[0] %f curve[-1] %f", curve[0], curve[curve.size() - 1]);
             wave_ptr->setCurve(curve);
-            //wave_ptr->oversample()-> there doesn't seem to be an oversample in Labsound, posted an issue Feb 6,2023
+//UNFINISHED     //wave_ptr->oversample()-> there doesn't seem to be an oversample in Labsound, posted an issue Feb 6,2023
+
+        }
+        break;
+        case NODE_Convolver:
+        {
+            struct X3D_Convolver * pnode = (struct X3D_Convolver*)node;
+            std::shared_ptr<ConvolverNode> convolver;
+            ConvolverNode* convolver_ptr;
+            std::shared_ptr<GainNode> gain;
+            GainNode* gain_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                gain = std::make_shared<GainNode>(context);
+                gain_ptr = gain.get();
+                ac->next_node++;
+                ac->nodes[ac->next_node] = gain;
+                srepn->igain = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+
+                convolver = std::make_shared<ConvolverNode>(context);
+                convolver_ptr = convolver.get();
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                convolver_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    convolver_ptr->setChannelCountMode(g, cmode);
+                }
+
+                ac->next_node++;
+                ac->nodes[ac->next_node] = convolver;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //connect source node output to parent node input
+                libsound_connect0(icontext, srepn->igain, srepn->inode);
+
+            }
+            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //copy changed values from x3d to labsound
+            gain_ptr->gain()->setValue(pnode->gain);
+            convolver_ptr = dynamic_cast<ConvolverNode*>(ac->nodes[srepn->inode].get());
+            convolver_ptr->setNormalize(pnode->normalize);
 
         }
         break;

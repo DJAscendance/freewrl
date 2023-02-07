@@ -129,6 +129,16 @@ FIELD(ArcClose2D,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(ArcClose2D,startAngle,sffloat,startAngle,FIELDTYPE_SFFloat,UNCA_ANGLE)
 END_NODE(ArcClose2D)
 
+/* AudioBuffer node */
+BEGIN_NODE(AudioBuffer)
+EXPOSED_FIELD(AudioBuffer,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(AudioBuffer,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
+EXPOSED_FIELD(AudioBuffer,rawdata,mffloat,rawdata,FIELDTYPE_MFFloat,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(AudioBuffer,load,sfbool,load,FIELDTYPE_SFBool,UNCA_NONE)
+END_NODE(AudioBuffer)
+
 /* AudioClip node */
 BEGIN_NODE(AudioClip)
 EXPOSED_FIELD(AudioClip,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)

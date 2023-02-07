@@ -1279,6 +1279,26 @@ our %Nodes = (
 		outputs => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundChannelNode"),
 
+	"AudioBuffer" => new VRML::NodeType("AudioBuffer", [
+            # X3DSoundNode
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+            rawdata => ["MFFloat", "[]", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__oldurl => ["MFString", [], "initializeOnly", 0,0],#ff
+		__afterPound => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__typename => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		__oldload => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
+		
+	],"X3DSoundNode"),
+      
 
 	"Convolver" => new VRML::NodeType("Convolver", [
             # X3DSoundProcessingNode
