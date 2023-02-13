@@ -294,7 +294,7 @@ typedef ptw32_handle_t pthread_t;
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
 
 
-        if (0) {
+        if (1) {
             auto listener = context->listener();
             // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
             //listener->forwardX()->setValue(0.0f);
@@ -556,6 +556,7 @@ typedef ptw32_handle_t pthread_t;
         }
         return srep;
     }
+    static int nondefault_channelinterp = 0;
     void libsound_updateNode3(int icontext, ivec3 iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         AudioContext& context = *ac->context.get();
@@ -921,15 +922,16 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                gain_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    gain_ptr->setChannelCountMode(g, cmode);
+                if (nondefault_channelinterp) {
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    gain_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        gain_ptr->setChannelCountMode(g, cmode);
+                    }
                 }
-
                 //connect source node output to parent node input
                 //if (iparent.x)
                 //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
@@ -973,15 +975,17 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_ChannelSplitter;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                splitter_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    splitter_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    splitter_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        splitter_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
                 //if (iparent.x)
@@ -1041,15 +1045,17 @@ typedef ptw32_handle_t pthread_t;
 
                 merger = std::make_shared<ChannelMergerNode>(context, pnode->channelCount);
                 merger_ptr = merger.get();
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                merger_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    merger_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    merger_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        merger_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = merger;
                 ac->nodetype[ac->next_node] = NODE_ChannelMerger;
@@ -1096,15 +1102,17 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_Delay;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                delay_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    delay_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    delay_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        delay_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
                 //if (iparent.x)
@@ -1147,15 +1155,17 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_Analyser;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                analyser_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    analyser_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    analyser_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        analyser_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
                 //if (iparent.x)
@@ -1256,15 +1266,17 @@ typedef ptw32_handle_t pthread_t;
 
                 biquad = std::make_shared<BiquadFilterNode>(context);
                 biquad_ptr = biquad.get();
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                biquad_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    biquad_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    biquad_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        biquad_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = biquad;
                 ac->nodetype[ac->next_node] = NODE_BiquadFilter;
@@ -1310,15 +1322,17 @@ typedef ptw32_handle_t pthread_t;
 
                 dynamics = std::make_shared<DynamicsCompressorNode>(context);
                 dynamics_ptr = dynamics.get();
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                dynamics_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    dynamics_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    dynamics_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        dynamics_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = dynamics;
                 ac->nodetype[ac->next_node] = NODE_DynamicsCompressor; 
@@ -1366,15 +1380,17 @@ typedef ptw32_handle_t pthread_t;
 
                 wave = std::make_shared<WaveShaperNode>(context);
                 wave_ptr = wave.get();
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                wave_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    wave_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    wave_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        wave_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = wave;
                 ac->nodetype[ac->next_node] = NODE_WaveShaper;
@@ -1422,15 +1438,17 @@ typedef ptw32_handle_t pthread_t;
 
                 convolver = std::make_shared<ConvolverNode>(context);
                 convolver_ptr = convolver.get();
-                ChannelInterpretation interp;
-                ChannelCountMode cmode;
-                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
-                convolver_ptr->setChannelInterpretation(interp);
-                {
-                    ContextGraphLock g(ac->context.get(), "ex_simple");
-                    convolver_ptr->setChannelCountMode(g, cmode);
-                }
+                if (nondefault_channelinterp) {
 
+                    ChannelInterpretation interp;
+                    ChannelCountMode cmode;
+                    getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                    convolver_ptr->setChannelInterpretation(interp);
+                    {
+                        ContextGraphLock g(ac->context.get(), "ex_simple");
+                        convolver_ptr->setChannelCountMode(g, cmode);
+                    }
+                }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = convolver;
                 ac->nodetype[ac->next_node] = NODE_Convolver;
