@@ -1242,6 +1242,8 @@ our %Nodes = (
 		gain => ["SFFloat", 1, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		sourceIndex => ["MFInt32",[], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		outputChannel => ["MFInt32",[], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
            # ChannelMerger
@@ -1276,7 +1278,7 @@ our %Nodes = (
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
            # ChannelSplitter
-		outputs => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		#outputs => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundChannelNode"),
 
 	"AudioBuffer" => new VRML::NodeType("AudioBuffer", [

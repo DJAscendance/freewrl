@@ -463,6 +463,8 @@ EXPOSED_FIELD(ChannelMerger,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(ChannelMerger,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(ChannelMerger,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(ChannelMerger,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
+EXPOSED_FIELD(ChannelMerger,sourceIndex,mfint32,sourceIndex,FIELDTYPE_MFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelMerger,outputChannel,mfint32,outputChannel,FIELDTYPE_MFInt32,UNCA_NONE)
 END_NODE(ChannelMerger)
 
 /* ChannelSelector node */
@@ -488,7 +490,6 @@ EXPOSED_FIELD(ChannelSplitter,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(ChannelSplitter,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(ChannelSplitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(ChannelSplitter,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
-EXPOSED_FIELD(ChannelSplitter,outputs,mfnode,outputs,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(ChannelSplitter)
 
 /* Circle2D node */

@@ -953,7 +953,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"ormCode",
 	"orthogonalColor",
 	"outerRadius",
-	"outputs",
+	"outputChannel",
 	"oversample",
 	"parallelColor",
 	"parameter",
@@ -1131,6 +1131,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"solid",
 	"sortOrder",
 	"source",
+	"sourceIndex",
 	"spacing",
 	"spatialize",
 	"specific",
@@ -1847,7 +1848,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"order",
 	"orientation",
 	"orthogonalColor",
-	"outputs",
+	"outputChannel",
 	"oversample",
 	"parallelColor",
 	"parameter",
@@ -1952,6 +1953,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"softnessConstantForceMix",
 	"softnessErrorCorrection",
 	"source",
+	"sourceIndex",
 	"specular",
 	"specularColor",
 	"specularTexture",
@@ -5169,6 +5171,8 @@ const int OFFSETS_ChannelMerger[] = {
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_ChannelMerger, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ChannelMerger, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_ChannelMerger, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_sourceIndex, (int) offsetof (struct X3D_ChannelMerger, sourceIndex),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_outputChannel, (int) offsetof (struct X3D_ChannelMerger, outputChannel),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ChannelMerger, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ChannelMerger, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -5198,7 +5202,6 @@ const int OFFSETS_ChannelSplitter[] = {
 	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_ChannelSplitter, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ChannelSplitter, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ChannelSplitter, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_outputs, (int) offsetof (struct X3D_ChannelSplitter, outputs),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Circle2D[] = {
@@ -11405,6 +11408,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->gain = 1.0f;
 			tmp2->metadata = NULL;
 			tmp2->channelCount = 2;
+			tmp2->sourceIndex.n=0; tmp2->sourceIndex.p=0;
+			tmp2->outputChannel.n=0; tmp2->outputChannel.p=0;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
 			tmp2->_defaultContainer = 0;
@@ -11440,7 +11445,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->channelCount = 2;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
-			tmp2->outputs.n=0; tmp2->outputs.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17830,6 +17834,10 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," sourceIndex (MFInt32):\n");
+			for (i=0; i<tmp->sourceIndex.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->sourceIndex.p[i]); }
+			spacer fprintf (fp," outputChannel (MFInt32):\n");
+			for (i=0; i<tmp->outputChannel.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->outputChannel.p[i]); }
 		    break;
 		}
 		case NODE_ChannelSelector : {
@@ -17863,8 +17871,6 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
-			spacer fprintf (fp," outputs (MFNode):\n");
-			for (i=0; i<tmp->outputs.n; i++) { dump_scene(fp,level+1,tmp->outputs.p[i]); }
 		    break;
 		}
 		case NODE_Circle2D : {

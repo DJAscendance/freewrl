@@ -113,6 +113,7 @@ typedef struct pComponent_Sound{
 	Stack *audio_context_stack;
 	Stack *audio_parent_stack;
 	Stack* doppler_factor_stack;
+	Stack* splitter_source_stack;
 }* ppComponent_Sound;
 void *Component_Sound_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_Sound));
@@ -139,7 +140,8 @@ void Component_Sound_init(struct tComponent_Sound *t){
 		stack_push(ivec3, p->audio_parent_stack, aps); //a null will signal we have no audio parent yet.
 		p->doppler_factor_stack = newStack(float);
 		stack_push(float, p->doppler_factor_stack, 1.0f);
-
+		p->splitter_source_stack = newStack(int);
+		stack_push(int, p->splitter_source_stack, 0);
 #ifdef HAVE_OPENAL
 		p->alContext = NULL;
 #endif //HAVE_OPENAL
@@ -681,6 +683,20 @@ float peek_doppler_factor() {
 	return stack_top(float, p->doppler_factor_stack);
 }
 
+void push_splitter_source_index(int source_index) {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_push(int, p->splitter_source_stack, source_index);
+}
+
+void pop_splitter_source_index() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	stack_pop(int, p->splitter_source_stack);
+}
+int peek_splitter_source_index() {
+	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
+	return stack_top(int, p->splitter_source_stack);
+}
+
 
 void render_AudioClip(struct X3D_AudioClip* node) {
 	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
@@ -921,17 +937,32 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 	//srep->imerger = srep->inode; //libsound audio nodes check if their parent is a merger..
 	int inode = srep->inode;
 	if (node->children.n) {
-		for (int i = 0; i < node->children.n; i++) {
-			push_audio_parent3(inode, i, 0);
+		//for (int i = 0; i < node->children.n; i++) {
+		printf("render_merger nchan %d\n", node->outputChannel.n);
+		libsound_print_connections();
+		for(int i=0;i<node->outputChannel.n;i++){
+			int output_channel = node->outputChannel.p[i];
+			int source_index = node->sourceIndex.p[i];
+			printf("%d outputChan %d sourceIndex %d\n",  i, output_channel, source_index);
+			push_splitter_source_index(source_index);
+			push_audio_parent3(inode, output_channel, 0); // 0 is over-ridden by source_index if child is a Splitter
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
-			render_node(X3D_NODE(node->children.p[i]));
+			render_node(X3D_NODE(node->children.p[source_index]));
 			pop_audio_parent();
+			pop_splitter_source_index();
+			libsound_print_connections();
+			printf("\n");
 		}
 	}
 	//pop_audio_parent(); // sound panner node
 	//pop_audio_context(); //don't pop unless you push
-
+	static int once = 0;
+	if (!once) {
+		libsound_print_connections();
+		once = 1;
+		getchar();
+	}
 }
 
 void render_ChannelSelector(struct X3D_ChannelSelector* node) {
@@ -962,7 +993,9 @@ void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	if (node->_ichange != node->_change) {
 		int icontext = peek_audio_context();
+		int splitter_source_index = peek_splitter_source_index();
 		ivec3 iparent = peek_audio_parent();
+		iparent.z = splitter_source_index;
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
@@ -977,7 +1010,6 @@ void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	}
 	//printf("number of outputs nodes = %d\n", node->outputs.n);
 	pop_audio_parent(); // sound panner node
-
 
 }
 void render_Gain(struct X3D_Gain* node) {

@@ -277,6 +277,7 @@ typedef ptw32_handle_t pthread_t;
         int next_node;
         //int next_bus;
         std::map<int, std::shared_ptr<lab::AudioNode>> nodes;
+        std::map<int, int> nodetype;
         //std::map<int, std::shared_ptr<lab::AudioBus>> busses;
         std::shared_ptr<std::vector<std::uint8_t>> bytearray; //analyser 
         std::shared_ptr<std::vector<std::float_t>> floatarray; //analyser
@@ -318,24 +319,90 @@ typedef ptw32_handle_t pthread_t;
         ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
         return next_audio_context;
     }
+    static struct type_name {
+        int iname;
+        const char* cname;
+    } type_names[] = {
+    {NODE_AudioDestination, "AD"},
+    {NODE_Analyser, "Anly"},
+    {NODE_Sound, "Snd"},
+    {NODE_SpatialSound, "SS"},
+    {NODE_AudioClip, "AC"},
+    {NODE_Gain, "Gain"},
+    {NODE_Convolver, "Conv"},
+    {NODE_WaveShaper, "WShp"},
+    {NODE_BiquadFilter, "BiQ"},
+    {NODE_DynamicsCompressor, "DCmp"},
+    {NODE_ChannelSplitter, "Splt"},
+    {NODE_ChannelMerger, "Merg"},
+    {NODE_Delay, "Dlay"},
+    {NODE_BufferAudioSource, "BAS"},
+    {NODE_AudioBuffer, "ABuf"},
+    {NODE_OscillatorSource, "Osc"},
+    {NODE_ListenerPointSource, "LPS"},
+    {NODE_StreamAudioDestination, "SAD"},
+    {NODE_StreamAudioSource, "SAS"},
+    {NODE_MicrophoneSource, "MicS"},
+    {0,NULL},
+    };
+    const char* nodetype_lookup(int itype) {
+        int i;
+        const char *cname;
+        struct type_name* tn;
+        i = 0;
+        cname = "";
+        do {
+            tn = &type_names[i];
+            if (tn->iname == itype) {
+                cname = tn->cname;
+                break;
+            }
+            i++;
+        } while (tn->iname != 0);
+        return cname;
+
+    }
     //this one uses int index lookup in a map, much like a vector except can deleted elements
+    struct connection {
+        int icontext; 
+        int iparent;
+        int iparent_type;
+        int ichild;
+        int ichild_type;
+        int srcindex;
+        int dstindex;
+    };
+    
+    static std::vector<connection> connections;
     void libsound_connect0(int icontext, int idestination, int isource) {
         struct acstruct* ac = audio_contexts[icontext];
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         ac->context->connect(destination, source);
+        int iparent_type = ac->nodetype[idestination];
+        int ichild_type = ac->nodetype[isource];
+        struct connection cc; cc.icontext = icontext; cc.iparent = idestination; cc.iparent_type = iparent_type; 
+           cc.ichild = isource; cc.ichild_type = ichild_type; cc.srcindex = 0; cc.dstindex = 0;
+        connections.push_back(cc);
     }
     void libsound_connect1(int icontext, int idestination, int isource, int indexSrc) {
         struct acstruct* ac = audio_contexts[icontext];
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         ac->context->connect(destination, source,0,indexSrc);
+        int iparent_type = ac->nodetype[idestination];
+        int ichild_type = ac->nodetype[isource];
+        struct connection cc; cc.icontext = icontext; cc.iparent = idestination; cc.iparent_type = iparent_type;
+        cc.ichild = isource; cc.ichild_type = ichild_type; cc.srcindex = indexSrc; cc.dstindex = 0;
+        connections.push_back(cc);
+
     }
     void libsound_connect2(int icontext, int idestination, int isource, int indexDst, int indexSrc) {
         struct acstruct* ac = audio_contexts[icontext];
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         int dstInputs = destination->numberOfInputs();
+        int srcOutputs = source->numberOfInputs();
         if (indexDst > dstInputs) {
             printf("destination number of inputs %d destination idx %d\n", destination->numberOfInputs(), indexDst);
             printf("\n");
@@ -344,7 +411,34 @@ typedef ptw32_handle_t pthread_t;
             printf("\n");
             return;
         }
+        if (indexSrc > srcOutputs) {
+            printf("source number of outputs %d source idx %d\n", srcOutputs, indexSrc);
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            return;
+        }
+
         ac->context->connect(destination, source, indexDst, indexSrc);
+        int iparent_type = ac->nodetype[idestination];
+        int ichild_type = ac->nodetype[isource];
+        struct connection cc; cc.icontext = icontext; cc.iparent = idestination; cc.iparent_type = iparent_type;
+        cc.ichild = isource; cc.ichild_type = ichild_type; cc.srcindex = indexSrc; cc.dstindex = indexDst;
+        connections.push_back(cc);
+
+    }
+    void libsound_print_connections() {
+        printf("\n");
+        printf("%2s %7s %4s %7s %7s %6s %4s\n","ic","iparent", "type", "dstIndx", "srcIndex", "ichild", "type");
+        for (int i = 0; i < connections.size(); i++) {
+            struct connection cc = connections[i];
+            const char* ptype = nodetype_lookup(cc.iparent_type);
+            const char* ctype = nodetype_lookup(cc.ichild_type);
+
+            printf("%2d %7d %4s %7d %7d %6d %4s\n", cc.icontext, cc.iparent, ptype, cc.dstindex, cc.srcindex, cc.ichild, ctype);
+        }
+        printf("count %d\n", (int)connections.size());
     }
     void libsound_pauseContext0(int icontext) {
         struct acstruct* ac = audio_contexts[icontext];
@@ -476,6 +570,7 @@ typedef ptw32_handle_t pthread_t;
                 gain_ptr = gain.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = gain;
+                ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 if (iparent.x)
@@ -493,6 +588,7 @@ typedef ptw32_handle_t pthread_t;
                 //pannerNode->setPanningModel(PanningModel::HRTF);
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
+                ac->nodetype[ac->next_node] = NODE_Sound;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 // connect Sound output to gain input
@@ -546,6 +642,7 @@ typedef ptw32_handle_t pthread_t;
                 gain_ptr = gain.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = gain;
+                ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
                 if (iparent.x)
@@ -556,7 +653,7 @@ typedef ptw32_handle_t pthread_t;
                     //EQUALPOWER doesn't do it
                     //so I will ignore
                 }
-                //if (!context.loadHrtfDatabase("hrtf")) {
+                //if (!context.loadHrtfDatabase("hrtf")) {  //always returns true, so go directly for the good path
                     
                     std::string path = std::string("../../../../lib_windows_vc12/LabSound/share") + "/hrtf";
                     if (!context.loadHrtfDatabase(path)) {
@@ -591,6 +688,7 @@ typedef ptw32_handle_t pthread_t;
                 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = pannerNode;
+                ac->nodetype[ac->next_node] = NODE_SpatialSound;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 // connect Sound output to gain input
@@ -672,6 +770,7 @@ typedef ptw32_handle_t pthread_t;
                 }
                 ac->next_node++;
                 ac->nodes[ac->next_node] = audioClipNode;
+                ac->nodetype[ac->next_node] = NODE_AudioClip;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 if (iparent.x)
@@ -709,34 +808,40 @@ typedef ptw32_handle_t pthread_t;
             //if (!pnode->_self) {
             std::shared_ptr<OscillatorNode> oscillator;
             OscillatorNode* oscillator_ptr;
-            GainNode* gain_ptr;
+           // GainNode* gain_ptr;
             if (!srepn->inode) {
                 //gain node on output
-                std::shared_ptr<GainNode> gain;
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                //connect gain output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                //std::shared_ptr<GainNode> gain;
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                ////connect gain output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 //create labsound node
                 oscillator = std::make_shared<OscillatorNode>(context);
                   ac->next_node++;
                 ac->nodes[ac->next_node] = oscillator;
+                ac->nodetype[ac->next_node] = NODE_OscillatorSource;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
+
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
                 oscillator->start(0.0f);
             }
             //copy changed values from x3d to labsound
             
-            gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //gain_ptr->gain()->setValue(pnode->gain);
             oscillator_ptr = static_cast<OscillatorNode*>(ac->nodes[srepn->inode].get());
 
             oscillator_ptr->frequency()->setValue(pnode->frequency);
@@ -806,8 +911,18 @@ typedef ptw32_handle_t pthread_t;
                 gain_ptr = gain.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = gain;
+                ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                gain_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    gain_ptr->setChannelCountMode(g, cmode);
+                }
+
                 //connect source node output to parent node input
                 if (iparent.x)
                     libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
@@ -828,58 +943,66 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_ChannelSplitter* pnode = (struct X3D_ChannelSplitter*)node;
             std::shared_ptr<ChannelSplitterNode> splitter;
             ChannelSplitterNode* splitter_ptr;
-            GainNode* gain_ptr;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //gain node on output
-                std::shared_ptr<GainNode> gain;
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                //connect gain output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////gain node on output
+                //std::shared_ptr<GainNode> gain;
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                ////connect gain output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 splitter = std::make_shared<ChannelSplitterNode>(context,pnode->channelCount);
                 splitter_ptr = splitter.get();
                 //splitter_ptr->output()
                 ac->next_node++;
                 ac->nodes[ac->next_node] = splitter;
+                ac->nodetype[ac->next_node] = NODE_ChannelSplitter;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                splitter_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    splitter_ptr->setChannelCountMode(g, cmode);
+                }
+
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
                 //splitter is the one sound node that doesn't follow single-parent-multiple-children paradigm:
                 // - it has multiple parents, meaning the output can go to multiple nodes,
-                for (int i = 0; i < std::min(pnode->channelCount,pnode->outputs.n); i++)
+ /*               for (int i = 0; i < std::min(pnode->channelCount,pnode->outputs.n); i++)
                 {
                     struct X3D_Node* onode = (struct X3D_Node*)pnode->outputs.p[i];
                     struct X3D_SoundRep* srepo = getSoundRep(onode);
                     if (srepo && srepo->inode)
                         libsound_connect1(icontext, srepo->inode, srepn->inode,i);
-                }
+                }*/
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //Q. I want to add more connections on-the-fly, but how to prevent double connections on routine node recompile
+            // and how to avoid missing a new connection when otherwise node doesn't need recompile?
+            // Options:
+            // add __field to ChannelSplitter, and iterate over first, before adding connection
+            // add field to X3DSoundRep just for splitter connection tracking, (int,int) (parent,srcIndex)
+            if (iparent.x)
+                libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             splitter_ptr = dynamic_cast<ChannelSplitterNode*>(ac->nodes[srepn->inode].get());
-            lab::ChannelInterpretation interp = lab::ChannelInterpretation::Speakers;
-            if (!_stricmp(pnode->channelInterpretation->strptr, "DISCRETE"))
-                interp = lab::ChannelInterpretation::Discrete;
-            splitter_ptr->setChannelInterpretation(interp);
-            // ["max", "clamped-max", "explicit"]
-            lab::ChannelCountMode cmode = lab::ChannelCountMode::Max;
-            if (!_stricmp(pnode->channelCountMode->strptr, "CLAMPED-MAX")) cmode = lab::ChannelCountMode::ClampedMax;
-            else if (!_stricmp(pnode->channelCountMode->strptr, "EXPLICIT")) cmode = lab::ChannelCountMode::Explicit;
-            {
-                ContextGraphLock g(ac->context.get(), "ex_simple");
-                splitter_ptr->setChannelCountMode(g, cmode);
-                splitter_ptr->setChannelCount(g, pnode->channelCount);
-            }
             //copy outputs from labsound to x3d
 
         }
@@ -894,30 +1017,27 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_ChannelMerger* pnode = (struct X3D_ChannelMerger*)node;
             std::shared_ptr<ChannelMergerNode> merger;
             ChannelMergerNode* merger_ptr;
-            GainNode* gain_ptr;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //gain node on output
-                std::shared_ptr<GainNode> gain;
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                //connect gain output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////gain node on output
+                //std::shared_ptr<GainNode> gain;
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                ////connect gain output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 merger = std::make_shared<ChannelMergerNode>(context, pnode->channelCount);
                 merger_ptr = merger.get();
-                lab::ChannelInterpretation interp = lab::ChannelInterpretation::Speakers;
-                if (!_stricmp(pnode->channelInterpretation->strptr, "DISCRETE"))
-                    interp = lab::ChannelInterpretation::Discrete;
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
                 merger_ptr->setChannelInterpretation(interp);
-                // ["max", "clamped-max", "explicit"]
-                lab::ChannelCountMode cmode = lab::ChannelCountMode::Max;
-                if (!_stricmp(pnode->channelCountMode->strptr, "CLAMPED-MAX")) cmode = lab::ChannelCountMode::ClampedMax;
-                else if (!_stricmp(pnode->channelCountMode->strptr, "EXPLICIT")) cmode = lab::ChannelCountMode::Explicit;
                 {
                     ContextGraphLock g(ac->context.get(), "ex_simple");
                     merger_ptr->setChannelCountMode(g, cmode);
@@ -925,15 +1045,18 @@ typedef ptw32_handle_t pthread_t;
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = merger;
+                ac->nodetype[ac->next_node] = NODE_ChannelMerger;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
- 
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                   libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
             //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr->gain()->setValue(pnode->gain);
             merger_ptr = dynamic_cast<ChannelMergerNode*>(ac->nodes[srepn->inode].get());
             //copy outputs from labsound to x3d
 
@@ -945,32 +1068,45 @@ typedef ptw32_handle_t pthread_t;
             std::shared_ptr<DelayNode> delay;
             DelayNode* delay_ptr;
             std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 delay = std::make_shared<DelayNode>(context,pnode->maxDelayTime);
                 delay_ptr = delay.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = delay;
+                ac->nodetype[ac->next_node] = NODE_Delay;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                delay_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    delay_ptr->setChannelCountMode(g, cmode);
+                }
+
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
             //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr->gain()->setValue(pnode->gain);
             delay_ptr = dynamic_cast<DelayNode*>(ac->nodes[srepn->inode].get());
             delay_ptr->delayTime()->setFloat((float)pnode->delayTime,false);
 
@@ -982,33 +1118,47 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_Analyser* pnode = (struct X3D_Analyser*)node;
             std::shared_ptr<AnalyserNode> analyser;
             AnalyserNode* analyser_ptr;
-            std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //std::shared_ptr<GainNode> gain;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 analyser = std::make_shared<AnalyserNode>(context,pnode->fftSize);
                 analyser_ptr = analyser.get();
                 ac->next_node++;
                 ac->nodes[ac->next_node] = analyser;
+                ac->nodetype[ac->next_node] = NODE_Analyser;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
+                ChannelInterpretation interp;
+                ChannelCountMode cmode;
+                getChannelInterpretation(pnode->channelInterpretation->strptr, pnode->channelCountMode->strptr, &interp, &cmode);
+                analyser_ptr->setChannelInterpretation(interp);
+                {
+                    ContextGraphLock g(ac->context.get(), "ex_simple");
+                    analyser_ptr->setChannelCountMode(g, cmode);
+                }
+
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             analyser_ptr = dynamic_cast<AnalyserNode*>(ac->nodes[srepn->inode].get());
             pnode->frequencyBinCount = (int)analyser_ptr->frequencyBinCount();
             //printf("start analyser bins=%d\n", pnode->frequencyBinCount);
@@ -1082,19 +1232,20 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_BiquadFilter* pnode = (struct X3D_BiquadFilter*)node;
             std::shared_ptr<BiquadFilterNode> biquad;
             BiquadFilterNode* biquad_ptr;
-            std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //std::shared_ptr<GainNode> gain;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
                 //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 biquad = std::make_shared<BiquadFilterNode>(context);
                 biquad_ptr = biquad.get();
@@ -1109,15 +1260,19 @@ typedef ptw32_handle_t pthread_t;
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = biquad;
+                ac->nodetype[ac->next_node] = NODE_BiquadFilter;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             biquad_ptr = dynamic_cast<BiquadFilterNode*>(ac->nodes[srepn->inode].get());
             FilterType biquad_type = (FilterType)name_lookup(pnode->type->strptr, biquad_types);
             biquad_ptr->setType(biquad_type);
@@ -1131,19 +1286,20 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_DynamicsCompressor* pnode = (struct X3D_DynamicsCompressor*)node;
             std::shared_ptr<DynamicsCompressorNode> dynamics;
             DynamicsCompressorNode* dynamics_ptr;
-            std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //std::shared_ptr<GainNode> gain;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 dynamics = std::make_shared<DynamicsCompressorNode>(context);
                 dynamics_ptr = dynamics.get();
@@ -1158,15 +1314,19 @@ typedef ptw32_handle_t pthread_t;
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = dynamics;
+                ac->nodetype[ac->next_node] = NODE_DynamicsCompressor; 
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             dynamics_ptr = dynamic_cast<DynamicsCompressorNode*>(ac->nodes[srepn->inode].get());
             dynamics_ptr->attack()->setValue((float)pnode->attack);
             dynamics_ptr->knee()->setValue(pnode->knee);
@@ -1182,19 +1342,20 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_WaveShaper* pnode = (struct X3D_WaveShaper*)node;
             std::shared_ptr<WaveShaperNode> wave;
             WaveShaperNode* wave_ptr;
-            std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //std::shared_ptr<GainNode> gain;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 wave = std::make_shared<WaveShaperNode>(context);
                 wave_ptr = wave.get();
@@ -1209,15 +1370,18 @@ typedef ptw32_handle_t pthread_t;
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = wave;
+                ac->nodetype[ac->next_node] = NODE_WaveShaper;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             wave_ptr = dynamic_cast<WaveShaperNode*>(ac->nodes[srepn->inode].get());
             std::vector<float> curve(pnode->curve.n);
             printf("pnode->curve.n %d p[0] %f p[44100-1] %f", pnode->curve.n, pnode->curve.p[0], pnode->curve.p[pnode->curve.n-1]);
@@ -1234,19 +1398,20 @@ typedef ptw32_handle_t pthread_t;
             struct X3D_Convolver * pnode = (struct X3D_Convolver*)node;
             std::shared_ptr<ConvolverNode> convolver;
             ConvolverNode* convolver_ptr;
-            std::shared_ptr<GainNode> gain;
-            GainNode* gain_ptr;
+            //std::shared_ptr<GainNode> gain;
+            //GainNode* gain_ptr;
             if (!srepn->inode) {
-                //create labsound node
-                gain = std::make_shared<GainNode>(context);
-                gain_ptr = gain.get();
-                ac->next_node++;
-                ac->nodes[ac->next_node] = gain;
-                srepn->igain = ac->next_node;
-                srepn->icontext = icontext;
-                //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                ////create labsound node
+                //gain = std::make_shared<GainNode>(context);
+                //gain_ptr = gain.get();
+                //ac->next_node++;
+                //ac->nodes[ac->next_node] = gain;
+                //ac->nodetype[ac->next_node] = NODE_Gain;
+                //srepn->igain = ac->next_node;
+                //srepn->icontext = icontext;
+                ////connect source node output to parent node input
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
 
                 convolver = std::make_shared<ConvolverNode>(context);
                 convolver_ptr = convolver.get();
@@ -1261,15 +1426,18 @@ typedef ptw32_handle_t pthread_t;
 
                 ac->next_node++;
                 ac->nodes[ac->next_node] = convolver;
+                ac->nodetype[ac->next_node] = NODE_Convolver;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
-                libsound_connect0(icontext, srepn->igain, srepn->inode);
+                //libsound_connect0(icontext, srepn->igain, srepn->inode);
+                if (iparent.x)
+                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
-            gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
-            //copy changed values from x3d to labsound
-            gain_ptr->gain()->setValue(pnode->gain);
+            //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
+            ////copy changed values from x3d to labsound
+            //gain_ptr->gain()->setValue(pnode->gain);
             convolver_ptr = dynamic_cast<ConvolverNode*>(ac->nodes[srepn->inode].get());
             convolver_ptr->setNormalize(pnode->normalize);
 
