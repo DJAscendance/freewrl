@@ -697,6 +697,17 @@ int peek_splitter_source_index() {
 	return stack_top(int, p->splitter_source_stack);
 }
 
+int newconnect(struct X3D_SoundRep* srep, ivec3 iparent) {
+	if (!srep->connections) srep->connections = newStack(ivec3);
+	int duplicate = 0;
+	for (int i = 0; i < vectorSize(srep->connections); i++) {
+		ivec3 conn = vector_get(ivec3, srep->connections, i);
+		if (conn.x == iparent.x && conn.y == iparent.y && conn.z == iparent.z) duplicate = 1;
+	}
+	if (!duplicate)
+		stack_push(ivec3, srep->connections, iparent);
+	return 1 - duplicate;
+}
 
 void render_AudioClip(struct X3D_AudioClip* node) {
 	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
@@ -722,6 +733,9 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 	//node->gain = 1.0;
 	libsound_updateNode3(icontext, iparent, X3D_NODE(node));
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 
 }
 void render_AudioDestination(struct X3D_AudioDestination* node) {
@@ -887,16 +901,20 @@ void render_OscillatorSource(struct X3D_OscillatorSource *node){
 	//SenseInterp.c > OscillatorSourceTick: 
 	//  no exemplar in Ticks of setting _changed, just MARK_EVENT which doesnt seem to (it updates route event)
 	//  could/should it set _ichange if any MARK_EVENTs? DONE, WORKS
+	ivec3 iparent = peek_audio_parent();
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 		struct X3D_Node* anode = (struct X3D_Node*)node;
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
+		//ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	if (node->periodicWave) {
 		push_audio_parent(srep->inode);
 		render_PeriodicWave((struct X3D_PeriodicWave*)node->periodicWave); //like rendering a child, check if anything changed.
@@ -918,20 +936,23 @@ void render_PeriodicWave(struct X3D_PeriodicWave* node) {
 		//MARK_NODE_COMPILED
 	}
 
-}
 
+}
 
 void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
 	if (node->_ichange != node->_change) {
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
+		//ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
 	//push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	//srep->imerger = srep->inode; //libsound audio nodes check if their parent is a merger..
@@ -957,12 +978,6 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 	}
 	//pop_audio_parent(); // sound panner node
 	//pop_audio_context(); //don't pop unless you push
-	static int once = 0;
-	if (!once) {
-		libsound_print_connections();
-		once = 1;
-		getchar();
-	}
 }
 
 void render_ChannelSelector(struct X3D_ChannelSelector* node) {
@@ -991,15 +1006,21 @@ void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	int splitter_source_index = peek_splitter_source_index();
+	ivec3 iparent = peek_audio_parent();
+	iparent.z = splitter_source_index;
 	if (node->_ichange != node->_change) {
 		int icontext = peek_audio_context();
-		int splitter_source_index = peek_splitter_source_index();
-		ivec3 iparent = peek_audio_parent();
-		iparent.z = splitter_source_index;
+		//int splitter_source_index = peek_splitter_source_index();
+		//ivec3 iparent = peek_audio_parent();
+		//iparent.z = splitter_source_index;
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 
@@ -1016,16 +1037,18 @@ void render_Gain(struct X3D_Gain* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
+
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
-
-
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1041,16 +1064,21 @@ void render_Delay(struct X3D_Delay* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
+
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1066,12 +1094,12 @@ void render_Analyser(struct X3D_Analyser* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
@@ -1083,6 +1111,9 @@ void render_Analyser(struct X3D_Analyser* node) {
 
 
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1097,16 +1128,19 @@ void render_BiquadFilter(struct X3D_BiquadFilter* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1122,18 +1156,22 @@ void render_DynamicsCompressor(struct X3D_DynamicsCompressor* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
+
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_DynamicsCompressor, reduction));
 
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1148,17 +1186,20 @@ void render_WaveShaper(struct X3D_WaveShaper* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
+
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
-
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {
@@ -1176,17 +1217,20 @@ void render_Convolver(struct X3D_Convolver* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
 
 
 		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
 		libsound_updateNode3(icontext, iparent, anode);
 		//MARK_NODE_COMPILED
 		node->_ichange = node->_change;
 
 	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+
 	push_audio_parentnode(anode);
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	if (node->children.n) {

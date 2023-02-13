@@ -22,6 +22,7 @@ struct X3D_SoundRep {
 	unsigned int iframe; //last frame visited on scenegraph traversal
 	int ibuffer; //just for source nodes with a buffer, like audioclip
 	float dopplerFactor; //used by AudioClip (computed by SpatialSound in libsound.cpp)
+	void * connections;
 };
 
 //enum {
@@ -43,5 +44,7 @@ EXPORT_DLL extern int libsound_createContext0();
 EXPORT_DLL extern int libsound_createBusFromBuffer0(char* bbuffer, int len);
 EXPORT_DLL extern double libsound_computeDuration0(int ibuffer);
 EXPORT_DLL extern void libsound_print_connections();
+EXPORT_DLL extern void libsound_connect(int icontext, int inode, ivec3 iparent);
+
 //EXPORT_DLL extern void* libsound_createNode(void *context, int type);
 //EXPORT_DLL extern void libsound_connect(void* context, void *destination, void *source);

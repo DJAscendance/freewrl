@@ -292,7 +292,9 @@ typedef ptw32_handle_t pthread_t;
         //lab::AudioContext *ccontext;
         const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
-        if (1) {
+
+
+        if (0) {
             auto listener = context->listener();
             // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
             //listener->forwardX()->setValue(0.0f);
@@ -311,12 +313,13 @@ typedef ptw32_handle_t pthread_t;
             //listener->dopplerFactor()->setValue(1.0f);
         }
         ac->context = context; // libsound_createContext(); // static_cast<lab::AudioContext*>(libsound_createContext());
-        ac->running = true; //for pause / resume
+       // ac->running = true; //for pause / resume
         next_audio_context++;
         audio_contexts[next_audio_context] = ac;
 
         ac->next_node++;
         ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
+        ac->nodetype[ac->next_node] = NODE_AudioDestination;
         return next_audio_context;
     }
     static struct type_name {
@@ -531,6 +534,10 @@ typedef ptw32_handle_t pthread_t;
         if (!_stricmp(mode, "CLAMPED-MAX")) *cmode = lab::ChannelCountMode::ClampedMax;
         else if (!_stricmp(mode, "EXPLICIT")) *cmode = lab::ChannelCountMode::Explicit;
 
+    }
+    void libsound_connect(int icontext, int inode, ivec3 iparent) {
+        if (iparent.x)
+            libsound_connect2(icontext, iparent.x, inode, iparent.y, iparent.z);
     }
     struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
         //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
@@ -773,8 +780,8 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_AudioClip;
                 srepn->inode = ac->next_node;
                 srepn->icontext = icontext;
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
 
                 //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
@@ -833,8 +840,8 @@ typedef ptw32_handle_t pthread_t;
 
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
                 oscillator->start(0.0f);
             }
@@ -924,8 +931,8 @@ typedef ptw32_handle_t pthread_t;
                 }
 
                 //connect source node output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
             gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->inode].get());
@@ -996,8 +1003,8 @@ typedef ptw32_handle_t pthread_t;
             // Options:
             // add __field to ChannelSplitter, and iterate over first, before adding connection
             // add field to X3DSoundRep just for splitter connection tracking, (int,int) (parent,srcIndex)
-            if (iparent.x)
-                libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+            //if (iparent.x)
+            //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
             ////copy changed values from x3d to labsound
@@ -1050,8 +1057,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                   libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //   libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
             //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
@@ -1100,8 +1107,8 @@ typedef ptw32_handle_t pthread_t;
 
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
             //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
@@ -1151,8 +1158,8 @@ typedef ptw32_handle_t pthread_t;
 
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
 
             }
@@ -1265,8 +1272,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
 
             }
@@ -1319,8 +1326,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
 
             }
@@ -1375,8 +1382,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
             //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
@@ -1431,8 +1438,8 @@ typedef ptw32_handle_t pthread_t;
                 srepn->icontext = icontext;
                 //connect source node output to parent node input
                 //libsound_connect0(icontext, srepn->igain, srepn->inode);
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
             }
             //gain_ptr = dynamic_cast<GainNode*>(ac->nodes[srepn->igain].get());
