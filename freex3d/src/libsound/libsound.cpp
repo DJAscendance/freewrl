@@ -514,8 +514,32 @@ typedef ptw32_handle_t pthread_t;
 
     int libsound_createBusFromBuffer0(char* bbuffer, int len) {
         //static list of busses, independent of audio context, so can DEF/USE?
-        std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
-        std::shared_ptr<AudioBus> Bus = MakeBusFromMemory(buffer, false);
+        std::shared_ptr<AudioBus> Bus;
+        if (0) {
+            FILE * fp = fopen("tmp_buf_wav", "w");
+            int nchunks = len / 1024;
+            int leftover = len % 1024;
+            for(int i=0;i<nchunks;i++)
+                fwrite(&bbuffer[i*1024], 1024, 1, fp);
+            fwrite(&bbuffer[nchunks * 1024], leftover, 1, fp);
+            fclose(fp);
+            // x this doesn't work. I get junk temp file, and Bus null/empty.
+            Bus = MakeBusFromFile("tmp_buf_wav", false);
+            remove("tmp_buf.wav");
+        }
+        else {
+            std::vector<uint8_t> buffer(bbuffer, bbuffer + len); // , (uint8_t)bbuffer);
+            Bus = MakeBusFromMemory(buffer, false);
+            printf(".");
+        }
+        next_bus++;
+        busses[next_bus] = Bus;
+        return next_bus;
+    }
+    int libsound_createBusFromFile0(char* url) {
+        //static list of busses, independent of audio context, so can DEF/USE?
+        std::shared_ptr<AudioBus> Bus;
+        Bus = MakeBusFromFile(url, false);
         next_bus++;
         busses[next_bus] = Bus;
         return next_bus;
@@ -795,16 +819,18 @@ typedef ptw32_handle_t pthread_t;
             audioClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
-            SchedulingState status = audioClipNode_ptr->playbackState();
-            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
-                audioClipNode_ptr->stop(0.0);
-            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
-                audioClipNode_ptr->start(0.0);
-            
-            //bool isactive = audioClipNode_ptr->loop();
-            //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
-            //if (!isactive && pnode->loop) audioClipNode_ptr->start(0.0f);
-            audioClipNode_ptr->playbackRate()->setValue(pnode->pitch*srepn->dopplerFactor);
+            if (0) {
+                SchedulingState status = audioClipNode_ptr->playbackState();
+                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+                    audioClipNode_ptr->stop(0.0);
+                else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                    audioClipNode_ptr->start(0.0);
+
+                //bool isactive = audioClipNode_ptr->loop();
+                //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
+                //if (!isactive && pnode->loop) audioClipNode_ptr->start(0.0f);
+                audioClipNode_ptr->playbackRate()->setValue(pnode->pitch * srepn->dopplerFactor);
+            }
            // audioClipNode_ptr->gain()->setValue(pnode->gain);
             //copy outputs from labsound to x3d
             //pnode->duration_changed = audioClipNode_ptr->duration();

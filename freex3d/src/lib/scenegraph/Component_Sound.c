@@ -314,7 +314,7 @@ int loadstatus_AudioClip(struct X3D_AudioClip *node){
 
 
 
-int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len) {
+int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len, char* url) {
 #ifdef HAVE_OPENAL
 	ALint buffer = AL_NONE;
 #ifdef HAVE_ALUT
@@ -324,7 +324,11 @@ int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len) {
 	if (buffer == AL_NONE)
 		buffer = BADAUDIOSOURCE;
 #elif HAVE_LIBSOUND
-	int buffer = libsound_createBusFromBuffer0(bbuffer, len);
+	int buffer;
+	if(0)
+		buffer = libsound_createBusFromBuffer0(bbuffer, len);
+	else
+		buffer = libsound_createBusFromFile0(url);
 #else
 	int buffer = BADAUDIOSOURCE;
 #endif
@@ -398,7 +402,7 @@ bool  process_res_audio(resource_item_t* res) {
 
 	node = (struct X3D_AudioClip*)res->whereToPlaceData;
 	//node->__FILEBLOB = buffer;
-	node->__sourceNumber = parse_audioclip(node, buffer, len); //__sourceNumber will be openAL buffer number
+	node->__sourceNumber = parse_audioclip(node, buffer, len, res->actual_file); //__sourceNumber will be openAL buffer number
 	if (node->__sourceNumber > -1) {
 		node->duration_changed = compute_duration(node->__sourceNumber);
 		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, duration_changed));
@@ -729,7 +733,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	srep->dopplerFactor = peek_doppler_factor();
 	int icontext = peek_audio_context();
 	ivec3 iparent = peek_audio_parent();
-	//printf("ac audio_context %d parent_node %d\n", peek_audio_context(), peek_audio_parent());
+	//printf("ac audio_context %d parent_node %d\n", peek_audio_context(), iparent.x);
 
 	//node->gain = 1.0;
 	libsound_updateNode3(icontext, iparent, X3D_NODE(node));
@@ -957,23 +961,25 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
 	//srep->imerger = srep->inode; //libsound audio nodes check if their parent is a merger..
 	int inode = srep->inode;
+	int noisy = 0;
 	if (node->children.n) {
 		//for (int i = 0; i < node->children.n; i++) {
-		printf("render_merger nchan %d\n", node->outputChannel.n);
+		if(noisy) printf("render_merger nchan %d\n", node->indxDst.n);
 		libsound_print_connections();
-		for(int i=0;i<node->outputChannel.n;i++){
-			int output_channel = node->outputChannel.p[i];
-			int source_index = node->sourceIndex.p[i];
-			printf("%d outputChan %d sourceIndex %d\n",  i, output_channel, source_index);
+		for(int i=0;i<node->indxDst.n;i++){
+			int destination_index = node->indxDst.p[i];
+			int source_index = node->indxSrc.p[i];
+			if(noisy) printf("%d indxDst %d indxSrc %d\n",  i, destination_index, source_index);
 			push_splitter_source_index(source_index);
-			push_audio_parent3(inode, output_channel, 0); // 0 is over-ridden by source_index if child is a Splitter
+			push_audio_parent3(inode, destination_index, 0); // 0 is over-ridden by source_index if child is a Splitter
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
-			render_node(X3D_NODE(node->children.p[source_index]));
+			int ichild = min(node->children.n - 1, source_index); //RE-USE LAST CHILD IF FEWER THAN INDXDST.N
+			render_node(X3D_NODE(node->children.p[ichild]));
 			pop_audio_parent();
 			pop_splitter_source_index();
-			libsound_print_connections();
-			printf("\n");
+			if(noisy) libsound_print_connections();
+			if(noisy) printf("\n");
 		}
 	}
 	//pop_audio_parent(); // sound panner node
