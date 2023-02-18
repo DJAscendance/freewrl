@@ -233,11 +233,11 @@ int haveSoundEngine(){
 //#define LOAD_PARSING 3
 #define LOAD_STABLE 10
 
-void locateAudioSource (struct X3D_AudioClip *node) {
+void locateAudioSource (struct X3D_AudioBuffer *node) {
 	resource_item_t *res;
 	//resource_item_t *parentPath;
 	//ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-
+	printf("\nurl %s\n", node->url.p[0]->strptr);
 	switch (node->__loadstatus) {
 		case LOAD_INITIAL_STATE: /* nothing happened yet */
 
@@ -274,9 +274,11 @@ void locateAudioSource (struct X3D_AudioClip *node) {
 			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
 		if(res->complete){
 			if (res->status == ress_loaded) {
-				res->actions = resa_process;
-				res->complete = FALSE;
-				resitem_enqueue(ml_new(res));
+				if (res->actions != resa_process) {
+					res->actions = resa_process;
+					res->complete = FALSE;
+					resitem_enqueue(ml_new(res));
+				}
 			} else if ((res->status == ress_failed) || (res->status == ress_invalid)) {
 				//no hope left
 				printf ("resource failed to load\n");
@@ -325,10 +327,10 @@ int	parse_audioclip(struct X3D_AudioClip* node, char* bbuffer, int len, char* ur
 		buffer = BADAUDIOSOURCE;
 #elif HAVE_LIBSOUND
 	int buffer;
-	if(0)
+	//if(0)
 		buffer = libsound_createBusFromBuffer0(bbuffer, len);
-	else
-		buffer = libsound_createBusFromFile0(url);
+	//else
+	//	buffer = libsound_createBusFromFile0(url);
 #else
 	int buffer = BADAUDIOSOURCE;
 #endif
@@ -403,9 +405,11 @@ bool  process_res_audio(resource_item_t* res) {
 	node = (struct X3D_AudioClip*)res->whereToPlaceData;
 	//node->__FILEBLOB = buffer;
 	node->__sourceNumber = parse_audioclip(node, buffer, len, res->actual_file); //__sourceNumber will be openAL buffer number
-	if (node->__sourceNumber > -1) {
-		node->duration_changed = compute_duration(node->__sourceNumber);
-		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, duration_changed));
+	if (node->__sourceNumber > -1 ) {
+		if (node->_nodeType == NODE_AudioClip) {
+			node->duration_changed = compute_duration(node->__sourceNumber);
+			MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, duration_changed));
+		}
 		return TRUE;
 	}
 	return FALSE;
@@ -720,7 +724,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 	/* is this audio wavelet initialized yet? */
 	if (node->__loadstatus != LOAD_STABLE) {
-		locateAudioSource(node);
+		locateAudioSource((struct X3D_AudioBuffer*)node); //downcast to share resource loading code
 	}
 	if (node->__loadstatus != LOAD_STABLE) return;
 	/* is this audio ok? if so, the sourceNumber will range
@@ -742,6 +746,45 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 
 }
+void render_AudioBuffer(struct X3D_AudioBuffer* node) {
+	// two ways to load an audiobuffer:
+	// 1) floats representing PCM data, in MFFloat buffer field
+	//   -- this field may be populated at run time, for example a script using a math formula
+	// 2) url loading of .wav. If url is empty, assume #1
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->__loadstatus == LOAD_STABLE) return;
+	if (node->url.n == 0) {
+		// 1) PCM float data
+		if (node->__loadstatus != LOAD_STABLE) {
+			//check for (scene or run-time) populated buffer MFFloat data
+			if (node->buffer.n) {
+				node->__sourceNumber = libsound_createBusFromPCM32(node->buffer.p, 1, node->buffer.n);
+				srep->ibuffer = node->__sourceNumber;
+				node->__loadstatus = LOAD_STABLE;
+				node->_ichange++;
+			}
+		}
+	}
+	else 
+	{
+		//2) load .wav via URL (like audioclip)
+		if (node->__loadstatus != LOAD_STABLE) {
+			locateAudioSource(node);
+		}
+		if (node->__loadstatus != LOAD_STABLE) return;
+		/* is this audio ok? if so, the sourceNumber will range
+		 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
+		 * check out locateAudioSource to find out reasons */
+		if (node->__sourceNumber == BADAUDIOSOURCE) return;
+		srep->ibuffer = node->__sourceNumber;
+		node->_ichange++;
+
+		//we don't connect() to parent. 
+		// Parent looks in its bufferNode field and if not null, mines this node directly
+	}
+}
+
 void render_AudioDestination(struct X3D_AudioDestination* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	ivec3 have_parent = peek_audio_parent();
@@ -1224,9 +1267,14 @@ void render_Convolver(struct X3D_Convolver* node) {
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	ivec3 iparent = peek_audio_parent();
+	if (node->bufferNode) {
+		render_AudioBuffer((struct X3D_AudioBuffer*)node->bufferNode);
+		if (node->bufferNode->_ichange != node->bufferNode->_change)
+			node->_ichange++;
+		node->bufferNode->_ichange = node->bufferNode->_change;
+	}
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
-
 
 		int icontext = peek_audio_context();
 		libsound_updateNode3(icontext, iparent, anode);
@@ -1247,7 +1295,6 @@ void render_Convolver(struct X3D_Convolver* node) {
 	pop_audio_parent();
 
 }
-
 
 
 

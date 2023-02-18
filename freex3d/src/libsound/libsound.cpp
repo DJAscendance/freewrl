@@ -536,6 +536,23 @@ typedef ptw32_handle_t pthread_t;
         busses[next_bus] = Bus;
         return next_bus;
     }
+    int libsound_createBusFromPCM32(float* buffer, int nchannel, int lentotal) {
+        //static list of busses, independent of audio context, so can DEF/USE?
+        int length = lentotal / nchannel;
+        std::shared_ptr<lab::AudioBus> audioBus(new lab::AudioBus(nchannel, length));
+        audioBus->setSampleRate(44100.0);
+        //audioBus->setSampleRate((float)audioData->sampleRate);
+        for (int i = 0; i < nchannel; ++i)
+        {
+            std::memcpy(audioBus->channel(i)->mutableData(), buffer + (i * length), length * sizeof(float));
+        }
+
+        next_bus++;
+        busses[next_bus] = audioBus;
+        return next_bus;
+
+    }
+
     int libsound_createBusFromFile0(char* url) {
         //static list of busses, independent of audio context, so can DEF/USE?
         std::shared_ptr<AudioBus> Bus;
@@ -836,6 +853,7 @@ typedef ptw32_handle_t pthread_t;
             //pnode->duration_changed = audioClipNode_ptr->duration();
         }
         break;
+
         case NODE_OscillatorSource:
         {
             struct X3D_OscillatorSource* pnode = (struct X3D_OscillatorSource*)node;
@@ -1491,7 +1509,12 @@ typedef ptw32_handle_t pthread_t;
             //gain_ptr->gain()->setValue(pnode->gain);
             convolver_ptr = dynamic_cast<ConvolverNode*>(ac->nodes[srepn->inode].get());
             convolver_ptr->setNormalize(pnode->normalize);
-
+            if (pnode->bufferNode) {
+                struct X3D_AudioBuffer* abuf = (struct X3D_AudioBuffer*)pnode->bufferNode;
+                if (abuf->__sourceNumber > 0)
+                    convolver_ptr->setImpulse(busses[abuf->__sourceNumber]); // or srep->ibuffer
+            }
+            //convolver_ptr->setImpulse(bus);
         }
         break;
 

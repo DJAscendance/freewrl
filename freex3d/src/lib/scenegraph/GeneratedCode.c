@@ -533,6 +533,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"buffer",
 	"bufferDuration",
 	"bufferLength",
+	"bufferNode",
 	"byteFrequencyData",
 	"byteTimeDomainData",
 	"castShadow",
@@ -1010,7 +1011,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"radius",
 	"range",
 	"ratio",
-	"rawdata",
 	"readInterval",
 	"receivedPower",
 	"receiverState",
@@ -1889,7 +1889,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"radioID",
 	"radius",
 	"ratio",
-	"rawdata",
 	"readInterval",
 	"receivedPower",
 	"receiverState",
@@ -2090,6 +2089,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"beginCap",
 	"bottomRadius",
 	"boundingVolumeType",
+	"bufferNode",
 	"category",
 	"ccw",
 	"centralScale",
@@ -2943,7 +2943,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_appearance,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
-{0,0,0,0,0,0,0},
+{FIELDNAMES_bufferNode,0,0,0,0,0,0},
 {FIELDNAMES_source,FIELDNAMES_children,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3308,7 +3308,8 @@ void render_ArcClose2D(struct X3D_ArcClose2D *);
 void compile_ArcClose2D(struct X3D_ArcClose2D *);
 struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ArcClose2D};
 
-struct X3D_Virt virt_AudioBuffer = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+void render_AudioBuffer(struct X3D_AudioBuffer *);
+struct X3D_Virt virt_AudioBuffer = { NULL,(void *)render_AudioBuffer,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_AudioClip(struct X3D_AudioClip *);
 struct X3D_Virt virt_AudioClip = { NULL,(void *)render_AudioClip,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4799,24 +4800,33 @@ const int OFFSETS_ArcClose2D[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioBuffer[] = {
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_AudioBuffer, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_AudioBuffer, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_load, (int) offsetof (struct X3D_AudioBuffer, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_AudioBuffer, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioBuffer, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioBuffer, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioBuffer, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_AudioBuffer, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_AudioBuffer, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_AudioBuffer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_AudioBuffer, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_AudioBuffer, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_AudioBuffer, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_rawdata, (int) offsetof (struct X3D_AudioBuffer, rawdata),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_url, (int) offsetof (struct X3D_AudioBuffer, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_AudioBuffer, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___afterPound, (int) offsetof (struct X3D_AudioBuffer, __afterPound),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioBuffer, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioBuffer, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioBuffer, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___typename, (int) offsetof (struct X3D_AudioBuffer, __typename),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_load, (int) offsetof (struct X3D_AudioBuffer, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES___oldload, (int) offsetof (struct X3D_AudioBuffer, __oldload),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_buffer, (int) offsetof (struct X3D_AudioBuffer, buffer),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bufferLength, (int) offsetof (struct X3D_AudioBuffer, bufferLength),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bufferDuration, (int) offsetof (struct X3D_AudioBuffer, bufferDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioClip[] = {
+	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_AudioClip, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_AudioClip, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_load, (int) offsetof (struct X3D_AudioClip, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_AudioClip, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioClip, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioClip, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioClip, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_AudioClip, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_AudioClip, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_AudioClip, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_AudioClip, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -4834,17 +4844,9 @@ const int OFFSETS_AudioClip[] = {
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_AudioClip, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_pitch, (int) offsetof (struct X3D_AudioClip, pitch),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_duration_changed, (int) offsetof (struct X3D_AudioClip, duration_changed),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_AudioClip, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_AudioClip, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_AudioClip, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES___sourceNumber, (int) offsetof (struct X3D_AudioClip, __sourceNumber),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_AudioClip, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___inittime, (int) offsetof (struct X3D_AudioClip, __inittime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___lasttime, (int) offsetof (struct X3D_AudioClip, __lasttime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_autoRefresh, (int) offsetof (struct X3D_AudioClip, autoRefresh),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_autoRefreshTimeLimit, (int) offsetof (struct X3D_AudioClip, autoRefreshTimeLimit),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_load, (int) offsetof (struct X3D_AudioClip, load),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_url, (int) offsetof (struct X3D_AudioClip, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_AudioDestination[] = {
@@ -5504,6 +5506,7 @@ const int OFFSETS_Convolver[] = {
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_Convolver, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_Convolver, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_buffer, (int) offsetof (struct X3D_Convolver, buffer),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_bufferNode, (int) offsetof (struct X3D_Convolver, bufferNode),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_normalize, (int) offsetof (struct X3D_Convolver, normalize),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -10952,27 +10955,36 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_AudioBuffer : {
 			struct X3D_AudioBuffer * tmp2;
 			tmp2 = (struct X3D_AudioBuffer *) tmp;
+			tmp2->autoRefresh = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
+			tmp2->load = TRUE;
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->__loadstatus = 0;
+			tmp2->__loadResource = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__sourceNumber = -1;
 			tmp2->description = newASCIIString("");
 			tmp2->metadata = NULL;
 			tmp2->channelCount = 2;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
-			tmp2->rawdata.n=0; tmp2->rawdata.p=0;
-			tmp2->url.n=0; tmp2->url.p=0;
-			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
-			tmp2->__afterPound = 0;
-			tmp2->__loadstatus = 0;
-			tmp2->_parentResource = getInputResource();
-			tmp2->__loadResource = 0;
-			tmp2->__typename = 0;
-			tmp2->load = TRUE;
-			tmp2->__oldload = FALSE;
+			tmp2->buffer.n=0; tmp2->buffer.p=0;
+			tmp2->bufferLength = 0;
+			tmp2->bufferDuration = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
 		case NODE_AudioClip : {
 			struct X3D_AudioClip * tmp2;
 			tmp2 = (struct X3D_AudioClip *) tmp;
+			tmp2->autoRefresh = 0;
+			tmp2->autoRefreshTimeLimit = 3600;
+			tmp2->load = TRUE;
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->__loadstatus = 0;
+			tmp2->__loadResource = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__sourceNumber = -1;
 			tmp2->description = newASCIIString("");
 			tmp2->enabled = TRUE;
 			tmp2->gain = 1.0f;
@@ -10990,17 +11002,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->loop = FALSE;
 			tmp2->pitch = 1.0f;
 			tmp2->duration_changed = -1;
-			tmp2->__loadstatus = 0;
-			tmp2->__loadResource = 0;
-			tmp2->_parentResource = getInputResource();
-			tmp2->__sourceNumber = -1;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->__inittime = 0;
 			tmp2->__lasttime = 0;
-			tmp2->autoRefresh = 0;
-			tmp2->autoRefreshTimeLimit = 3600;
-			tmp2->load = TRUE;
-			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -11819,6 +11823,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_self = 0;
 			tmp2->_context = 0;
 			tmp2->buffer.n=0; tmp2->buffer.p=0;
+			tmp2->bufferNode = 0;
 			tmp2->normalize = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -17357,21 +17362,29 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_AudioBuffer *tmp;
 			tmp = (struct X3D_AudioBuffer *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
+			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
-			spacer fprintf (fp," rawdata (MFFloat):\n");
-			for (i=0; i<tmp->rawdata.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->rawdata.p[i]); }
-			spacer fprintf (fp," url (MFString): \n");
-			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
-			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
+			spacer fprintf (fp," buffer (MFFloat):\n");
+			for (i=0; i<tmp->buffer.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->buffer.p[i]); }
+			spacer fprintf (fp," bufferDuration (SFTime) \t%4.3f\n",tmp->bufferDuration);
 		    break;
 		}
 		case NODE_AudioClip : {
 			struct X3D_AudioClip *tmp;
 			tmp = (struct X3D_AudioClip *) node;
 			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
+			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
+			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
 			spacer fprintf (fp," gain (SFFloat) \t%4.3f\n",tmp->gain);
@@ -17388,11 +17401,6 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);
 		    }
-			spacer fprintf (fp," autoRefresh (SFTime) \t%4.3f\n",tmp->autoRefresh);
-			spacer fprintf (fp," autoRefreshTimeLimit (SFTime) \t%4.3f\n",tmp->autoRefreshTimeLimit);
-			spacer fprintf (fp," load (SFBool) \t%d\n",tmp->load);
-			spacer fprintf (fp," url (MFString): \n");
-			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 		    break;
 		}
 		case NODE_AudioDestination : {
