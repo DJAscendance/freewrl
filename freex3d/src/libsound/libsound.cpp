@@ -1514,7 +1514,6 @@ typedef ptw32_handle_t pthread_t;
                 if (abuf->__sourceNumber > 0)
                     convolver_ptr->setImpulse(busses[abuf->__sourceNumber]); // or srep->ibuffer
             }
-            //convolver_ptr->setImpulse(bus);
         }
         break;
 

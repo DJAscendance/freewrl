@@ -760,7 +760,7 @@ void render_AudioBuffer(struct X3D_AudioBuffer* node) {
 		if (node->__loadstatus != LOAD_STABLE) {
 			//check for (scene or run-time) populated buffer MFFloat data
 			if (node->buffer.n) {
-				node->__sourceNumber = libsound_createBusFromPCM32(node->buffer.p, 1, node->buffer.n);
+				node->__sourceNumber = libsound_createBusFromPCM32(node->buffer.p, node->bufferChannels, node->buffer.n);
 				srep->ibuffer = node->__sourceNumber;
 				node->__loadstatus = LOAD_STABLE;
 				node->_ichange++;

@@ -1168,6 +1168,7 @@ our %Nodes = (
 
 		# PCM float buffer
 		buffer => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		bufferChannels => ["SFInt32", 1,"inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		bufferLength => ["SFInt32", 0, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		bufferDuration => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
@@ -1750,6 +1751,19 @@ our %Nodes = (
 	
 
 	"MovieTexture" => new VRML::NodeType ("MovieTexture", [
+            # X3DUrlObject
+		autoRefresh => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		autoRefreshTimeLimit => ["SFTime",3600.0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		# description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		# internal sequence number, openal buffer number
+		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
+
             # X3DSoundSourceNode
 		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		enabled => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1770,22 +1784,11 @@ our %Nodes = (
 		loop =>	["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		pitch => ["SFFloat", 1.0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		duration_changed => ["SFTime", -1, "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
-		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-		# internal sequence number, openal buffer number
-		__sourceNumber => ["SFInt32", -1, "initializeOnly", 0,0],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 		# time that we were initialized at
 		__inittime => ["SFTime", 0, "initializeOnly", 0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
 
-            # X3DUrlObject
-		autoRefresh => ["SFTime",0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		autoRefreshTimeLimit => ["SFTime",3600.0,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		# description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		load => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 
 		# MovieTexture
 		#Texture2D and Movie section
