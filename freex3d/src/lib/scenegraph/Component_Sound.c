@@ -237,7 +237,8 @@ void locateAudioSource (struct X3D_AudioBuffer *node) {
 	resource_item_t *res;
 	//resource_item_t *parentPath;
 	//ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	printf("\nurl %s\n", node->url.p[0]->strptr);
+	int debug = 0;
+	if(debug) printf("\nurl %s\n", node->url.p[0]->strptr);
 	switch (node->__loadstatus) {
 		case LOAD_INITIAL_STATE: /* nothing happened yet */
 
@@ -253,7 +254,7 @@ void locateAudioSource (struct X3D_AudioBuffer *node) {
 			node->__loadstatus = LOAD_REQUEST_RESOURCE;
 			node->__loadResource = res;
 		}
-		printf("1");
+		if(debug) printf("1");
 		break;
 
 		case LOAD_REQUEST_RESOURCE:
@@ -265,7 +266,7 @@ void locateAudioSource (struct X3D_AudioBuffer *node) {
 		//res->offsetFromWhereToPlaceData = offsetof (struct X3D_AudioClip, __FILEBLOB);
 		resitem_enqueue(ml_new(res));
 		node->__loadstatus = LOAD_FETCHING_RESOURCE;
-		printf("2");
+		if(debug) printf("2");
 		break;
 
 		case LOAD_FETCHING_RESOURCE:
@@ -291,11 +292,11 @@ void locateAudioSource (struct X3D_AudioBuffer *node) {
 			} //if (res->status == ress_parsed)
 		} //if(res->complete)
 		//end case LOAD_FETCHING_RESOURCE
-		printf("3");
+		if(debug) printf("3");
 		break;
 
 		case LOAD_STABLE:
-		printf("4");
+		if(debug) printf("4");
 		break;
 	}
 }
@@ -781,7 +782,7 @@ void render_AudioBuffer(struct X3D_AudioBuffer* node) {
 		node->_ichange++;
 
 		//we don't connect() to parent. 
-		// Parent looks in its bufferNode field and if not null, mines this node directly
+		// Parent looks in its bufferNode field and if not null, mines this node directly to setImpluse
 	}
 }
 
