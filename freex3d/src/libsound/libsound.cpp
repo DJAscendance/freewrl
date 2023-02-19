@@ -340,6 +340,7 @@ typedef ptw32_handle_t pthread_t;
     {NODE_ChannelMerger, "Merg"},
     {NODE_Delay, "Dlay"},
     {NODE_BufferAudioSource, "BAS"},
+    {NODE_AudioBufferSource, "ABS"},
     {NODE_AudioBuffer, "ABuf"},
     {NODE_OscillatorSource, "Osc"},
     {NODE_ListenerPointSource, "LPS"},
@@ -836,7 +837,7 @@ typedef ptw32_handle_t pthread_t;
             audioClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
-            if (0) {
+            if (1) {
                 SchedulingState status = audioClipNode_ptr->playbackState();
                 if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
                     audioClipNode_ptr->stop(0.0);
@@ -853,6 +854,56 @@ typedef ptw32_handle_t pthread_t;
             //pnode->duration_changed = audioClipNode_ptr->duration();
         }
         break;
+        case NODE_AudioBufferSource:
+        {
+            struct X3D_AudioBufferSource* pnode = (struct X3D_AudioBufferSource*)node;
+            std::shared_ptr<SampledAudioNode> audioSource;
+            SampledAudioNode* audioSource_ptr;
+            if (!srepn->ibuffer) break; //wait for url to load
+            if (!srepn->inode) {
+                //create labsound node
+                audioSource = std::make_shared<SampledAudioNode>(context);
+                {
+                    ContextRenderLock r(ac->context.get(), "ex_simple");
+                    audioSource->setBus(r, busses[srepn->ibuffer]);
+                }
+                ac->next_node++;
+                ac->nodes[ac->next_node] = audioSource;
+                ac->nodetype[ac->next_node] = NODE_AudioBufferSource;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+
+
+                //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
+                audioSource->schedule(0.0, -1); // -1 to loop forever
+
+
+            }
+            //copy changed values from x3d to labsound
+            //audioClipNode = static_cast<std::shared_ptr<SampledAudioNode>>( ac->nodes[srepn->inode] );
+            audioSource_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
+            // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
+            // here we turn on / off the playback depending on isActive 
+            if (0) {
+                SchedulingState status = audioSource_ptr->playbackState();
+                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+                    audioSource_ptr->stop(0.0);
+                else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                    audioSource_ptr->start(0.0);
+
+                //bool isactive = audioClipNode_ptr->loop();
+                //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
+                //if (!isactive && pnode->loop) audioClipNode_ptr->start(0.0f);
+                audioSource_ptr->playbackRate()->setValue(pnode->playbackRate);
+            }
+            // audioClipNode_ptr->gain()->setValue(pnode->gain);
+             //copy outputs from labsound to x3d
+             //pnode->duration_changed = audioClipNode_ptr->duration();
+        }
+        break;
+
 
         case NODE_OscillatorSource:
         {

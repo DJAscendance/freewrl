@@ -237,7 +237,7 @@ void locateAudioSource (struct X3D_AudioBuffer *node) {
 	resource_item_t *res;
 	//resource_item_t *parentPath;
 	//ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
-	int debug = 0;
+	int debug = 1;
 	if(debug) printf("\nurl %s\n", node->url.p[0]->strptr);
 	switch (node->__loadstatus) {
 		case LOAD_INITIAL_STATE: /* nothing happened yet */
@@ -785,6 +785,32 @@ void render_AudioBuffer(struct X3D_AudioBuffer* node) {
 		// Parent looks in its bufferNode field and if not null, mines this node directly to setImpluse
 	}
 }
+void render_AudioBufferSource(struct X3D_AudioBufferSource* node) {
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->bufferNode && node->bufferNode->_nodeType == NODE_AudioBuffer) {
+		struct X3D_AudioBuffer* AB = (struct X3D_AudioBuffer*)node->bufferNode;
+		render_AudioBuffer(AB);
+		if (AB->_ichange != AB->_change)
+			node->_ichange++;
+		AB->_ichange = AB->_change;
+		srep->ibuffer = max(0,AB->__sourceNumber);
+	}
+	if (srep->ibuffer) { //wait for AudioBuffer URL to load
+		ivec3 iparent = peek_audio_parent();
+		if (node->_ichange != node->_change) {
+
+			struct X3D_Node* anode = (struct X3D_Node*)node;
+			int icontext = peek_audio_context();
+			libsound_updateNode3(icontext, iparent, anode);
+			//MARK_NODE_COMPILED
+			node->_ichange = node->_change;
+		}
+		if (newconnect(srep, iparent))
+			libsound_connect(srep->icontext, srep->inode, iparent);
+	}
+
+}
 
 void render_AudioDestination(struct X3D_AudioDestination* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
@@ -1268,7 +1294,7 @@ void render_Convolver(struct X3D_Convolver* node) {
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	ivec3 iparent = peek_audio_parent();
-	if (node->bufferNode) {
+	if (node->bufferNode && node->bufferNode->_nodeType == NODE_AudioBuffer) {
 		render_AudioBuffer((struct X3D_AudioBuffer*)node->bufferNode);
 		if (node->bufferNode->_ichange != node->bufferNode->_change)
 			node->_ichange++;
