@@ -836,7 +836,7 @@ typedef ptw32_handle_t pthread_t;
             audioClipNode_ptr = static_cast<SampledAudioNode*>(ac->nodes[srepn->inode].get());
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
-            if (1) {
+            if (0) {
                 SchedulingState status = audioClipNode_ptr->playbackState();
                 if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
                     audioClipNode_ptr->stop(0.0);
