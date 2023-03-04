@@ -1067,6 +1067,78 @@ void do_AudioTick(void *ptr) {
 		MARK_EVENT (ptr, offsetof(struct X3D_AudioClip, elapsedTime));
 	}
 }
+void do_BufferAudioSourceTick(void* ptr) {
+	struct X3D_BufferAudioSource* node = (struct X3D_BufferAudioSource*)ptr;
+	int 	oldstatus;
+	double duration; /* gcc and params - make all doubles to do_active_inactive */
+	/* can we possibly have started yet? */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, enabled));
+	}
+	if (!node->enabled) return;
+
+	if (node->__inittime == 0.0)
+		node->__inittime = TickTime();
+
+	if (TickTime() < node->startTime) {
+		return;
+	}
+
+	oldstatus = node->isActive;
+
+	if (node->__sourceNumber < 0) return;
+	///* is this audio wavelet initialized yet? */
+	//if (node->__sourceNumber == -1) {
+	//	locateAudioSource (node);
+	//	/* printf ("do_AudioTick, node %d sn %d\n", node, node->__sourceNumber);  */
+	//}
+
+	///* is this audio ok? if so, the sourceNumber will range
+	// * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
+	// * check out locateAudioSource to find out reasons */
+	//if (node->__sourceNumber == BADAUDIOSOURCE) return;
+
+	/* call common time sensor routine */
+	do_active_inactive(
+		&node->isActive, &node->__inittime, &node->startTime,
+		&node->stopTime, node->loop, 0.0,
+		0.0, node->elapsedTime);
+
+	if (oldstatus != node->isActive) {
+		/* push @e, [$t, "isActive", node->{isActive}]; */
+		if (node->isActive == 1) {
+			/* force code below to generate event */
+			//node->__ctflag = 10.0;
+			node->__lasttime = TickTime();
+			node->elapsedTime = 0.0;
+		}
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isActive));
+	}
+
+	if (node->isActive) {
+		if (node->pauseTime > node->startTime) {
+			if (node->resumeTime < node->pauseTime && !node->isPaused) {
+				node->isPaused = TRUE;
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isPaused));
+			}
+			else if (node->resumeTime > node->pauseTime && node->isPaused) {
+				node->isPaused = FALSE;
+				node->__lasttime = TickTime();
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isPaused));
+			}
+		}
+	}
+	if (node->isActive == 1 && node->isPaused == FALSE) {
+		double dtime = TickTime();
+		node->elapsedTime += dtime - node->__lasttime;
+		node->__lasttime = dtime;
+		//double myFrac = node->elapsedTime / duration;
+		MARK_EVENT(ptr, offsetof(struct X3D_BufferAudioSource, elapsedTime));
+	}
+}
 
 void do_OscillatorSourceTick(void* ptr) {
 	struct X3D_OscillatorSource* node = (struct X3D_OscillatorSource*)ptr;

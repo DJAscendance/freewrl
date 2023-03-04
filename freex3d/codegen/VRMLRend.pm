@@ -362,8 +362,7 @@ our %defaultContainerType = (
 
 	Analyser			=>["children"],
 	AudioClip 			=>["source","children"],
-	AudioBuffer			=>["bufferNode"],
-      AudioBufferSource		=>["children"],
+	AudioBuffer			=>["buffer"],
 	BufferAudioSource		=>["children"],
 	AudioDestination		=>["children"],
 	BiquadFilter		=>["children"],
@@ -492,7 +491,6 @@ our %RendC = map {($_=>1)} qw/
 	AudioBuffer
 	AudioDestination
 	BiquadFilter
-      AudioBufferSource
 	BufferAudioSource
 	ChannelMerger
 	ChannelSelector

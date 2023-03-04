@@ -785,16 +785,17 @@ void render_AudioBuffer(struct X3D_AudioBuffer* node) {
 		// Parent looks in its bufferNode field and if not null, mines this node directly to setImpluse
 	}
 }
-void render_AudioBufferSource(struct X3D_AudioBufferSource* node) {
+void render_BufferAudioSource(struct X3D_BufferAudioSource* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
-	if (node->bufferNode && node->bufferNode->_nodeType == NODE_AudioBuffer) {
-		struct X3D_AudioBuffer* AB = (struct X3D_AudioBuffer*)node->bufferNode;
+	if (node->buffer && node->buffer->_nodeType == NODE_AudioBuffer) {
+		struct X3D_AudioBuffer* AB = (struct X3D_AudioBuffer*)node->buffer;
 		render_AudioBuffer(AB);
 		if (AB->_ichange != AB->_change)
 			node->_ichange++;
 		AB->_ichange = AB->_change;
 		srep->ibuffer = max(0,AB->__sourceNumber);
+		node->__sourceNumber = AB->__sourceNumber;
 	}
 	if (srep->ibuffer) { //wait for AudioBuffer URL to load
 		ivec3 iparent = peek_audio_parent();
@@ -1294,11 +1295,11 @@ void render_Convolver(struct X3D_Convolver* node) {
 	srep->iframe = gglobal()->Mainloop.iframe;
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	ivec3 iparent = peek_audio_parent();
-	if (node->bufferNode && node->bufferNode->_nodeType == NODE_AudioBuffer) {
-		render_AudioBuffer((struct X3D_AudioBuffer*)node->bufferNode);
-		if (node->bufferNode->_ichange != node->bufferNode->_change)
+	if (node->buffer && node->buffer->_nodeType == NODE_AudioBuffer) {
+		render_AudioBuffer((struct X3D_AudioBuffer*)node->buffer);
+		if (node->buffer->_ichange != node->buffer->_change)
 			node->_ichange++;
-		node->bufferNode->_ichange = node->bufferNode->_change;
+		node->buffer->_ichange = node->buffer->_change;
 	}
 	if (node->_ichange != node->_change) {
 		//if (node->_ichange == 0) return;
@@ -1325,9 +1326,6 @@ void render_Convolver(struct X3D_Convolver* node) {
 
 
 
-void render_BufferAudioSource(struct X3D_BufferAudioSource *node){
-	COMPILE_IF_REQUIRED
-}
 void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
 	COMPILE_IF_REQUIRED
 }
