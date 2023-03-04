@@ -1035,22 +1035,40 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 	int noisy = 0;
 	if (node->children.n) {
 		//for (int i = 0; i < node->children.n; i++) {
-		if(noisy) printf("render_merger nchan %d\n", node->indxDst.n);
-		libsound_print_connections();
-		for(int i=0;i<node->indxDst.n;i++){
-			int destination_index = node->indxDst.p[i];
-			int source_index = node->indxSrc.p[i];
-			if(noisy) printf("%d indxDst %d indxSrc %d\n",  i, destination_index, source_index);
-			push_splitter_source_index(source_index);
-			push_audio_parent3(inode, destination_index, 0); // 0 is over-ridden by source_index if child is a Splitter
-			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
-			//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
-			int ichild = min(node->children.n - 1, source_index); //RE-USE LAST CHILD IF FEWER THAN INDXDST.N
-			render_node(X3D_NODE(node->children.p[ichild]));
-			pop_audio_parent();
-			pop_splitter_source_index();
-			if(noisy) libsound_print_connections();
-			if(noisy) printf("\n");
+		if (noisy) printf("render_merger nchan %d\n", node->indxDst.n);
+		if(noisy) libsound_print_connections();
+		if (!node->indxDst.n || !node->indxSrc.n) {
+			//v4 spec way, with ChannelSelector, and children[i] == mergerChannel[i]
+			for (int i = 0; i < node->children.n; i++) {
+				int destination_index = i;
+				if (noisy) printf("%d indxDst %d \n", i, destination_index);
+				push_audio_parent3(inode, destination_index, 0); // 0 is over-ridden by source_index if child is a Splitter
+				//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
+				//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
+				int ichild = i; 
+				render_node(X3D_NODE(node->children.p[ichild]));
+				pop_audio_parent();
+				if (noisy) libsound_print_connections();
+				if (noisy) printf("\n");
+			}
+		}
+		else {
+			//Doug's way with indxDst, indxSrc tuples
+			for (int i = 0; i < node->indxDst.n; i++) {
+				int destination_index = node->indxDst.p[i];
+				int source_index = node->indxSrc.p[i];
+				if (noisy) printf("%d indxDst %d indxSrc %d\n", i, destination_index, source_index);
+				push_splitter_source_index(source_index);
+				push_audio_parent3(inode, destination_index, 0); // 0 is over-ridden by source_index if child is a Splitter
+				//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
+				//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
+				int ichild = min(node->children.n - 1, source_index); //RE-USE LAST CHILD IF FEWER THAN INDXDST.N
+				render_node(X3D_NODE(node->children.p[ichild]));
+				pop_audio_parent();
+				pop_splitter_source_index();
+				if (noisy) libsound_print_connections();
+				if (noisy) printf("\n");
+			}
 		}
 	}
 	//pop_audio_parent(); // sound panner node
@@ -1058,26 +1076,15 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 }
 
 void render_ChannelSelector(struct X3D_ChannelSelector* node) {
-	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
-	srep->iframe = gglobal()->Mainloop.iframe;
-	struct X3D_Node* anode = (struct X3D_Node*)node;
-	if (node->_ichange != node->_change) {
-		int icontext = peek_audio_context();
-		ivec3 iparent = peek_audio_parent();
-		libsound_updateNode3(icontext, iparent, anode);
-		//MARK_NODE_COMPILED
-		node->_ichange = node->_change;
-	}
-	push_audio_parentnode(anode);
-	//printf("ss audio_context %d parent_node %d\n", peek_audio_context(), have_parent);
-
+	
+	// doesn't push or pop parents, so children will connect to grandparent
+	push_splitter_source_index(node->channelSelection);
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			render_node(X3D_NODE(node->children.p[i]));
 	}
-	pop_audio_parent(); // sound panner node
-
+	pop_splitter_source_index();
 }
 void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
