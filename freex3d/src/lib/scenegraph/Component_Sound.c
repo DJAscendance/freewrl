@@ -1056,14 +1056,14 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 			//Doug's way with (indexStream,indexSource,indexDestination) tuples, Merger.children[i] == audio stream [i]
 			for (int i = 0; i < node->indexDestination.n; i++) {
 				int destination_index = node->indexDestination.p[i];
-				int source_index = node->indexSource.p[i];
+				int source_index = node->indexSource.p[i]; 
 				if (noisy) printf("%d indxDst %d indxSrc %d\n", i, destination_index, source_index);
 				if(source_index > -1) push_splitter_source_index(source_index); //-1 means there's no splitter in the audio stream
 				push_audio_parent3(inode, destination_index, 0); // 0 is over-ridden by source_index if child is a Splitter
 				//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 				//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
 				//int ichild = min(node->children.n - 1, source_index); //RE-USE LAST CHILD IF FEWER THAN INDXDST.N
-				int ichild = node->indexStream.p[i];
+				int ichild = node->indexStream.p[min(i, node->indexStream.n - 1)]; //if there aren't enough indexStream, re-use the last one
 				render_node(X3D_NODE(node->children.p[ichild]));
 				pop_audio_parent();
 				if(source_index > -1) pop_splitter_source_index();
