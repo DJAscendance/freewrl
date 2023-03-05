@@ -290,7 +290,7 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<lab::AudioContext> context;
 
         //lab::AudioContext *ccontext;
-        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
+        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration(true);
         context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
 
 
@@ -888,9 +888,9 @@ typedef ptw32_handle_t pthread_t;
             // here we turn on / off the playback depending on isActive 
             if (1) {
                 SchedulingState status = audioSource_ptr->playbackState();
-                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE))
+                if (status == SchedulingState::PLAYING && pnode->isPaused)
                     audioSource_ptr->stop(0.0);
-                else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE))
+                else if (status != SchedulingState::PLAYING && pnode->isPaused == FALSE)
                     audioSource_ptr->start(0.0);
 
                 bool isactive = audioSource_ptr->isPlayingOrScheduled();
@@ -1118,7 +1118,7 @@ typedef ptw32_handle_t pthread_t;
         break;
         case NODE_ChannelSelector:
         {
- 
+            //doesn't do anything except push a channel ID onto a stack in Component_Sound
         }
         break;
         case NODE_ChannelMerger:
@@ -1568,6 +1568,31 @@ typedef ptw32_handle_t pthread_t;
                 if (abuf->__sourceNumber > 0)
                     convolver_ptr->setImpulse(busses[abuf->__sourceNumber]); // or srep->ibuffer
             }
+        }
+        break;
+        case NODE_MicrophoneSource:
+        {
+            struct X3D_MicrophoneSource* pnode = (struct X3D_MicrophoneSource*)node;
+            std::shared_ptr<AudioHardwareInputNode> input;
+            AudioHardwareInputNode* input_ptr;
+            if (!srepn->inode) {
+                //create labsound node
+                {
+                    ContextRenderLock r(ac->context.get(), "microphone");
+                    input = lab::MakeAudioHardwareInputNode(r);
+                    ac->context.get()->connect(ac->context.get()->device(), input, 0, 0);
+                }
+
+                ac->next_node++;
+                ac->nodes[ac->next_node] = input;
+                ac->nodetype[ac->next_node] = NODE_MicrophoneSource;
+                srepn->inode = ac->next_node;
+                srepn->icontext = icontext;
+                //if (iparent.x)
+                //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+            }
+            //copy changed values from x3d to labsound
+            input_ptr = static_cast<AudioHardwareInputNode*>(ac->nodes[srepn->inode].get());
         }
         break;
 

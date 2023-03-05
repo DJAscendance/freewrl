@@ -1332,14 +1332,35 @@ void render_Convolver(struct X3D_Convolver* node) {
 
 }
 
+void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {
+	// labsound has a few Example.hpp examples on using 'devices' as microphones
+	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	ivec3 iparent = peek_audio_parent();
 
+	if (node->_ichange != node->_change) {
+		//if (node->_ichange == 0) return;
 
-void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
-	COMPILE_IF_REQUIRED
+		int icontext = peek_audio_context();
+		libsound_updateNode3(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+		node->_ichange = node->_change;
+
+	}
+	if (newconnect(srep, iparent))
+		libsound_connect(srep->icontext, srep->inode, iparent);
+	
 }
 
 
 
+void render_StreamAudioSource(struct X3D_StreamAudioSource *node){
+	COMPILE_IF_REQUIRED
+	//don't know if / how to do this one in native code
+	// web audio API has a MediaStreamSource that pulls from html elements
+	// Labsound doesn't have MediaStreamSource
+}
 
 void render_StreamAudioDestination(struct X3D_StreamAudioDestination *node){
 	COMPILE_IF_REQUIRED
@@ -1350,10 +1371,6 @@ void render_StreamAudioDestination(struct X3D_StreamAudioDestination *node){
 
 
 void render_ListenerPointSource(struct X3D_ListenerPointSource *node){
-	COMPILE_IF_REQUIRED
-}
-
-void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {
 	COMPILE_IF_REQUIRED
 }
 
