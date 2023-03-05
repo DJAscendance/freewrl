@@ -764,8 +764,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"horizontal",
 	"image",
 	"index",
-	"indxDst",
-	"indxSrc",
+	"indexDestination",
+	"indexSource",
+	"indexStream",
 	"inertia",
 	"info",
 	"initialDestination",
@@ -1719,8 +1720,9 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"headlight",
 	"image",
 	"index",
-	"indxDst",
-	"indxSrc",
+	"indexDestination",
+	"indexSource",
+	"indexStream",
 	"inertia",
 	"info",
 	"inputSource",
@@ -5169,8 +5171,9 @@ const int OFFSETS_ChannelMerger[] = {
 	(int) FIELDNAMES_gain, (int) offsetof (struct X3D_ChannelMerger, gain),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ChannelMerger, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_ChannelMerger, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_indxSrc, (int) offsetof (struct X3D_ChannelMerger, indxSrc),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_indxDst, (int) offsetof (struct X3D_ChannelMerger, indxDst),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_indexStream, (int) offsetof (struct X3D_ChannelMerger, indexStream),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_indexSource, (int) offsetof (struct X3D_ChannelMerger, indexSource),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_indexDestination, (int) offsetof (struct X3D_ChannelMerger, indexDestination),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ChannelMerger, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ChannelMerger, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
@@ -11404,8 +11407,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->gain = 1.0f;
 			tmp2->metadata = NULL;
 			tmp2->channelCount = 2;
-			tmp2->indxSrc.n=0; tmp2->indxSrc.p=0;
-			tmp2->indxDst.n=0; tmp2->indxDst.p=0;
+			tmp2->indexStream.n=0; tmp2->indexStream.p=0;
+			tmp2->indexSource.n=0; tmp2->indexSource.p=0;
+			tmp2->indexDestination.n=0; tmp2->indexDestination.p=0;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
 			tmp2->_defaultContainer = 0;
@@ -17828,10 +17832,12 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
-			spacer fprintf (fp," indxSrc (MFInt32):\n");
-			for (i=0; i<tmp->indxSrc.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->indxSrc.p[i]); }
-			spacer fprintf (fp," indxDst (MFInt32):\n");
-			for (i=0; i<tmp->indxDst.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->indxDst.p[i]); }
+			spacer fprintf (fp," indexStream (MFInt32):\n");
+			for (i=0; i<tmp->indexStream.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->indexStream.p[i]); }
+			spacer fprintf (fp," indexSource (MFInt32):\n");
+			for (i=0; i<tmp->indexSource.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->indexSource.p[i]); }
+			spacer fprintf (fp," indexDestination (MFInt32):\n");
+			for (i=0; i<tmp->indexDestination.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->indexDestination.p[i]); }
 		    break;
 		}
 		case NODE_ChannelSelector : {
