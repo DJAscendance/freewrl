@@ -1300,6 +1300,7 @@ our %Nodes = (
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
            # ChannelSelector
 		channelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		lastChannelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundChannelNode"),
 
 	"ChannelSplitter" => new VRML::NodeType("ChannelSplitter", [

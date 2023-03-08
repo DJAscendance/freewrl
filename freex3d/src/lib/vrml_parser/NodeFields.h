@@ -476,6 +476,7 @@ EXPOSED_FIELD(ChannelSelector,gain,sffloat,gain,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(ChannelSelector,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EVENT_OUT(ChannelSelector,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(ChannelSelector,channelSelection,sfint32,channelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,lastChannelSelection,sfint32,lastChannelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(ChannelSelector)
 
 /* ChannelSplitter node */

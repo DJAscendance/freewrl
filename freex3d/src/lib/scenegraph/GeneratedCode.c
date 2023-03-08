@@ -816,6 +816,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"knee",
 	"knot",
 	"language",
+	"lastChannelSelection",
 	"latitude1",
 	"latitude2",
 	"layers",
@@ -1744,6 +1745,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"keyVelocity",
 	"knee",
 	"knot",
+	"lastChannelSelection",
 	"layers",
 	"layout",
 	"left",
@@ -5190,6 +5192,7 @@ const int OFFSETS_ChannelSelector[] = {
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ChannelSelector, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ChannelSelector, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channelSelection, (int) offsetof (struct X3D_ChannelSelector, channelSelection),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_lastChannelSelection, (int) offsetof (struct X3D_ChannelSelector, lastChannelSelection),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ChannelSplitter[] = {
@@ -11429,6 +11432,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_self = 0;
 			tmp2->_context = 0;
 			tmp2->channelSelection = 0;
+			tmp2->lastChannelSelection = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -17855,6 +17859,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 			spacer fprintf (fp," channelSelection (SFInt32) \t%d\n",tmp->channelSelection);
+			spacer fprintf (fp," lastChannelSelection (SFInt32) \t%d\n",tmp->lastChannelSelection);
 		    break;
 		}
 		case NODE_ChannelSplitter : {

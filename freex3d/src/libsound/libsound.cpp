@@ -14,6 +14,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <string>
 
@@ -376,7 +377,7 @@ typedef ptw32_handle_t pthread_t;
         int dstindex;
     };
     
-    static std::vector<connection> connections;
+    static std::list<connection> connections;
     void libsound_connect0(int icontext, int idestination, int isource) {
         struct acstruct* ac = audio_contexts[icontext];
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
@@ -431,11 +432,66 @@ typedef ptw32_handle_t pthread_t;
         connections.push_back(cc);
 
     }
+    void libsound_disconnect2(int icontext, int idestination, int isource, int indexDst, int indexSrc) {
+        struct acstruct* ac = audio_contexts[icontext];
+        std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
+        std::shared_ptr<AudioNode> source = ac->nodes[isource];
+        int dstInputs = destination->numberOfInputs();
+        int srcOutputs = source->numberOfInputs();
+        if (indexDst > dstInputs) {
+            printf("destination number of inputs %d destination idx %d\n", destination->numberOfInputs(), indexDst);
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            return;
+        }
+        if (indexSrc > srcOutputs) {
+            printf("source number of outputs %d source idx %d\n", srcOutputs, indexSrc);
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            printf("\n");
+            return;
+        }
+
+        ac->context->disconnect(destination, source, indexDst, indexSrc);
+        //find and remove from vector
+        // vec.erase(vec.begin() + index);
+        int iparent_type = ac->nodetype[idestination];
+        int ichild_type = ac->nodetype[isource];
+        struct connection cc; cc.icontext = icontext; cc.iparent = idestination; cc.iparent_type = iparent_type;
+        cc.ichild = isource; cc.ichild_type = ichild_type; cc.srcindex = indexSrc; cc.dstindex = indexDst;
+
+        std::list<connection>::iterator it;
+        for (it = connections.begin(); it != connections.end(); ++it){
+            connection cn = *it;
+            if (cn.icontext = cc.icontext && cn.iparent == cc.iparent && cn.ichild == cc.ichild
+                && cn.srcindex == cc.srcindex && cn.dstindex == cc.dstindex) {
+                connections.erase(it);
+                break;
+            }
+        }
+
+    }
+
+    void libsound_connect(int icontext, icset iparent) {
+        if (iparent.p)
+            libsound_connect2(icontext, iparent.p, iparent.n, iparent.d, iparent.s);
+    }
+    void libsound_disconnect(int icontext, icset iparent) {
+        libsound_disconnect2(icontext, iparent.p, iparent.n, iparent.ld, iparent.ls);
+
+    }
     void libsound_print_connections() {
         printf("\n");
         printf("%2s %7s %4s %7s %7s %6s %4s\n","ic","iparent", "type", "dstIndx", "srcIndex", "ichild", "type");
-        for (int i = 0; i < connections.size(); i++) {
-            struct connection cc = connections[i];
+        //for (int i = 0; i < connections.size(); i++) {
+        //    struct connection cc = connections[i];
+        std::list<connection>::iterator it;
+        for (it = connections.begin(); it != connections.end(); ++it) {
+            connection cc = *it;
+
             const char* ptype = nodetype_lookup(cc.iparent_type);
             const char* ctype = nodetype_lookup(cc.ichild_type);
 
@@ -576,10 +632,6 @@ typedef ptw32_handle_t pthread_t;
         else if (!_stricmp(mode, "EXPLICIT")) *cmode = lab::ChannelCountMode::Explicit;
 
     }
-    void libsound_connect(int icontext, int inode, ivec3 iparent) {
-        if (iparent.x)
-            libsound_connect2(icontext, iparent.x, inode, iparent.y, iparent.z);
-    }
     struct X3D_SoundRep* getSoundRep(struct X3D_Node* pnode) {
         //main benefit of _intern Rep structure: saves switch-casing on _NodeType 
         // to get specific common fields used for internal processing only
@@ -598,7 +650,7 @@ typedef ptw32_handle_t pthread_t;
         return srep;
     }
     static int nondefault_channelinterp = 0;
-    void libsound_updateNode3(int icontext, ivec3 iparent, struct X3D_Node* node) {
+    void libsound_updateNode3(int icontext, icset iparent, struct X3D_Node* node) {
         struct acstruct* ac = audio_contexts[icontext];
         AudioContext& context = *ac->context.get();
         //lab::AudioContext& ac = *context.get();
@@ -622,8 +674,8 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                if (iparent.p)
+                    libsound_connect2(icontext, iparent.p, srepn->igain, iparent.d, iparent.s);
   
 
                 if (pnode->spatialize != TRUE) {
@@ -694,8 +746,8 @@ typedef ptw32_handle_t pthread_t;
                 ac->nodetype[ac->next_node] = NODE_Gain;
                 srepn->igain = ac->next_node;
                 //connect gain output to parent node input
-                if (iparent.x)
-                    libsound_connect2(icontext, iparent.x, srepn->igain, iparent.y, iparent.z);
+                if (iparent.p)
+                    libsound_connect2(icontext, iparent.p, srepn->igain, iparent.d, iparent.s);
 
                 if (pnode->spatialize != TRUE) {
                     //I don't know how to turn off spatialization
@@ -973,8 +1025,8 @@ typedef ptw32_handle_t pthread_t;
         {
             struct X3D_PeriodicWave* pnode = (struct X3D_PeriodicWave*)node;
             std::shared_ptr<PeriodicWave> pwave; //using an older term but equivalent WaveTable == PeriodicWave
-            if (iparent.x){
-                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.x];
+            if (iparent.p){
+                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.p];
                 OscillatorNode* oscillator_ptr =
                     static_cast<OscillatorNode*>(oscillator.get());
                //periodicWave_types
