@@ -1189,11 +1189,11 @@ void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	iparent.n = srep->inode;
 	if (newconnect(srep, iparent)) {
 		libsound_connect(srep->icontext,iparent);
-		libsound_print_connections();
+		//libsound_print_connections();
 	}
 	if (disconnect(srep, iparent)) {
 		libsound_disconnect(srep->icontext, iparent);
-		libsound_print_connections();
+		//libsound_print_connections();
 	}
 
 	push_audio_parentnode(anode);
