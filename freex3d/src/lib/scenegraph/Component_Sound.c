@@ -661,15 +661,15 @@ void push_audio_parent(int inode) {
 	icset aps = { 0, 0, 0, 0, 0, 0 };
 	aps.p = inode;
 	aps.d = 0;
-	aps.s = 0;
+	aps.ld = 0;
 	stack_push(icset, p->audio_parent_stack, aps);
 }
-void push_audio_parent3(int inode, int dstChan, int srcChan) {
+void push_audio_parent3(int inode, int dstChan, int lstDst) {
 	ppComponent_Sound p = (ppComponent_Sound)gglobal()->Component_Sound.prv;
 	icset aps = { 0, 0, 0, 0, 0, 0 };
 	aps.p = inode;
 	aps.d = dstChan;
-	aps.s = srcChan;
+	aps.ld = lstDst;
 	stack_push(icset, p->audio_parent_stack, aps);
 }
 void push_audio_parentnode(struct X3D_Node* node) {
@@ -1102,6 +1102,8 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 				int last_source_index = selector->_lastSourceChannel;
 				if (noisy) printf("%d indxDst %d indxSrc %d\n", i, destination_index, source_index);
 				if (source_index > -1) push_splitter_source_index(source_index, last_source_index); //-1 means there's no splitter in the audio stream
+				if (destination_index != last_destination_index)
+					printf("changing destination\n");
 				push_audio_parent3(inode, destination_index, last_destination_index); // 0 is over-ridden by source_index if child is a Splitter
 				//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 				//srep->idestination = i; // .. and if so connect to their parent using the recommended destination channel
@@ -1160,6 +1162,7 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 void render_ChannelSelector(struct X3D_ChannelSelector* node) {
 	
 	// doesn't push or pop parent, so children will connect to grandparent
+	// we don't come through here with proposal3
 	push_splitter_source_index(node->channelSelection, node->lastChannelSelection);
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
@@ -1186,13 +1189,11 @@ void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	iparent.n = srep->inode;
 	if (newconnect(srep, iparent)) {
 		libsound_connect(srep->icontext,iparent);
+		libsound_print_connections();
 	}
 	if (disconnect(srep, iparent)) {
-		static int twice = 0;
-		if(twice < 2) libsound_print_connections();
 		libsound_disconnect(srep->icontext, iparent);
-		if(twice < 2) libsound_print_connections();
-		twice++;
+		libsound_print_connections();
 	}
 
 	push_audio_parentnode(anode);
