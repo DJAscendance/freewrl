@@ -463,6 +463,7 @@ EVENT_OUT(ChannelMerger,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(ChannelMerger,indexStream,mfint32,indexStream,FIELDTYPE_MFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelMerger,indexSource,mfint32,indexSource,FIELDTYPE_MFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelMerger,indexDestination,mfint32,indexDestination,FIELDTYPE_MFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelMerger,selectors,mfnode,selectors,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(ChannelMerger)
 
 /* ChannelSelector node */
@@ -477,6 +478,9 @@ EXPOSED_FIELD(ChannelSelector,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NON
 EVENT_OUT(ChannelSelector,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(ChannelSelector,channelSelection,sfint32,channelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelSelector,lastChannelSelection,sfint32,lastChannelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,sourceChannel,sfint32,sourceChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,destinationChannel,sfint32,destinationChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,stream,sfint32,stream,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(ChannelSelector)
 
 /* ChannelSplitter node */

@@ -1260,6 +1260,7 @@ static void startBuiltin_B(void *ud, int myNodeType, const xmlChar *name, char**
 	context = getContext(ud,TOP);
 	pflagdepth = ciflag_get(context->__protoFlags,0); //0 - we're in a protodeclare, 1 - we are instancing live scenery
 	if(0) printf("start builtin %s\n",name);
+
 	node = NULL;
 	defname = NULL;
 	isUSE = FALSE;

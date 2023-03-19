@@ -1281,6 +1281,7 @@ our %Nodes = (
 		indexStream => ["MFInt32",[], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		indexSource => ["MFInt32",[], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		indexDestination => ["MFInt32",[], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            selectors => ["MFNode",[],"inputOutput","(SPEC_X3D40)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
            # ChannelMerger
@@ -1301,6 +1302,14 @@ our %Nodes = (
            # ChannelSelector
 		channelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		lastChannelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            # proposal 3: Selector as 3-tuple
+		sourceChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastSourceChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		destinationChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastDestinationChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		stream => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastStream => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+            _initialized => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundChannelNode"),
 
 	"ChannelSplitter" => new VRML::NodeType("ChannelSplitter", [
