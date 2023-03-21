@@ -729,6 +729,7 @@ typedef ptw32_handle_t pthread_t;
                 //pannerNode_ptr->orientationZ()->setValue(pnode->__lastdirection.c[2]); //Q. should it be  -ve
         }
         break;
+
         case NODE_SpatialSound:
         {
             struct X3D_SpatialSound* pnode = (struct X3D_SpatialSound*)node;

@@ -2759,6 +2759,7 @@ const char *NODES[] = {
 	"LineProperties",
 	"LineSensor",
 	"LineSet",
+	"ListenerPoint",
 	"ListenerPointSource",
 	"LoadSensor",
 	"LocalFog",
@@ -3110,6 +3111,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_lineProperties,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3798,6 +3800,9 @@ struct X3D_Virt virt_LineSensor = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 void render_LineSet(struct X3D_LineSet *);
 void compile_LineSet(struct X3D_LineSet *);
 struct X3D_Virt virt_LineSet = { NULL,(void *)render_LineSet,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_LineSet};
+
+void render_ListenerPoint(struct X3D_ListenerPoint *);
+struct X3D_Virt virt_ListenerPoint = { NULL,(void *)render_ListenerPoint,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_ListenerPointSource(struct X3D_ListenerPointSource *);
 struct X3D_Virt virt_ListenerPointSource = { NULL,(void *)render_ListenerPointSource,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4527,6 +4532,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_LineProperties,
 	 &virt_LineSensor,
 	 &virt_LineSet,
+	 &virt_ListenerPoint,
 	 &virt_ListenerPointSource,
 	 &virt_LoadSensor,
 	 &virt_LocalFog,
@@ -7248,6 +7254,16 @@ const int OFFSETS_LineSet[] = {
 	(int) FIELDNAMES___vertIndx, (int) offsetof (struct X3D_LineSet, __vertIndx),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___starts, (int) offsetof (struct X3D_LineSet, __starts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___segCount, (int) offsetof (struct X3D_LineSet, __segCount),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_ListenerPoint[] = {
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_ListenerPoint, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ListenerPoint, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ListenerPoint, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ListenerPoint, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_trackCurrentView, (int) offsetof (struct X3D_ListenerPoint, trackCurrentView),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_position, (int) offsetof (struct X3D_ListenerPoint, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_orientation, (int) offsetof (struct X3D_ListenerPoint, orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ListenerPointSource[] = {
@@ -10041,6 +10057,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_LineProperties,
 	OFFSETS_LineSensor,
 	OFFSETS_LineSet,
+	OFFSETS_ListenerPoint,
 	OFFSETS_ListenerPointSource,
 	OFFSETS_LoadSensor,
 	OFFSETS_LocalFog,
@@ -10648,6 +10665,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_LineProperties : {tmp = MALLOC (struct X3D_LineProperties *, size = sizeof (struct X3D_LineProperties)); break;}
 		case NODE_LineSensor : {tmp = MALLOC (struct X3D_LineSensor *, size = sizeof (struct X3D_LineSensor)); break;}
 		case NODE_LineSet : {tmp = MALLOC (struct X3D_LineSet *, size = sizeof (struct X3D_LineSet)); break;}
+		case NODE_ListenerPoint : {tmp = MALLOC (struct X3D_ListenerPoint *, size = sizeof (struct X3D_ListenerPoint)); break;}
 		case NODE_ListenerPointSource : {tmp = MALLOC (struct X3D_ListenerPointSource *, size = sizeof (struct X3D_ListenerPointSource)); break;}
 		case NODE_LoadSensor : {tmp = MALLOC (struct X3D_LoadSensor *, size = sizeof (struct X3D_LoadSensor)); break;}
 		case NODE_LocalFog : {tmp = MALLOC (struct X3D_LocalFog *, size = sizeof (struct X3D_LocalFog)); break;}
@@ -13983,6 +14001,19 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__vertIndx = 0;
 			tmp2->__starts = 0;
 			tmp2->__segCount = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_ListenerPoint : {
+			struct X3D_ListenerPoint * tmp2;
+			tmp2 = (struct X3D_ListenerPoint *) tmp;
+			tmp2->description = newASCIIString("");
+			tmp2->metadata = NULL;
+			tmp2->_self = 0;
+			tmp2->_context = 0;
+			tmp2->trackCurrentView = FALSE;
+			tmp2->position.c[0] = 0.0f;tmp2->position.c[1] = 0.0f;tmp2->position.c[2] = 0.0f;
+			tmp2->orientation.c[0] = 0;tmp2->orientation.c[1] = 0;tmp2->orientation.c[2] = 1;tmp2->orientation.c[3] = 0;;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -20345,6 +20376,23 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," normal (SFNode):\n"); dump_scene(fp,level+1,tmp->normal); 
 		    break;
 		}
+		case NODE_ListenerPoint : {
+			struct X3D_ListenerPoint *tmp;
+			tmp = (struct X3D_ListenerPoint *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," trackCurrentView (SFBool) \t%d\n",tmp->trackCurrentView);
+			spacer fprintf (fp," position (SFVec3f): \t");
+			for (i=0; i<3; i++) { fprintf (fp,"%4.3f  ",tmp->position.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," orientation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->orientation.c[i]); }
+			fprintf (fp,"\n");
+		    break;
+		}
 		case NODE_ListenerPointSource : {
 			struct X3D_ListenerPointSource *tmp;
 			tmp = (struct X3D_ListenerPointSource *) node;
@@ -23745,6 +23793,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_LineProperties: return X3DAppearanceChildNode; break;
 	case NODE_LineSensor: return X3DDragSensorNode; break;
 	case NODE_LineSet: return X3DGeometryNode; break;
+	case NODE_ListenerPoint: return X3DSoundNode; break;
 	case NODE_ListenerPointSource: return X3DSoundSourceNode; break;
 	case NODE_LoadSensor: return X3DNetworkSensorNode; break;
 	case NODE_LocalFog: return X3DChildNode; break;

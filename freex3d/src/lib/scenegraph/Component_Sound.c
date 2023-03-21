@@ -896,6 +896,31 @@ void render_AudioDestination(struct X3D_AudioDestination* node) {
 		pop_audio_parent(); //audio context device node 1
 	pop_audio_context();
 }
+static struct X3D_ListenerPoint* singleton_listenerpoint = NULL;
+static double listenerpoint_matrix[16];
+void render_ListenerPoint(struct X3D_ListenerPoint* node) {
+	//in theory it should be a static singleton.
+	//we could do a stack, and peek at the last one loaded, in case there's a transform stack
+	singleton_listenerpoint = node;
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, listenerpoint_matrix);
+	//concatonate the .position, .orientation
+
+	// I forget how. do I convert position and orientation to 2 separate matrices
+	// then multiply matrices?
+	// how convert position to matrix?
+	// how convert vrmlrot to matrix
+	double matt[16], matr[16], mat[16];
+	double cc[4], pp[3];
+	float2double(cc, node->orientation.c,3);
+	float2double(pp, node->position.c,3);
+	matrotate(matr, cc[3], cc[0], cc[1], cc[2]);
+	mattranslate(matt, pp[0], pp[1], pp[2]);
+	matmultiplyAFFINE(mat, matt, listenerpoint_matrix);
+	matmultiplyAFFINE(listenerpoint_matrix, matr, mat);
+	//Q how test, is there some geometry I can transform here, 
+	// to make sure I have the orientation and position sense right?
+	//then all panner nodes in all contexts replace context.listener default (viewpoint) with this pose
+}
 
 void update_Sound_pose(struct X3D_Sound* node){
 	// update the pose of this sound source node relative to avatar 
@@ -907,8 +932,13 @@ void update_Sound_pose(struct X3D_Sound* node){
 	GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
 	float SourcePos[3];
 
-	//transform source local coordinate 0,0,0 location into avatar/listener space
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+	if (!singleton_listenerpoint) {
+		//transform source local coordinate 0,0,0 location into avatar/listener space
+		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+	}
+	else {
+		matcopy(modelMatrix, listenerpoint_matrix);
+	}
 	transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
 	for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
 
@@ -1021,7 +1051,6 @@ void render_SpatialSound(struct X3D_SpatialSound* node) {
 	pop_audio_context();
 
 }
-
 #endif //HAVE_LIBSOUND
 
 

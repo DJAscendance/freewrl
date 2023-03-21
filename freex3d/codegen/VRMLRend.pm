@@ -374,6 +374,7 @@ our %defaultContainerType = (
 	DynamicsCompressor	=>["children"],
 	Gain				=>["children"],
 	ListenerPointSource	=>["children"],
+	ListenerPoint     	=>["children"],
 	MicrophoneSource		=>["children"],
 	OscillatorSource		=>["children"],
 	PeriodicWave		=>["periodicWave"],
@@ -501,6 +502,7 @@ our %RendC = map {($_=>1)} qw/
 	DynamicsCompressor
 	Gain
 	ListenerPointSource
+	ListenerPoint
 	MicrophoneSource
 	OscillatorSource
 	PeriodicWave

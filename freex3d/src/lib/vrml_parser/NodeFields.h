@@ -2244,6 +2244,15 @@ EXPOSED_FIELD(LineSet,vertexCount,mfint32,vertexCount,FIELDTYPE_MFInt32,UNCA_NON
 EXPOSED_FIELD(LineSet,normal,sfnode,normal,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(LineSet)
 
+/* ListenerPoint node */
+BEGIN_NODE(ListenerPoint)
+EXPOSED_FIELD(ListenerPoint,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(ListenerPoint,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(ListenerPoint,trackCurrentView,sfbool,trackCurrentView,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(ListenerPoint,position,sfvec3f,position,FIELDTYPE_SFVec3f,UNCA_NONE)
+EXPOSED_FIELD(ListenerPoint,orientation,sfrotation,orientation,FIELDTYPE_SFRotation,UNCA_NONE)
+END_NODE(ListenerPoint)
+
 /* ListenerPointSource node */
 BEGIN_NODE(ListenerPointSource)
 EXPOSED_FIELD(ListenerPointSource,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
