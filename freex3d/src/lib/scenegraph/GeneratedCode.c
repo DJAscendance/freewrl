@@ -1287,6 +1287,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"visibilityRange",
 	"visible",
 	"visibles",
+	"visualization",
 	"voxels",
 	"walkSurface",
 	"warhead",
@@ -2071,6 +2072,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"visibilityRange",
 	"visible",
 	"visibles",
+	"visualization",
 	"voxels",
 	"walkSurface",
 	"warhead",
@@ -7264,6 +7266,7 @@ const int OFFSETS_ListenerPoint[] = {
 	(int) FIELDNAMES_trackCurrentView, (int) offsetof (struct X3D_ListenerPoint, trackCurrentView),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_position, (int) offsetof (struct X3D_ListenerPoint, position),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_orientation, (int) offsetof (struct X3D_ListenerPoint, orientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_visualization, (int) offsetof (struct X3D_ListenerPoint, visualization),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_ListenerPointSource[] = {
@@ -14014,6 +14017,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->trackCurrentView = FALSE;
 			tmp2->position.c[0] = 0.0f;tmp2->position.c[1] = 0.0f;tmp2->position.c[2] = 0.0f;
 			tmp2->orientation.c[0] = 0;tmp2->orientation.c[1] = 0;tmp2->orientation.c[2] = 1;tmp2->orientation.c[3] = 0;;
+			tmp2->visualization = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -20391,6 +20395,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," orientation (SFRotation): \t");
 			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->orientation.c[i]); }
 			fprintf (fp,"\n");
+			spacer fprintf (fp," visualization (SFNode):\n"); dump_scene(fp,level+1,tmp->visualization); 
 		    break;
 		}
 		case NODE_ListenerPointSource : {

@@ -283,6 +283,19 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<std::vector<std::uint8_t>> bytearray; //analyser 
         std::shared_ptr<std::vector<std::float_t>> floatarray; //analyser
     };
+
+    //static singleton, which is applied to all context.listeners
+    static int have_listenerpoint = 0;
+    static float listenerpoint_dir[3];
+    static float listenerpoint_up[3];
+    static float listenerpoint_pos[3];
+    void libsound_setListenerPose(float* pos, float* dir, float *up, int trackview) {
+        have_listenerpoint = trackview ? 0 : 1; //if tracking the viewpoint (default) then dont need listenerpose
+        memcpy(listenerpoint_pos, pos, 3 * sizeof(float));
+        memcpy(listenerpoint_dir, dir, 3 * sizeof(float));
+        memcpy(listenerpoint_dir, up, 3 * sizeof(float));
+    }
+
     static int next_audio_context;
     static std::map<int, struct acstruct*> audio_contexts;
     int libsound_createContext0() {
@@ -304,9 +317,10 @@ typedef ptw32_handle_t pthread_t;
             //listener->upX()->setValue(0.0f);
             //listener->upY()->setValue(1.0f);
             //listener->upZ()->setValue(0.0f);
-            listener->setForward({ 0.0,0.0,-1.0 });
-            listener->setUpVector({ 0.0,1.0,0.0 });
-            listener->setPosition({ 0.0,0.0,0.0 });
+                listener->setForward({ 0.0,0.0,-1.0 });
+                listener->setUpVector({ 0.0,1.0,0.0 });
+                listener->setPosition({ 0.0,0.0,0.0 });
+            
             //listener->positionX()->setValue(0.0f);
             //listener->positionY()->setValue(0.0f);
             //listener->positionZ()->setValue(0.0f);
@@ -343,6 +357,7 @@ typedef ptw32_handle_t pthread_t;
     {NODE_BufferAudioSource, "BAS"},
     {NODE_AudioBuffer, "ABuf"},
     {NODE_OscillatorSource, "Osc"},
+    {NODE_ListenerPoint, "LP"},
     {NODE_ListenerPointSource, "LPS"},
     {NODE_StreamAudioDestination, "SAD"},
     {NODE_StreamAudioSource, "SAS"},
@@ -713,6 +728,32 @@ typedef ptw32_handle_t pthread_t;
 
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+            if (have_listenerpoint) {
+                auto listener = context.listener();
+                // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
+                //listener->forwardX()->setValue(0.0f);
+                //listener->forwardY()->setValue(0.0f);
+                //listener->forwardZ()->setValue(-1.0f);
+                //listener->upX()->setValue(0.0f);
+                //listener->upY()->setValue(1.0f);
+                //listener->upZ()->setValue(0.0f);
+                float* pos, * dir, * up;
+                pos = listenerpoint_pos;
+                dir = listenerpoint_dir;
+                up = listenerpoint_up;
+                listener->setForward({ dir[0],dir[1],dir[2]});
+                listener->setUpVector({ up[0], up[1], up[2]});
+                listener->setPosition({ pos[0],pos[1], pos[2]});
+
+            }
+            else {
+                auto listener = context.listener();
+                //could be an enable / disable route to LP during scene, need to reset listener to default
+                listener->setForward({ 0.0,0.0,-1.0 });
+                listener->setUpVector({ 0.0,1.0,0.0 });
+                listener->setPosition({ 0.0,0.0,0.0 });
+
+            }
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
              //std::cout << "[cg= " << pannerNode_ptr->coneGain()->value() << "]" << std::endl;
             gain_ptr->gain()->setValue(pnode->intensity);
@@ -797,6 +838,33 @@ typedef ptw32_handle_t pthread_t;
                 libsound_connect0(icontext, srepn->igain, srepn->inode);
             }
             pannerNode_ptr = static_cast<PannerNode*>(ac->nodes[srepn->inode].get());
+            if (have_listenerpoint) {
+                auto listener = context.listener();
+                // I believe these are the defaults, and we keep our avatar at 0 and move sound sources relative to avatar
+                //listener->forwardX()->setValue(0.0f);
+                //listener->forwardY()->setValue(0.0f);
+                //listener->forwardZ()->setValue(-1.0f);
+                //listener->upX()->setValue(0.0f);
+                //listener->upY()->setValue(1.0f);
+                //listener->upZ()->setValue(0.0f);
+                float* pos, * dir, * up;
+                pos = listenerpoint_pos;
+                dir = listenerpoint_dir;
+                up = listenerpoint_up;
+                listener->setForward({ dir[0],dir[1],dir[2] });
+                listener->setUpVector({ up[0], up[1], up[2] });
+                listener->setPosition({ pos[0],pos[1], pos[2] });
+
+            }
+            else {
+                auto listener = context.listener();
+                //could be an enable / disable route to LP during scene, need to reset listener to default
+                listener->setForward({ 0.0,0.0,-1.0 });
+                listener->setUpVector({ 0.0,1.0,0.0 });
+                listener->setPosition({ 0.0,0.0,0.0 });
+
+            }
+
             gain_ptr = static_cast<GainNode*>(ac->nodes[srepn->igain].get());
             gain_ptr->gain()->setValue(pnode->intensity* pnode->gain);
             pannerNode_ptr->setConeInnerAngle(RAD2DEGF(pnode->coneInnerAngle));

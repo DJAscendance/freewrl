@@ -902,24 +902,60 @@ void render_ListenerPoint(struct X3D_ListenerPoint* node) {
 	//in theory it should be a static singleton.
 	//we could do a stack, and peek at the last one loaded, in case there's a transform stack
 	singleton_listenerpoint = node;
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, listenerpoint_matrix);
+	double modelview[16];
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
 	//concatonate the .position, .orientation
 
 	// I forget how. do I convert position and orientation to 2 separate matrices
 	// then multiply matrices?
 	// how convert position to matrix?
 	// how convert vrmlrot to matrix
-	double matt[16], matr[16], mat[16];
+	double matt[16], matr[16], mat[16], matinv[16], mattot[16];
 	double cc[4], pp[3];
-	float2double(cc, node->orientation.c,3);
+	float2double(cc, node->orientation.c,4);
 	float2double(pp, node->position.c,3);
-	matrotate(matr, cc[3], cc[0], cc[1], cc[2]);
+	//matrotate(matr, cc[3], cc[0], cc[1], cc[2]); //has a different sense on the angles
+	matrixFromAxisAngle4d(matr, cc[3], cc[0], cc[1], cc[2]);
 	mattranslate(matt, pp[0], pp[1], pp[2]);
-	matmultiplyAFFINE(mat, matt, listenerpoint_matrix);
-	matmultiplyAFFINE(listenerpoint_matrix, matr, mat);
+	matmultiplyAFFINE(mat, matr, matt);
+	matmultiplyAFFINE(mattot, mat, modelview);
+	if (0) {
+		matinverseAFFINE(matinv, mattot);
+		matcopy(listenerpoint_matrix, matinv);
+	}
+	else {
+		matcopy(listenerpoint_matrix, mattot);
+	}
 	//Q how test, is there some geometry I can transform here, 
 	// to make sure I have the orientation and position sense right?
+	// here's a test field for geometry to visualize. I'll use Transform containing axes in the scene
+	if (node->visualization) {
+		FW_GL_PUSH_MATRIX(); //copies and pushes current modelview on stack
+		FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+		render_node(X3D_NODE(node->visualization));
+		FW_GL_POP_MATRIX(); // back to modelview matrix
+	}
 	//then all panner nodes in all contexts replace context.listener default (viewpoint) with this pose
+	// prepare listener position
+	double position[3], direction[3], up[3];
+	float posf[3], dirf[3], upf[3];
+	int trackview = node->trackCurrentView ? 1 : 0;
+	vecsetd(position, 0.0, 0.0, 0.0);
+	transformAFFINEd(position, position, listenerpoint_matrix);
+	// prepare listener direction vector 
+	vecsetd(direction, 1.0,0.0, 0.0); //default in web audio
+	vecsetd(up, 0.0, 1.0, 0.0);
+	transformAFFINEd(direction, direction, listenerpoint_matrix);
+	vecdifd(direction, direction, position);
+	vecnormald(direction, direction);
+	transformAFFINEd(up, up, listenerpoint_matrix);
+	vecdifd(up, up, position);
+	vecnormald(up, up);
+
+	double2float(posf, position, 3);
+	double2float(dirf, direction, 3);
+	double2float(upf, up, 3);
+	libsound_setListenerPose(posf, dirf, upf, trackview); //sets as static singleton, and all contexts adopt
 }
 
 void update_Sound_pose(struct X3D_Sound* node){
@@ -932,13 +968,9 @@ void update_Sound_pose(struct X3D_Sound* node){
 	GLDOUBLE SourcePosd[3] = { 0.0f, 0.0f, 0.0f };
 	float SourcePos[3];
 
-	if (!singleton_listenerpoint) {
-		//transform source local coordinate 0,0,0 location into avatar/listener space
-		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-	}
-	else {
-		matcopy(modelMatrix, listenerpoint_matrix);
-	}
+	//transform source local coordinate 0,0,0 location into avatar/listener space
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
 	transformAFFINEd(SourcePosd, SourcePosd, modelMatrix);
 	for (i = 0; i < 3; i++) SourcePos[i] = (float)SourcePosd[i];
 

@@ -1645,28 +1645,29 @@ extern const int FIELDNAMES_COUNT;
 #define FIELDNAMES_visibilityRange	1216
 #define FIELDNAMES_visible	1217
 #define FIELDNAMES_visibles	1218
-#define FIELDNAMES_voxels	1219
-#define FIELDNAMES_walkSurface	1220
-#define FIELDNAMES_warhead	1221
-#define FIELDNAMES_warmColor	1222
-#define FIELDNAMES_watchList	1223
-#define FIELDNAMES_weight	1224
-#define FIELDNAMES_weightConstant1	1225
-#define FIELDNAMES_weightConstant2	1226
-#define FIELDNAMES_weightFunction1	1227
-#define FIELDNAMES_weightFunction2	1228
-#define FIELDNAMES_weightTransferFunction1	1229
-#define FIELDNAMES_weightTransferFunction2	1230
-#define FIELDNAMES_whichChoice	1231
-#define FIELDNAMES_whichGeometry	1232
-#define FIELDNAMES_writeInterval	1233
-#define FIELDNAMES_xDimension	1234
-#define FIELDNAMES_xSpacing	1235
-#define FIELDNAMES_x_false_origin	1236
-#define FIELDNAMES_yScale	1237
-#define FIELDNAMES_y_false_origin	1238
-#define FIELDNAMES_zDimension	1239
-#define FIELDNAMES_zSpacing	1240
+#define FIELDNAMES_visualization	1219
+#define FIELDNAMES_voxels	1220
+#define FIELDNAMES_walkSurface	1221
+#define FIELDNAMES_warhead	1222
+#define FIELDNAMES_warmColor	1223
+#define FIELDNAMES_watchList	1224
+#define FIELDNAMES_weight	1225
+#define FIELDNAMES_weightConstant1	1226
+#define FIELDNAMES_weightConstant2	1227
+#define FIELDNAMES_weightFunction1	1228
+#define FIELDNAMES_weightFunction2	1229
+#define FIELDNAMES_weightTransferFunction1	1230
+#define FIELDNAMES_weightTransferFunction2	1231
+#define FIELDNAMES_whichChoice	1232
+#define FIELDNAMES_whichGeometry	1233
+#define FIELDNAMES_writeInterval	1234
+#define FIELDNAMES_xDimension	1235
+#define FIELDNAMES_xSpacing	1236
+#define FIELDNAMES_x_false_origin	1237
+#define FIELDNAMES_yScale	1238
+#define FIELDNAMES_y_false_origin	1239
+#define FIELDNAMES_zDimension	1240
+#define FIELDNAMES_zSpacing	1241
 
 const char *stringFieldType(int st);
 
@@ -2427,20 +2428,21 @@ extern const int EXPOSED_FIELD_COUNT;
 #define EXPOSED_FIELD_visibilityRange	571
 #define EXPOSED_FIELD_visible	572
 #define EXPOSED_FIELD_visibles	573
-#define EXPOSED_FIELD_voxels	574
-#define EXPOSED_FIELD_walkSurface	575
-#define EXPOSED_FIELD_warhead	576
-#define EXPOSED_FIELD_warmColor	577
-#define EXPOSED_FIELD_watchList	578
-#define EXPOSED_FIELD_weight	579
-#define EXPOSED_FIELD_weightConstant1	580
-#define EXPOSED_FIELD_weightConstant2	581
-#define EXPOSED_FIELD_weightTransferFunction1	582
-#define EXPOSED_FIELD_weightTransferFunction2	583
-#define EXPOSED_FIELD_whichChoice	584
-#define EXPOSED_FIELD_whichGeometry	585
-#define EXPOSED_FIELD_writeInterval	586
-#define EXPOSED_FIELD_yScale	587
+#define EXPOSED_FIELD_visualization	574
+#define EXPOSED_FIELD_voxels	575
+#define EXPOSED_FIELD_walkSurface	576
+#define EXPOSED_FIELD_warhead	577
+#define EXPOSED_FIELD_warmColor	578
+#define EXPOSED_FIELD_watchList	579
+#define EXPOSED_FIELD_weight	580
+#define EXPOSED_FIELD_weightConstant1	581
+#define EXPOSED_FIELD_weightConstant2	582
+#define EXPOSED_FIELD_weightTransferFunction1	583
+#define EXPOSED_FIELD_weightTransferFunction2	584
+#define EXPOSED_FIELD_whichChoice	585
+#define EXPOSED_FIELD_whichGeometry	586
+#define EXPOSED_FIELD_writeInterval	587
+#define EXPOSED_FIELD_yScale	588
 
 
 /* Table of built-in fieldIds */
@@ -8254,6 +8256,7 @@ struct X3D_ListenerPoint {
 	int trackCurrentView;
 	struct SFVec3f position;
 	struct SFRotation orientation;
+	struct X3D_Node *visualization;
 };
 extern struct X3D_Virt virt_ListenerPoint;
 /***********************/
