@@ -796,18 +796,18 @@ typedef ptw32_handle_t pthread_t;
                     //EQUALPOWER doesn't do it
                     //so I will ignore
                 }
-                //if (!context.loadHrtfDatabase("hrtf")) {  //always returns true, so go directly for the good path
-                    
+                bool loaded = true;
+                if (!context.loadHrtfDatabase("hrtf")) {  
                     std::string path = std::string("../../../../lib_windows_vc12/LabSound/share") + "/hrtf";
                     if (!context.loadHrtfDatabase(path)) {
                         printf("Could not load spatialization database");
-                        return;
+                        loaded = false;
                     }
-                //}
+                }
 
                 pannerNode = std::make_shared<PannerNode>(context);
                
-                if (pnode->enableHRTF == TRUE) {
+                if (pnode->enableHRTF == TRUE && loaded) {
                     pannerNode->setPanningModel(lab::PanningModel::HRTF);
                     printf("SpatialSound HRTF enabled\n");
                 }

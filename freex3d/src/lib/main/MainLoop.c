@@ -7185,20 +7185,18 @@ char* fwl_requestedVPname(int *is_bound, int *is_reachable, int *count, int *ind
 		if (cn->_nodeType == NODE_Viewpoint)
 		{
 			struct X3D_Viewpoint* vp = (struct X3D_Viewpoint*)cn;
-			retval = vp->description->strptr;
+			retval = vp->description ? strndup(vp->description->strptr,100) : NULL; //statusbar can't handle long descriptions
 			bound = vp->isBound;
 			reachable = vp->_reachablethispass;
 		}
 		else if (cn->_nodeType == NODE_OrthoViewpoint) {
 			struct X3D_OrthoViewpoint* vp = (struct X3D_OrthoViewpoint*)cn;
-			retval = vp->description->strptr;
-			bound = vp->isBound;
+			retval = vp->description ? strndup(vp->description->strptr, 100) : NULL; //statusbar can't handle long descriptions			bound = vp->isBound;
 			reachable = vp->_reachablethispass;
 		}
 		else if (cn->_nodeType == NODE_GeoViewpoint) {
 			struct X3D_GeoViewpoint* vp = (struct X3D_GeoViewpoint*)cn;
-			retval = vp->description->strptr;
-			bound = vp->isBound;
+			retval = vp->description ? strndup(vp->description->strptr, 100) : NULL; //statusbar can't handle long descriptions			bound = vp->isBound;
 			reachable = vp->_reachablethispass;
 		}
 	}
