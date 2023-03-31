@@ -25,6 +25,8 @@
 #include <vector>
 
 using namespace lab;
+#include "LabSound/backends/AudioDevice_RtAudio.h"
+
 
 // Returns input, output
 inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConfiguration(const bool with_input = false)
@@ -32,15 +34,21 @@ inline std::pair<AudioStreamConfig, AudioStreamConfig> GetDefaultAudioDeviceConf
     AudioStreamConfig inputConfig;
     AudioStreamConfig outputConfig;
 
-    const std::vector<AudioDeviceInfo> audioDevices = lab::MakeAudioDeviceList();
-    const AudioDeviceIndex default_output_device = lab::GetDefaultOutputAudioDeviceIndex();
-    const AudioDeviceIndex default_input_device = lab::GetDefaultInputAudioDeviceIndex();
+    const std::vector<AudioDeviceInfo> audioDevices = lab::AudioDevice_RtAudio::MakeAudioDeviceList();
+    //const AudioDeviceIndex default_output_device = lab::GetDefaultOutputAudioDeviceIndex();
+    //const AudioDeviceIndex default_input_device = lab::GetDefaultInputAudioDeviceIndex();
 
     AudioDeviceInfo defaultOutputInfo, defaultInputInfo;
     for (auto& info : audioDevices)
     {
         if (info.is_default_output) defaultOutputInfo = info;
         else if (info.is_default_input) defaultInputInfo = info;
+        printf("Device %d: %s\n", info.index, info.identifier.c_str());
+        printf("  input channels: %d\n", info.num_input_channels);
+        printf("  output channels: %d\n", info.num_output_channels);
+        printf("  default sample rate: %f\n", info.nominal_samplerate);
+        printf("  is default input: %s\n", info.is_default_input ? "true" : "false");
+        printf("  is default output: %s\n", info.is_default_output ? "true" : "false");
     }
 
     if (defaultOutputInfo.index != -1)
@@ -232,9 +240,18 @@ typedef ptw32_handle_t pthread_t;
 
     void libsound_testNoise()
     {
-        std::unique_ptr<lab::AudioContext> context;
+        AudioStreamConfig _inputConfig;
+        AudioStreamConfig _outputConfig;
+        auto config = GetDefaultAudioDeviceConfiguration(true);
+        _inputConfig = config.first;
+        _outputConfig = config.second;
+        std::shared_ptr<lab::AudioDevice_RtAudio> device(new lab::AudioDevice_RtAudio(_inputConfig, _outputConfig));
+
+        std::shared_ptr<lab::AudioContext> context;
          const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration();
-        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        //context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        context = std::make_shared<lab::AudioContext>(false, true);
+
         lab::AudioContext& ac = *context.get();
         //auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", argc, argv);
         const std::string path = "C:/Users/Public/dev/source5/audio/LabSound-master/assets/samples/stereo-music-clip.wav";
@@ -261,7 +278,7 @@ typedef ptw32_handle_t pthread_t;
 
         // osc -> gain -> destination
         context->connect(gain, oscillator, 0, 0);
-        context->connect(context->device(), gain, 0, 0);
+        context->connect(context->destinationNode(), gain, 0, 0);
 
         oscillator->frequency()->setValue(440.f);
         oscillator->setType(OscillatorType::SINE);
@@ -304,8 +321,20 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<lab::AudioContext> context;
 
         //lab::AudioContext *ccontext;
-        const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration(true);
-        context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        //const auto defaultAudioDeviceConfigurations = GetDefaultAudioDeviceConfiguration(true);
+        ////context = lab::MakeRealtimeAudioContext(defaultAudioDeviceConfigurations.second, defaultAudioDeviceConfigurations.first);
+        //context = std::make_shared<lab::AudioContext>(false, true);
+
+        AudioStreamConfig _inputConfig;
+        AudioStreamConfig _outputConfig;
+        auto config = GetDefaultAudioDeviceConfiguration(true);
+        _inputConfig = config.first;
+        _outputConfig = config.second;
+        std::shared_ptr<lab::AudioDevice_RtAudio> device(new lab::AudioDevice_RtAudio(_inputConfig, _outputConfig));
+        context = std::make_shared<lab::AudioContext>(false, true);
+        auto destinationNode = std::make_shared<lab::AudioDestinationNode>(*context.get(), device);
+        device->setDestinationNode(destinationNode);
+        context->setDestinationNode(destinationNode);
 
 
         if (1) {
@@ -333,7 +362,7 @@ typedef ptw32_handle_t pthread_t;
         audio_contexts[next_audio_context] = ac;
 
         ac->next_node++;
-        ac->nodes[ac->next_node] = ac->context->device(); //the output device will be the parent to other source and processing nodes
+        ac->nodes[ac->next_node] = ac->context->destinationNode(); //the output device will be the parent to other source and processing nodes
         ac->nodetype[ac->next_node] = NODE_AudioDestination;
         return next_audio_context;
     }
@@ -1700,8 +1729,11 @@ typedef ptw32_handle_t pthread_t;
                 //create labsound node
                 {
                     ContextRenderLock r(ac->context.get(), "microphone");
-                    input = lab::MakeAudioHardwareInputNode(r);
-                    ac->context.get()->connect(ac->context.get()->device(), input, 0, 0);
+                    //input = lab::MakeAudioHardwareInputNode(r);
+                    std::shared_ptr<AudioHardwareInputNode> inputNode(
+                        new AudioHardwareInputNode(*ac->context.get(), ac->context.get()->destinationNode()->device()->sourceProvider()));
+                    input = inputNode;
+                    //ac->context.get()->connect(ac->context.get()->destinationNode(), inputNode, 0, 0);
                 }
 
                 ac->next_node++;

@@ -74,7 +74,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>LabSound_d.lib;libnyquist_d.lib;libwavpack_d.lib;samplerate_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>LabSound_d.lib;libnyquist_d.lib;libwavpack_d.lib;samplerate_d.lib;LabSoundRtAudio.lib;LabSoundMiniAudio.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(LIBWIN)/LabSound/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
