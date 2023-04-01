@@ -478,8 +478,8 @@ EXPOSED_FIELD(ChannelSelector,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NON
 EVENT_OUT(ChannelSelector,channelCount,sfint32,channelCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(ChannelSelector,channelSelection,sfint32,channelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelSelector,lastChannelSelection,sfint32,lastChannelSelection,FIELDTYPE_SFInt32,UNCA_NONE)
-EXPOSED_FIELD(ChannelSelector,sourceChannel,sfint32,sourceChannel,FIELDTYPE_SFInt32,UNCA_NONE)
-EXPOSED_FIELD(ChannelSelector,destinationChannel,sfint32,destinationChannel,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,channelSource,sfint32,channelSource,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(ChannelSelector,channelDestination,sfint32,channelDestination,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ChannelSelector,stream,sfint32,stream,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(ChannelSelector)
 

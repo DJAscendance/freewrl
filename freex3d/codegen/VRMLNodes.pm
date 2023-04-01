@@ -1303,10 +1303,10 @@ our %Nodes = (
 		channelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		lastChannelSelection => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
             # proposal 3: Selector as 3-tuple
-		sourceChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_lastSourceChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		destinationChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_lastDestinationChannel => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		channelSource => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastChannelSource => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		channelDestination => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastChannelDestination => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		stream => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		_lastStream => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
             _initialized => ["SFInt32", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff

@@ -1173,16 +1173,16 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 			for (int i = 0; i < node->selectors.n; i++) {
 				struct X3D_ChannelSelector* selector = (struct X3D_ChannelSelector*)node->selectors.p[i];
 				if (!selector->_initialized) {
-					selector->_lastDestinationChannel = selector->destinationChannel;
-					selector->_lastSourceChannel = selector->sourceChannel;
+					selector->_lastChannelDestination = selector->channelDestination;
+					selector->_lastChannelSource = selector->channelSource;
 					selector->_lastStream = selector->stream;
 					selector->_initialized = TRUE;
 				}
 
-				int destination_index = selector->destinationChannel;
-				int last_destination_index = selector->_lastDestinationChannel;
-				int source_index = selector->sourceChannel;
-				int last_source_index = selector->_lastSourceChannel;
+				int destination_index = selector->channelDestination;
+				int last_destination_index = selector->_lastChannelDestination;
+				int source_index = selector->channelSource;
+				int last_source_index = selector->_lastChannelSource;
 				if (noisy) printf("%d indxDst %d indxSrc %d\n", i, destination_index, source_index);
 				if (source_index > -1) push_splitter_source_index(source_index, last_source_index); //-1 means there's no splitter in the audio stream
 				if (destination_index != last_destination_index)
@@ -1197,8 +1197,8 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 				if (source_index > -1) pop_splitter_source_index();
 				if (noisy) libsound_print_connections();
 				if (noisy) printf("\n");
-				selector->_lastDestinationChannel = selector->destinationChannel;
-				selector->_lastSourceChannel = selector->sourceChannel;
+				selector->_lastChannelDestination = selector->channelDestination;
+				selector->_lastChannelSource = selector->channelSource;
 				selector->_lastStream = selector->stream;
 			}
 		} else if (node->indexDestination.n && node->indexSource.n && node->indexStream.n) {

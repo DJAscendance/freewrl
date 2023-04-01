@@ -302,10 +302,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_keyValueVBO",
 	"_knot",
 	"_knotrange",
-	"_lastDestinationChannel",
+	"_lastChannelDestination",
+	"_lastChannelSource",
 	"_lastEnabled",
 	"_lastMethod",
-	"_lastSourceChannel",
 	"_lastStream",
 	"_lastTao",
 	"_lastenabled",
@@ -549,8 +549,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"centralScale",
 	"channelCount",
 	"channelCountMode",
+	"channelDestination",
 	"channelInterpretation",
 	"channelSelection",
+	"channelSource",
 	"channels",
 	"channelsEnabled",
 	"child1Url",
@@ -612,7 +614,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"description",
 	"desiredAngularVelocity1",
 	"desiredAngularVelocity2",
-	"destinationChannel",
 	"detonateTime",
 	"detonationLocation",
 	"detonationRelativeLocation",
@@ -1138,7 +1139,6 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"solid",
 	"sortOrder",
 	"source",
-	"sourceChannel",
 	"spacing",
 	"spatialize",
 	"specific",
@@ -1585,8 +1585,10 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"centerOfMass",
 	"centerOfRotation",
 	"channelCountMode",
+	"channelDestination",
 	"channelInterpretation",
 	"channelSelection",
+	"channelSource",
 	"channels",
 	"channelsEnabled",
 	"children",
@@ -1628,7 +1630,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"description",
 	"desiredAngularVelocity1",
 	"desiredAngularVelocity2",
-	"destinationChannel",
 	"detonationLocation",
 	"detonationRelativeLocation",
 	"detonationResult",
@@ -1966,7 +1967,6 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"softnessConstantForceMix",
 	"softnessErrorCorrection",
 	"source",
-	"sourceChannel",
 	"specular",
 	"specularColor",
 	"specularTexture",
@@ -5213,10 +5213,10 @@ const int OFFSETS_ChannelSelector[] = {
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ChannelSelector, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channelSelection, (int) offsetof (struct X3D_ChannelSelector, channelSelection),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_lastChannelSelection, (int) offsetof (struct X3D_ChannelSelector, lastChannelSelection),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_sourceChannel, (int) offsetof (struct X3D_ChannelSelector, sourceChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__lastSourceChannel, (int) offsetof (struct X3D_ChannelSelector, _lastSourceChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_destinationChannel, (int) offsetof (struct X3D_ChannelSelector, destinationChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__lastDestinationChannel, (int) offsetof (struct X3D_ChannelSelector, _lastDestinationChannel),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_channelSource, (int) offsetof (struct X3D_ChannelSelector, channelSource),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastChannelSource, (int) offsetof (struct X3D_ChannelSelector, _lastChannelSource),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_channelDestination, (int) offsetof (struct X3D_ChannelSelector, channelDestination),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastChannelDestination, (int) offsetof (struct X3D_ChannelSelector, _lastChannelDestination),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_stream, (int) offsetof (struct X3D_ChannelSelector, stream),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__lastStream, (int) offsetof (struct X3D_ChannelSelector, _lastStream),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__initialized, (int) offsetof (struct X3D_ChannelSelector, _initialized),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -11474,10 +11474,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_context = 0;
 			tmp2->channelSelection = 0;
 			tmp2->lastChannelSelection = 0;
-			tmp2->sourceChannel = 0;
-			tmp2->_lastSourceChannel = 0;
-			tmp2->destinationChannel = 0;
-			tmp2->_lastDestinationChannel = 0;
+			tmp2->channelSource = 0;
+			tmp2->_lastChannelSource = 0;
+			tmp2->channelDestination = 0;
+			tmp2->_lastChannelDestination = 0;
 			tmp2->stream = 0;
 			tmp2->_lastStream = 0;
 			tmp2->_initialized = 0;
@@ -17924,13 +17924,13 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 			spacer fprintf (fp," channelSelection (SFInt32) \t%d\n",tmp->channelSelection);
 			spacer fprintf (fp," lastChannelSelection (SFInt32) \t%d\n",tmp->lastChannelSelection);
-			spacer fprintf (fp," sourceChannel (SFInt32) \t%d\n",tmp->sourceChannel);
+			spacer fprintf (fp," channelSource (SFInt32) \t%d\n",tmp->channelSource);
 		    if(allFields) {
-			spacer fprintf (fp," _lastSourceChannel (SFInt32) \t%d\n",tmp->_lastSourceChannel);
+			spacer fprintf (fp," _lastChannelSource (SFInt32) \t%d\n",tmp->_lastChannelSource);
 		    }
-			spacer fprintf (fp," destinationChannel (SFInt32) \t%d\n",tmp->destinationChannel);
+			spacer fprintf (fp," channelDestination (SFInt32) \t%d\n",tmp->channelDestination);
 		    if(allFields) {
-			spacer fprintf (fp," _lastDestinationChannel (SFInt32) \t%d\n",tmp->_lastDestinationChannel);
+			spacer fprintf (fp," _lastChannelDestination (SFInt32) \t%d\n",tmp->_lastChannelDestination);
 		    }
 			spacer fprintf (fp," stream (SFInt32) \t%d\n",tmp->stream);
 		    if(allFields) {
