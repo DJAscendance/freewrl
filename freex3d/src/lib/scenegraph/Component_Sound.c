@@ -135,7 +135,7 @@ void Component_Sound_init(struct tComponent_Sound *t){
 		/* for printing warnings about Sound node problems - only print once per invocation */
 		p->audio_context_stack = newStack(int);
 		stack_push(int, p->audio_context_stack, 0); //a null will signal we have no audio context yet.
-		p->audio_parent_stack = newStack(ivec3);
+		p->audio_parent_stack = newStack(icset);
 		icset aps = { 0, 0, 0, 0, 0, 0 };
 		stack_push(icset, p->audio_parent_stack, aps); //a null will signal we have no audio parent yet.
 		p->doppler_factor_stack = newStack(float);
