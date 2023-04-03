@@ -827,7 +827,7 @@ typedef ptw32_handle_t pthread_t;
                 }
                 bool loaded = true;
                 if (!context.loadHrtfDatabase("hrtf")) {  
-                    std::string path = std::string("FAIL/../../../../lib_windows_vc12/LabSound/share") + "/hrtf";
+                    std::string path = std::string("../../../../lib_windows_vc12/LabSound/share") + "/hrtf";
                     if (!context.loadHrtfDatabase(path)) {
                         printf("Could not load spatialization database");
                         loaded = false;
