@@ -450,7 +450,7 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         int dstInputs = destination->numberOfInputs();
-        int srcOutputs = source->numberOfInputs();
+        int srcOutputs = source->numberOfOutputs();
         if (indexDst > dstInputs) {
             printf("destination number of inputs %d destination idx %d\n", destination->numberOfInputs(), indexDst);
             printf("\n");
@@ -481,7 +481,7 @@ typedef ptw32_handle_t pthread_t;
         std::shared_ptr<AudioNode> destination = ac->nodes[idestination];
         std::shared_ptr<AudioNode> source = ac->nodes[isource];
         int dstInputs = destination->numberOfInputs();
-        int srcOutputs = source->numberOfInputs();
+        int srcOutputs = source->numberOfOutputs();
         if (indexDst > dstInputs) {
             printf("destination number of inputs %d destination idx %d\n", destination->numberOfInputs(), indexDst);
             printf("\n");

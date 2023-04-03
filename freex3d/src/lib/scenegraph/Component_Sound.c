@@ -1202,7 +1202,7 @@ void render_ChannelMerger(struct X3D_ChannelMerger* node) {
 				selector->_lastStream = selector->stream;
 			}
 		} else if (node->indexDestination.n && node->indexSource.n && node->indexStream.n) {
-			//Doug's proposed way with (indexStream,indexSource,indexDestination) tuples, Merger.children[i] == audio stream [i]
+			//Doug's proposal2 way with (indexStream,indexSource,indexDestination) tuples, Merger.children[i] == audio stream [i]
 			for (int i = 0; i < node->indexDestination.n; i++) {
 				int destination_index = node->indexDestination.p[i];
 				int last_destination_index = srep->last_indexDestination[i];
