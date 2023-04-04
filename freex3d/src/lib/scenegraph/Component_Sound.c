@@ -1246,14 +1246,23 @@ void render_ChannelSelector(struct X3D_ChannelSelector* node) {
 	
 	// doesn't push or pop parent, so children will connect to grandparent
 	// we don't come through here with proposal3
-	push_splitter_source_index(node->channelSelection, node->lastChannelSelection);
+	struct X3D_ChannelSelector* selector = node;
+	if (!selector->_initialized) {
+		selector->_lastChannelSource = selector->channelSource;
+		selector->_initialized = TRUE;
+	}
+
+	int source_index = selector->channelSource;
+	int last_source_index = selector->_lastChannelSource;
+	if (source_index > -1) push_splitter_source_index(source_index, last_source_index); //-1 means there's no splitter in the audio stream
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
 			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			render_node(X3D_NODE(node->children.p[i]));
 	}
 	pop_splitter_source_index();
-	node->lastChannelSelection = node->channelSelection;
+	selector->_lastChannelSource = selector->channelSource;
+	//node->lastChannelSelection = node->channelSelection;
 }
 void render_ChannelSplitter(struct X3D_ChannelSplitter* node) {
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
