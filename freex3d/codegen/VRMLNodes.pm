@@ -1518,6 +1518,7 @@ our %Nodes = (
             # OscillatorSource
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		frequency => ["SFFloat", 440.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		type => ["SFString", "sine", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		periodicWave => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__oldEnabled => ["SFBool", "TRUE", "inputOutput", 0,0],#ff
 		# time that we were initialized at
@@ -1537,7 +1538,7 @@ our %Nodes = (
 		# PeriodicWave
 		optionsReal => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		optionsImag => ["MFFloat", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		type => ["SFString", "square", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		type => ["SFString", "sine", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DSoundNode"),
 
 	"Sound" => new VRML::NodeType("Sound", [

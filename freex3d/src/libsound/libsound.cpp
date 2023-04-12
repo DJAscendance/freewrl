@@ -186,6 +186,11 @@ static struct key_name periodicWave_types[] = {
 {OscillatorType::OSCILLATOR_NONE, NULL},
 };
 
+static struct key_name waveshaper_oversampling_types[] = {
+    {OverSampleType::NONE, "NONE"},
+    {OverSampleType::_2X, "2X"},
+    {OverSampleType::_4X, "4x"},
+};
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -1103,7 +1108,26 @@ typedef ptw32_handle_t pthread_t;
             oscillator_ptr->frequency()->setValue(pnode->frequency);
             //printf("from libsound updateNode0 OscillatorSource > detun %f\n", pnode->detune);
             oscillator_ptr->detune()->setValue(pnode->detune);
-
+            //periodicWave_types
+            OscillatorType wave_type = (OscillatorType) name_lookup(pnode->type->strptr, periodicWave_types);
+            //switch (wave_type) {
+            //case OscillatorType::SINE:
+            //    oscillator_ptr->setType(OscillatorType::SINE); break;
+            //case OscillatorType::SQUARE:
+            //    oscillator_ptr->setType(OscillatorType::SQUARE); break;
+            //case OscillatorType::SAWTOOTH:
+            //    oscillator_ptr->setType(OscillatorType::SAWTOOTH); break;
+            //case OscillatorType::TRIANGLE:
+            //    oscillator_ptr->setType(OscillatorType::TRIANGLE); break;
+            //case OscillatorType::CUSTOM:
+            //    oscillator_ptr->setType(OscillatorType::CUSTOM); break;
+            //default:
+            //    oscillator_ptr->setType(OscillatorType::OSCILLATOR_NONE);
+            //    break;
+            //}
+            oscillator_ptr->setType(wave_type);
+            if(wave_type == OscillatorType::CUSTOM && pnode->periodicWave){
+            }
             SchedulingState status = oscillator_ptr->playbackState();
             // printf("isActive %d isPaused %d status %d\n", pnode->isActive, pnode->isPaused, status);
             if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE)) {
@@ -1123,33 +1147,34 @@ typedef ptw32_handle_t pthread_t;
         {
             struct X3D_PeriodicWave* pnode = (struct X3D_PeriodicWave*)node;
             std::shared_ptr<PeriodicWave> pwave; //using an older term but equivalent WaveTable == PeriodicWave
-            if (iparent.p){
-                std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.p];
-                OscillatorNode* oscillator_ptr =
-                    static_cast<OscillatorNode*>(oscillator.get());
-               //periodicWave_types
-                unsigned int wave_type = name_lookup(pnode->type->strptr, periodicWave_types);
-                switch (wave_type) {
-                case OscillatorType::SINE:
-                    oscillator_ptr->setType(OscillatorType::SINE); break;
-                case OscillatorType::SQUARE:
-                    oscillator_ptr->setType(OscillatorType::SQUARE); break;
-                case OscillatorType::SAWTOOTH:
-                    oscillator_ptr->setType(OscillatorType::SAWTOOTH); break;
-                case OscillatorType::TRIANGLE:
-                    oscillator_ptr->setType(OscillatorType::TRIANGLE); break;
-                case OscillatorType::CUSTOM:
-                    oscillator_ptr->setType(OscillatorType::CUSTOM); break;
-                default:
-                    oscillator_ptr->setType(OscillatorType::OSCILLATOR_NONE);
-                    break;
+            if (1) {
+                if (iparent.p) {
+                    std::shared_ptr<AudioNode> oscillator = ac->nodes[iparent.p];
+                    OscillatorNode* oscillator_ptr =
+                        static_cast<OscillatorNode*>(oscillator.get());
+                    //periodicWave_types
+                    unsigned int wave_type = name_lookup(pnode->type->strptr, periodicWave_types);
+                    switch (wave_type) {
+                    case OscillatorType::SINE:
+                        oscillator_ptr->setType(OscillatorType::SINE); break;
+                    case OscillatorType::SQUARE:
+                        oscillator_ptr->setType(OscillatorType::SQUARE); break;
+                    case OscillatorType::SAWTOOTH:
+                        oscillator_ptr->setType(OscillatorType::SAWTOOTH); break;
+                    case OscillatorType::TRIANGLE:
+                        oscillator_ptr->setType(OscillatorType::TRIANGLE); break;
+                    case OscillatorType::CUSTOM:
+                        oscillator_ptr->setType(OscillatorType::CUSTOM); break;
+                    default:
+                        oscillator_ptr->setType(OscillatorType::OSCILLATOR_NONE);
+                        break;
+                    }
+                    if (pnode->optionsReal.n != 0) {
+                        ///oscillator_ptr-> where put wavetable?
+                        //context.createPeriodicWave
+                    }
+                    //oscillator_ptr->setType(static_cast<OscillatorType>(wave_type));
                 }
-                if (pnode->optionsReal.n != 0) {
-                    ///oscillator_ptr-> where put wavetable?
-                    //context.createPeriodicWave
-                }
-                //oscillator_ptr->setType(static_cast<OscillatorType>(wave_type));
-
             }
             //copy changed values from x3d to labsound
             //copy outputs from labsound to x3d
@@ -1658,9 +1683,10 @@ typedef ptw32_handle_t pthread_t;
             printf("pnode->curve.n %d p[0] %f p[44100-1] %f", pnode->curve.n, pnode->curve.p[0], pnode->curve.p[pnode->curve.n-1]);
             for (int i = 0; i < pnode->curve.n; i++)
                 curve[i] = pnode->curve.p[i];
-            printf("curve[0] %f curve[-1] %f", curve[0], curve[curve.size() - 1]);
+            printf("curve[0] %f curve[-1] %f oversampe %s", curve[0], curve[curve.size() - 1], pnode->oversample->strptr);
             wave_ptr->setCurve(curve);
-//UNFINISHED     //wave_ptr->oversample()-> there doesn't seem to be an oversample in Labsound, posted an issue Feb 6,2023
+            OverSampleType oversample_type = (OverSampleType)name_lookup(pnode->oversample->strptr, waveshaper_oversampling_types);
+            wave_ptr->setOversample(oversample_type);
 
         }
         break;

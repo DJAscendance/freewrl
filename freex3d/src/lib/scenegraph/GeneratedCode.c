@@ -8156,6 +8156,7 @@ const int OFFSETS_OscillatorSource[] = {
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_OscillatorSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_OscillatorSource, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_OscillatorSource, frequency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_type, (int) offsetof (struct X3D_OscillatorSource, type),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_periodicWave, (int) offsetof (struct X3D_OscillatorSource, periodicWave),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldEnabled, (int) offsetof (struct X3D_OscillatorSource, __oldEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES___inittime, (int) offsetof (struct X3D_OscillatorSource, __inittime),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -15159,6 +15160,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_context = 0;
 			tmp2->detune = 0.0f;
 			tmp2->frequency = 440.0f;
+			tmp2->type = newASCIIString("sine");
 			tmp2->periodicWave = NULL;
 			tmp2->__oldEnabled = TRUE;
 			tmp2->__inittime = 0;
@@ -15240,7 +15242,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_context = 0;
 			tmp2->optionsReal.n=0; tmp2->optionsReal.p=0;
 			tmp2->optionsImag.n=0; tmp2->optionsImag.p=0;
-			tmp2->type = newASCIIString("square");
+			tmp2->type = newASCIIString("sine");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21470,6 +21472,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," tailTime (SFTime) \t%4.3f\n",tmp->tailTime);
 			spacer fprintf (fp," detune (SFFloat) \t%4.3f\n",tmp->detune);
 			spacer fprintf (fp," frequency (SFFloat) \t%4.3f\n",tmp->frequency);
+			spacer fprintf (fp," type (SFString) \t%s\n",tmp->type->strptr);
 			spacer fprintf (fp," periodicWave (SFNode):\n"); dump_scene(fp,level+1,tmp->periodicWave); 
 		    if(allFields) {
 			spacer fprintf (fp," __oldEnabled (SFBool) \t%d\n",tmp->__oldEnabled);

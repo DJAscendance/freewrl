@@ -3111,6 +3111,7 @@ EVENT_OUT(OscillatorSource,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 EVENT_OUT(OscillatorSource,isPaused,sfbool,isPaused,FIELDTYPE_SFBool)
 EXPOSED_FIELD(OscillatorSource,detune,sffloat,detune,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(OscillatorSource,frequency,sffloat,frequency,FIELDTYPE_SFFloat,UNCA_NONE)
+EXPOSED_FIELD(OscillatorSource,type,sfstring,type,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(OscillatorSource,periodicWave,sfnode,periodicWave,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(OscillatorSource)
 
