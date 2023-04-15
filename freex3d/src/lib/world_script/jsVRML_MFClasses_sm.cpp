@@ -99,30 +99,38 @@ void
 JS_MY_Finalize(JSContext *cx, JSObject *obj){
 #else
 JS_MY_Finalize(JSFreeOp *fop, JSObject *obj){
-JSContext *cx = NULL;
+//JSContext *cx = NULL;
 #endif
 
 	void *ptr;
-	#ifdef JSVRMLCLASSESVERBOSE
+	//#ifdef JSVRMLCLASSESVERBOSE
 	printf ("finalizing %p\n",obj);
 	//printJSNodeType(cx,obj);
-	#endif
+	//#endif
 
-	REMOVE_ROOT(cx,obj)
+	//REMOVE_ROOT(cx,obj)
 
-	if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
-		
-		if(SM_method() == 0)
-			FREE_IF_NZ (ptr);
-		if(SM_method() == 2){
-			AnyNative *any = (AnyNative*)ptr;
-			if(any->gc) FREE_IF_NZ(any->v);
+	//if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
+		ptr = (void*)JS_GetPrivate(obj);
+		if (ptr) {
+			if (SM_method() == 0)
+				FREE_IF_NZ(ptr);
+			if (SM_method() == 2) {
+				//AnyNativeNew mallocs ptr, v and elsewhere mf.p is malloced
+				AnyNative* any = (AnyNative*)ptr;
+				if (any->gc) {
+					if (any->type % 2 == 0) //is it MF
+						FREE_IF_NZ(any->v->mffloat.p);
+					FREE_IF_NZ(any->v);
+				}
+				printf("finalize anygc = %d\n", any->gc);
+				FREE_IF_NZ(ptr);
+			}
 		}
-
-		JS_SetPrivateFw(cx,obj,NULL);
-		FREE_IF_NZ(ptr);
+		//JS_SetPrivateFw(cx,obj,NULL);
+		//FREE_IF_NZ(ptr);
 		
-	}
+	//}
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	} else {

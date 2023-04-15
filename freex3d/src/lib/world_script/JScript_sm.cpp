@@ -203,7 +203,9 @@ void sm_js_cleanup_script_context(int counter){
 		{ // Scope B  for JSAutoCompartment
 			JSAutoCompartment ac(cx, global);
 			JS_MaybeGC(cx); 
+			//JS_GC(p->runtime);
 		} //Scope B
+		//JS_GC(p->runtime);
 	} //Scope A
 
 }
@@ -223,7 +225,7 @@ void sm_process_eventsProcessed() {
 	jsval retval;
 	struct CRscriptStruct *scriptcontrol;
 	ttglobal tg = gglobal();
-	//ppJScript p = (ppJScript)tg->JScript.prv;
+	ppJScript p = (ppJScript)tg->JScript.prv;
 	for (counter = 0; counter <= tg->CRoutes.max_script_found_and_initialized; counter++) {
 		scriptcontrol = getScriptControlIndex(counter);
 		if(scriptcontrol->thisScriptType != NOSCRIPT ){
@@ -246,7 +248,10 @@ void sm_process_eventsProcessed() {
 					if (!JS_ExecuteScript(cx,obj,(JSScript *)scriptcontrol->eventsProcessed, &retval)) {
 						printf ("can not run eventsProcessed() for script %d\n",counter);
 					}
+					JS_MaybeGC(cx);
+					//JS_GC(p->runtime);
 				} //Scope B
+				//JS_GC(p->runtime);
 			} //Scope A
 		} //if !noscript
 	} //for counter
@@ -272,7 +277,7 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 
 
 /* MAX_RUNTIME_BYTES controls when garbage collection takes place. */
-//#define MAX_RUNTIME_BYTES 0xB00000L
+//#define MAX_RUNTIME_BYTES 0xB0000L
 //#define MAX_RUNTIME_BYTES 0xC00000L
 //#define MAX_RUNTIME_BYTES 0x1000000L 
 #define MAX_RUNTIME_BYTES 0x4000000L
@@ -425,6 +430,9 @@ const char *getgcparamname(int key){
 	so a lot of our code needs grooming for these weird stack techniques.
    
    */
+void My_JSGCCallback(JSRuntime* rt, JSGCStatus status){ //}, void* data) {
+	printf("GC %d ", (int)status);
+}
 void sm_JSCreateScriptContext(int num) {
 	jsval rval;
 	JSContext *_context; 	/* these are set here */
@@ -437,22 +445,28 @@ void sm_JSCreateScriptContext(int num) {
 	/* is this the first time through? */
 	if (p->runtime == NULL) {
 		//p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JSUseHelperThreads::JS_USE_HELPER_THREADS);
-		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JS_USE_HELPER_THREADS); //JSUseHelperThreads::JS_NO_HELPER_THREADS);
+		p->runtime = JS_NewRuntime(MAX_RUNTIME_BYTES, JS_NO_HELPER_THREADS); //JSUseHelperThreads::JS_NO_HELPER_THREADS);
 		if (!p->runtime) freewrlDie("JS_NewRuntime failed");
+		JS_SetGCCallback(p->runtime, My_JSGCCallback); // , NULL);
+
+		//js_run_version = (long)JS_GetVersion(cx);
+		const char* strversion = JS_GetImplementationVersion();
+		const char* substr = strstr(strversion, "-C");
+		substr = &substr[2]; //skip -C
+		int i1, i2, i3;
+		sscanf_s(substr, "%d.%d.%d", &i1, &i2, &i3);
+		printf("javascript engine spidermonkey %s %s\n", substr, SM_method() == 2 ? "SM2" : "SM1");
+		js_run_version = i1;
 	}
 
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
+
 	//JS_SetErrorReporter(_context, reportError);
 
 	JSContext *cx = _context;
 	JS_SetContextPrivate(cx, ScriptControl->script->ShaderScriptNode->_executionContext); //Q. will it be helpful in any X3DScene (aka vrml context) functions?
-	static int once = 0;
-	if (!once) {
-		js_run_version = (long)JS_GetVersion(cx);
-		once = 1;
-	}
 
 	{ //scope A
 		JSAutoRequest ar(cx); // In practice, you would want to exit this any
@@ -521,6 +535,8 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 	JSContext *cx;
 	JSObject *global;
 	struct CRscriptStruct *ScriptControl;
+	ttglobal tg = gglobal();
+	ppJScript p = (ppJScript)tg->JScript.prv;
 
 	ScriptControl = getScriptControlIndex(num);
 	/* get context and global object for this script */
@@ -542,7 +558,11 @@ int ActualrunScript(int num, char *script, jsval *rval) {
 				ConsoleMessage ("ActualrunScript - JS_EvaluateScript failed for %s", script);
 				return JS_FALSE;
 			}
+			JS_MaybeGC(cx);
+			//JS_GC(p->runtime);
+
 		} //Scope B
+		//JS_GC(p->runtime);
 	} //Scope A
 
 	return JS_TRUE;
@@ -3463,12 +3483,6 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 
 int sm_runQueuedDirectOutputs(){
 	//stub for SM and STUBS (DUK has it)
-	static int doneOnce = 0;
-	if(!doneOnce){
-		//	printf("in runQueuedDirectOutputs\n");
-		printf("javascript engine spidermonkey version %ld %s\n", (long)js_run_version, SM_method() == 2? "SM2" : "SM1");
-		doneOnce++;
-	}
 
 	return FALSE;
 }

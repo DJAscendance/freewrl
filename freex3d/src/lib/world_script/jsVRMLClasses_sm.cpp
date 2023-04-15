@@ -551,7 +551,8 @@ JSClass MFFloatClass = {
 	JS_EnumerateStub,
 	JS_ResolveStub,
 	JS_ConvertStub,
-	JS_MY_Finalize
+	JS_MY_Finalize,
+	JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
 JSFunctionSpec (MFFloatFunctions)[] = {
