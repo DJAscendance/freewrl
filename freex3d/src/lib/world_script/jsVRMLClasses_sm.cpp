@@ -32,7 +32,9 @@
 //#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
 # include <jsapi.h> /* JS compiler */
 //# include <jsdbgapi.h> /* JS debugger */
+#ifndef JS_VERSION
 #define JS_VERSION 187
+#endif
 //#define JS_THREADSAFE 1 //by default in 186+
 int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
 JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
@@ -139,7 +141,9 @@ void jsVRMLClasses_init(struct iiglobal::tjsVRMLClasses *t){
  */
 
  } //extern "C"
-
+#if JS_VERSION < 187
+#define JS_DeletePropertyStub JS_PropertyStub
+#endif
 JSClass SFColorClass = {
 	"SFColor",
 	JSCLASS_HAS_PRIVATE,
@@ -731,7 +735,11 @@ JSClass MFStringClass = {
 	"MFString",
 	JSCLASS_HAS_PRIVATE,
 	MFStringAddProperty,
+#if JS_VERSION >= 187
 	MFStringDeleteProperty, /* JS_PropertyStub, */
+#else
+	JS_PropertyStub,
+#endif
 	MFStringGetProperty,
 	MFStringSetProperty,
 	MFStringEnumerateProperty, /* JS_EnumerateStub, */
@@ -2070,18 +2078,18 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				printf("doMFSetProperty: JS_ValueToId failed.\n");
 				return JS_FALSE;
 			}
-			#if JS_VERSION == 186
-			/* OUCH*/
-			{
-				JSHandleObject hobj;
-				JSHandleId hiid; 
-				JSMutableHandleValue hvp;
-				hobj._ = &par;
-				hiid._ = &oid;
-				hvp._ = &nf;
-				setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
-			}
-			#else
+			//#if JS_VERSION == 186
+			///* OUCH*/
+			//{
+			//	JSHandleObject hobj;
+			//	JSHandleId hiid; 
+			//	JSMutableHandleValue hvp;
+			//	hobj._ = &par;
+			//	hiid._ = &oid;
+			//	hvp._ = &nf;
+			//	setSFNodeField(cx,hobj,hiid,JS_FALSE,hvp);
+			//}
+			//#else
 			/* OUCH
 			if (!setSFNodeField (cx, par, oid,
 #if JS_VERSION >= 185
@@ -2091,7 +2099,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				printf ("could not set field of SFNode\n");
 			}
 			*/
-			#endif
+			//#endif
 
 		}
 		me = par;
@@ -2173,11 +2181,12 @@ JSBool loadVrmlClasses(JSContext *context, JSObject *globalObj) {
 
 		/* v = 0; */
 		if (( myProto = JS_InitClass(context, globalObj, NULL, JSLoadProps[i].fwclass,
-			  (JSNative)JSLoadProps[i].constr, INIT_ARGC, (const JSPropertySpec*)JSLoadProps[i].Properties,
-			  (const JSFunctionSpec *)JSLoadProps[i].Functions, NULL, NULL)) == NULL) {
+			  (JSNative)JSLoadProps[i].constr, INIT_ARGC, (JSPropertySpec*)JSLoadProps[i].Properties,
+			  (JSFunctionSpec *)JSLoadProps[i].Functions, NULL, NULL)) == NULL) {
 			printf("JS_InitClass for %s failed in loadVrmlClasses.\n",JSLoadProps[i].id);
 			return JS_FALSE;
 		}
+		//JS::RootedObject protoObj(context, myProto);
 		v = OBJECT_TO_JSVAL(myProto);
 		if (!JS_SetProperty(context, globalObj, JSLoadProps[i].id, &v)) {
 			printf("JS_SetProperty for %s failed in loadVrmlClasses.\n",JSLoadProps[i].id);
@@ -2389,7 +2398,8 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 		int *valueChanged;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = (struct Shader_Script *)JS_GetPrivateFw(cx,obj);
+		//script = (struct Shader_Script *)JS_GetPrivateFw(cx,obj);
+		script = (struct Shader_Script*)JS_GetSecondContextPrivate(cx);
 
 		valueChanged = NULL;
 		value = NULL;
@@ -2486,7 +2496,8 @@ setECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 		value = NULL;
 		struct Shader_Script *script;
 		// = sm_get_script();
-		script = (struct Shader_Script *)JS_GetPrivateFw(cx,obj);
+		//script = (struct Shader_Script *)JS_GetPrivateFw(cx,obj);
+		script = (struct Shader_Script*)JS_GetSecondContextPrivate(cx);
 
 		ifound = getFieldFromScript(script,fieldname,&type,&kind,&iifield,&value,&valueChanged);
 		if(ifound){

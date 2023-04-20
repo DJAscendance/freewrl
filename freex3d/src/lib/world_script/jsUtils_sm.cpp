@@ -29,13 +29,16 @@ which is the sample application included with the javascript engine.
 #include <config.h>
 #ifdef JAVASCRIPT_SM
 #if defined(JS_SMCPP)
+#include <jsversion.h>
 #undef DEBUG
 //#define DEBUG 1 //challenge it with lots of ASSERTS, just for cleaning up code correctness, not production
 # include <jsapi.h> /* JS compiler */
 //# include <jsdbgapi.h> /* JS debugger */
 
 //#if !(defined(JAVASCRIPT_STUB) || defined(JAVASCRIPT_DUK))
+#ifndef JS_VERSION
 #define JS_VERSION 187
+#endif
 //#define JS_THREADSAFE 1 //by default in 186+
 
 #define STRING_SIZE 256
@@ -180,7 +183,11 @@ JSClass* JS_GetClassFw(JSContext *cx, JSObject *obj){
 }
 JSObject * JS_GetPrototypeFw(JSContext *cx, JSObject * obj){
 	JSObject *proto;
+#if JS_VERSION >= 187
 	if( JS_GetPrototype(cx,obj,&proto))
+#else
+	if(proto = JS_GetPrototype(obj))
+#endif
 		return proto;
 	else
 		return NULL;

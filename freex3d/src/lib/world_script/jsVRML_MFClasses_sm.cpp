@@ -104,7 +104,7 @@ JS_MY_Finalize(JSFreeOp *fop, JSObject *obj){
 
 	void *ptr;
 	//#ifdef JSVRMLCLASSESVERBOSE
-	printf ("finalizing %p\n",obj);
+	//printf ("finalizing %p\n",obj);
 	//printJSNodeType(cx,obj);
 	//#endif
 
@@ -119,11 +119,11 @@ JS_MY_Finalize(JSFreeOp *fop, JSObject *obj){
 				//AnyNativeNew mallocs ptr, v and elsewhere mf.p is malloced
 				AnyNative* any = (AnyNative*)ptr;
 				if (any->gc) {
-					if (any->type % 2 == 0) //is it MF
+					if (any->type % 2 == 1) //is it MF
 						FREE_IF_NZ(any->v->mffloat.p);
 					FREE_IF_NZ(any->v);
 				}
-				printf("finalize anygc = %d\n", any->gc);
+				//printf("finalize anygc = %d\n", any->gc);
 				FREE_IF_NZ(ptr);
 			}
 		}
@@ -329,7 +329,7 @@ MFFloatAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 MFFloatConstr(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_NewObject(cx,&MFFloatClass,NULL,NULL);
+		JSObject* obj = JS_NewObject(cx, &MFFloatClass, NULL, NULL);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval = OBJECT_TO_JSVAL(obj);
         if (!MFFloatConstrInternals(cx,obj,argc,argv,&rval)) { return JS_FALSE; }
@@ -345,7 +345,7 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	unsigned int i;
 	union anyVrml *anyv;
 
-	ADD_ROOT(cx,obj)
+//	ADD_ROOT(cx,obj) only root non-stack variables
 
 	isArray = FALSE;
 	if(argc == 1 && argv){

@@ -187,6 +187,7 @@ struct CRjsnameStruct {
         int     	type, kind;
         char    	name[MAXJSVARIABLELENGTH];
 		void *eventInFunction; /* compiled javascript function... if it is required */
+        void *traceable;
 };
 struct CRjsnameStruct *getJSparamnames();
 int JSparamIndex (const char *name, const char *type, int mod);

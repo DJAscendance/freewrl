@@ -33,7 +33,9 @@ Javascript C language binding.
 # include <jsapi.h> /* JS compiler */
 //# include <jsdbgapi.h> /* JS debugger */
 
+#ifndef JS_VERSION
 #define JS_VERSION 187
+#endif
 //#define JS_THREADSAFE 1 //by default in 186+
 int JS_SetPrivateFw(JSContext *cx, JSObject* obj, void *data);
 JSObject* JS_NewGlobalObjectFw(JSContext *cx, JSClass *clasp); //, JSPrincipals *princ);
@@ -205,7 +207,9 @@ struct JSClass {
 };
 */
 
-
+#if JS_VERSION < 187
+#define JS_DeletePropertyStub JS_PropertyStub
+#endif
 //Q. is this a true sharable static?
 static JSClass Browser = {
     "Browser",

@@ -2138,6 +2138,7 @@ int JSparamIndex (const char *name, const char *type, int mod) {
 	JSparamnames[tg->CRoutes.jsnameindex].type = ty;
 	JSparamnames[tg->CRoutes.jsnameindex].kind = mod;
 	JSparamnames[tg->CRoutes.jsnameindex].eventInFunction = NULL;
+	JSparamnames[tg->CRoutes.jsnameindex].traceable = NULL;
 	#ifdef CRVERBOSE
 	printf ("JSparamIndex, returning %d\n",tg->JScript.jsnameindex); 
 	#endif
@@ -2418,6 +2419,7 @@ void propagate_events_B() {
 	if(debugRoutes)
 		printf("current time=%d routecount=%d\n",p->thisIntTimeStamp,p->CRoutes_Count);
 	//#endif
+
 	do {
 		havinterp=FALSE; /* assume no interpolators triggered */
 
@@ -2535,7 +2537,6 @@ void propagate_events_B() {
 			isize = sizeofSForMF(sftype);
 			if(isMF) len = sizeof(int) + sizeof(void*);
 			else len = isize;
-			
 
 
 			for (to_counter = 0; to_counter < p->CRoutes[counter].tonode_count; to_counter++) {
