@@ -97,7 +97,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>$(LIBWIN)/LabSound/lib/Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LabSound.lib;libnyquist.lib;libwavpack.lib;samplerate.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>LabSound.lib;libnyquist.lib;libwavpack.lib;samplerate.lib;LabSoundRtAudio.lib;LabSoundMiniAudio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
