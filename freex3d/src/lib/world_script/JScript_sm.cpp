@@ -336,10 +336,10 @@ void sm_jsClearScriptControlEntries(int num) //struct CRscriptStruct *ScriptCont
 
 
 /* MAX_RUNTIME_BYTES controls when garbage collection takes place. */
-#define MAX_RUNTIME_BYTES 0xB0000L
+//#define MAX_RUNTIME_BYTES 0xB0000L
 //#define MAX_RUNTIME_BYTES 0xC00000L
 //#define MAX_RUNTIME_BYTES 0x1000000L 
-//#define MAX_RUNTIME_BYTES 0x4000000L
+#define MAX_RUNTIME_BYTES 0x4000000L
 //#define MAX_RUNTIME_BYTES 0xF000000L
 
 
@@ -567,6 +567,7 @@ void sm_JSCreateScriptContext(int num) {
 			_globalObj = global;
 			ScriptControl->cx =  _context;
 			ScriptControl->glob =  _globalObj;
+			//printf("context %p global %p script %p\n", _context, _globalObj, ScriptControl->script);
 			if(SM_method()==2){
 				//JS_SetPrivateFw(_context,_globalObj,ScriptControl->script); //in get/setECMAtype we need our C script struct
 				//JS_SetPrivate((JSObject*)ScriptControl->glob, ScriptControl->script);
@@ -2857,18 +2858,22 @@ void sm_set_one_ECMAtype (int tonode, int toname, int dataType, void *Data, int 
 			//step 2 run eventin if it exists
 			/* is the function compiled yet? */
 			//printf("[SOET ");
+			JSScript* hscript = NULL;
+			JS::RootedScript rscript(cx,hscript);
 			//COMPILE_FUNCTION_IF_NEEDED_SET(toname, kind);
 			{
 			//#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
 				int tnfield = toname;
-				if (JSparamnames[tnfield].eventInFunction == NULL) {
+				hscript = (JSScript*)JSparamnames[tnfield].eventInFunction;
+				if (JSparamnames[tnfield].eventInFunction == NULL || TRUE) {
 					if(kind == PKW_inputOutput)
 						sprintf (scriptline,"set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name,JSparamnames[tnfield].name);
 					else /* PKW_inputOnly */
 						sprintf (scriptline,"%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name);
 					/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */
-					JSparamnames[tnfield].eventInFunction = (void*)JS_CompileScript(
+					hscript = (JSScript*)JS_CompileScript(
 						cx, obj, scriptline, strlen(scriptline), "compile eventIn",1);
+					JSparamnames[tnfield].eventInFunction = (void*)hscript;
 					if(0) if (!JS_AddObjectRoot(cx,(JSObject**)(&JSparamnames[tnfield].eventInFunction))) {
 						printf( "JS_AddObjectRoot failed for compilation of script \"%s\" at %s:%d.\n",scriptline,__FILE__,__LINE__);
 						return;
@@ -3001,6 +3006,8 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 				//JS_GC(p->runtime);
 				//printf(">");
 				//compile also pushes the field val onto call stack
+				JSScript* hscript = NULL;
+				JS::RootedScript rscript(cx, hscript);
 				//COMPILE_FUNCTION_IF_NEEDED_SET(toname, kind);
 				{
 					int tnfield = toname;
@@ -3012,7 +3019,6 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 								sprintf (scriptline,"%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name,"__eventIn_Value_",JSparamnames[tnfield].name); 
 							/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */ 
 							//JS::Heap<JSScript*> hscript;
-							JSScript* hscript;
 							hscript = JS_CompileScript( cx, obj, scriptline, strlen(scriptline), "compile eventIn",1);
 							JSparamnames[tnfield].eventInFunction = (void*)hscript;
 							//JSScript *script = JS_CompileScript(cx, obj, scriptline, strlen(scriptline), "compile eventIn", 1);
@@ -3665,6 +3671,9 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 				//JS_GC(p->runtime);
 				//printf(">");
 				//compile also pushes the field val onto call stack
+				JSScript* hscript = NULL;
+				JS::RootedScript rscript(cx, hscript);
+
 				//COMPILE_FUNCTION_IF_NEEDED_SET(toname, kind);
 				{
 					//#define COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
@@ -3675,7 +3684,6 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 						else /* PKW_inputOnly */
 							sprintf(scriptline, "%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name, "__eventIn_Value_", JSparamnames[tnfield].name);
 						/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */
-						JSScript* hscript;
 						hscript = JS_CompileScript(
 							cx, obj, scriptline, strlen(scriptline), "compile eventIn", 1);
 						JSparamnames[tnfield].eventInFunction = (void*)hscript;
