@@ -2899,47 +2899,48 @@ static GLfloat matrix90[] = {
 
 
 unsigned int getCircleCursorTextureID();
-void render_orientation(void *_self){
-	contenttype_orientation *self;
+void render_orientation(void* _self) {
+	contenttype_orientation* self;
 	int haveTexture;
 	GLint  positionLoc, texCoordLoc, textureLoc;
-    GLint textureMatrix0;
+	GLint textureMatrix0;
 	GLuint textureID;
-	float *orientationMatrix;
-	s_shader_capabilities_t *scap;
-	self = (contenttype_orientation *)_self;
+	float* orientationMatrix;
+	s_shader_capabilities_t* scap;
+	self = (contenttype_orientation*)_self;
 
 	haveTexture = FALSE;
-	if(self->t1.contents && self->t1.contents->t1.itype == CONTENT_STAGE){
-		stage *s = (stage*)self->t1.contents;
-		if(s->type == STAGETYPE_FBO){
-			
+	if (self->t1.contents && self->t1.contents->t1.itype == CONTENT_STAGE) {
+		stage* s = (stage*)self->t1.contents;
+		if (s->type == STAGETYPE_FBO) {
+
 			textureID = s->itexturebuffer;
 			//for testing when fbo isn't working (give it a known texture):
-			//if(0) textureID = getCircleCursorTextureID();
+			//if(0) 
+			// textureID = getCircleCursorTextureID();
 			haveTexture = TRUE;
 		}
 	}
-	if(!haveTexture) 
+	if (!haveTexture)
 		return; //nothing worth drawing - could do a X texture
 	//now we load our textured geometry plane/grid to render it
 
-	switch(gglobal()->Mainloop.screenOrientation2){
-		case 180:  //landscape to upsidedown
-			orientationMatrix = matrix180;
-			break;
-		case 270:  //portrait upsidedown
-			orientationMatrix = matrix270;
-			break;
-		case 90: //portrait upsideright
-			orientationMatrix = matrix90;
-			break;
-		case 0:  //landscape upsideright
-		case 360:
-		default:
-			//landscape
-			orientationMatrix = matrixIdentity;
-			break;
+	switch (gglobal()->Mainloop.screenOrientation2) {
+	case 180:  //landscape to upsidedown
+		orientationMatrix = matrix180;
+		break;
+	case 270:  //portrait upsidedown
+		orientationMatrix = matrix270;
+		break;
+	case 90: //portrait upsideright
+		orientationMatrix = matrix90;
+		break;
+	case 0:  //landscape upsideright
+	case 360:
+	default:
+		//landscape
+		orientationMatrix = matrixIdentity;
+		break;
 	}
 
 	FW_GL_DEPTHMASK(GL_FALSE);
@@ -2949,40 +2950,67 @@ void render_orientation(void *_self){
 	//use FW shader pipeline
 	//we'll use a simplified shader -same one we use for DrawCursor- that 
 	//skips all the fancy lighting and material, and just shows texture as diffuse material
-	scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
-	enableGlobalShader(scap);
-	positionLoc =  scap->Vertices; 
-	glVertexAttribPointer (positionLoc, 3, GL_FLOAT, 
-						   GL_FALSE, 0, self->vert );
-	// Load the texture coordinate
-	texCoordLoc = scap->TexCoords[0];
-	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
-	glUniform1i(scap->nTexCoordChannels,1);
-	glUniform1i(scap->flipuv, 0);
-	glEnableVertexAttribArray (positionLoc );
-	glEnableVertexAttribArray ( texCoordLoc);
+	if (1) {
+		//simpler shader using debug shader at bottom of Compositing_Shaders.c
+		s_shader_capabilities_t* scap;
+		shaderflagsstruct shader_requirements;
+		memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+		shader_requirements.debug = 7;
+		scap = getMyShaders(shader_requirements);
+		enableGlobalShader(scap);
+		positionLoc = 0;// scap->Vertices;
+		glVertexAttribPointer(positionLoc, 3, GL_FLOAT,	GL_FALSE, 0, self->vert);
+		// Load the texture coordinate
+		texCoordLoc = 1; // scap->TexCoords[0];
+		glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, self->tex);
+		glEnableVertexAttribArray(positionLoc);
+		glEnableVertexAttribArray(texCoordLoc);
 
-	// Bind the base map - see above
-	glActiveTexture ( GL_TEXTURE0 );
-	glBindTexture ( GL_TEXTURE_2D, textureID );
-	glUniform1i(scap->textureCount, 1);
-	// Set the base map sampler to texture unit to 0
-	textureLoc = scap->TextureUnit[0];
-	textureMatrix0 = scap->TextureMatrix[0];
-	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
-	glUniform1i(scap->nTexMatrix, 1);
+		// Bind the base map - see above
+		int ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
+		glUniform1i(ia, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
 
-	glUniform1i ( textureLoc, 0 );
-	//window coordinates natively go from -1 to 1 in x and y
-	//but usually the window is rectangular, so to draw a perfect square
-	//you need to scale the coordinates differently in x and y
+		int modelviewMatrixLoc = glGetUniformLocation(scap->myShaderProgram, "fw_ModelViewMatrix");
+		glUniformMatrix4fv(modelviewMatrixLoc, 1, GL_FALSE, orientationMatrix); //matrix90); //
+		//PRINT_GL_ERROR_IF_ANY("XEvents::render");
+	}
+	else {
+		//complex Shape shader, too hard to use for simple texture on quad
+		scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
+		enableGlobalShader(scap);
+		positionLoc = scap->Vertices;
+		glVertexAttribPointer(positionLoc, 3, GL_FLOAT,
+			GL_FALSE, 0, self->vert);
+		// Load the texture coordinate
+		texCoordLoc = scap->TexCoords[0];
+		glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, self->tex);
+		glUniform1i(scap->nTexCoordChannels, 1);
+		glUniform1i(scap->flipuv, 0);
+		glEnableVertexAttribArray(positionLoc);
+		glEnableVertexAttribArray(texCoordLoc);
 
-	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity); 
-	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, orientationMatrix); //matrix90); //
-	
+		// Bind the base map - see above
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glUniform1i(scap->textureCount, 1);
+		// Set the base map sampler to texture unit to 0
+		textureLoc = scap->TextureUnit[0];
+		textureMatrix0 = scap->TextureMatrix[0];
+		glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+		glUniform1i(scap->nTexMatrix, 1);
+
+		glUniform1i(textureLoc, 0);
+		//window coordinates natively go from -1 to 1 in x and y
+		//but usually the window is rectangular, so to draw a perfect square
+		//you need to scale the coordinates differently in x and y
+
+		glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity);
+		glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, orientationMatrix); //matrix90); //
+	}
 	//desktop glew, angleproject and winRT can do this:
 	glDrawElements(GL_TRIANGLES, self->nelements, GL_UNSIGNED_SHORT, self->index);// winRT needs GLushort indexes, can't do GL_QUADS
-
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

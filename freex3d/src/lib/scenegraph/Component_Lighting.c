@@ -879,7 +879,7 @@ void render_debug_quad() {
 	glActiveTexture(GL_TEXTURE0);
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad before enable CUBE_MAP");
 
-	if (debug_quad.which_debug_shader > 3) {
+	if (debug_quad.which_debug_shader > 3 && debug_quad.which_debug_shader < 7) {
 		PRINT_GL_ERROR_IF_ANY("render_debug_quad before bind CUBE_MAP");
 		glBindTexture(GL_TEXTURE_CUBE_MAP, debug_quad.textureID);
 	}
@@ -890,7 +890,7 @@ void render_debug_quad() {
 	renderQuad();
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad after renderQuad");
 
-	if (debug_quad.which_debug_shader > 3) {
+	if (debug_quad.which_debug_shader > 3 && debug_quad.which_debug_shader < 7) {
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	}
 	PRINT_GL_ERROR_IF_ANY("render_debug_quad END");

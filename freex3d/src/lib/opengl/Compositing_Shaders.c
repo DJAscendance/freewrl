@@ -5312,6 +5312,19 @@ void main() \n\
 	gl_Position = vec4(aPos, 1.0); \n\
 } \n\
 ";
+char* vertexQuadMatrix = "#version 330 core \n\
+layout(location = 0) in vec3 aPos; \n\
+layout(location = 1) in vec2 aTexCoords; \n\
+uniform mat4 fw_ModelViewMatrix; \n\
+\n\
+out vec2 TexCoords; \n\
+ \n\
+void main() \n\
+{ \n\
+	TexCoords = aTexCoords; \n\
+	gl_Position = fw_ModelViewMatrix * vec4(aPos, 1.0); \n\
+} \n\
+";
 char* fragmentQuadNormal = "#version 330 core \n\
 out vec4 FragColor; \n\
 in vec2 TexCoords; \n\
@@ -5437,10 +5450,14 @@ void main() \n\
 ";
 
 int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fragmentSource, shaderflagsstruct whichOne) {
-	*vertexSource = strdup(vertexQuad);
+	if(whichOne.debug == 7)
+		*vertexSource = strdup(vertexQuadMatrix);
+	else
+		*vertexSource = strdup(vertexQuad);
 
 	switch (whichOne.debug) {
 	case 1:
+	case 7:
 		*fragmentSource = strdup(fragmentQuadNormal);
 		break;
 	case 2:
@@ -5461,3 +5478,4 @@ int getSpecificShaderSourceDebug(const GLchar** vertexSource, const GLchar** fra
 	}
 	return TRUE;
 }
+
