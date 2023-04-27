@@ -2678,44 +2678,70 @@ void render_texturegrid(void *_self){
 	//use FW shader pipeline
 	//we'll use a simplified shader -same one we use for DrawCursor- that 
 	//skips all the fancy lighting and material, and just shows texture as diffuse material
-	scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
-	enableGlobalShader(scap);
-	positionLoc =  scap->Vertices; 
-	glVertexAttribPointer (positionLoc, 3, GL_FLOAT, 
-						   GL_FALSE, 0, self->vert2 );
-	// Load the texture coordinate
-	texCoordLoc = scap->TexCoords[0];
-	glVertexAttribPointer ( texCoordLoc, 2, GL_FLOAT,  GL_FALSE, 0, self->tex );  
-	glUniform1i(scap->nTexCoordChannels,1);
-	glUniform1i(scap->flipuv, 0);
-	glEnableVertexAttribArray (positionLoc );
-	glEnableVertexAttribArray ( texCoordLoc);
+	if (1) {
+		//simpler shader using debug shader at bottom of Compositing_Shaders.c
+		s_shader_capabilities_t* scap;
+		shaderflagsstruct shader_requirements;
+		memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+		shader_requirements.debug = 1;
+		scap = getMyShaders(shader_requirements);
+		enableGlobalShader(scap);
+		positionLoc = 0;// scap->Vertices;
+		glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 0, self->vert2);
+		// Load the texture coordinate
+		texCoordLoc = 1; // scap->TexCoords[0];
+		glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, self->tex);
+		glEnableVertexAttribArray(positionLoc);
+		glEnableVertexAttribArray(texCoordLoc);
 
-	// Bind the base map - see above
-	glActiveTexture ( GL_TEXTURE0 );
-	glBindTexture ( GL_TEXTURE_2D, textureID );
-	useMip = 0;
-	if(useMip)
-		glGenerateMipmap(GL_TEXTURE_2D);
+		// Bind the base map - see above
+		int ia = glGetUniformLocation(scap->myShaderProgram, "textureUnit");
+		glUniform1i(ia, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+
+		//PRINT_GL_ERROR_IF_ANY("XEvents::render");
+
+	}
+	else {
+		scap = getMyShader(ONE_TEX_APPEARANCE_SHADER);
+		enableGlobalShader(scap);
+		positionLoc = scap->Vertices;
+		glVertexAttribPointer(positionLoc, 3, GL_FLOAT,
+			GL_FALSE, 0, self->vert2);
+		// Load the texture coordinate
+		texCoordLoc = scap->TexCoords[0];
+		glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, self->tex);
+		glUniform1i(scap->nTexCoordChannels, 1);
+		glUniform1i(scap->flipuv, 0);
+		glEnableVertexAttribArray(positionLoc);
+		glEnableVertexAttribArray(texCoordLoc);
+
+		// Bind the base map - see above
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		useMip = 0;
+		if (useMip)
+			glGenerateMipmap(GL_TEXTURE_2D);
 
 
-	// Set the base map sampler to texture unit to 0
-	textureLoc = scap->TextureUnit[0];
-	textureMatrix0 = scap->TextureMatrix[0];
-	glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
-	glUniform1i(scap->nTexMatrix, 1);
+		// Set the base map sampler to texture unit to 0
+		textureLoc = scap->TextureUnit[0];
+		textureMatrix0 = scap->TextureMatrix[0];
+		glUniformMatrix4fv(textureMatrix0, 1, GL_FALSE, matrixIdentity);
+		glUniform1i(scap->nTexMatrix, 1);
 
-	glUniform1i ( textureLoc, 0 );
-	glUniform1i(scap->textureCount, 1);
+		glUniform1i(textureLoc, 0);
+		glUniform1i(scap->textureCount, 1);
 
-	//window coordinates natively go from -1 to 1 in x and y
-	//but usually the window is rectangular, so to draw a perfect square
-	//you need to scale the coordinates differently in x and y
+		//window coordinates natively go from -1 to 1 in x and y
+		//but usually the window is rectangular, so to draw a perfect square
+		//you need to scale the coordinates differently in x and y
 
-	glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity); 
+		glUniformMatrix4fv(scap->ProjectionMatrix, 1, GL_FALSE, matrixIdentity);
 
-	glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, matrixIdentity); //matrix90); //
-	
+		glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, matrixIdentity); //matrix90); //
+	}
 	if(0){
 		glDrawArrays(GL_TRIANGLES,0,self->nelements);
 	}else{
