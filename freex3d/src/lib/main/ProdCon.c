@@ -153,7 +153,7 @@ void *ProdCon_constructor(){
 void ProdCon_init(struct tProdCon *t)
 {
 	//public
-	t->requestedvpno=0;
+	t->currboundvpno=0;
 
 	/* bind nodes in display loop, NOT in parsing threadthread */
 	t->setViewpointBindInRender = NULL;
@@ -500,6 +500,7 @@ void new_root(){
 
 	/* tell the statusbar that it needs to reinitialize */
 	//kill_status();
+	setMenuStatusVP(NULL);
 
 	/* free textures */
 /*
@@ -532,6 +533,7 @@ void new_root(){
 
 	/* tell statusbar that we have none */
 	viewer_default();
+	setMenuStatusVP("NONE");
 
 	//ConsoleMessage ("new_root, right now rootNode has %d children\n",rootNode()->children.n);
 

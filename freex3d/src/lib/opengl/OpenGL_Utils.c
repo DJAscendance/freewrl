@@ -4267,7 +4267,7 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 
 	/* stop routing */
 	kill_routing();
-
+	setMenuStatusVP(NULL);
 	/* tell the statusbar that it needs to reinitialize */
 	//kill_status();
 
@@ -4303,6 +4303,7 @@ void kill_oldWorld(int kill_EAI, int kill_JavaScript, char *file, int line) {
 
 	/* tell statusbar that we have none */
 	//viewer_default();
+	setMenuStatusVP("NONE");
 }
 void unload_globalParser() {
 	// unload any string tables, and signal to any replacworld scene that it needs a new parser+lexer struct

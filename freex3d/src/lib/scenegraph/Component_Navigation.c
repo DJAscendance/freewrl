@@ -93,7 +93,6 @@ void prep_Viewpoint (struct X3D_Viewpoint *node) {
 void draw_viewpoint(int type, float *fov, float aspect);
 void render_Viewpoint (struct X3D_Viewpoint *node) {
 	float center[3],size[3];
-	node->_reachablethispass = TRUE;
 	if(node->_show_pin_point || fwl_getShowViewpoints())
 		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,.4f,.4f,.4f));
 	if(fwl_getShowViewpoints()){
@@ -108,7 +107,6 @@ void render_Viewpoint (struct X3D_Viewpoint *node) {
 }
 void render_OrthoViewpoint (struct X3D_OrthoViewpoint *node) {
 	float center[3],size[3];
-	node->_reachablethispass = TRUE;
 	if(node->_show_pin_point || fwl_getShowViewpoints())
 		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,.4f,.4f,.4f));
 	if(fwl_getShowViewpoints()){

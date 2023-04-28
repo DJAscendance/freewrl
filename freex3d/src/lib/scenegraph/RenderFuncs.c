@@ -1889,8 +1889,6 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	if(rs->render_blend || rs->render_geom){
 		push_globalRenderFlags();
 	}
-	if(rs->render_geom)
-		clear_vp_reachable_flags();
 	profile_start("render_hier");
 	//push_group_extent_default();
 	render_node(X3D_NODE(g));
