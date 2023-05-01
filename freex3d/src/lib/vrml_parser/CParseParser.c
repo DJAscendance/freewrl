@@ -415,7 +415,32 @@ BOOL isProto(struct X3D_Node *node)
 		}
 	return retval;
 }
+void add_empty_proto_vectors(struct X3D_Node* node) {
+	// javascript interface wants to do this:
+	// Browser.print('Context: number of protos='+Browser.currentScene.protos.length);
+	// and our lazy-intialization tactic makes it bomb if the protos vector is null.
+	// so we will create non-empty vectors here.
 
+	if (!node)return;
+	if (node->_nodeType != NODE_Proto && node->_nodeType != NODE_Inline) return;
+	struct X3D_Proto* proto = (struct X3D_Proto*)node;
+	proto->__protoDeclares = newStack(struct X3D_Proto*);
+	proto->__externProtoDeclares = newStack(struct X3D_Proto*);
+	proto->__nodes = newStack(struct X3D_Node*);
+	proto->__subcontexts = newStack(struct X3D_Proto*);
+	//proto->__GC = 0;
+	//proto->__protoDef = 0;
+	//proto->__protoFlags = 0;
+	//proto->__prototype = NULL;
+	//proto->__parentProto = NULL;
+	proto->__ROUTES = newStack(struct X3D_Route*);
+	proto->__EXPORTS = newStack(struct IMEXPORT*);
+	proto->__IMPORTS = newStack(struct IMEXPORT*);
+	proto->__DEFnames = newStack(struct brotoDefpair*);
+	proto->__IS = newStack(struct brotoIS*);
+	proto->__scripts = newStack(struct X3D_Node*);
+
+}
 
 /* ************************************************************************** */
 /* Constructor and destructor */
@@ -3772,7 +3797,7 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	//return NULL; //no scenegraph node created, or more precisely: nothing to link in to parent's children
 	
 	//create a ProtoDeclare
-    proto = createNewX3DNode0(NODE_Proto);
+    proto = createNewX3DNode(NODE_Proto);
 	//add it to the current context's list of declared protos
 	if(X3D_NODE(me->ectx)->_nodeType != NODE_Proto && X3D_NODE(me->ectx)->_nodeType != NODE_Inline )
 		printf("ouch trying to caste node type %d to proto\n",X3D_NODE(me->ectx)->_nodeType);
@@ -3780,7 +3805,6 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	if(parent->__protoDeclares == NULL)
 		parent->__protoDeclares = newVector(struct X3D_Proto*,4);
 	vector_pushBack(struct X3D_Proto*,parent->__protoDeclares,proto);
-
 
 	proto->__parentProto = X3D_NODE(parent); //me->ptr; //link back to parent proto, for isAvailableProto search
 	proto->__protoFlags = parent->__protoFlags;
@@ -4544,6 +4568,7 @@ void copy_defnames2(Stack *defnames, struct X3D_Proto* target, struct Vector *p2
 		}
 	}
 }
+
 void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p);
 void copy_IStable(Stack **sourceIS, Stack** destIS);
 void copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest, struct Vector *p2p, 
@@ -4616,6 +4641,18 @@ void deep_copy_broto_body2(struct X3D_Proto** proto, struct X3D_Proto** dest)
 	copy_routes2(prototype->__ROUTES, p, p2p);
 	//2.d) copy defnames
 	copy_defnames2(prototype->__DEFnames, p, p2p);
+	//2.e) copy protodeclares
+	// copy_protodeclares2
+	struct X3D_Proto* pp;
+	for (int i = 0; i < vectorSize(prototype->__protoDeclares); i++) {
+		pp = vector_get(struct X3D_Proto*, prototype->__protoDeclares, i);
+		vector_pushBack(struct X3D_Proto*, p->__protoDeclares, pp);
+	}
+	// copy_externprotodeclares2
+	for (int i = 0; i < vectorSize(prototype->__externProtoDeclares); i++) {
+		pp = vector_get(struct X3D_Proto*, prototype->__externProtoDeclares, i);
+		vector_pushBack(struct X3D_Proto*, p->__externProtoDeclares, pp);
+	}
 
 	////3. convert IS events to backward routes - maybe not for broto3, which might use the IS table in the (yet to be developed) routing algo
 	copy_IS(p->__IS, p, p2p);

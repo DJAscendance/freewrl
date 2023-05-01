@@ -17271,7 +17271,8 @@ void *createNewX3DNode0 (int nt) {
 void *createNewX3DNode (int nt) {
 	void * tmp;
 	tmp = createNewX3DNode0(nt);
-	
+
+	add_empty_proto_vectors(tmp);
 	/* is this a texture holding node? */
 	registerTexture(tmp);
 	/* Node Tracking */

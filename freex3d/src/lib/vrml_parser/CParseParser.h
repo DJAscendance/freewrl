@@ -248,4 +248,5 @@ struct IMEXPORT {
 };
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name);
+void add_empty_proto_vectors(struct X3D_Node* node);
 #endif /* __FREEWRL_CPARSE_PARSER_H__ */
