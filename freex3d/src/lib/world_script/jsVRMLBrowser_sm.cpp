@@ -228,6 +228,159 @@ struct JSClass {
 #endif
 
 
+//X3DConstants 
+struct string_int {
+	char* c;
+	int i;
+};
+
+struct string_int lookup_X3DConstants[] = {
+	{"INITIALIZED_EVENT",1},
+	{"SHUTDOWN_EVENT",1},
+	{"CONNECTION_ERROR",1},
+	{"INITIALIZED_ERROR",1},
+	{"NOT_STARTED_STATE",1},
+	{"IN_PROGRESS_STATE",1},
+	{"COMPLETE_STATE",1},
+	{"FAILED_STATE",0},
+	{"SFBool",FIELDTYPE_SFBool},
+	{"MFBool",FIELDTYPE_MFBool},
+	{"MFInt32",FIELDTYPE_MFInt32},
+	{"SFInt32",FIELDTYPE_SFInt32},
+	{"SFFloat",FIELDTYPE_SFFloat},
+	{"MFFloat",FIELDTYPE_MFFloat},
+	{"SFDouble",FIELDTYPE_SFDouble},
+	{"MFDouble",FIELDTYPE_MFDouble},
+	{"SFTime",FIELDTYPE_SFTime},
+	{"MFTime",FIELDTYPE_MFTime},
+	{"SFNode",FIELDTYPE_SFNode},
+	{"MFNode",FIELDTYPE_MFNode},
+	{"SFVec2f",FIELDTYPE_SFVec2f},
+	{"MFVec2f",FIELDTYPE_MFVec2f},
+	{"SFVec3f",FIELDTYPE_SFVec3f},
+	{"MFVec3f",FIELDTYPE_MFVec3f},
+	{"SFVec3d",FIELDTYPE_SFVec3d},
+	{"MFVec3d",FIELDTYPE_MFVec3d},
+	{"SFRotation",FIELDTYPE_SFRotation},
+	{"MFRotation",FIELDTYPE_MFRotation},
+	{"SFColor",FIELDTYPE_SFColor},
+	{"MFColor",FIELDTYPE_MFColor},
+	{"SFImage",FIELDTYPE_SFImage},
+	//	{"MFImage",FIELDTYPE_MFImage},
+		{"SFColorRGBA",FIELDTYPE_SFColorRGBA},
+		{"MFColorRGBA",FIELDTYPE_MFColorRGBA},
+		{"SFString",FIELDTYPE_SFString},
+		{"MFString",FIELDTYPE_MFString},
+		/*
+			{"X3DBoundedObject",},
+			{"X3DMetadataObject",},
+			{"X3DUrlObject",},
+			{"X3DTriggerNode",},
+			{"X3DInfoNode",},
+			{"X3DAppearanceNode",},
+			{"X3DAppearanceChildNode",},
+			{"X3DMaterialNode",},
+			{"X3DTextureNode",},
+			{"X3DTexture2DNode",},
+			{"X3DTexture3DNode",},
+			{"X3DTextureTransformNode",},
+			{"X3DGeometryNode",},
+			{"X3DGeometry3DNode",},
+			{"X3DCoordinateNode",},
+			{"X3DParametricGeometryNode",},
+			{"X3DGeometricPropertyNode",},
+			{"X3DColorNode",},
+			{"X3DProtoInstance",},
+			{"X3DNormalNode",},
+			{"X3DTextureCoordinateNode",},
+			{"X3DFontStyleNode",},
+			{"X3DGroupingNode ",},
+			{"X3DChildNode",},
+			{"X3DBindableNode",},
+			{"X3DBackgroundNode",},
+			{"X3DInterpolatorNode",},
+			{"X3DShapeNode",},
+			{"X3DScriptNode",},
+			{"X3DSensorNode",},
+			{"X3DEnvironmentalSensorNode",},
+			{"X3DLightNode",},
+			{"X3DNetworkSensorNode",},
+			{"X3DPointingDeviceSensorNode",},
+			{"X3DDragSensorNode",},
+			{"X3DKeyDeviceSensorNode",},
+			{"X3DSequencerNode",},
+			{"X3DTimeDependentNode",},
+			{"X3DSoundNode",},
+			{"X3DSoundSourceNode",},
+			{"X3DTouchSensorNode",},
+		*/
+			{"inputOnly",PKW_inputOnly},
+			{"outputOnly",PKW_outputOnly},
+			{"inputOutput",PKW_inputOutput},
+			{"initializeOnly",PKW_initializeOnly},
+			{NULL,0}
+};
+
+struct string_int* lookup_string_int(struct string_int* table, const char* searchkey, int* index) {
+	int i;
+	//struct string_int *retval = NULL;
+	*index = -1;
+	if (!table) return NULL;
+	i = 0;
+	while (table[i].c) {
+		if (!strcmp(table[i].c, searchkey)) {
+			//found it
+			(*index) = i;
+			return &table[i];
+		}
+		i++;
+	}
+	return NULL;
+}
+JSBool
+X3DConstantsGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	int index;
+	JSString* _str;
+	char* str;
+	jsval rval;
+	jsval id;
+
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DRouteGetProperty.\n");
+		return JS_FALSE;
+	}
+	if (JSVAL_IS_STRING(id)) {
+		str = (char*)JS_EncodeString(cx, JSVAL_TO_STRING(id));;
+		string_int* iret = lookup_string_int(lookup_X3DConstants, str, &index);
+		rval = INT_TO_JSVAL(iret->i);
+		JS_SET_RVAL(cx, vp, rval);
+		return JS_TRUE;
+	}
+	return JS_FALSE;
+}
+
+
+int len_constants() {
+	int len = (sizeof(lookup_X3DConstants) / sizeof(struct string_int)) - 1;
+	return len;
+}
+
+static JSClass X3DConstantsClass = {
+	"X3DConstants",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	X3DConstantsGetProperty,
+	JS_StrictPropertyStub,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub
+};
 
 //fieldDefinition
 
@@ -2756,6 +2909,7 @@ struct JSLoadPropElement JSLoadPropsAux[] = {
 		{ &ProtoDeclarationClass, NULL, &ProtoDeclarationFunctions, &ProtoDeclarationProperties, "ProtoDeclarationClass"},
 		{ &FieldDefinitionArrayClass, NULL, NULL, &FieldDefinitionArrayProperties, "FieldDefinitionClass"},
 		{ &FieldDefinitionClass, NULL, NULL, &FieldDefinitionProperties, "FieldDefinitionClass"},
+		{ &X3DConstantsClass, NULL, NULL, NULL, "FieldDefinitionClass"},
 		{ NULL, NULL, NULL, NULL, NULL }
 };
 
