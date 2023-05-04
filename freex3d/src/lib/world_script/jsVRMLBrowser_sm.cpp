@@ -479,7 +479,7 @@ ProtoDeclarationGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handl
 	jsid iid = *hiid.address();
 	jsval* vp = hvp.address();
 
-	long long ptr;
+	struct X3D_Proto* ptr;
 	int _index;
 	JSString* _str;
 	jsval rval;
@@ -493,13 +493,12 @@ ProtoDeclarationGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handl
 		return JS_FALSE;
 	}
 
-	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+	if ((ptr = (struct X3D_Proto*)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf("JS_GetPrivate failed in X3DRouteGetProperty.\n");
 		return JS_FALSE;
 	}
-	_index = ptr - 1;
 	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
-	struct X3D_Proto* proto = vector_get(struct X3D_Proto*, ec->__protoDeclares, _index);
+	struct X3D_Proto* proto = ptr;
 	struct ProtoDefinition* pd;
 	pd = (struct ProtoDefinition*)proto->__protoDef;
 
@@ -587,7 +586,7 @@ ProtoDeclarationArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::
 	jsid iid = *hiid.address();
 	jsval* vp = hvp.address();
 
-	int* _table;
+	Stack *protos;
 	jsval rval;
 	jsval id;
 
@@ -599,10 +598,10 @@ ProtoDeclarationArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::
 		return JS_FALSE;
 	}
 
-	//if ((_table = (int*)JS_GetPrivateFw(cx, obj)) == NULL) {
-	//	printf("JS_GetPrivate failed in ProtoDeclarationArrayGetProperty.\n");
-	//	return JS_FALSE;
-	//}
+	if ((protos = (Stack*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in ProtoDeclarationArrayGetProperty.\n");
+		return JS_FALSE;
+	}
 	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
 
 	int index = -1;
@@ -611,10 +610,10 @@ ProtoDeclarationArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::
 	else
 		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), ProtoDeclarationArrayProperties);
 	if (index == -1) {
-		int _length = vectorSize(ec->__protoDeclares);
+		int _length = vectorSize(protos);
 		JS_SET_RVAL(cx, vp, INT_TO_JSVAL(_length));
 	}
-	else if (index > -1 && index < vectorSize(ec->__protoDeclares))
+	else if (index > -1 && index < vectorSize(protos))
 	{
 		JSObject* _obj;
 		_obj = JS_NewObject(cx, &ProtoDeclarationClass, NULL, obj);
@@ -622,8 +621,8 @@ ProtoDeclarationArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::
 			printf("JS_DefineProperties failed in ProtoDeclarationProperties.\n");
 			return JS_FALSE;
 		}
-		long long iindex = index + 1;
-		if (!JS_SetPrivateFw(cx, _obj, (void*)iindex)) {
+		struct X3D_Proto* proto = vector_get(struct X3D_Proto*,protos,index);
+		if (!JS_SetPrivateFw(cx, _obj, (void*)proto)) {
 			printf("JS_SetPrivate failed in ProtoDeclarationArray.\n");
 			return JS_FALSE;
 		}
@@ -1546,17 +1545,28 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				printf("JS_DefineProperties failed in ExecutionContext_X3DRouteArrayProperties.\n");
 				return JS_FALSE;
 			}
-			//if (!JS_SetPrivateFw(cx, _obj, (void*)_table)) {
-		//	printf( "JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
-		//	return JS_FALSE;
-		//}
+			if (!JS_SetPrivateFw(cx, _obj, ptr->__protoDeclares)) {
+				printf( "JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
+				return JS_FALSE;
+			}
 			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
 			
 		}
 		break;
 
 		case 7: //externprotos externProtoDeclarationArray rw
-			return JS_FALSE;
+		{
+			JSObject* _obj;
+			//malloc private not needed
+			_obj = JS_NewObject(cx, &ProtoDeclarationArrayClass, NULL, obj);
+			if (!JS_SetPrivateFw(cx, _obj, ptr->__externProtoDeclares)) {
+				printf("JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+
+		}
+		break;
 		case 8: //routes RouteArray readonly
 			{
 				JSObject *_obj;
