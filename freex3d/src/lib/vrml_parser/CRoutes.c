@@ -1589,6 +1589,11 @@ void mark_event_B (struct X3D_Node *lastFrom, int lastptr, struct X3D_Node *from
 //	ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 //	p->ScriptControl = ScriptControl;
 //}
+int getScriptControlCount() {
+
+	ttglobal tg = (ttglobal)gglobal();
+	return tg->CRoutes.max_script_found;
+}
 struct CRscriptStruct *getScriptControlIndex(int actualscript)
 {
 	ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;

@@ -448,7 +448,7 @@ void fwl_startFreeWRL(const char *url)
 {
 	ttglobal tg = gglobal();
 	//ConsoleMessage ("yes, really, FWL_STARTFREEWRL called is called\n");
-
+	tg->Mainloop.url = url;
 	/* Give the main argument to the resource handler */
 	if (url != NULL) {
 

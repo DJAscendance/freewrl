@@ -589,6 +589,10 @@ void sm_JSCreateScriptContext(int num) {
 			////JS_MaybeGC(cx);
 			//JS_GC(p->runtime);
 			//printf(">");
+			if (!loadAuxiliaryClasses(_context, _globalObj)) {
+				freewrlDie("loadAuxiliaryClasses failed");
+			}
+			FW_MaybeGC("5b", cx);
 
 			if (!VrmlBrowserInit(_context, _globalObj, br)){
 				freewrlDie("VrmlBrowserInit failed");

@@ -136,6 +136,22 @@ int getCRouteCount();
 #include "jsVRMLClasses_sm.h"
 #include "jsVRMLBrowser_sm.h"
 
+// the JSVAL_IS_INT wasn't giving me the tinyid for switch-casing on property like it used to
+// this function will take the string field name and get the tinyid, so old switch-case can continue
+int lookup_tinyid(char* fieldname, JSPropertySpec* properties) {
+	JSPropertySpec* p = &properties[0];
+	int i = 0;
+	int index = -1;
+	while (p->name) {
+		if (!strcmp(p->name, fieldname)) {
+			index = p->tinyid;
+			break;
+		}
+		i++;
+		p = &properties[i];
+	}
+	return index;
+}
 
 #define X3DBROWSER 1
 
@@ -210,14 +226,448 @@ struct JSClass {
 #if JS_VERSION < 187
 #define JS_DeletePropertyStub JS_PropertyStub
 #endif
+
+
+
+//fieldDefinition
+
+static JSPropertySpec(FieldDefinitionProperties)[] = {
+	{"name", 0, JSPROP_ENUMERATE}, //string
+	{"accessType", 1, JSPROP_ENUMERATE}, //numeric / enumerated inputOnly..
+	{"dataType", 2, JSPROP_ENUMERATE}, //numeric / enumerated SFBool etc
+	{0}
+};
+
+JSBool
+FieldDefinitionGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	struct ProtoFieldDecl* ptr;
+	int _index;
+	JSString* _str;
+	jsval rval;
+	jsval id;
+
+	UNUSED(rval); // compiler warning mitigation
+
+
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DRouteGetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if ((ptr = (struct ProtoFieldDecl*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in FieldDefinitionGetProperty.\n");
+		return JS_FALSE;
+	}
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+	
+
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), FieldDefinitionProperties);
+	switch (index) {
+	case 0://name (string)
+	{
+		JSString* _str;
+		_str = JS_NewStringCopyZ(cx,ptr->cname);
+		rval = STRING_TO_JSVAL(_str);
+
+		JS_SET_RVAL(cx, vp, rval);
+		break;
+	}
+	case 1://accessType enumerant ie inputOnly
+	{
+
+		rval = INT_TO_JSVAL(ptr->mode);
+		JS_SET_RVAL(cx, vp, rval);
+
+		break;
+	}
+	case 2://dataType enumerant ie SFBool
+	{
+		rval = INT_TO_JSVAL(ptr->type);
+		JS_SET_RVAL(cx, vp, rval);
+		break;
+	}
+	}
+
+	return JS_TRUE;
+}
+JSBool
+FieldDefinitionSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	//can I, should I force it to read-only this way?
+	return JS_FALSE;
+}
+
+static JSClass FieldDefinitionClass = {
+	"FieldDefinition",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	FieldDefinitionGetProperty,
+	FieldDefinitionSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub
+};
+
+//fieldDefinitionArray
+
+static JSPropertySpec(FieldDefinitionArrayProperties)[] = {
+	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+	{0}
+};
+
+JSBool
+FieldDefinitionArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	struct ProtoDefinition* pd;
+	jsval rval;
+	jsval id;
+
+	UNUSED(rval); // compiler warning mitigation
+
+
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in FieldDefinitionArrayGetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if ((pd = (struct ProtoDefinition*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in ProtoDeclarationArrayGetProperty.\n");
+		return JS_FALSE;
+	}
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), FieldDefinitionArrayProperties);
+	if (index == -1) {
+		int _length = vectorSize(pd->iface); 
+		JS_SET_RVAL(cx, vp, INT_TO_JSVAL(_length));
+	}
+	else if (index > -1 && index < vectorSize(pd->iface))
+	{
+		JSObject* _obj;
+		struct ProtoFieldDecl* pfield = vector_get(struct ProtoFieldDecl*, pd->iface, index);
+
+		_obj = JS_NewObject(cx, &FieldDefinitionClass, NULL, obj);
+		if (0) if (!JS_DefineProperties(cx, _obj, FieldDefinitionProperties)) {
+			printf("JS_DefineProperties failed in FieldDefinitionProperties.\n");
+			return JS_FALSE;
+		}
+
+		if (!JS_SetPrivateFw(cx, _obj, (void*)pfield)) {
+			printf("JS_SetPrivate failed in FieldDefinitionArray.\n");
+			return JS_FALSE;
+		}
+
+		JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+
+	}
+
+	return JS_TRUE;
+}
+JSBool
+FieldDefinitionArraySetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	//can I, should I force it to read-only this way?
+	return JS_FALSE;
+}
+
+
+static JSClass FieldDefinitionArrayClass = {
+	"FieldDefinitionArray",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	FieldDefinitionArrayGetProperty,
+	FieldDefinitionArraySetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub
+};
+
+
+//ProtoDeclaration
+JSBool
+ProtoDeclaration_newInstance(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+
+
+	long long ptr;
+	char str[200];
+	JSString* _str;
+	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("in ProtoDeclaration_newInstance() - not a Native\n");
+		return JS_FALSE;
+	}
+	int _index = ptr - 1;
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+	struct X3D_Proto* proto = vector_get(struct X3D_Proto*, ec->__protoDeclares, _index);
+
+	struct ProtoDefinition* pd;
+	pd = (struct ProtoDefinition*)proto->__protoDef;
+
+	struct X3D_Node* dest = X3D_NODE(brotoInstance(X3D_PROTO(X3D_PROTO(proto)->__prototype), ciflag_get(ec->__protoFlags, 0)));
+
+	AnyNative* nany = MALLOC(AnyNative*, sizeof(AnyNative));
+	memset(nany, 0, sizeof(AnyNative));
+	nany->type = FIELDTYPE_SFNode;
+	nany->v = MALLOC(union anyVrml*, sizeof(union anyVrml));
+	memset(nany->v, 0, sizeof(union anyVrml));
+
+	nany->v->sfnode = dest;
+
+	JSObject* _obj = JS_NewObject(cx, &SFNodeClass, NULL, obj);
+	if (0) if (!JS_DefineProperties(cx, _obj, SFNodeProperties)) {
+		printf("JS_DefineProperties failed in Route sourceNode.\n");
+		return JS_FALSE;
+	}
+	if (0) if (!JS_DefineFunctions(cx, _obj, SFNodeFunctions)) {
+		printf("JS_DefineFunctions failed in Route sourceNode.\n");
+		return JS_FALSE;
+	}
+
+	if (!JS_SetPrivateFw(cx, _obj, (void*)nany)) {
+		printf("JS_SetPrivate failed in Route sourceNode.\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+
+	return JS_TRUE;
+
+}
+JSFunctionSpec(ProtoDeclarationFunctions)[] = {
+	{"newInstance", ProtoDeclaration_newInstance, 0},
+	{0}
+};
+
+static JSPropertySpec(ProtoDeclarationProperties)[] = {
+	{"name", 0, JSPROP_ENUMERATE}, //string
+	{"fields", 1, JSPROP_ENUMERATE}, //FieldDefinitionArray
+	{"isExternProto", 2, JSPROP_ENUMERATE}, //boolea
+	{0}
+};
+
+JSBool
+ProtoDeclarationGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	long long ptr;
+	int _index;
+	JSString* _str;
+	jsval rval;
+	jsval id;
+
+	UNUSED(rval); // compiler warning mitigation
+
+
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DRouteGetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DRouteGetProperty.\n");
+		return JS_FALSE;
+	}
+	_index = ptr - 1;
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+	struct X3D_Proto* proto = vector_get(struct X3D_Proto*, ec->__protoDeclares, _index);
+	struct ProtoDefinition* pd;
+	pd = (struct ProtoDefinition*)proto->__protoDef;
+
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), ProtoDeclarationProperties);
+	switch (index) {
+	case 0://name (string)
+	{
+		//Q. where do we hide the name of the proto type?
+		//see BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto) 
+	
+		JSString* _str;
+		_str = JS_NewStringCopyZ(cx, pd->protoName);
+		rval = STRING_TO_JSVAL(_str);
+
+		JS_SET_RVAL(cx, vp, rval);
+		break;
+	}
+	case 1://fields (FieldDefinitionArray)
+	{
+		JSObject* _obj;
+		_obj = JS_NewObject(cx, &FieldDefinitionArrayClass, NULL, obj);
+		if (0) if (!JS_DefineProperties(cx, _obj, FieldDefinitionArrayProperties)) {
+			printf("JS_DefineProperties failed in FieldDefinitionArrayProperties.\n");
+			return JS_FALSE;
+		}
+
+		if (!JS_SetPrivateFw(cx, _obj, (void*)pd)) {
+			printf("JS_SetPrivate failed in ProtoDeclarationArray.\n");
+			return JS_FALSE;
+		}
+
+		JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+
+		break;
+	}
+	case 2://isExternProto (boolean)
+	{
+		char flagInstance, flagExtern;
+		flagInstance = ciflag_get(proto->__protoFlags, 2);
+		flagExtern = ciflag_get(proto->__protoFlags, 3);
+
+		JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(flagExtern == 0 ? false : true));
+		break;
+	}
+	}
+
+	return JS_TRUE;
+}
+JSBool
+ProtoDeclarationSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	//can I, should I force it to read-only this way?
+	return JS_FALSE;
+}
+
+static JSClass ProtoDeclarationClass = {
+	"ProtoDeclaration",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	ProtoDeclarationGetProperty,
+	ProtoDeclarationSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub
+};
+
+//ProtoDeclarationArray{
+
+static JSPropertySpec(ProtoDeclarationArrayProperties)[] = {
+	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+	{0}
+};
+
+JSBool
+ProtoDeclarationArrayGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	int* _table;
+	jsval rval;
+	jsval id;
+
+	UNUSED(rval); // compiler warning mitigation
+
+
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in ProtoDeclarationArrayGetProperty.\n");
+		return JS_FALSE;
+	}
+
+	//if ((_table = (int*)JS_GetPrivateFw(cx, obj)) == NULL) {
+	//	printf("JS_GetPrivate failed in ProtoDeclarationArrayGetProperty.\n");
+	//	return JS_FALSE;
+	//}
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), ProtoDeclarationArrayProperties);
+	if (index == -1) {
+		int _length = vectorSize(ec->__protoDeclares);
+		JS_SET_RVAL(cx, vp, INT_TO_JSVAL(_length));
+	}
+	else if (index > -1 && index < vectorSize(ec->__protoDeclares))
+	{
+		JSObject* _obj;
+		_obj = JS_NewObject(cx, &ProtoDeclarationClass, NULL, obj);
+		if (0) if (!JS_DefineProperties(cx, _obj, ProtoDeclarationProperties)) {
+			printf("JS_DefineProperties failed in ProtoDeclarationProperties.\n");
+			return JS_FALSE;
+		}
+		long long iindex = index + 1;
+		if (!JS_SetPrivateFw(cx, _obj, (void*)iindex)) {
+			printf("JS_SetPrivate failed in ProtoDeclarationArray.\n");
+			return JS_FALSE;
+		}
+
+		JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+
+	}
+
+	return JS_TRUE;
+}
+JSBool
+ProtoDeclarationArraySetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	//can I, should I force it to read-only this way?
+	return JS_FALSE;
+}
+
+
+static JSClass ProtoDeclarationArrayClass = {
+	"ProtoDeclarationArray",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	ProtoDeclarationArrayGetProperty,
+	ProtoDeclarationArraySetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_FinalizeStub
+};
+
+
+
+
 //Q. is this a true sharable static?
-static JSClass Browser = {
+static JSClass BrowserClass = {
     "Browser",
     JSCLASS_HAS_PRIVATE,
     JS_PropertyStub,
     JS_DeletePropertyStub,
 #ifdef X3DBROWSER
-    JS_PropertyStub, //BrowserGetProperty, //JS_PropertyStub, 
+    BrowserGetProperty, //JS_PropertyStub, 
 	BrowserSetProperty, //JS_StrictPropertyStub, 
 #else
 	JS_PropertyStub,
@@ -357,7 +807,7 @@ static JSClass ComponentInfoClass = {
 static JSPropertySpec (ComponentInfoProperties)[] = {
 	//executionContext
 	{"name", 0, JSPROP_ENUMERATE},  //"Core"
-	{"Title", 1, JSPROP_ENUMERATE}, //"Core"
+	{"title", 1, JSPROP_ENUMERATE}, //"Core"
 	{"level", 2, JSPROP_ENUMERATE},  //4
 	{"providerUrl", 3, JSPROP_ENUMERATE}, //"freewrl.sourceforge.net"
 	{0}
@@ -368,6 +818,10 @@ static JSPropertySpec (ComponentInfoProperties)[] = {
 //numeric length;
 //ComponentInfo [integer index];
 //}
+static JSPropertySpec(ComponentInfoArrayProperties)[] = {
+	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+	{0}
+};
 
 JSBool
 ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -388,41 +842,43 @@ ComponentInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Han
 	}
 
 	if ((_table = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
+		printf( "JS_GetPrivate failed in ComponentInfoGetProperty.\n");
 		return JS_FALSE;
 	}
 
-    if (JSVAL_IS_INT(id)) 
-	{
-		int index = JSVAL_TO_INT(id);
-		if(index == -1){
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), ComponentInfoArrayProperties);
+	if(index == -1){
 //extern const char *COMPONENTS[];
 //extern const int COMPONENTS_COUNT;
 
-			int _length = capabilitiesHandler_getTableLength(_table); //COMPONENTS_COUNT;
-			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-		}else if(index > -1 && index < COMPONENTS_COUNT )
-		{
-			JSObject *_obj;
-			IntTableIndex tableindex = (IntTableIndex)MALLOC(void *, sizeof(struct intTableIndex));
-			//int* _index = MALLOC(void *, sizeof(int));
-			_obj = JS_NewObject(cx,&ComponentInfoClass,NULL,obj);
-			tableindex->index = index;
-			tableindex->table = _table;
-			if (!JS_DefineProperties(cx, _obj, ComponentInfoProperties)) {
-				printf( "JS_DefineProperties failed in ComponentInfoProperties.\n");
-				return JS_FALSE;
-			}
-
-			if (!JS_SetPrivateFw(cx, _obj, (void*)tableindex)) {
-				printf( "JS_SetPrivate failed in ComponentInfoArray.\n");
-				return JS_FALSE;
-			}
-
-			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
-
+		int _length = capabilitiesHandler_getTableLength(_table); //COMPONENTS_COUNT;
+		JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
+	}else if(index > -1 && index < COMPONENTS_COUNT )
+	{
+		JSObject *_obj;
+		IntTableIndex tableindex = (IntTableIndex)MALLOC(void *, sizeof(struct intTableIndex));
+		//int* _index = MALLOC(void *, sizeof(int));
+		_obj = JS_NewObject(cx,&ComponentInfoClass,NULL,obj);
+		tableindex->index = index;
+		tableindex->table = _table;
+		if(0) if (!JS_DefineProperties(cx, _obj, ComponentInfoProperties)) {
+			printf( "JS_DefineProperties failed in ComponentInfoProperties.\n");
+			return JS_FALSE;
 		}
+
+		if (!JS_SetPrivateFw(cx, _obj, (void*)tableindex)) {
+			printf( "JS_SetPrivate failed in ComponentInfoArray.\n");
+			return JS_FALSE;
+		}
+
+		JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
+
 	}
+
 	return JS_TRUE;
 }
 JSBool
@@ -448,10 +904,6 @@ static JSClass ComponentInfoArrayClass = {
     JS_FinalizeStub
 };
 
-static JSPropertySpec (ComponentInfoArrayProperties)[] = {
-	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
-	{0}
-};
 
 //ProfileInfo{
 //String name;
@@ -511,7 +963,7 @@ ProfileInfoGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsi
 					JSObject *_obj;
 					//malloc private not needed
 					_obj = JS_NewObject(cx,&ComponentInfoArrayClass,NULL,obj);
-					if (!JS_DefineProperties(cx, _obj, ComponentInfoArrayProperties)) {
+					if(0)if (!JS_DefineProperties(cx, _obj, ComponentInfoArrayProperties)) {
 						printf( "JS_DefineProperties failed in ComponentInfoArrayProperties.\n");
 						return JS_FALSE;
 					}
@@ -564,6 +1016,10 @@ static JSPropertySpec (ProfileInfoProperties)[] = {
 //numeric length;
 //ProfileInfo [integer index];
 //}
+static JSPropertySpec(ProfileInfoArrayProperties)[] = {
+	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+	{0}
+};
 
 JSBool
 ProfileInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -582,32 +1038,34 @@ ProfileInfoArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 		return JS_FALSE;
 	}
 
-    if (JSVAL_IS_INT(id)) 
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), ProfileInfoArrayProperties);
+	if (index == -1) {
+		int _length = PROFILES_COUNT;
+		JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
+	}else
+	//if(index < getNumberOfProfiles() )
 	{
-		int index = JSVAL_TO_INT(id);
-		if(index == -1){
-			int _length = PROFILES_COUNT;
-			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-		}else
-		//if(index < getNumberOfProfiles() )
-		{
-			JSObject *_obj;
-			int* _index = (int*)MALLOC(void *, sizeof(int));
-			_obj = JS_NewObject(cx,&ProfileInfoClass,NULL,obj);
-			*_index = index;
-			if (!JS_DefineProperties(cx, _obj, ProfileInfoProperties)) {
-				printf( "JS_DefineProperties failed in ProfileInfoProperties.\n");
-				return JS_FALSE;
-			}
-
-			if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
-				printf( "JS_SetPrivate failed in ProfileInfoArray.\n");
-				return JS_FALSE;
-			}
-
-			JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
+		JSObject *_obj;
+		int* _index = (int*)MALLOC(void *, sizeof(int));
+		_obj = JS_NewObject(cx,&ProfileInfoClass,NULL,obj);
+		*_index = index;
+		if (!JS_DefineProperties(cx, _obj, ProfileInfoProperties)) {
+			printf( "JS_DefineProperties failed in ProfileInfoArray.\n");
+			return JS_FALSE;
 		}
+
+		if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
+			printf( "JS_SetPrivate failed in ProfileInfoArray.\n");
+			return JS_FALSE;
+		}
+
+		JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
 	}
+	
 	return JS_TRUE;
 }
 JSBool
@@ -634,14 +1092,72 @@ static JSClass ProfileInfoArrayClass = {
     JS_FinalizeStub
 };
 
-static JSPropertySpec (ProfileInfoArrayProperties)[] = {
-	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node) {
+	int n = vectorSize(ec->__DEFnames);
+	char* name = NULL;
+	struct brotoDefpair def;
+	for (int i = 0; i < n; i++) {
+		def = vector_get(struct brotoDefpair, ec->__DEFnames, i);
+		//printf("%x %x %s\n",node,def.node,def.name);
+		if (def.node == node) {
+			name = def.name;
+			break;
+		}
+	}
+	return name;
+}
+
+
+JSBool
+X3DRouteToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+
+
+	long long ptr;
+	char str[200];
+	JSString* _str;
+	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("in route.toString() - not a Native\n");
+		return JS_FALSE;
+	}
+	int _index = ptr - 1;
+	struct X3D_Proto *ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+	struct brotoRoute* route = vector_get(struct brotoRoute*, ec->__ROUTES, _index);
+
+	//getSpecificRoute(_index, &fromNode, &fromOffset, &toNode, &toOffset);
+	char* fromName = lookup_brotoDefname(ec,route->from.node); // parser_getNameFromNode(route->from.node);
+	char* toName = lookup_brotoDefname(ec,route->from.node); // parser_getNameFromNode(route->to.node);
+	char *fromfield = findFIELDNAMESfromNodeOffset0(route->from.node, route->from.ifield);
+	char *tofield = findFIELDNAMESfromNodeOffset0(route->to.node, route->to.ifield);
+
+	sprintf(str,"[ROUTE %s.%s TO %s.%s]", fromName, fromfield, toName, tofield);
+	_str = JS_NewStringCopyZ(cx, str);
+	rval = STRING_TO_JSVAL(_str);
+
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSFunctionSpec(X3DRouteFunctions)[] = {
+	{"toString", X3DRouteToString, 0},
 	{0}
 };
 
-
-
-
+static JSPropertySpec(X3DRouteProperties)[] = {
+	//executionContext
+	{"sourceNode", 0, JSPROP_ENUMERATE},
+	{"sourceField", 1, JSPROP_ENUMERATE},
+	{"destinationNode", 2, JSPROP_ENUMERATE},
+	{"destinationField", 3, JSPROP_ENUMERATE},
+	{0}
+};
 
 JSBool
 X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -649,7 +1165,7 @@ X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
 
-	int *ptr;
+	long long ptr;
 	int _index;
 	JSString *_str;
 	jsval rval;
@@ -662,75 +1178,79 @@ X3DRouteGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> 
 
 
 	if (!JS_IdToValue(cx,iid,&id)) {
-		printf("JS_IdToValue failed in ProfileInfoGetProperty.\n");
+		printf("JS_IdToValue failed in X3DRouteGetProperty.\n");
 		return JS_FALSE;
 	}
 
-	if ((ptr = (int *)JS_GetPrivateFw(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in ProfileInfoGetProperty.\n");
+	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf( "JS_GetPrivate failed in X3DRouteGetProperty.\n");
 		return JS_FALSE;
 	}
-	_index = *ptr;
+	_index = ptr - 1;
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+	struct brotoRoute* route = vector_get(struct brotoRoute*, ec->__ROUTES, _index);
+
 	//routes = getCRoutes();
 	//route = routes[_index];
-	getSpecificRoute (_index,&fromNode, &fromOffset, &toNode, &toOffset);
-	//fromName = parser_getNameFromNode(fromNode);
-	//toName   = parser_getNameFromNode(toNode);
+	//getSpecificRoute (_index,&fromNode, &fromOffset, &toNode, &toOffset);
+	char* fromName = lookup_brotoDefname(ec,route->from.node); // parser_getNameFromNode(route->from.node);
+	char* toName = lookup_brotoDefname(ec,route->to.node); // parser_getNameFromNode(route->to.node);
 
-		//fprintf (fp, " %p %s.%s TO %p %s.%s \n",fromNode,fromName,
-		//	findFIELDNAMESfromNodeOffset0(fromNode,fromOffset),
-		//	toNode,toName,
-		//	findFIELDNAMESfromNodeOffset0(toNode,toOffset)
-		//	);
-
-    if (JSVAL_IS_INT(id)) 
-	{
-		int index = JSVAL_TO_INT(id);
-		switch(index){
-			case 0://sourceNode
-			case 2://destinationNode
-				//route.routeFromNode
-				{
-					JSObject *_obj;
-					SFNodeNative *sfnn = (SFNodeNative *)MALLOC(void *, sizeof(SFNodeNative));
-					memset(sfnn,0,sizeof(SFNodeNative)); //I don't know if I'm supposed to set something else dug9 aug5,2013
-					if(index==0)
-						sfnn->handle = fromNode;
-					if(index==2)
-						sfnn->handle = toNode;
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), X3DRouteProperties);
+	switch(index){
+		case 0://sourceNode
+		case 2://destinationNode
+			//route.routeFromNode
+			{
+				JSObject *_obj;
+				//SFNodeNative *sfnn = (SFNodeNative *)MALLOC(void *, sizeof(SFNodeNative));
+				//memset(sfnn,0,sizeof(SFNodeNative)); //I don't know if I'm supposed to set something else dug9 aug5,2013
+				AnyNative* nany = MALLOC(AnyNative*, sizeof(AnyNative));
+				memset(nany, 0, sizeof(AnyNative));
+				nany->type = FIELDTYPE_SFNode;
+				nany->v = MALLOC(union anyVrml*, sizeof(union anyVrml));
+				memset(nany->v, 0, sizeof(union anyVrml));
+				if (index == 0)
+					nany->v->sfnode = route->from.node; // fromNode;
+				if (index == 2)
+					nany->v->sfnode = route->to.node; // toNode;
 					
-					_obj = JS_NewObject(cx,&SFNodeClass,NULL,obj);
-					if (!JS_DefineProperties(cx, _obj, SFNodeProperties)) {
-						printf( "JS_DefineProperties failed in Route sourceNode.\n");
-						return JS_FALSE;
-					}
-					if (!JS_DefineFunctions(cx, _obj, SFNodeFunctions)) {
-						printf( "JS_DefineFunctions failed in Route sourceNode.\n");
-						return JS_FALSE;
-					}
-
-					if (!JS_SetPrivateFw(cx, _obj, (void*)sfnn)) {
-						printf( "JS_SetPrivate failed in Route sourceNode.\n");
-						return JS_FALSE;
-					}
-
-					JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
+				_obj = JS_NewObject(cx,&SFNodeClass,NULL,obj);
+				if(0) if (!JS_DefineProperties(cx, _obj, SFNodeProperties)) {
+					printf( "JS_DefineProperties failed in Route sourceNode.\n");
+					return JS_FALSE;
 				}
-				break;
+				if(0) if (!JS_DefineFunctions(cx, _obj, SFNodeFunctions)) {
+					printf( "JS_DefineFunctions failed in Route sourceNode.\n");
+					return JS_FALSE;
+				}
 
-			case 1://sourceField
-				fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
-				_str = JS_NewStringCopyZ(cx,fieldname);
-				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
-				break;
-			case 3://destinationField
-				fieldname = findFIELDNAMESfromNodeOffset0(toNode,toOffset);
-				_str = JS_NewStringCopyZ(cx,fieldname);
-				JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
+				if (!JS_SetPrivateFw(cx, _obj, (void*)nany)) {
+					printf( "JS_SetPrivate failed in Route sourceNode.\n");
+					return JS_FALSE;
+				}
 
-				break;
-		}
+				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
+			}
+			break;
+
+		case 1://sourceField
+			fieldname = findFIELDNAMESfromNodeOffset0(route->from.node, route->from.ifield);
+			_str = JS_NewStringCopyZ(cx,fieldname);
+			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
+			break;
+		case 3://destinationField
+			fieldname = findFIELDNAMESfromNodeOffset0(route->to.node, route->to.ifield);
+			_str = JS_NewStringCopyZ(cx,fieldname);
+			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
+
+			break;
 	}
+	
 	return JS_TRUE;
 }
 JSBool
@@ -755,20 +1275,16 @@ static JSClass X3DRouteClass = {
     JS_FinalizeStub
 };
 
-static JSPropertySpec (X3DRouteProperties)[] = {
-	//executionContext
-	{"sourceNode", 0, JSPROP_ENUMERATE},
-	{"sourceField", 1, JSPROP_ENUMERATE},
-	{"destinationNode", 2, JSPROP_ENUMERATE},
-	{"destinationField", 3, JSPROP_ENUMERATE},
-	{0}
-};
 
 
 //ProfileInfoArray{
 //numeric length;
 //ProfileInfo [integer index];
 //}
+static JSPropertySpec(RouteArrayProperties)[] = {
+	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
+	{0}
+};
 
 JSBool
 RouteArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -787,27 +1303,33 @@ RouteArrayGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 		printf("JS_IdToValue failed in RouteArrayGetProperty.\n");
 		return JS_FALSE;
 	}
+	struct X3D_Proto* ec;
+	//ec = getExecutionContextFromCx(cx);
+	ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
 
-
-    if (JSVAL_IS_INT(id)) 
-	{
-		int index = JSVAL_TO_INT(id);
-		if(index == -1){
-			int _length = getCRouteCount();
-			JS_SET_RVAL(cx,vp,INT_TO_JSVAL(_length));
-		}else
-		//if(index < getNumberOfProfiles() )
+	int index = -1;
+	if (JSVAL_IS_STRING(id)) {
+		char* field = (char*)JS_EncodeString(cx, JSVAL_TO_STRING(id));
+		index = lookup_tinyid(field, RouteArrayProperties);
+		//printf("ExecutionContextGetProperty %s %d\n", field, index);
+		if (index == -1) {
+			int _length = vectorSize(ec->__ROUTES); //getCRouteCount();
+			JS_SET_RVAL(cx, vp, INT_TO_JSVAL(_length));
+		}
+	}
+	else if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
 		{
 			JSObject *_obj;
-			int* _index = (int*) MALLOC(void *, sizeof(int));
+			//int* _index = (int*) MALLOC(void *, sizeof(int));
 			_obj = JS_NewObject(cx,&X3DRouteClass,NULL,obj);
-			*_index = index;
-			if (!JS_DefineProperties(cx, _obj, X3DRouteProperties)) {
+			//*_index = index;
+			if(0) if (!JS_DefineProperties(cx, _obj, X3DRouteProperties)) {
 				printf( "JS_DefineProperties failed in RouteArray.\n");
 				return JS_FALSE;
 			}
-
-			if (!JS_SetPrivateFw(cx, _obj, (void*)_index)) {
+			long long iindex = index+1; //instead of malloc and free wrapper for long, just send a longlong on x64
+			if (!JS_SetPrivateFw(cx, _obj, (void*)iindex)) {
 				printf( "JS_SetPrivate failed in RouteArray.\n");
 				return JS_FALSE;
 			}
@@ -841,10 +1363,6 @@ static JSClass RouteArrayClass = {
     JS_FinalizeStub
 };
 
-static JSPropertySpec (RouteArrayProperties)[] = {
-	{"length", -1, JSPROP_READONLY | JSPROP_SHARED | JSPROP_PERMANENT}, //JSPROP_ENUMERATE},
-	{0}
-};
 
 
 
@@ -885,7 +1403,7 @@ static JSPropertySpec (ExecutionContextProperties)[] = {
 	//scene
 	//{"specificationVersion", 9, JSPROP_ENUMERATE}, //already done for executionContext above
 	{"isScene", 9, JSPROP_ENUMERATE}, //else protoInstance. extra beyond specs - I think flux has it.
-	{0}
+	{0,0,0}
 };
 
 //typedef struct _ExecutionContextNative {
@@ -899,7 +1417,8 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
 
-	ExecutionContextNative *ptr;
+	//ExecutionContextNative *ptr;
+	struct X3D_Proto* ptr;
 	JSString *_str;
 	jsval rval;
 	jsval id;
@@ -913,13 +1432,21 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 	}
 
 
-	if ((ptr = (ExecutionContextNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
-		printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
+	//if ((ptr = (ExecutionContextNative *)JS_GetPrivateFw(cx, obj)) == NULL) {
+	if ((ptr = (struct X3D_Proto*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
 	}
-	
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	int index = -1;
+	if (JSVAL_IS_STRING(id)) {
+		char* field = (char*)JS_EncodeString(cx, JSVAL_TO_STRING(id));
+		index = lookup_tinyid(field, ExecutionContextProperties);
+		//printf("ExecutionContextGetProperty %s %d\n", field, index);
+	}
+	else if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+	}
+	switch(index){
 		case 0: //specificationVersion string readonly
 			{
 				char cs[100];
@@ -976,6 +1503,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 			break;
 		case 4: //worldURL string readonly
 			_str = JS_NewStringCopyZ(cx, gglobal()->Mainloop.url);
+			//printf("mainloop.url= %s \n", gglobal()->Mainloop.url);
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
 			break;
 		case 5: //rootNodes MFNode (readonly if !isScene, else rw)
@@ -996,7 +1524,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				//	printf( "JS_DefineProperties failed in SFRotationConstr.\n");
 				//	return JS_FALSE;
 				//}
-				if (!JS_DefineFunctions(cx, _obj, MFNodeFunctions)) {
+				if(0) if (!JS_DefineFunctions(cx, _obj, MFNodeFunctions)) {
 					printf( "JS_DefineProperties failed in SFRotationConstr.\n");
 					return JS_FALSE;
 				}
@@ -1010,6 +1538,23 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 			}
 			break;
 		case 6: //protos protoDeclarationArray  rw
+		{ 
+			JSObject* _obj;
+			//malloc private not needed
+			_obj = JS_NewObject(cx, &ProtoDeclarationArrayClass, NULL, obj);
+			if (0) if (!JS_DefineProperties(cx, _obj, RouteArrayProperties)) {
+				printf("JS_DefineProperties failed in ExecutionContext_X3DRouteArrayProperties.\n");
+				return JS_FALSE;
+			}
+			//if (!JS_SetPrivateFw(cx, _obj, (void*)_table)) {
+		//	printf( "JS_SetPrivate failed in ExecutionContext_X3DRouteArray.\n");
+		//	return JS_FALSE;
+		//}
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(_obj));
+			
+		}
+		break;
+
 		case 7: //externprotos externProtoDeclarationArray rw
 			return JS_FALSE;
 		case 8: //routes RouteArray readonly
@@ -1017,7 +1562,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 				JSObject *_obj;
 				//malloc private not needed
 				_obj = JS_NewObject(cx,&RouteArrayClass,NULL,obj);
-				if (!JS_DefineProperties(cx, _obj, RouteArrayProperties)) {
+				if(0) if (!JS_DefineProperties(cx, _obj, RouteArrayProperties)) {
 					printf( "JS_DefineProperties failed in ExecutionContext_X3DRouteArrayProperties.\n");
 					return JS_FALSE;
 				}
@@ -1032,8 +1577,8 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 			//once brotos are working then the main scene broto will need a flag to say it's a scene
 			JS_SET_RVAL(cx,vp,BOOLEAN_TO_JSVAL(JS_TRUE));
 			break;
-		}
 	}
+
 	return JS_TRUE;
 }
 
@@ -1071,7 +1616,19 @@ static JSPropertySpec (BrowserProperties)[] = {
 	{"currentScene", 7, JSPROP_ENUMERATE},
 	{0}
 };
-
+struct X3D_Node* getExecutionContextFromCx(void *cx) {
+	struct CRscriptStruct* sc;
+	struct X3D_Node* executionContext = NULL; //its an X3D_Proto struct, which represents Scene, Proto (declare/instance), and Inline
+	int nscript = getScriptControlCount();
+	for (int i = 0; i <= nscript; i++) {
+		sc = getScriptControlIndex(i);
+		if (sc->cx == cx) {
+			executionContext = sc->script->ShaderScriptNode->_executionContext;
+			break;
+		}
+	}
+	return executionContext;
+}
 JSBool
 BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -1102,9 +1659,13 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 		printf( "JS_GetPrivate failed in BrowserGetProperty.\n");
 		return JS_FALSE;
 	}
-	
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	int index = -1;
+	if (JSVAL_IS_INT(id))
+		index = JSVAL_TO_INT(id);
+	else
+		index = lookup_tinyid(JS_EncodeString(cx, JSVAL_TO_STRING(id)), BrowserProperties);
+
+	switch (index) {
 		case 0: //name
 			_str = JS_NewStringCopyZ(cx,BrowserName);
 			JS_SET_RVAL(cx,vp,STRING_TO_JSVAL(_str));
@@ -1138,7 +1699,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 				JSObject *_obj;
 				//malloc private not needed
 				_obj = JS_NewObject(cx,&ComponentInfoArrayClass,NULL,obj);
-				if (!JS_DefineProperties(cx, _obj, ComponentInfoArrayProperties)) {
+				if(0) if (!JS_DefineProperties(cx, _obj, ComponentInfoArrayProperties)) {
 					printf( "JS_DefineProperties failed in ComponentInfoArrayProperties.\n");
 					return JS_FALSE;
 				}
@@ -1187,16 +1748,20 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 			//H: I have to return an ExecutionContextNative here with its guts set to our rootNode or ???
 			{
 				JSObject *_obj;
-				ExecutionContextNative ec = MALLOC(ExecutionContextNative, sizeof(ExecutionContextNative));
+				//ExecutionContextNative ec = MALLOC(ExecutionContextNative, sizeof(ExecutionContextNative));
 				_obj = JS_NewObject(cx,&ExecutionContextClass,NULL,obj);
 
 				//ec->handle = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
-				ec = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
-				if (!JS_DefineProperties(cx, _obj, ExecutionContextProperties)) {
+				struct X3D_Node* ec;
+				//ec = getExecutionContextFromCx(cx);
+				ec = (struct X3D_Node*)JS_GetContextPrivate(cx);
+				if(!ec)
+					ec = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
+				if(0) if (!JS_DefineProperties(cx, _obj, ExecutionContextProperties)) {
 					printf( "JS_DefineProperties failed in ExecutionContextProperties.\n");
 					return JS_FALSE;
 				}
-				if (!JS_DefineFunctions(cx, _obj, ExecutionContextFunctions)) {
+				if(0) if (!JS_DefineFunctions(cx, _obj, ExecutionContextFunctions)) {
 					printf( "JS_DefineProperties failed in ExecutionContextFunctions.\n");
 					return JS_FALSE;
 				}
@@ -1212,7 +1777,7 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 
 #endif
 		}
-	}
+
 	return JS_TRUE;
 }
 
@@ -1267,6 +1832,7 @@ BrowserSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	}
 	return JS_TRUE;
 }
+
 
 
 #endif
@@ -1403,7 +1969,7 @@ VrmlBrowserInit(JSContext *context, JSObject *globalObj, BrowserNative *brow)
 		printf("VrmlBrowserInit\n");
 	#endif
 
-	obj = JS_DefineObject(context, globalObj, "Browser", &Browser, NULL, 
+	obj = JS_DefineObject(context, globalObj, "Browser", &BrowserClass, NULL, 
 			JSPROP_ENUMERATE | JSPROP_PERMANENT);
 	if (!JS_DefineFunctions(context, obj, BrowserFunctions)) {
 		printf( "JS_DefineFunctions failed in VrmlBrowserInit.\n");
@@ -2159,6 +2725,62 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 	return JS_TRUE;
 }
 
+struct JSLoadPropElement {
+	JSClass* fwclass;
+	//void *constr;
+	JSBool(*constr)(JSContext*, unsigned int, jsval*);
+	void* Functions;
+	void* Properties;
+	const char* id;
+};
+struct JSLoadPropElement JSLoadPropsAux[] = {
+
+		// done separately { &BrowserClass, NULL, &BrowserFunctions, &BrowserProperties, "BrowserClass"},
+		{ &ExecutionContextClass, NULL, &ExecutionContextFunctions, &ExecutionContextProperties, "ExecutionContextClass"},
+		{ &ComponentInfoClass, NULL, NULL, &ComponentInfoProperties, "ComponentInfoClass"},
+		{ &ComponentInfoArrayClass, NULL, NULL, &ComponentInfoArrayProperties, "ComponentInforArrayClass"},
+		{ &ProfileInfoClass, NULL, NULL, &ProfileInfoProperties, "ProfileInfoClass"},
+		{ &ProfileInfoArrayClass, NULL, NULL, &ProfileInfoArrayProperties, "ProfileInfoArrayClass"},
+		{ &X3DRouteClass, NULL, &X3DRouteFunctions, &X3DRouteProperties, "X3DRouteClass"},
+		{ &RouteArrayClass, NULL, NULL, &RouteArrayProperties, "RouteArrayClass"},
+		{ &ProtoDeclarationArrayClass, NULL, NULL, &ProtoDeclarationArrayProperties, "ProtoDeclarationArrayClass"},
+		{ &ProtoDeclarationClass, NULL, &ProtoDeclarationFunctions, &ProtoDeclarationProperties, "ProtoDeclarationClass"},
+		{ &FieldDefinitionArrayClass, NULL, NULL, &FieldDefinitionArrayProperties, "FieldDefinitionClass"},
+		{ &FieldDefinitionClass, NULL, NULL, &FieldDefinitionProperties, "FieldDefinitionClass"},
+		{ NULL, NULL, NULL, NULL, NULL }
+};
+
+/* load the FreeWRL extra classes */
+JSBool loadAuxiliaryClasses(JSContext* context, JSObject* globalObj) {
+	jsval v;
+	int i;
+
+	JSObject* myProto;
+
+	i = 0;
+	while (JSLoadPropsAux[i].fwclass != NULL) {
+#ifdef JSVRMLCLASSESVERBOSE
+		printf("loading %s\n", JSLoadProps[i].id);
+#endif
+
+		/* v = 0; */
+		if ((myProto = JS_InitClass(context, globalObj, NULL, JSLoadPropsAux[i].fwclass,
+			(JSNative)JSLoadPropsAux[i].constr, INIT_ARGC, (JSPropertySpec*)JSLoadPropsAux[i].Properties,
+			(JSFunctionSpec*)JSLoadPropsAux[i].Functions, NULL, NULL)) == NULL) {
+			printf("JS_InitClass for %s failed in loadVrmlClasses.\n", JSLoadPropsAux[i].id);
+			return JS_FALSE;
+		}
+		//JS::RootedObject protoObj(context, myProto);
+		v = OBJECT_TO_JSVAL(myProto);
+		if (!JS_SetProperty(context, globalObj, JSLoadPropsAux[i].id, &v)) {
+			printf("JS_SetProperty for %s failed in loadAuxiliaryClasses.\n", JSLoadPropsAux[i].id);
+			return JS_FALSE;
+		}
+
+		i++;
+	}
+	return JS_TRUE;
+}
 //dug9 - first look at x3dbrowser and x3dscene/executionContext
 #ifdef X3DBROWSER
 /* The Browser's supportedComponents and supportedProfiles are statically defined 
@@ -2176,7 +2798,7 @@ static JSBool doVRMLRoute(JSContext *context, JSObject *obj, uintN argc, jsval *
 
 #endif
 /*
-ComonentInfo{
+ComponentInfo{
 String name;
 Numeric level;
 String Title;

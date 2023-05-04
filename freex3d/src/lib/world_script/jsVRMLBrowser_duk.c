@@ -1119,7 +1119,7 @@ struct FWTYPE ComponentInfoArrayType = {
 
 FWPropertySpec (ComponentInfoProperties)[] = {
 	{"name", 0, 'S', 'T'},
-	{"Title", 1, 'S', 'T'},
+	{"title", 1, 'S', 'T'},
 	{"level", 2, 'I', 'T'},
 	{"providerUrl", 3, 'S', 'T'},
 	{NULL,0,0,0},
@@ -1133,7 +1133,7 @@ int ComponentInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretv
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	switch (index) {
 		case 0://name
-		case 1://Title
+		case 1://title
 			nameIndex = tableEntry[0];
 			fwretval->_string = COMPONENTS[nameIndex]; 
 			fwretval->itype = 'S';
@@ -1816,7 +1816,38 @@ struct FWTYPE X3DRouteArrayType = {
 //SFNode destinationNode;
 //String destinationField;
 //}
+/*
+int X3DSRouteToString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int nr = 0;
+	char* value;
+	value = NULL;
 
+	char str[200];
+	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
+	struct brotoRoute* route = vector_get(struct brotoRoute*, ecc->__ROUTES, _index);
+
+	//getSpecificRoute(_index, &fromNode, &fromOffset, &toNode, &toOffset);
+	char* fromName = lookup_brotoDefname(ecc, route->from.node); // parser_getNameFromNode(route->from.node);
+	char* toName = lookup_brotoDefname(ecc, route->from.node); // parser_getNameFromNode(route->to.node);
+	char* fromfield = findFIELDNAMESfromNodeOffset0(route->from.node, route->from.ifield);
+	char* tofield = findFIELDNAMESfromNodeOffset0(route->to.node, route->to.ifield);
+
+	sprintf(str, "[ROUTE %s.%s TO %s.%s]", fromName, fromfield, toName, tofield);
+	value = strdup(str);
+	//do a search in the perscene/perexecution context array
+	if (value) {
+		fwretval->_string = value;
+		fwretval->itype = 'S';
+		nr = 1;
+	}
+	return nr;
+}
+
+FWFunctionSpec(X3DRouteFunctions)[] = {
+	{"toString",	X3DRouteToString, 'S',{0,0,0,NULL}},
+	{0}
+};
+*/
 FWPropertySpec (X3DRouteProperties)[] = {
 	{"sourceNode", 0, 'W', 'T'},
 	{"sourceField", 1, 'S', 'T'},
@@ -1892,7 +1923,7 @@ struct FWTYPE X3DRouteType = {
 	X3DRouteGetter,
 	NULL,
 	0,0, //takes int index in prop
-	NULL,
+	NULL, //&X3DRouteFunctions,
 };
 
 

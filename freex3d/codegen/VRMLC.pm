@@ -1289,6 +1289,7 @@ sub gen {
 
 	push @genFuncs2,
 	"	\n".
+	"	add_empty_proto_vectors(tmp);\n".
 	"	/* is this a texture holding node? */\n".
 	"	registerTexture(tmp);\n".
 	"	/* Node Tracking */\n".

@@ -192,7 +192,7 @@ struct CRjsnameStruct {
 struct CRjsnameStruct *getJSparamnames();
 int JSparamIndex (const char *name, const char *type, int mod);
 struct CRscriptStruct *getScriptControlIndex(int actualscript);
-
+int getScriptControlCount();
 int getFieldFromScript(struct Shader_Script * sp, char *fieldname, int *type, int *kind, int *iifield, union anyVrml **value, int **valueChanged);
 
 #endif /* __FREEWRL_CSCRIPTS_H__ */
