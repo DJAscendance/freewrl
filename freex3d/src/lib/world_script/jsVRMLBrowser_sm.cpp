@@ -417,16 +417,15 @@ ProtoDeclaration_newInstance(JSContext* cx, uintN argc, jsval* vp) {
 	UNUSED(argv);
 
 
-	long long ptr;
+	struct X3D_Proto* ptr;
 	char str[200];
 	JSString* _str;
-	if ((ptr = (long long)JS_GetPrivateFw(cx, obj)) == NULL) {
+	if ((ptr = (struct X3D_Proto*)JS_GetPrivateFw(cx, obj)) == NULL) {
 		printf("in ProtoDeclaration_newInstance() - not a Native\n");
 		return JS_FALSE;
 	}
-	int _index = ptr - 1;
 	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
-	struct X3D_Proto* proto = vector_get(struct X3D_Proto*, ec->__protoDeclares, _index);
+	struct X3D_Proto* proto = ptr;
 
 	struct ProtoDefinition* pd;
 	pd = (struct ProtoDefinition*)proto->__protoDef;
