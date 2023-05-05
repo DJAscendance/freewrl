@@ -1569,7 +1569,7 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 	jsval *vp = hvp.address();
 
 	//ExecutionContextNative *ptr;
-	struct X3D_Proto* ptr;
+	struct X3D_Proto *ptr, *ec;
 	JSString *_str;
 	jsval rval;
 	jsval id;
@@ -1588,6 +1588,8 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 			printf( "JS_GetPrivate failed in ExecutionContextGetProperty.\n");
 		return JS_FALSE;
 	}
+	ec = ptr;
+
 	int index = -1;
 	if (JSVAL_IS_STRING(id)) {
 		char* field = (char*)JS_EncodeString(cx, JSVAL_TO_STRING(id));
@@ -1660,30 +1662,21 @@ ExecutionContextGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handl
 		case 5: //rootNodes MFNode (readonly if !isScene, else rw)
 			{
 				JSObject *_obj;
-				//MFNodeNative *mfn;
+				//printf("__nodes length %d", vectorSize(ec->__nodes)); //all nodes in context
+				//printf(" __children.n %d\n", ec->__children.n); //rootnodes in context
+				AnyNative* nany; 
 
-				//struct X3D_Group* scene = (struct X3D_Group*)(struct X3D_Node*)ptr; //->handle;
-				return JS_FALSE;
-
-				//scene->children;
-				//somehow return children as an MFNode
-				//mfn = MALLOC(void *, sizeof(MFNodeNative));
 				_obj = JS_NewObject(cx,&MFNodeClass,NULL,obj);
-
-				//mfn->handle = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
-				//if (!JS_DefineProperties(cx, _obj, MFNodeProperties)) {
-				//	printf( "JS_DefineProperties failed in SFRotationConstr.\n");
-				//	return JS_FALSE;
-				//}
-				if(0) if (!JS_DefineFunctions(cx, _obj, MFNodeFunctions)) {
-					printf( "JS_DefineProperties failed in SFRotationConstr.\n");
+				//set private
+				if ((nany = (AnyNative*)AnyNativeNew(FIELDTYPE_MFNode, (anyVrml*) & ec->__children, 0)) == NULL) {
+					printf("AnyNativeNew failed in ExecutionContext..\n");
 					return JS_FALSE;
 				}
-//OUCH NEEDS WORK i DON'T KNOW WHAT I'M DOING
-				//if (!JS_SetPrivateFw(cx, _obj, &scene->children)) {
-				//	printf( "JS_SetPrivate failed in ExecutionContext.\n");
-				//	return JS_FALSE;
-				//}
+
+				if (!JS_SetPrivateFw(cx, _obj, nany)) {
+					printf("JS_SetPrivate failed in ExecutionContext..\n");
+					return JS_FALSE;
+				}
 
 				JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(_obj));
 			}
@@ -1798,6 +1791,8 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	jsval *vp = hvp.address();
 
 	BrowserNative *ptr;
+	struct X3D_Proto* ec;
+
 	jsdouble d;
 	JSString *_str;
 	jsval rval;
@@ -1821,6 +1816,8 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 		printf( "JS_GetPrivate failed in BrowserGetProperty.\n");
 		return JS_FALSE;
 	}
+	ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+
 	int index = -1;
 	if (JSVAL_IS_INT(id))
 		index = JSVAL_TO_INT(id);
@@ -1910,15 +1907,9 @@ BrowserGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 			//H: I have to return an ExecutionContextNative here with its guts set to our rootNode or ???
 			{
 				JSObject *_obj;
-				//ExecutionContextNative ec = MALLOC(ExecutionContextNative, sizeof(ExecutionContextNative));
 				_obj = JS_NewObject(cx,&ExecutionContextClass,NULL,obj);
-
-				//ec->handle = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
-				struct X3D_Node* ec;
-				//ec = getExecutionContextFromCx(cx);
-				ec = (struct X3D_Node*)JS_GetContextPrivate(cx);
-				if(!ec)
-					ec = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
+				//if(!ec)
+				//	ec = (struct X3D_Node*)rootNode(); //change this to (Script)._executionContext when brotos working fully
 				if(0) if (!JS_DefineProperties(cx, _obj, ExecutionContextProperties)) {
 					printf( "JS_DefineProperties failed in ExecutionContextProperties.\n");
 					return JS_FALSE;
