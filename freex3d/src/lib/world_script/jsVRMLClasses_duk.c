@@ -1402,6 +1402,9 @@ int SFNode_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, 
 {
 	char str[512];
 	void **ptr = (void **)fwn;
+
+	struct X3D_Node* node = ((union anyVrml*)fwn)->sfnode;
+
 	sprintf(str,"_%p_",(*ptr));
 	fwretval->_string =  strdup(str);
 	fwretval->itype = 'S';
@@ -1419,7 +1422,9 @@ FWFunctionSpec (SFNode_Functions)[] = {
 	{"toString", SFNode_toString, 'S',{0,0,0,NULL}},
 	{0}
 };
-
+FWPropertySpec(SFNode_Properties)[] = {
+	{NULL,0,0,0},
+};
 //#define FIELDTYPE_SFNode	10
 struct FWTYPE SFNodeType = {
 	FIELDTYPE_SFNode,
@@ -1428,7 +1433,7 @@ struct FWTYPE SFNodeType = {
 	sizeof(void*), //sizeof(struct ), 
 	SFNode_Constructor, //constructor
 	SFNode_ConstructorArgs, //constructor args
-	NULL, //Properties,
+	SFNode_Properties, //Properties,
 	SFNode_Iterator, //special iterator
 	SFNode_Getter, //Getter,
 	SFNode_Setter, //Setter,

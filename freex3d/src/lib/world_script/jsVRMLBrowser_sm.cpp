@@ -641,12 +641,12 @@ ProtoDeclarationGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handl
 
 
 	if (!JS_IdToValue(cx, iid, &id)) {
-		printf("JS_IdToValue failed in X3DRouteGetProperty.\n");
+		printf("JS_IdToValue failed in ProtoDeclarationGetProperty.\n");
 		return JS_FALSE;
 	}
 
 	if ((ptr = (struct X3D_Proto*)JS_GetPrivateFw(cx, obj)) == NULL) {
-		printf("JS_GetPrivate failed in X3DRouteGetProperty.\n");
+		printf("JS_GetPrivate failed in ProtoDeclarationGetProperty.\n");
 		return JS_FALSE;
 	}
 	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
@@ -1243,23 +1243,24 @@ static JSClass ProfileInfoArrayClass = {
     JS_FinalizeStub
 };
 
-
-char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node) {
-	int n = vectorSize(ec->__DEFnames);
-	char* name = NULL;
-	struct brotoDefpair def;
-	for (int i = 0; i < n; i++) {
-		def = vector_get(struct brotoDefpair, ec->__DEFnames, i);
-		//printf("%x %x %s\n",node,def.node,def.name);
-		if (def.node == node) {
-			name = def.name;
-			break;
+extern "C" {
+	char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node) {
+		int n = vectorSize(ec->__DEFnames);
+		char* name = NULL;
+		struct brotoDefpair def;
+		for (int i = 0; i < n; i++) {
+			def = vector_get(struct brotoDefpair, ec->__DEFnames, i);
+			//printf("%x %x %s\n",node,def.node,def.name);
+			if (def.node == node) {
+				name = def.name;
+				break;
+			}
 		}
+		return name;
 	}
-	return name;
-}
+} //extern C
 
-
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
 JSBool
 X3DRouteToString(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);

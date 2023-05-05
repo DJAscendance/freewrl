@@ -1816,15 +1816,16 @@ struct FWTYPE X3DRouteArrayType = {
 //SFNode destinationNode;
 //String destinationField;
 //}
-/*
-int X3DSRouteToString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
+int X3DRouteToString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
 	int nr = 0;
 	char* value;
 	value = NULL;
 
 	char str[200];
 	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
-	struct brotoRoute* route = vector_get(struct brotoRoute*, ecc->__ROUTES, _index);
+	struct brotoRoute* route = (struct brotoRoute*)fwn;
+	//struct brotoRoute* route = vector_get(struct brotoRoute*, ecc->__ROUTES, _index);
 
 	//getSpecificRoute(_index, &fromNode, &fromOffset, &toNode, &toOffset);
 	char* fromName = lookup_brotoDefname(ecc, route->from.node); // parser_getNameFromNode(route->from.node);
@@ -1847,7 +1848,7 @@ FWFunctionSpec(X3DRouteFunctions)[] = {
 	{"toString",	X3DRouteToString, 'S',{0,0,0,NULL}},
 	{0}
 };
-*/
+
 FWPropertySpec (X3DRouteProperties)[] = {
 	{"sourceNode", 0, 'W', 'T'},
 	{"sourceField", 1, 'S', 'T'},
@@ -1875,7 +1876,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	switch(index){
-	case 0: //fromNode
+	case 0: //sourceNode
 		//fwretval->_web3dval.native = (void*)fromNode; //route->routeFromNode;
 		//((union anyVrml*)fwpars[0]._web3dval.native)->sfnode
 		fwretval->_web3dval.anyvrml = malloc(sizeof(union anyVrml));
@@ -1884,13 +1885,13 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		fwretval->_web3dval.gc = 1;
 		fwretval->itype = 'W';
 		break;
-	case 1: //fromField
+	case 1: //sourceField
 		//fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
 		getFieldFromNodeAndIndexSource(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname; //NULL;
 		fwretval->itype = 'S';
 		break;
-	case 2: //toNode
+	case 2: //destinationNode
 		//fwretval->_web3dval.native = (void*)toNode; //route->routeFromNode;
 		fwretval->_web3dval.anyvrml = malloc(sizeof(union anyVrml));
 		fwretval->_web3dval.anyvrml->sfnode = toNode;
@@ -1898,7 +1899,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		fwretval->itype = 'W';
 		fwretval->_web3dval.gc = 1;
 		break;
-	case 3: //toField
+	case 3: //destinationField
 		//getFieldFromNodeAndIndex(route->tonodes[0].routeToNode,route->tonodes[0].foffset,&fieldname,&type,&kind,&value);
 		getFieldFromNodeAndIndexSource(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname;
@@ -1923,7 +1924,7 @@ struct FWTYPE X3DRouteType = {
 	X3DRouteGetter,
 	NULL,
 	0,0, //takes int index in prop
-	NULL, //&X3DRouteFunctions,
+	X3DRouteFunctions,
 };
 
 
@@ -1931,17 +1932,18 @@ struct FWTYPE X3DRouteType = {
 int X3DProtoArrayGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	
 	int nr = 0;
+	Stack* parray = (Stack*)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index == -1){
 		int _length;
-		_length = vectorSize(fwn);
+		_length = vectorSize(parray);
 		fwretval->_integer = _length;
 		fwretval->itype = 'I';
 		nr = 1;
 	}else if(index > -1 ){
 		if(index < vectorSize(fwn)){
-			fwretval->_pointer.native = vector_get(void *, fwn, index); //struct X3D_Proto *
-			fwretval->_pointer.gc = 1;
+			fwretval->_pointer.native = (void*)vector_get(struct X3D_Proto *, parray, index); //struct X3D_Proto *
+			fwretval->_pointer.gc = 0;
 			fwretval->_pointer.fieldType = AUXTYPE_X3DProto;
 			fwretval->itype = 'P';
 			nr = 1;
@@ -2001,19 +2003,24 @@ FWPropertySpec (X3DProtoProperties)[] = {
 int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
+	struct ProtoDefinition* pd = (struct ProtoDefinition*)X3D_PROTO(fwn)->__protoDef;
 	switch(index){
 	case 0: //name
-		fwretval->_string = X3D_PROTO(fwn)->__typename; //NULL;
+		fwretval->_string = strdup(pd->protoName); // X3D_PROTO(fwn)->__typename; //NULL;
 		fwretval->itype = 'S';
+		fwretval->_web3dval.gc = 0;
+		nr = 1;
 		break;
 	case 1: //fields
-		fwretval->_web3dval.native = fwn; //we'll get field[i] from the proto later (void*)X3D_PROTO(fwn)->__protoDef; //route->routeFromNode;
+		fwretval->_web3dval.native = pd->iface; // fwn; //we'll get field[i] from the proto later (void*)X3D_PROTO(fwn)->__protoDef; //route->routeFromNode;
 		fwretval->_web3dval.fieldType = AUXTYPE_X3DFieldDefinitionArray;
 		fwretval->itype = 'W';
 		fwretval->_web3dval.gc = 0;
+		nr = 1;
 		break;
 	case 2: //isExternProto
 		fwretval->itype = 'B';
+		fwretval->_web3dval.gc = 0;
 		{
 			unsigned char flag = ciflag_get(X3D_PROTO(fwn)->__protoFlags,3);
 			if(flag == 1)
@@ -2021,6 +2028,8 @@ int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 			else
 				fwretval->_boolean = FALSE;
 		}
+		nr = 1;
+		break;
 	default:
 		nr = 0;
 	}
@@ -2061,23 +2070,24 @@ int count_fields(struct X3D_Node* node);
 int X3DFieldDefinitionArrayGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	
 	int nr = 0;
-	struct X3D_Node *node = (struct X3D_Node*)fwn;
-
+	//struct X3D_Node *node = (struct X3D_Node*)fwn;
+	Stack* iface = (Stack*)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index == -1){
 		int _length = 0;
 		//I suspect this fieldDefinition stuff is for ProtoDeclares and ExternProtoDeclares only, not builtin or protoInstances or scripts
-		_length = count_fields(node); 
+		_length = vectorSize(iface); // count_fields(node);
 		fwretval->_integer = _length;
 		fwretval->itype = 'I';
 		nr = 1;
 	}else if(index > -1 ){
 		if(index < vectorSize(fwn)){
-			struct tuplePointerInt *tpi = malloc(sizeof(struct tuplePointerInt));
-			tpi->pointer = (void*)node;  
-			tpi->integer = index;
-			fwretval->_pointer.native = tpi; //vector_get(void *, fwn, index); //struct X3D_Proto *
-			fwretval->_pointer.gc = 1;
+			//struct tuplePointerInt *tpi = malloc(sizeof(struct tuplePointerInt));
+			//tpi->pointer = (void*)node;  
+			//tpi->integer = index;
+			struct ProtoFieldDecl* pfield = vector_get(struct ProtoFieldDecl*, iface, index);
+			fwretval->_pointer.native = pfield; //vector_get(void *, fwn, index); //struct X3D_Proto *
+			fwretval->_pointer.gc = 0;
 			fwretval->_pointer.fieldType = AUXTYPE_X3DFieldDefinition;
 			fwretval->itype = 'P';
 			nr = 1;
@@ -2119,33 +2129,38 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	union anyVrml *value;
 	struct X3D_Node* node;
 	const char *fname;
-	struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
-	node = tpi->pointer;
-	ifield = tpi->integer;
+	//struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
+	//node = tpi->pointer;
+	//ifield = tpi->integer;
 	//I suspect FieldDefinitions are for ProtoDeclarations only, 
 	// but freewrl Brotos can use the same function for nodes and declares
-	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
+	struct ProtoFieldDecl* pfield = (struct ProtoFieldDecl*)fwn;
+
+//	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
 	//if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
 		//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 		switch(index){
 		case 0: //name
-			fwretval->_string = fname; //NULL;
+			fwretval->_string = pfield->cname; // fname; //NULL;
 			fwretval->itype = 'S';
+			nr = 1;
 			break;
 		case 1: //accessType
-			si = lookup_string_int(lookup_X3DConstants,PROTOKEYWORDS[kind],&konstindex);
-			fwretval->_integer = konstindex; //index into x3dconstants table
+			//si = lookup_string_int(lookup_X3DConstants,PROTOKEYWORDS[pfield->mode],&konstindex);
+			fwretval->_integer = pfield->mode; // konstindex; //index into x3dconstants table
 			fwretval->itype = 'I';
+			nr = 1;
 			break;
 		case 2: //dataType
-			si = lookup_string_int(lookup_X3DConstants,FIELDTYPES[type],&konstindex);
-			fwretval->_integer = konstindex; //index into x3dconstants table
+			//si = lookup_string_int(lookup_X3DConstants,FIELDTYPES[pfield->type],&konstindex);
+			fwretval->_integer = pfield->type; // konstindex; //index into x3dconstants table
 			fwretval->itype = 'I';
+			nr = 1;
 			break;
 		default:
 			nr = 0;
 		}
-	}
+//	}
 	return nr;
 }
 
