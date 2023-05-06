@@ -420,6 +420,7 @@ void add_empty_proto_vectors(struct X3D_Node* node) {
 	// Browser.print('Context: number of protos='+Browser.currentScene.protos.length);
 	// and our lazy-intialization tactic makes it bomb if the protos vector is null.
 	// so we will create non-empty vectors here.
+	// perhaps I should have made these broto fields MFNode-like with .n .p built in and initialized to 0
 
 	if (!node)return;
 	if (node->_nodeType != NODE_Proto && node->_nodeType != NODE_Inline) return;

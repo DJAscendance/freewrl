@@ -1278,7 +1278,7 @@ sub gen {
 	}
 	push @genFuncs2, "\t};\n";
 
-
+      push @genFuncs2, "\tadd_empty_proto_vectors(tmp);\n";
 	push @genFuncs2, "\treturn tmp;\n}\n";
 
 	push @genFuncs2,
@@ -1289,7 +1289,6 @@ sub gen {
 
 	push @genFuncs2,
 	"	\n".
-	"	add_empty_proto_vectors(tmp);\n".
 	"	/* is this a texture holding node? */\n".
 	"	registerTexture(tmp);\n".
 	"	/* Node Tracking */\n".
