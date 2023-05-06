@@ -1656,6 +1656,7 @@ ACTION_YAWPITCH,
 ACTION_ROLL,
 ACTION_XY,
 ACTION_DIST,
+ACTION_PAN,
 ACTION_SHIFT,
 ACTION_HOVER,
 ACTION_PEDAL,
@@ -1689,6 +1690,7 @@ char *help;
 {ACTION_SPHERICAL, "SPHERICAL {pan,zoom}"},
 {ACTION_TURNTABLE, "TURNTABLE"},
 {ACTION_LOOKAT, "LOOKAT"},
+{ACTION_PAN,"PAN"},
 {ACTION_YAWZ, "FLY yaw-z"},
 {ACTION_YAWPITCH, "FLY yaw-pitch"},
 {ACTION_ROLL, "FLY roll"},
@@ -1739,7 +1741,7 @@ void convertPng2hexAlpha()
 	*/
 	int w,h,ii,size;
 	static int mbuts = 1; //2; //8; // 17;
-	static char * butFnames[] = {"viewall.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
+	static char * butFnames[] = {"pan.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
 	textureTableIndexStruct_s butts;
 
 	FILE* out = fopen("hudIcons_octalpha_h","w+");
@@ -1872,7 +1874,7 @@ void initButtons()
 		static GLubyte * buttonlist [] = {
 			walk, fly, examine,
 			yawz, xy, yawpitch, roll,
-			explore, spherical, turntable, lookat, distance, viewall,
+			explore, spherical, turntable, lookat, pan, distance, viewall,
 			shift, hover, pedal, level, headlight,
 			collision, prev, next, help, messages, 
 			options, reload, url, file, blank
@@ -1880,15 +1882,15 @@ void initButtons()
 		static int actionlist [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
 			ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, ACTION_VIEWALL,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_PAN, ACTION_DIST, ACTION_VIEWALL,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, 
 			ACTION_COLLISION, ACTION_PREV,ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, 
 			ACTION_OPTIONS,ACTION_RELOAD, ACTION_URL, ACTION_FILE, ACTION_BLANK,
 			};
-		static int NACTION = 28; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
+		static int NACTION = 29; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
 		//radiosets are to indicate what things are deselected (if any) when another thing is selected
-		static int radiosets [][9] = {
-			{8,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_DIST},
+		static int radiosets [][10] = {
+			{9,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_PAN,ACTION_DIST},
 			{3,ACTION_MESSAGES,ACTION_OPTIONS,ACTION_HELP}, 
 			//{4,ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL}, 
 			{0},
@@ -1903,7 +1905,7 @@ void initButtons()
 
 		static int mainbar_linux [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_DIST,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_PAN, ACTION_DIST,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, ACTION_COLLISION, ACTION_PREV,
 			ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, ACTION_OPTIONS, 
 			//ACTION_RELOAD, ACTION_URL, 
@@ -2269,6 +2271,10 @@ void setMenuButton_navModes(int type, int dragchord)
 			iaction = ACTION_DIST;
 			newval = 1;
 			break;
+		case VIEWER_PAN:
+			iaction = ACTION_PAN;
+			newval = 1;
+			break;
 		case VIEWER_FLY:
 #if defined(QNX) || defined(KIOSK)//|| defined(_MSC_VER)
 			iaction = ACTION_FLY2;
@@ -2517,6 +2523,8 @@ int handleButtonRelease(int mouseX, int mouseY)
 					fwl_set_viewer_type(VIEWER_SPHERICAL); break;
 				case ACTION_TURNTABLE:
 					fwl_set_viewer_type(VIEWER_TURNTABLE); break;
+				case ACTION_PAN:
+					fwl_set_viewer_type(VIEWER_PAN); break;
 				case ACTION_DIST:
 					fwl_set_viewer_type(VIEWER_DIST); break;
 				case ACTION_SHIFT:	 fwl_setShift(p->pmenu.bitems[i].item->butStatus); break;
