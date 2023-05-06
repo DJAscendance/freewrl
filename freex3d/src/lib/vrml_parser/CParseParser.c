@@ -437,7 +437,7 @@ void add_empty_proto_vectors(struct X3D_Node* node) {
 	proto->__ROUTES = newStack(struct CRStruct*);
 	proto->__EXPORTS = newStack(struct IMEXPORT*);
 	proto->__IMPORTS = newStack(struct IMEXPORT*);
-	proto->__DEFnames = newStack(struct brotoDefpair*);
+	proto->__DEFnames = newStack(struct brotoDefpair);
 	proto->__IS = newStack(struct brotoIS*);
 	proto->__scripts = newStack(struct X3D_Node*);
 
