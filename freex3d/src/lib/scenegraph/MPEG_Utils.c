@@ -317,6 +317,9 @@ bool movie_load(resource_item_t *res){
 				//and that's what audio drivers on computers normally take
 				//and same with the APIs that wrap the hardware drivers ie openAL API
 				printf("audio freq %d channels %d size %d bits per channel %d\n",freq,channels,size,bits);
+#ifdef HAVE_LIBSOUND
+				node->__sourceNumber = libsound_createBusFromPCM(pcmbuf, bits, channels, size, freq);
+#else //HAVE_LIBSOUND
 				#ifdef HAVE_OPENAL
 				// http://open-activewrl.sourceforge.net/data/OpenAL_PGuide.pdf
 				// page 6
@@ -381,6 +384,7 @@ bool movie_load(resource_item_t *res){
 					}
 				}
 				#endif //HAVE_OPENAL
+#endif //HAVE_LIBSOUND
 			}
 		} 
 

@@ -106,6 +106,7 @@ void fwCloseAL(void *alctx)
 //libsound is our /src/libsound C wrapper lib over 
 // LabSound https://github.com/LabSound/LabSound 
 #endif //HAVE_LIBSOUND
+
 typedef struct pComponent_Sound{
 #ifdef HAVE_OPENAL
 	void *alContext;
@@ -146,6 +147,7 @@ void Component_Sound_init(struct tComponent_Sound *t){
 #ifdef HAVE_OPENAL
 		p->alContext = NULL;
 #endif //HAVE_OPENAL
+
 	}
 }
 void Component_Sound_clear(struct tComponent_Sound *t){
@@ -767,7 +769,6 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	/*  audio clip is a flat sound -no 3D- and a sound node (3D) refers to it
 		specs: if an audioclip can't be reached in the scenegraph, then it doesn't play
 	*/
-
 	/* is this audio wavelet initialized yet? */
 	if (node->__loadstatus != LOAD_STABLE) {
 		locateAudioSource((struct X3D_AudioBuffer*)node); //downcast to share resource loading code
@@ -777,11 +778,15 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	 * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
 	 * check out locateAudioSource to find out reasons */
 	if (node->__sourceNumber == BADAUDIOSOURCE) return;
+	if (node->__sourceNumber < 0) return; //if mpeg with no sound track, it will be loaded, but no sourceNumber
+	int icontext = peek_audio_context();
+	if (icontext == 0) return; //could be called from render_MovieTexture on the texture-draw pass
+	//..or called from separate Sound node as audioclip
 	struct X3D_SoundRep* srep = getSoundRep(X3D_NODE(node));
 	srep->iframe = gglobal()->Mainloop.iframe;
 	srep->ibuffer = node->__sourceNumber;
 	srep->dopplerFactor = peek_doppler_factor();
-	int icontext = peek_audio_context();
+
 	icset iparent = peek_audio_parent();
 	//printf("ac audio_context %d parent_node %d\n", peek_audio_context(), iparent.x);
 
@@ -796,8 +801,6 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 	//	iparent.n = srep->inode;
 	//	libsound_connect(srep->icontext, iparent);
 	//}
-
-
 }
 void render_AudioBuffer(struct X3D_AudioBuffer* node) {
 	// two ways to load an audiobuffer:

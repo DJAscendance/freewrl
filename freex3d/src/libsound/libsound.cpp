@@ -18,6 +18,7 @@
 #include <iostream>
 #include <string>
 
+
 // In the future, this class could do all kinds of clever things, like setting up the context,
 // handling recording functionality, etc.
 
@@ -646,6 +647,7 @@ typedef ptw32_handle_t pthread_t;
         int length = lentotal / nchannel;
         std::shared_ptr<lab::AudioBus> audioBus(new lab::AudioBus(nchannel, length));
         audioBus->setSampleRate(44100.0);
+        
         //audioBus->setSampleRate((float)audioData->sampleRate);
         for (int i = 0; i < nchannel; ++i)
         {
@@ -657,6 +659,142 @@ typedef ptw32_handle_t pthread_t;
         return next_bus;
 
     }
+
+//>>>> libnyquist Common.cpp Common.h 
+// - I just need the ConvertToFloat32() but don't know how to get it directly from libnyquist
+    // Signed maxes, defined for readabilty/convenience
+#define NQR_INT16_MAX 32767.f
+#define NQR_INT24_MAX 8388608.f
+#define NQR_INT32_MAX 2147483648.f
+
+    static const float NQR_BYTE_2_FLT = 1.0f / 127.0f;
+
+#define int8_to_float32(s)  ((float) (s) * NQR_BYTE_2_FLT)
+#define uint8_to_float32(s)(((float) (s) - 128) * NQR_BYTE_2_FLT)
+#define int16_to_float32(s) ((float) (s) / NQR_INT16_MAX)
+#define int24_to_float32(s) ((float) (s) / NQR_INT24_MAX)
+#define int32_to_float32(s) ((float) (s) / NQR_INT32_MAX)
+    enum PCMFormat
+    {
+        PCM_U8,
+        PCM_S8,
+        PCM_16,
+        PCM_24,
+        PCM_32,
+        PCM_64,
+        PCM_FLT,
+        PCM_DBL,
+        PCM_END
+    };
+    //freewrl assume little endian
+#define Read16(n) (n)
+#define Read24(n) (n)
+#define Read32(n) (n)
+#define Read64(n) (n)
+// http://www.dsprelated.com/showthread/comp.dsp/136689-1.php
+    inline int32_t Pack(uint8_t a, uint8_t b, uint8_t c)
+    {
+        // uint32_t tmp = ((c & 0x80) ? (0xFF << 24) : 0x00 << 24) | (c << 16) | (b << 8) | (a << 0); // alternate method
+        int32_t x = (c << 16) | (b << 8) | (a << 0);
+        auto sign_extended = (x) | (!!((x) & 0x800000) * 0xff000000);
+
+        return sign_extended;
+    }
+    void ConvertToFloat32(float* dst, const uint8_t* src, const size_t N, PCMFormat f)
+    {
+        assert(f != PCM_END);
+
+        if (f == PCM_U8)
+        {
+            const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = uint8_to_float32(dataPtr[i]);
+        }
+        else if (f == PCM_S8)
+        {
+            const int8_t* dataPtr = reinterpret_cast<const int8_t*>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = int8_to_float32(dataPtr[i]);
+        }
+        else if (f == PCM_16)
+        {
+            const int16_t* dataPtr = reinterpret_cast<const int16_t*>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = int16_to_float32(Read16(dataPtr[i]));
+        }
+        else if (f == PCM_24)
+        {
+            const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(src);
+            size_t c = 0;
+            for (size_t i = 0; i < N; ++i)
+            {
+                int32_t sample = Pack(dataPtr[c], dataPtr[c + 1], dataPtr[c + 2]);
+                dst[i] = int24_to_float32(sample); // Packed types don't need addtional endian helpers
+                c += 3;
+            }
+        }
+        else if (f == PCM_32)
+        {
+            const int32_t* dataPtr = reinterpret_cast<const int32_t*>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = int32_to_float32(Read32(dataPtr[i]));
+        }
+
+        //@todo add int64 format
+
+        else if (f == PCM_FLT)
+        {
+            std::memcpy(dst, src, N * sizeof(float));
+            /* const float * dataPtr = reinterpret_cast<const float *>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = (float) Read32(dataPtr[i]); */
+        }
+        else if (f == PCM_DBL)
+        {
+            const double* dataPtr = reinterpret_cast<const double*>(src);
+            for (size_t i = 0; i < N; ++i)
+                dst[i] = (float)Read64(dataPtr[i]);
+        }
+    }
+//<<< libnyquist Common.cpp Common.h
+    void deinterleave(char* dst, char* src, int nchannel, int bits, int lenbytes) {
+        int kbyte = bits / 8;
+        int chunks = lenbytes / nchannel / kbyte;
+        
+        for (int i = 0; i < chunks; i++) {
+            for (int j = 0; j < nchannel; j++)
+                for (int k = 0; k < kbyte; k++)
+                    dst[(j * chunks)*kbyte + i*kbyte + k] = src[(i * nchannel + j)*kbyte + k];
+        }
+    }
+    int libsound_createBusFromPCM(char* buffer, int bits, int nchannel, int lentotal, int freq) {
+        //called from MPEG_Utils which extracts PCM data from the mpeg
+        int length = lentotal / nchannel;
+
+        //audioBus->setSampleRate((float)audioData->sampleRate);
+        int bytes32 = length * 32 / bits;
+        int chunks = length * 8 / bits;
+        std::shared_ptr<lab::AudioBus> audioBus(new lab::AudioBus(nchannel, bytes32));
+        audioBus->setSampleRate((float)freq);
+
+        float *chan32 = (float*)std::malloc(bytes32);
+        PCMFormat f = bits == 8 ? PCMFormat::PCM_S8 : bits == 16 ? PCMFormat::PCM_16 : bits == 24 ? PCMFormat::PCM_24 : bits == 32 ? PCMFormat::PCM_32 : PCMFormat::PCM_64;
+        char *buffer2 = (char*)std::malloc(lentotal);
+        deinterleave(buffer2,buffer, nchannel, bits, lentotal);
+        for (int i = 0; i < nchannel; ++i)
+        {
+            char* channel = &buffer2[i * length];
+            ConvertToFloat32(chan32, (uint8_t*)channel, chunks, f);
+            std::memcpy(audioBus->channel(i)->mutableData(), chan32, bytes32);
+        }
+        std::free(buffer2);
+        std::free(chan32);
+        next_bus++;
+        busses[next_bus] = audioBus;
+        return next_bus;
+
+    }
+
 
     int libsound_createBusFromFile0(char* url) {
         //static list of busses, independent of audio context, so can DEF/USE?
@@ -959,7 +1097,7 @@ typedef ptw32_handle_t pthread_t;
             //pannerNode_ptr->positionZ()->setValue(xyz[2]);
         }
         break;
-
+        case NODE_MovieTexture:
         case NODE_AudioClip:
         {
             struct X3D_AudioClip* pnode = (struct X3D_AudioClip*)node;
@@ -982,7 +1120,7 @@ typedef ptw32_handle_t pthread_t;
 
 
                 //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
-                audioClipNode->schedule(0.0, -1); // -1 to loop forever
+                //audioClipNode->schedule(0.0, -1); // -1 to loop forever
 
 
             }
@@ -993,15 +1131,15 @@ typedef ptw32_handle_t pthread_t;
             // here we turn on / off the playback depending on isActive 
             if (1) {
                 SchedulingState status = audioClipNode_ptr->playbackState();
-                if (status == SchedulingState::PLAYING && (pnode->isPaused == TRUE))
+                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
                     audioClipNode_ptr->stop(0.0);
-                else if (status != SchedulingState::PLAYING && (pnode->isPaused == FALSE))
-                    audioClipNode_ptr->start(0.0);
+                else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
+                    audioClipNode_ptr->start(0.0, pnode->loop ? -1 : 0);
 
                 bool isactive = audioClipNode_ptr->isPlayingOrScheduled();
                 //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
                 if (!isactive && pnode->loop) 
-                    audioClipNode_ptr->start(0.0f);
+                    audioClipNode_ptr->start(0.0f, -1);
                 audioClipNode_ptr->playbackRate()->setValue(pnode->pitch * srepn->dopplerFactor);
             }
            // audioClipNode_ptr->gain()->setValue(pnode->gain);
