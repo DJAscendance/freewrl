@@ -1170,7 +1170,7 @@ typedef ptw32_handle_t pthread_t;
 
 
                 //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
-                audioSource->schedule(0.0, -1); // -1 to loop forever
+                //audioSource->schedule(0.0, -1); // -1 to loop forever
 
 
             }
@@ -1181,14 +1181,14 @@ typedef ptw32_handle_t pthread_t;
             // here we turn on / off the playback depending on isActive 
             if (1) {
                 SchedulingState status = audioSource_ptr->playbackState();
-                if (status == SchedulingState::PLAYING && pnode->isPaused)
+                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
                     audioSource_ptr->stop(0.0);
-                else if (status != SchedulingState::PLAYING && pnode->isPaused == FALSE)
-                    audioSource_ptr->start(0.0);
+                else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
+                    audioSource_ptr->start(0.0, pnode->loop ? -1 : 0);
 
                 bool isactive = audioSource_ptr->isPlayingOrScheduled();
-                pnode->isActive = isactive ? 1 : 0;
-                if (!isactive && pnode->loop) audioSource_ptr->start(0.0f);
+                if (!isactive && pnode->loop)
+                    audioSource_ptr->start(0.0f, -1);
 
                 audioSource_ptr->playbackRate()->setValue(pnode->playbackRate);
                 audioSource_ptr->detune()->setValue(pnode->detune);
@@ -1235,7 +1235,7 @@ typedef ptw32_handle_t pthread_t;
                 //if (iparent.x)
                 //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
 
-                oscillator->start(0.0f);
+                //oscillator->start(0.0f);
             }
             //copy changed values from x3d to labsound
             
@@ -1267,18 +1267,12 @@ typedef ptw32_handle_t pthread_t;
             if(wave_type == OscillatorType::CUSTOM && pnode->periodicWave){
             }
             SchedulingState status = oscillator_ptr->playbackState();
-            // printf("isActive %d isPaused %d status %d\n", pnode->isActive, pnode->isPaused, status);
-            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE || pnode->isPaused == TRUE)) {
+            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
                 oscillator_ptr->stop(0.0);
-                //printf("called stop \n");
-                //getchar();
-            }
-            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE && pnode->isPaused == FALSE)) {
+            else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
                 oscillator_ptr->start(0.0);
-                //printf("called start\n");
-                //getchar();
-            }
-            
+
+
         }
         break;
         case NODE_PeriodicWave:
