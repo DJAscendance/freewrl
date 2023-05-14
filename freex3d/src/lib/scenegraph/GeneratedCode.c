@@ -106,6 +106,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__colours",
 	"__coneTriangles",
 	"__coneVBO",
+	"__context_paused",
 	"__counts",
 	"__ctex",
 	"__ctflag",
@@ -4864,6 +4865,7 @@ const int OFFSETS_AudioClip[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_AudioClip, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_AudioClip, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_AudioClip, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_AudioClip, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_AudioClip, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_pitch, (int) offsetof (struct X3D_AudioClip, pitch),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_duration_changed, (int) offsetof (struct X3D_AudioClip, duration_changed),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -5070,6 +5072,7 @@ const int OFFSETS_BufferAudioSource[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_BufferAudioSource, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_BufferAudioSource, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_BufferAudioSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_BufferAudioSource, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_BufferAudioSource, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_BufferAudioSource, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_loopStart, (int) offsetof (struct X3D_BufferAudioSource, loopStart),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -7284,6 +7287,7 @@ const int OFFSETS_ListenerPointSource[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_ListenerPointSource, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_ListenerPointSource, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_ListenerPointSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_ListenerPointSource, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_dopplerEnabled, (int) offsetof (struct X3D_ListenerPointSource, dopplerEnabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_children, (int) offsetof (struct X3D_ListenerPointSource, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_interauralDistance, (int) offsetof (struct X3D_ListenerPointSource, interauralDistance),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -7702,6 +7706,7 @@ const int OFFSETS_MicrophoneSource[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_MicrophoneSource, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_MicrophoneSource, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_MicrophoneSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_MicrophoneSource, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_mediaDeviceID, (int) offsetof (struct X3D_MicrophoneSource, mediaDeviceID),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -7768,6 +7773,7 @@ const int OFFSETS_MovieTexture[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_MovieTexture, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_MovieTexture, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_MovieTexture, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_MovieTexture, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_loop, (int) offsetof (struct X3D_MovieTexture, loop),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_pitch, (int) offsetof (struct X3D_MovieTexture, pitch),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_duration_changed, (int) offsetof (struct X3D_MovieTexture, duration_changed),  (int) FIELDTYPE_SFTime, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -8154,6 +8160,7 @@ const int OFFSETS_OscillatorSource[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_OscillatorSource, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_OscillatorSource, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_OscillatorSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_OscillatorSource, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_detune, (int) offsetof (struct X3D_OscillatorSource, detune),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frequency, (int) offsetof (struct X3D_OscillatorSource, frequency),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_type, (int) offsetof (struct X3D_OscillatorSource, type),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -9184,6 +9191,7 @@ const int OFFSETS_StreamAudioSource[] = {
 	(int) FIELDNAMES_isPaused, (int) offsetof (struct X3D_StreamAudioSource, isPaused),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__self, (int) offsetof (struct X3D_StreamAudioSource, _self),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__context, (int) offsetof (struct X3D_StreamAudioSource, _context),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___context_paused, (int) offsetof (struct X3D_StreamAudioSource, __context_paused),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channelCount, (int) offsetof (struct X3D_StreamAudioSource, channelCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_channelCountMode, (int) offsetof (struct X3D_StreamAudioSource, channelCountMode),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_channelInterpretation, (int) offsetof (struct X3D_StreamAudioSource, channelInterpretation),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -11042,6 +11050,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->loop = FALSE;
 			tmp2->pitch = 1.0f;
 			tmp2->duration_changed = -1;
@@ -11302,6 +11311,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->detune = 0.0f;
 			tmp2->loop = FALSE;
 			tmp2->loopStart = 0;
@@ -14039,6 +14049,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->dopplerEnabled = FALSE;
 			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->interauralDistance = 0.0f;
@@ -14616,6 +14627,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->mediaDeviceID = newASCIIString("");
 			tmp2->_defaultContainer = 0;
 		break;
@@ -14688,6 +14700,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->loop = FALSE;
 			tmp2->pitch = 1.0f;
 			tmp2->duration_changed = -1;
@@ -15158,6 +15171,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->detune = 0.0f;
 			tmp2->frequency = 440.0f;
 			tmp2->type = newASCIIString("sine");
@@ -16377,6 +16391,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isPaused = FALSE;
 			tmp2->_self = 0;
 			tmp2->_context = 0;
+			tmp2->__context_paused = FALSE;
 			tmp2->channelCount = 2;
 			tmp2->channelCountMode = newASCIIString("smax");
 			tmp2->channelInterpretation = newASCIIString("speakders");

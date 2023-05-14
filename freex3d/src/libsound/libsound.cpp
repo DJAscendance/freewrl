@@ -1130,12 +1130,22 @@ typedef ptw32_handle_t pthread_t;
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
             if (1) {
+                if (pnode->isPaused == FALSE && pnode->__context_paused) {
+                    ac->context->resume();
+                    pnode->__context_paused = FALSE;
+                }
                 SchedulingState status = audioClipNode_ptr->playbackState();
-                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
-                    audioClipNode_ptr->stop(0.0);
+                if (status == SchedulingState::PLAYING) {
+                    if (pnode->isActive == FALSE)
+                        audioClipNode_ptr->stop(0.0);
+                    if (pnode->isPaused == TRUE) {
+                        ac->context->suspend();
+                        pnode->__context_paused = TRUE;
+                    }
+                }
                 else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
                     audioClipNode_ptr->start(0.0, pnode->loop ? -1 : 0);
-
+                
                 bool isactive = audioClipNode_ptr->isPlayingOrScheduled();
                 //audioClipNode_ptr->setLoop(pnode->loop ? true : false);
                 if (!isactive && pnode->loop) 
@@ -1180,15 +1190,21 @@ typedef ptw32_handle_t pthread_t;
             // web3d time dependent nodes have an isActive state set elsewhere (freewrl do_AudioTick)
             // here we turn on / off the playback depending on isActive 
             if (1) {
+                if (pnode->isPaused == FALSE && pnode->__context_paused) {
+                    ac->context->resume();
+                    pnode->__context_paused = FALSE;
+                }
                 SchedulingState status = audioSource_ptr->playbackState();
-                if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
-                    audioSource_ptr->stop(0.0);
+                if (status == SchedulingState::PLAYING) {
+                    if (pnode->isActive == FALSE)
+                        audioSource_ptr->stop(0.0);
+                    if (pnode->isPaused == TRUE) {
+                        ac->context->suspend();
+                        pnode->__context_paused = TRUE;
+                    }
+                }
                 else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
                     audioSource_ptr->start(0.0, pnode->loop ? -1 : 0);
-
-                bool isactive = audioSource_ptr->isPlayingOrScheduled();
-                if (!isactive && pnode->loop)
-                    audioSource_ptr->start(0.0f, -1);
 
                 audioSource_ptr->playbackRate()->setValue(pnode->playbackRate);
                 audioSource_ptr->detune()->setValue(pnode->detune);
@@ -1266,11 +1282,22 @@ typedef ptw32_handle_t pthread_t;
             oscillator_ptr->setType(wave_type);
             if(wave_type == OscillatorType::CUSTOM && pnode->periodicWave){
             }
+            
+            if (pnode->isPaused == FALSE && pnode->__context_paused) {
+                ac->context->resume();
+                pnode->__context_paused = FALSE;
+            }
             SchedulingState status = oscillator_ptr->playbackState();
-            if (status == SchedulingState::PLAYING && (pnode->isActive == FALSE))
-                oscillator_ptr->stop(0.0);
+            if (status == SchedulingState::PLAYING) {
+                if (pnode->isActive == FALSE)
+                    oscillator_ptr->stop(0.0);
+                if (pnode->isPaused == TRUE) {
+                    ac->context->suspend();
+                    pnode->__context_paused = TRUE;
+                }
+            }
             else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
-                oscillator_ptr->start(0.0);
+                oscillator_ptr->start(0.0, pnode->loop ? -1 : 0);
 
 
         }

@@ -1100,6 +1100,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # AudioClip
 		loop =>	["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -1109,7 +1110,6 @@ our %Nodes = (
 		# time that we were initialized at
 		__inittime => ["SFTime", 0, "initializeOnly", 0,0],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
-
 
 #		#movietexture compatible SoundSource section
 #		connect => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1241,6 +1241,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
 		# AudioBufferSource
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1449,6 +1450,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # ListenerPointSource
 		dopplerEnabled => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1493,6 +1495,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # MicrophoneSource
 		mediaDeviceID => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1514,6 +1517,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # OscillatorSource
 		detune => ["SFFloat", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1638,6 +1642,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # StreamAudioSource
 		channelCount => ["SFInt32", 2, "outputOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
@@ -1803,6 +1808,7 @@ our %Nodes = (
 		isPaused => ["SFBool", "FALSE","outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_self => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		_context => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+		__context_paused => ["SFBool","FALSE","initializeOnly",0,0],#ff
 
             # AudioClip
 		loop =>	["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
