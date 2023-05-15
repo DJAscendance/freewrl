@@ -1297,7 +1297,7 @@ typedef ptw32_handle_t pthread_t;
                 }
             }
             else if (status != SchedulingState::PLAYING && (pnode->isActive == TRUE))
-                oscillator_ptr->start(0.0, pnode->loop ? -1 : 0);
+                oscillator_ptr->start(0.0);
 
 
         }

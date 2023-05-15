@@ -1433,7 +1433,7 @@ struct FWTYPE SFNodeType = {
 	sizeof(void*), //sizeof(struct ), 
 	SFNode_Constructor, //constructor
 	SFNode_ConstructorArgs, //constructor args
-	SFNode_Properties, //Properties,
+	NULL, //SFNode_Properties, //Properties,
 	SFNode_Iterator, //special iterator
 	SFNode_Getter, //Getter,
 	SFNode_Setter, //Setter,

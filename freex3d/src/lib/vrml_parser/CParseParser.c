@@ -6394,8 +6394,9 @@ int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **
 			*value = &(sfield->value);
 			*builtIn = FALSE;
 			iret = 1;
+			return iret;
 		}
-		return iret;
+		//return iret;
 	}else if(node->_nodeType == NODE_Proto ) {
 		int k; //, mode;
 		struct ProtoFieldDecl* pfield;
@@ -6416,10 +6417,11 @@ int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **
 					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					iret = 1;
+					return iret;
 				}
 			}
 		}
-		return iret;
+		//return iret;
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
 	{
