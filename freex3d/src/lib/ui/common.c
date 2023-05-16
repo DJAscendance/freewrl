@@ -152,8 +152,8 @@ void splitpath3(const char* url, char** folder, char** local_name, char** suff);
 //ppcommon p = (ppcommon)gglobal()->common.prv;
 static FILE* frecord = NULL;
 FILE* getRecordFile() {
-	char name[300];
 	if (!frecord) {
+		char name[300];
 		char* folder, * local_name, * suff;
 		splitpath3(gglobal()->Mainloop.url, &folder, &local_name, &suff);
 		strcpy(name, folder);
@@ -166,14 +166,29 @@ FILE* getRecordFile() {
 }
 static double start_time;
 void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+	ttglobal tg = gglobal();
 	FILE* f = getRecordFile();
 	double runtime = Time1970sec() -start_time;
-	fprintf(f, "T,%d,%u,%d,%d,%d,%lf\n",mev,ID,mouseX,mouseY,windex,runtime);
+	//normalize touch coords to -1 to +1 range in y, 
+	// so if screen size, dimensions change between record and playback it will still work
+	float fmouseX, fmouseY, scale;
+	scale = 2.0f / (float)tg->display.screenHeight;
+	fmouseY = (float)mouseY * scale - 1.0f;
+	fmouseX = (float)mouseX * scale - 1.0f;
+	fprintf(f, "T,%d,%u,%f,%f,%d,%lf\n",mev,ID,fmouseX,fmouseY,windex,runtime);
 }
 void record_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
+	ttglobal tg = gglobal();
 	FILE* f = getRecordFile();
 	double runtime = Time1970sec() - start_time;
-	fprintf(f, "M,%d,%d,%d,%d,%d,%lf\n",mev,butnum,mouseX,mouseY,windex,runtime);
+	//normalize mouse coords to -1 to +1 range in y, 
+	// so if screen size, dimensions change between record and playback it will still work
+	float fmouseX, fmouseY, scale;
+	scale = 2.0f / (float)tg->display.screenHeight;
+	fmouseY = (float)mouseY * scale - 1.0f;
+	fmouseX = (float)mouseX * scale - 1.0f;
+
+	fprintf(f, "M,%d,%d,%f,%f,%d,%lf\n",mev,butnum,fmouseX,fmouseY,windex,runtime);
 }
 void record_rawkeypress(int key, int type) {
 	FILE* f = getRecordFile();
@@ -185,13 +200,13 @@ void fwl_set_modeRecord() {
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->record_inputs = TRUE;
 	start_time = Time1970sec();
-
 }
 static pthread_t playback_thread;
 void _playbackthread(ttglobal tglobal) {
 	ttglobal tg = tglobal;
 	char name[300], line[300], cc;
 	int mev, butnum, mouseX, mouseY, windex, cstyle, ID, key, type, iret;
+	float fmouseX, fmouseY, scale;
 	double time, rtime;
 	char* folder, * local_name, * suff;
 	fwl_setCurrentHandle(tg, __FILE__, __LINE__);
@@ -206,17 +221,25 @@ void _playbackthread(ttglobal tglobal) {
 		//printf("%s\n",line);
 		switch (line[0]) {
 		case 'M':
-			sscanf(line, "%c,%d,%d,%d,%d,%d,%lf\n", &cc, &mev, &butnum, &mouseX, &mouseY, &windex, &rtime);
+			sscanf(line, "%c,%d,%d,%f,%f,%d,%lf\n", &cc, &mev, &butnum, &fmouseX, &fmouseY, &windex, &rtime);
 			//printf("%c %d %d %d %d %d %lf\n", cc, mev, butnum, mouseX, mouseY, windex, rtime);
 			time = Time1970sec() - start_time;
 			if (time < rtime) sleep((int)(1000 * (rtime - time)));
+			//de-normalize mouse coords
+			scale = 2.0f / (float)tg->display.screenHeight;
+			mouseY = (int)((fmouseY + 1.0)/scale + .5f);
+			mouseX = (int)((fmouseX + 1.0)/scale + .5f);
 			cstyle = fwl_handle_mouse0(mev, butnum, mouseX, mouseY, windex);
 			updateCursorStyle0(cstyle);
 			break;
 		case 'T':
-			sscanf(line, "%c,%d,%u,%d,%d,%d,%lf\n", &cc, &mev, &ID, &mouseX, &mouseY, &windex, &rtime);
+			sscanf(line, "%c,%d,%u,%f,%f,%d,%lf\n", &cc, &mev, &ID, &fmouseX, &fmouseY, &windex, &rtime);
 			time = Time1970sec() - start_time;
 			if (time < rtime) sleep((int)(1000 * (rtime - time)));
+			//de-normalize touch coords
+			scale = 2.0f / (float)tg->display.screenHeight;
+			mouseY = (int)(fmouseY + 1.0) / scale;
+			mouseX = (int)(fmouseX + 1.0) / scale;
 			cstyle = fwl_handle_touch0(mev, ID, mouseX, mouseY, windex);
 			updateCursorStyle0(cstyle);
 			break;
