@@ -284,6 +284,37 @@ void splitpath_local_suffix(const char *url, char **local_name, char **suff) {
 		}
 	}
 }
+void splitpath3(const char* url, char** folder, char** local_name, char** suff) {
+	//takes a http or file path, and gives back just the scene name and suffix
+	//ie file://E:/tests/1.wrl -> local_name = "1" suff = "wrl"
+	*local_name = NULL;
+	*suff = NULL;
+	if (url) {
+		int i, len;
+		char* localname;
+		len = (int)strlen(url);
+		localname = NULL;
+		for (i = len - 1; i >= 0; i--) {
+			if (url[i] == '/')
+				break;
+			localname = (char*)&url[i];
+		}
+		*folder = strndup(url, i);
+		if (localname) {
+			*local_name = STRDUP(localname);
+			localname = *local_name;
+			len = (int)strlen(localname);
+			*suff = NULL;
+			for (i = len - 1; i >= 0; i--) {
+				if (localname[i] == '.') {
+					localname[i] = '\0';
+					*suff = STRDUP(&localname[i + 1]);
+					break;
+				}
+			}
+		}
+	}
+}
 
 int checkExitRequest();
 

@@ -259,9 +259,9 @@ void fwl_updateScreenDim(int wi, int he);
 void fwl_doQuitAndWait();
 void fwl_set_viewer_type(const int type);
 
-//void fwl_set_modeRecord();
+void fwl_set_modeRecord();
 //void fwl_set_modeFixture();
-//void fwl_set_modePlayback();
+void fwl_set_modePlayback();
 
 #define CHANNEL_EAI 0
 //OLDCODE #define CHANNEL_MIDI 1

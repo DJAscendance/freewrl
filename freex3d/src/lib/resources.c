@@ -962,6 +962,8 @@ void fwl_resource_push_single_request(const char *request)
 		char* suff = NULL;
 		char* local_name = NULL;
 		splitpath_local_suffix(request, &local_name, &suff);
+		//tg->Mainloop.url  //can be http or disk file
+		//tg->Mainloop.tmpFileLocation - if downloaded, to where on disk
 		tg->Mainloop.scene_name = local_name;
 		tg->Mainloop.scene_suff = suff;
 	}

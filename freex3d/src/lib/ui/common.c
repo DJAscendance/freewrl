@@ -84,6 +84,9 @@ typedef struct pcommon{
 	int jsengine_variant;
 	int draw_bounding_boxes;
 	int show_viewpoints;
+	int record_inputs;
+	int playback_inputs;
+	double start_time;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -125,6 +128,8 @@ void common_init(struct tcommon *t){
 		p->jsengine_variant = JAVASCRIPT_ENGINE_VARIANT;  //1= pre-2018 SM1 2= 2018+ SM2
 #endif
 #endif
+		p->record_inputs = FALSE;
+		p->playback_inputs = FALSE;
 	}
 }
 void common_clear(struct tcommon *t){
@@ -143,9 +148,101 @@ void common_clear(struct tcommon *t){
 		}
 	}
 }
-
+void splitpath3(const char* url, char** folder, char** local_name, char** suff);
 //ppcommon p = (ppcommon)gglobal()->common.prv;
+static FILE* frecord = NULL;
+FILE* getRecordFile() {
+	char name[300];
+	if (!frecord) {
+		char* folder, * local_name, * suff;
+		splitpath3(gglobal()->Mainloop.url, &folder, &local_name, &suff);
+		strcpy(name, folder);
+		strcat(name, "/");
+		strcat(name, local_name);
+		strcat(name, ".fwplay");
+		frecord = fopen(name, "w+");
+	}
+	return frecord;
+}
+static double start_time;
+void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+	FILE* f = getRecordFile();
+	double runtime = Time1970sec() -start_time;
+	fprintf(f, "T,%d,%u,%d,%d,%d,%lf\n",mev,ID,mouseX,mouseY,windex,runtime);
+}
+void record_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
+	FILE* f = getRecordFile();
+	double runtime = Time1970sec() - start_time;
+	fprintf(f, "M,%d,%d,%d,%d,%d,%lf\n",mev,butnum,mouseX,mouseY,windex,runtime);
+}
+void record_rawkeypress(int key, int type) {
+	FILE* f = getRecordFile();
+	double runtime = Time1970sec() -start_time;
+	fprintf(f, "K,%d,%d,%lf\n", key, type, runtime);
+}
 
+void fwl_set_modeRecord() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->record_inputs = TRUE;
+	start_time = Time1970sec();
+
+}
+static pthread_t playback_thread;
+void _playbackthread(ttglobal tglobal) {
+	ttglobal tg = tglobal;
+	char name[300], line[300], cc;
+	int mev, butnum, mouseX, mouseY, windex, cstyle, ID, key, type, iret;
+	double time, rtime;
+	char* folder, * local_name, * suff;
+	fwl_setCurrentHandle(tg, __FILE__, __LINE__);
+	while (tg->Mainloop.url == NULL) sleep(50);
+	splitpath3(tg->Mainloop.url, &folder, &local_name, &suff);
+	strcpy(name, folder);
+	strcat(name, "/");
+	strcat(name, local_name);
+	strcat(name, ".fwplay");
+	FILE *fplay = fopen(name, "r+");
+	while (fscanf(fplay, "%s", &line)>0) {
+		//printf("%s\n",line);
+		switch (line[0]) {
+		case 'M':
+			sscanf(line, "%c,%d,%d,%d,%d,%d,%lf\n", &cc, &mev, &butnum, &mouseX, &mouseY, &windex, &rtime);
+			//printf("%c %d %d %d %d %d %lf\n", cc, mev, butnum, mouseX, mouseY, windex, rtime);
+			time = Time1970sec() - start_time;
+			if (time < rtime) sleep((int)(1000 * (rtime - time)));
+			cstyle = fwl_handle_mouse0(mev, butnum, mouseX, mouseY, windex);
+			updateCursorStyle0(cstyle);
+			break;
+		case 'T':
+			sscanf(line, "%c,%d,%u,%d,%d,%d,%lf\n", &cc, &mev, &ID, &mouseX, &mouseY, &windex, &rtime);
+			time = Time1970sec() - start_time;
+			if (time < rtime) sleep((int)(1000 * (rtime - time)));
+			cstyle = fwl_handle_touch0(mev, ID, mouseX, mouseY, windex);
+			updateCursorStyle0(cstyle);
+			break;
+		case 'K':
+			sscanf(line, "%c,%d,%d,%lf\n", &cc, &key, &type, &rtime);
+			time = Time1970sec() - start_time;
+			if (time < rtime) sleep((int)(1000 * (rtime - time)));
+			fwl_do_keyPress0(key, type);
+			break;
+		}
+	}
+}
+void fwl_set_modePlayback() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->playback_inputs = TRUE;
+	start_time = Time1970sec();
+	int ret = pthread_create(&playback_thread, NULL, (void*)_playbackthread, gglobal());
+}
+int fwl_get_modePlayback() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->playback_inputs;
+}
+int fwl_get_modeRecord() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->record_inputs;
+}
 void fwl_setTrap(int k){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->itrap = k;

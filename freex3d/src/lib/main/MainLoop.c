@@ -115,7 +115,6 @@ int get_debugging_trigger_once(){
 int get_debugging_trigger(){
 	return debugging_trigger_state;
 }
-
 double TickTime()
 {
 	return gglobal()->Mainloop.TickTime;
@@ -4474,11 +4473,13 @@ int fwl_handle_mouse0(int mev, int butnum, int mouseX, int mouseY, int windex){
 	cstyle = fwl_handle_mouse_multi(mev,butnum,mouseX,mouseY,ID,windex);
 	return cstyle;
 }
-int(*fwl_handle_mousePTR)(int mev, int button, int x, int y, int windex) = fwl_handle_mouse0;
+
 int fwl_handle_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
-	return fwl_handle_mousePTR(mev, butnum, mouseX, mouseY, windex);
+	if (fwl_get_modeRecord())
+		record_mouse(mev, butnum, mouseX, mouseY, windex);
+	return fwl_handle_mouse0(mev, butnum, mouseX, mouseY, windex);
 }
-int fwl_handle_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+int fwl_handle_touch0(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
 	int cstyle;
 	int ibut;
 
@@ -4487,6 +4488,12 @@ int fwl_handle_touch(int mev, unsigned int ID, int mouseX, int mouseY, int winde
 	ibut = LMB;
 	cstyle = fwl_handle_mouse_multi(mev, ibut, mouseX, mouseY, ID, windex);
 	return cstyle;
+}
+
+int fwl_handle_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+	if (fwl_get_modeRecord())
+		record_touch(mev, ID, mouseX, mouseY, windex);
+	return fwl_handle_touch0(mev, ID, mouseX, mouseY, windex);
 }
 // mobile devices with accelerometer or gyro pass the raw data in here
 // assumed axes: z pointing up from face, x to right on face, y pointing up on face
@@ -6564,9 +6571,10 @@ int fwl_getCtrl(){
 
 int platform2web3dActionKey(int platformKey);
 
-void (*fwl_do_rawKeyPressPTR)(int key, int type) = fwl_do_keyPress0;
 void fwl_do_rawKeyPress(int key, int type) {
-	fwl_do_rawKeyPressPTR(key,type);
+	if (fwl_get_modeRecord())
+		record_rawkeypress(key, type);
+	fwl_do_keyPress0(key,type);
 }
 
 void fwl_do_keyPress(char kp, int type) {

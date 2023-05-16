@@ -86,12 +86,14 @@ void fv_usage()
 	    "  -t|--stereo <float>     Set stereo parameter (angle factor).\n"
 	    "  -A|--anaglyph <string>  Set anaglyph color pair ie: RB for left red, right blue. any of RGBCAM.\n"
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
-	    "  -U|--updown			   Set updown stereo.\n"
-		"  -q|--cardboard		   set cardboard stereo \n"	
+	    "  -U|--updown             Set updown stereo.\n"
+		"  -q|--cardboard          set cardboard stereo \n"	
 		"  -Q|--quadrant		   set quadrant view \n"
 		"  -O|--screenorient	   set screen orientation degrees {0 90 180 270} \n"
-		"  -T|--touchtype		   set pointing device touch type {0=single 1=emulate multitouch 2=multitouch 3=gesture \n"
+		"  -T|--touchtype          set pointing device touch type {0=single 1=emulate multitouch 2=multitouch 3=gesture \n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
+		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
+		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
 #ifdef USE_SNAPSHOT_TESTING
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
 		"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
@@ -99,10 +101,6 @@ void fv_usage()
 		"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -Y|--testpath <string>  Set path to recording directory\n"
 #endif
-		"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
-		"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
-		"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
-		"    panel,menuIcon,statusText,messageText ie \"#3D4557,#00FFFF,#00FFFF.#00FFFF\" \n"
 		"  -I|--pin TF             Pin statusbar(T/F) menubar(T/F)\n"	
 		"  -w|--want TF            Want statusbar(T/F) menubar(T/F)\n"	
 		"  -E|--FPS <int>          Target Maximum Frames Per Second\n"	
@@ -123,6 +121,11 @@ void fv_usage()
 #endif
 	    "\n\n"
 	);
+	//"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
+	//	"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
+	//	"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
+	//	"    panel,menuIcon,statusText,messageText ie \"#3D4557,#00FFFF,#00FFFF.#00FFFF\" \n"
+
 }
 
 const char * fv_validate_string_arg(const char *optarg)
@@ -173,6 +176,8 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"curl", no_argument, 0, 'C'},
 
 	{"display", required_argument, 0, 'd'}, /* Roberto Gerson */
+	{"record", no_argument, 0, 'R'},
+	{"playback", no_argument, 0, 'P'},
 #ifdef USE_SNAPSHOT_TESTING
 	{"record", no_argument, 0, 'R'},
 	{"fixture", no_argument, 0, 'F'},
@@ -465,12 +470,12 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 		fwl_set_KeyString(optarg);
 	    break;
 
-	case 'G': /* --colorscheme string */
-		fwl_set_ui_colorscheme(optarg);
-		break;
-	case 'H': /* --colors string */
-		fwl_set_ui_colors(optarg);
-		break;
+	//case 'G': /* --colorscheme string */
+	//	fwl_set_ui_colorscheme(optarg);
+	//	break;
+	//case 'H': /* --colors string */
+	//	fwl_set_ui_colors(optarg);
+	//	break;
 
 	case 'I': /* --pin TF */
 		fwl_set_sbh_pin_option(optarg);
@@ -516,6 +521,12 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'J': /* --javascript, required argument: string */
 		fwl_setJsEngine(optarg);
 	    break;
+	case 'R': /* --record, no arg */
+		fwl_set_modeRecord();
+		break;
+	case 'P': /* --playback, no arg */
+		fwl_set_modePlayback();
+		break;
 
 #ifdef USE_SNAPSHOT_TESTING  
 	// link to lib/main/SnapshotTesting.c
