@@ -1308,7 +1308,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 						/* no normalIndex  - use the coordIndex */
 						if (npv) {
 							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
-							ihavei = min(iwant, orig_normalIndex->n-1);
+							ihavei = min(iwant, norin); // min(iwant, orig_normalIndex->n - 1);
 							if(ihavei < iwant) {
 								static int once = 0;
 								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);

@@ -1468,7 +1468,7 @@ static const GLchar *vertPosDec = "\
 	uniform         mat4 fw_ProjectionMatrix; \n ";
 
 static const GLchar *vertNormDec = " \
-	uniform        mat3 fw_NormalMatrix;\n \
+	uniform        mat4 fw_NormalMatrix;\n \
 	attribute      vec3 fw_Normal; \n";
 
 static const GLchar *vertSimColDec = "\
@@ -1481,7 +1481,7 @@ static const GLchar *vertTexCoordGenDec ="\
 	uniform int fw_textureCoordGenType;\n";
 
 static const GLchar *vertTexCoordDec = "\
-	attribute vec2 fw_MultiTexCoord0;\n";
+	attribute vec4 fw_MultiTexCoord0;\n";
 
 static const GLchar *vertOneMatDec = "\
 	uniform fw_MaterialParameters\n\
@@ -1519,17 +1519,17 @@ static const GLchar *vertEnd = "}";
 static const GLchar *vertPos = "gl_Position = fw_ProjectionMatrix * fw_ModelViewMatrix * fw_Vertex;\n ";
 
 static const GLchar *vertNormPosCalc = "\
-	vertexNorm = normalize(fw_NormalMatrix * fw_Normal);\n \
+	vertexNorm = normalize(fw_NormalMatrix * vec4(fw_Normal,1));\n \
 	vertexPos = fw_ModelViewMatrix * fw_Vertex;\n ";
 
 static const GLchar *vertSimColUse = "v_front_colour = fw_Color; \n";
 
 static const GLchar *vertEmissionOnlyColourAss = "v_front_colour = fw_FrontMaterial.emission;\n";
-static const GLchar *vertSingTexCalc = "fw_TexCoord[0] = vec3(vec4(fw_TextureMatrix0 *vec4(fw_MultiTexCoord0,0,0))).stp;\n";
+static const GLchar *vertSingTexCalc = "fw_TexCoord[0] = vec3(vec4(fw_TextureMatrix0 *w_MultiTexCoord0)).stp;\n";
 
 static const GLchar *vertSingTexCubeCalc = "\
 	vec3 u=normalize(vec3(fw_ProjectionMatrix * fw_Vertex)); /* myEyeVertex */ \
-	/* vec3 n=normalize(vec3(fw_NormalMatrix*fw_Normal)); \
+	/* vec3 n=normalize(vec3(fw_NormalMatrix*vec4(fw_Normal,1))); \
 	fw_TexCoord[0] = reflect(u,n); myEyeNormal */ \n \
 	/* v_texC = reflect(normalize(vec3(vertexPos)),vertexNorm);\n */ \
 	fw_TexCoord[0] = reflect(u,vertexNorm);\n";
@@ -1544,7 +1544,7 @@ Good hints for code here: http://www.opengl.org/wiki/Mathematics_of_glTexGen
 static const GLchar *sphEnvMapCalc = " \n     \
 /* sphereEnvironMapping Calculation */ \
 /* vec3 u=normalize(vec3(fw_ModelViewMatrix * fw_Vertex));  (myEyeVertex)  \
-vec3 n=normalize(vec3(fw_NormalMatrix*fw_Normal)); \
+vec3 n=normalize(vec3(fw_NormalMatrix*vec4(fw_Normal,1))); \
 vec3 r = reflect(u,n);  (myEyeNormal) */ \n\
 vec3 u=normalize(vec3(vertexPos)); /* u is normalized position, used below more than once */ \n \
 vec3 r= reflect(u,vertexNorm); \n\
@@ -1570,35 +1570,55 @@ uniform vec2 HatchScale; uniform vec2 HatchPct; uniform int algorithm; ";
 //=============STRUCT METHOD FOR LIGHTS==================
 // use for opengl, and angleproject desktop/d3d9
 static const GLchar *lightDefines = "\
-struct fw_MaterialParameters {\n\
-  vec4 emission;\n\
-  vec4 ambient;\n\
-  vec4 diffuse;\n\
-  vec4 specular;\n\
-  float shininess;\n\
-};\n\
-uniform int lightcount;\n\
-//uniform float lightRadius[MAX_LIGHTS];\n\
-uniform int lightType[MAX_LIGHTS];//ANGLE like this\n\
+struct fw_MaterialParameters { \n\
+  vec3 diffuse; \n\
+  vec3 emissive; \n\
+  vec3 specular; \n\
+  float ambient; \n\
+  float shininess; \n\
+  float occlusion; \n\
+  float normalScale; \n\
+  float transparency; \n\
+  vec3 baseColor; \n\
+  float metallic; \n\
+  float roughness; \n\
+  int type; \n\
+  // multitextures are disaggregated \n\
+  int tindex[10]; \n\
+  int mode[10]; \n\
+  int source[10]; \n\
+  int func[10]; \n\
+  int samplr[10]; //0 texture2D 1 cubeMap \n\
+  int cmap[10]; \n\
+  int nt; //total single textures \n\
+  //iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient \n\
+  int tcount[7]; //num single textures 1= one texture 0=no texture 2+ = multitexture \n\
+  int tstart[7]; // where in packed tindex list to start looping \n\
+  //int cindex[7]; // which geometry multitexcoord channel 0=default \n\
+}; \n\
+uniform fw_MaterialParameters fw_FrontMaterial; \n\
+#define MAX_LIGHTS 8 \n\
+uniform int lightcount; \n\
+uniform int lightType[MAX_LIGHTS];//ANGLE like this \n\
 struct fw_LightSourceParameters { \n\
-  vec4 ambient;  \n\
-  vec4 diffuse;   \n\
-  vec4 specular; \n\
-  vec4 position;   \n\
-  vec4 halfVector;  \n\
-  vec4 spotDirection; \n\
+  float ambient;  \n\
+  vec3 color;   \n\
+  float intensity; \n\
+  vec3 location;   \n\
+  vec3 halfVector;  \n\
+  vec3 direction; \n\
   float spotBeamWidth; \n\
   float spotCutoff; \n\
   vec3 Attenuations; \n\
-  //float constantAttenuation; \n\
-  //float linearAttenuation;  \n\
-  //float quadraticAttenuation; \n\
   float lightRadius; \n\
-  //int lightType; ANGLE doesnt like int in struct array \n\
+  bool shadows; \n\
+  float shadowIntensity; \n\
+  int depthmap; \n\
 }; \n\
 \n\
 uniform fw_LightSourceParameters fw_LightSource[MAX_LIGHTS] /* gl_MaxLights */ ;\n\
 ";
+
 
 
 
@@ -2248,8 +2268,8 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 
 #else
 	//changed from 120 to 110 Apr2014: main shaders still seem to work the same, openGL 2.0 now compiles them, and 2.1 (by specs) compiles 110
-	fragmentSource[fragmentGLSLVersion] = "#version 110\n";//"#version 120\n";
-	vertexSource[vertexGLSLVersion] = "#version 110\n"; //"#version 120\n";
+	fragmentSource[fragmentGLSLVersion] = "#version 120\n";//"#version 120\n";
+	vertexSource[vertexGLSLVersion] = "#version 120\n"; //"#version 120\n";
 #endif
 
 	fragmentSource[fragMaxLightsDeclare] = maxLights;
@@ -2494,11 +2514,18 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			// add the following:
 			// this has both Vertex manipulations, and lighting, etc.
 	//		#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
-			vertexSource[vertexMainStart] = "  \n \
+			vertexSource[vertexMainStart] = " \n \
+uniform mat4 fw_ModelViewInverseMatrix; \n\
+uniform mat4 fw_TextureMatrix[4]; \n\
+uniform int nTexMatrix; \n\
+attribute vec4 fw_MultiTexCoord1; \n\
+attribute vec4 fw_MultiTexCoord2; \n\
+attribute vec4 fw_MultiTexCoord3; \n\
+uniform int nTexCoordChannels; \n\
 			#define HEADLIGHT_LIGHT 0\n \
 			#define ftransform() (fw_ProjectionMatrix*fw_ModelViewMatrix*fw_Vertex)\n \
 			#define gl_ModelViewProjectionMatrix (fw_ProjectionMatrix*fw_ModelViewMatrix)\n \
-			#define gl_NormalMatrix fw_NormalMatrix\n \
+			#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
 			#define gl_ProjectionMatrix fw_ProjectionMatrix \n\
 			#define gl_ModelViewMatrix fw_ModelViewMatrix \n\
 			#define fw_TextureMatrix fw_TextureMatrix0 \n\
@@ -2506,11 +2533,11 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			#define gl_Vertex fw_Vertex \n \
 			#define gl_Normal fw_Normal\n \
 			#define gl_Texture_unit0 fw_Texture_unit0\n \
-			#define gl_MultiTexCoord0 fw_MultiTexCoord0\n \
+			#define gl_MultiTexCoord0 vec2(fw_MultiTexCoord0)\n \
 			#define gl_Texture_unit1 fw_Texture_unit1\n \
-			#define gl_MultiTexCoord1 fw_MultiTexCoord1\n \
+			#define gl_MultiTexCoord1 vec2(fw_MultiTexCoord1)\n \
 			#define gl_Texture_unit2 fw_Texture_unit2\n \
-			#define gl_MultiTexCoord2 fw_MultiTexCoord2\n \
+			#define gl_MultiTexCoord2 vec2(fw_MultiTexCoord2)\n \
 			#define gl_LightSource fw_LightSource\n ";
 
 		// copy over the same defines, but for the fragment shader.
@@ -2519,9 +2546,9 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 		// copy over things that are fragment-only.
 
 		//	#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
-			fragmentSource[fragmentMainStart] = " \
+			fragmentSource[fragmentMainStart] = "\
 			#define HEADLIGHT_LIGHT 0\n \
-			#define gl_NormalMatrix fw_NormalMatrix\n \
+			#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
 			#define gl_Normal fw_Normal\n \
 			#define gl_LightSource fw_LightSource\n ";
 
@@ -6744,6 +6771,7 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 	/* ProjectionMatrix */
 	sp = spval;
 	dp = p->FW_ProjectionView[p->projectionviewTOS];
+	//PRINT_GL_ERROR_IF_ANY("AFTER uniform ModelViewMatrix"); 
 
 	matdouble2float4(sp,dp);
 	///* convert GLDOUBLE to float */
@@ -6753,6 +6781,8 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 	//}
 	profile_start("sendmtx");
 	GLUNIFORMMATRIX4FV(ProjectionMatrix,1,GL_FALSE,spval);
+	//PRINT_GL_ERROR_IF_ANY("AFTER uniform ProjectionMatrix");
+
 	profile_end("sendmtx");
 	/* TextureMatrix */
 	if(TextureMatrix){
@@ -6771,6 +6801,8 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 				}
 				profile_start("sendmtx");
 				GLUNIFORMMATRIX4FV(TextureMatrix[j],1,GL_FALSE,spval);
+				//PRINT_GL_ERROR_IF_ANY("AFTER uniform TextureMatrix");
+
 				profile_end("sendmtx");
 			}
 		}
@@ -6788,11 +6820,15 @@ void sendExplicitMatriciesToShader (GLint ModelViewMatrix, GLint ProjectionMatri
 
 		if( ModelViewInverseMatrix != -1){
 			GLUNIFORMMATRIX4FV(ModelViewInverseMatrix,1,GL_FALSE,spvali);
+			//PRINT_GL_ERROR_IF_ANY("AFTER uniform ModelViewInverseMatrix");
+
 		}
 		/* send in the NormalMatrix */
 		if (NormalMatrix != -1) {
 			//mat4 normalMatrix = transpose (inverse (modelView));
 			GLUNIFORMMATRIX4FV(NormalMatrix, 1, GL_TRUE, spvali);
+			//PRINT_GL_ERROR_IF_ANY("AFTER uniform NormalMatrix");
+
 		}
 	}
 

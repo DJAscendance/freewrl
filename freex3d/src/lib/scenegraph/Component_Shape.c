@@ -1582,7 +1582,9 @@ void child_Shape (struct X3D_Shape *node) {
 				case NODE_ComposedShader:
 					if (X3D_COMPOSEDSHADER(p->userShaderNode)->isValid) {
 						if (!X3D_COMPOSEDSHADER(p->userShaderNode)->_initialized) {
+							//PRINT_GL_ERROR_IF_ANY("BEFORE send fields"); 
 							sendInitialFieldsToShader(p->userShaderNode);
+							//PRINT_GL_ERROR_IF_ANY("AFTER send fields");
 						}
 					}
 					break;
@@ -1628,16 +1630,22 @@ void child_Shape (struct X3D_Shape *node) {
 		
 		//we have a shader, now start sending it data
 		//clear_bound_textures(); //testing only
+		PRINT_GL_ERROR_IF_ANY("BEFORE clear_textureUnit_used");
 		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
 		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
 		clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
+		PRINT_GL_ERROR_IF_ANY("AFTER clear materialParameters");
 		textureTransform_start(); //send regular appearance.textures to shader
 		sendProjectorInfo();  
+		PRINT_GL_ERROR_IF_ANY("BEFORE setupShaderB");
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
 
+		PRINT_GL_ERROR_IF_ANY("BEFORE render node");
 
 		render_node(tmpNG);
+		PRINT_GL_ERROR_IF_ANY("AFTER render node");
+
 			
 		//printf("%s",stringNodeType(tmpNG->_nodeType));
 		//solid TRUE/FALSE on geom controls if backface culling
