@@ -623,18 +623,18 @@ PRINT_GL_ERROR_IF_ANY("BEGIN setupShader");
 #endif
 
 	/* send along lighting, material, other visible properties */
-	PRINT_GL_ERROR_IF_ANY("BEFORE sendFogToShader");
+	//PRINT_GL_ERROR_IF_ANY("BEFORE sendFogToShader");
 	sendFogToShader(mysp);
-	PRINT_GL_ERROR_IF_ANY("AFTER sendFogToShader");
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendFogToShader");
 
 	sendClipplanesToShader(mysp);
-	PRINT_GL_ERROR_IF_ANY("AFTER sendClipplanesToShader");
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendClipplanesToShader");
 
 	sendMaterialsToShader(mysp); //and lights
-	PRINT_GL_ERROR_IF_ANY("AFTER sendMaterialsToShader");
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendMaterialsToShader");
 
 	sendMatriciesToShader(mysp);
-	PRINT_GL_ERROR_IF_ANY("AFTER sendMatriciesToShader");
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendMatriciesToShader");
 
 	return TRUE;
 }

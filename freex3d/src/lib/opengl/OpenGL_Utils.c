@@ -1481,7 +1481,11 @@ static const GLchar *vertTexCoordGenDec ="\
 	uniform int fw_textureCoordGenType;\n";
 
 static const GLchar *vertTexCoordDec = "\
-	attribute vec4 fw_MultiTexCoord0;\n";
+attribute vec4 fw_MultiTexCoord0; \n\
+attribute vec4 fw_MultiTexCoord1; \n\
+attribute vec4 fw_MultiTexCoord2; \n\
+attribute vec4 fw_MultiTexCoord3; \n\
+";
 
 static const GLchar *vertOneMatDec = "\
 	uniform fw_MaterialParameters\n\
@@ -2514,31 +2518,30 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			// add the following:
 			// this has both Vertex manipulations, and lighting, etc.
 	//		#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
+			// https://en.wikibooks.org/wiki/GLSL_Programming/Applying_Matrix_Transformations#Built-In_Matrix_Transformations 
 			vertexSource[vertexMainStart] = " \n \
 uniform mat4 fw_ModelViewInverseMatrix; \n\
 uniform mat4 fw_TextureMatrix[4]; \n\
 uniform int nTexMatrix; \n\
-attribute vec4 fw_MultiTexCoord1; \n\
-attribute vec4 fw_MultiTexCoord2; \n\
-attribute vec4 fw_MultiTexCoord3; \n\
 uniform int nTexCoordChannels; \n\
-			#define HEADLIGHT_LIGHT 0\n \
-			#define ftransform() (fw_ProjectionMatrix*fw_ModelViewMatrix*fw_Vertex)\n \
-			#define gl_ModelViewProjectionMatrix (fw_ProjectionMatrix*fw_ModelViewMatrix)\n \
-			#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
-			#define gl_ProjectionMatrix fw_ProjectionMatrix \n\
-			#define gl_ModelViewMatrix fw_ModelViewMatrix \n\
-			#define fw_TextureMatrix fw_TextureMatrix0 \n\
-			#define gl_TextureMatrix fw_TextureMatrix0 \n\
-			#define gl_Vertex fw_Vertex \n \
-			#define gl_Normal fw_Normal\n \
-			#define gl_Texture_unit0 fw_Texture_unit0\n \
-			#define gl_MultiTexCoord0 vec2(fw_MultiTexCoord0)\n \
-			#define gl_Texture_unit1 fw_Texture_unit1\n \
-			#define gl_MultiTexCoord1 vec2(fw_MultiTexCoord1)\n \
-			#define gl_Texture_unit2 fw_Texture_unit2\n \
-			#define gl_MultiTexCoord2 vec2(fw_MultiTexCoord2)\n \
-			#define gl_LightSource fw_LightSource\n ";
+#define HEADLIGHT_LIGHT 0\n \
+#define gl_ModelViewInverseMatrix fw_ModelViewInverseMatrix \n\
+#define ftransform() (fw_ProjectionMatrix*fw_ModelViewMatrix*fw_Vertex)\n \
+#define gl_ModelViewProjectionMatrix (fw_ProjectionMatrix*fw_ModelViewMatrix)\n \
+#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
+#define gl_ProjectionMatrix fw_ProjectionMatrix \n\
+#define gl_ModelViewMatrix fw_ModelViewMatrix \n\
+#define gl_TextureMatrix fw_TextureMatrix \n\
+#define gl_Vertex fw_Vertex \n \
+#define gl_Normal fw_Normal\n \
+#define gl_Texture_unit0 fw_Texture_unit0\n \
+#define gl_MultiTexCoord0 vec2(fw_MultiTexCoord0)\n \
+#define gl_Texture_unit1 fw_Texture_unit1\n \
+#define gl_MultiTexCoord1 vec2(fw_MultiTexCoord1)\n \
+#define gl_Texture_unit2 fw_Texture_unit2\n \
+#define gl_MultiTexCoord2 vec2(fw_MultiTexCoord2)\n \
+#define gl_LightSource fw_LightSource\n ";
+			vertexSource[vertexTexCoordInputDeclare] = vertTexCoordDec;
 
 		// copy over the same defines, but for the fragment shader.
 		// Some GLSL compilers will complain about the "fttransform()"
@@ -2547,10 +2550,14 @@ uniform int nTexCoordChannels; \n\
 
 		//	#define HEADLIGHT_LIGHT (MAX_LIGHTS-1)\n
 			fragmentSource[fragmentMainStart] = "\
-			#define HEADLIGHT_LIGHT 0\n \
-			#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
-			#define gl_Normal fw_Normal\n \
-			#define gl_LightSource fw_LightSource\n ";
+#define HEADLIGHT_LIGHT 0\n \
+#define gl_NormalMatrix mat3(fw_NormalMatrix)\n \
+#define gl_Normal fw_Normal\n \
+#define gl_LightSource fw_LightSource\n \
+uniform sampler2D textureUnit[8];\n\
+#define gl_Texture_unit0 textureUnit[0];\n\
+uniform samplerCube textureUnitCube[8]; \n\
+";
 
 
 
