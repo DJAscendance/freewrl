@@ -575,9 +575,12 @@ enum {
 	VERTEXTRANSFORMMETHOD_GPU = 2,
 };
 static int vertexTransformMethod = VERTEXTRANSFORMMETHOD_CPU;
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
+
 void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	/* save the skinCoords and skinNormals for use in following HAnimJoints */
-	/* printf ("rendering HAnimHumanoid\n"); */
+	//printf ("rendering HAnimHumanoid DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
+
 }
 
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
@@ -589,7 +592,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	float *PVW, *PVI;
 
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	//printf ("rendering HAnimJoint %d\n",node); 
+	//printf ("rendering HAnimJoint DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 	
 	HH = peek_humanoid();
 	if(HH){

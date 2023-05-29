@@ -1408,7 +1408,6 @@ void textureTransform_start();
 void reallyDraw();
 void sendProjectorInfo();
 
-
 void PRINT_GL_ERROR(GLenum _global_gl_err);
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  

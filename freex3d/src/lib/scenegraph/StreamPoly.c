@@ -188,7 +188,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	node = X3D_NODE(innode);
 	r = (struct X3D_PolyRep*) node->_intern;
 	r->actualFog = NULL;
-    
+
 	#ifdef STREAM_POLY_VERBOSE
 	printf ("start spv for %p extents %lf %lf, %lf %lf, %lf %lf\n",node,
 		node->EXTENT_MIN_X,
@@ -566,6 +566,8 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					
 					jj = 0;
 					// bounds checking
+					j = min(j, textureCoordPoint[k]->n - 1);
+					/*
 					if (j>=(textureCoordPoint[k]->n)) {
 						//this warning eats frame rate in HAnim
 						static int once = 0;
@@ -578,7 +580,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 						jj = textureCoordPoint[k]->n / max(1,nmtexcoord);
 						j= j % textureCoordPoint[k]->n;
 					}
-
+					*/
 					// textureCoordPoint is a pointer to struct Multi_Vec2f;
 					// struct Multi_Vec2f is struct Multi_Vec2f { int n; struct SFVec2f  *p; };
 					// struct SFVec2f is struct SFVec2f { float c[2]; };
