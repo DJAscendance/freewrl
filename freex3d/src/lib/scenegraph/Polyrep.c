@@ -801,7 +801,7 @@ void render_polyrep(void* node) {
 	/* we take the geometry here, and push it up the stream. */
 	if (0) {
 		static int count = 0;
-		if (count < 3)
+		if (count < 30000)
 		{
 			extent6f_printf(renderedNodePtr->_extent); printf(" r_p\n");
 		}

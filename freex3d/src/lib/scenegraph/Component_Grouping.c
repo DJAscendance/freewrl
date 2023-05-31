@@ -104,7 +104,9 @@ void push_group_extent(float *e6){
 	extent_t e;
 	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
 	memcpy(&e.e,e6,6*sizeof(float));
+	testVector(extent_t, p->group_extent_stack);
 	stack_push(extent_t,p->group_extent_stack,e);
+	testVector(extent_t, p->group_extent_stack);
 }
 void push_group_extent_default(){
 	float extent6[6];
@@ -117,11 +119,20 @@ void pop_group_extent(){
 }
 float * peek_group_extent(){
 	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
+	//extent_t* ee = (extent_t*)p->group_extent_stack->data;
+	//int index = p->group_extent_stack->n - 1;
+	//printf("ee[%d]=%p ", index, &ee[index]);
+	//extent_t* en = stack_top_ptr(extent_t, p->group_extent_stack);
+	//float* ef = en->e;
+	//printf("stack_top_ptr= %p en->e %p \n", en, ef);
 	return (stack_top_ptr(extent_t,p->group_extent_stack))->e;
 }
 void union_group_extent(float *e6){
+	ppComponent_Grouping p = (ppComponent_Grouping)gglobal()->Component_Grouping.prv;
 	float *etop = peek_group_extent();
+	testVector(extent_t, p->group_extent_stack);
 	extent6f_union_extent6f(etop,e6);
+	testVector(extent_t, p->group_extent_stack);
 }
 void draw_bbox(float *center, float *size);
 
@@ -456,7 +467,8 @@ void prep_BBox(struct BBoxFields *bfields){
 //#define VERBOSE
 void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
 	ttrenderstate rs = renderstate(); //just want pure geom or geom+blend
-	if (rs->render_vp || rs->render_other || rs->render_sensitive || rs->render_depth || rs->render_light || rs->render_cube || rs->render_collision) return;
+	if (rs->render_vp || rs->render_other || rs->render_sensitive || rs->render_depth || rs->render_light || rs->render_cube || rs->render_collision) 
+		return;
 
 	#ifdef VERBOSE
 	printf ("\nstart fin_BBox\n");
@@ -526,7 +538,7 @@ void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype){
 	#endif //VERBOSE
 
 	#ifdef VERBOSE
-	printf ("fin fin_BBox\n");
+	printf ("fin fin_BBox nodeType %s\n",stringNodeType(node->_nodeType));
 	#endif //VERBOSE
 }
 #undef VERBOSE

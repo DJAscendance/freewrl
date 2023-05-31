@@ -699,77 +699,79 @@ int vecsametol3f(float *a, float *b, float tol){
 }
 
 
-void compile_HAnimHumanoid(struct X3D_HAnimHumanoid *node){
+void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
 
-	push_humanoid(node);
-	if(node->motions.n){
-		if(node->motions.n > node->motionsEnabled.n){
+		push_humanoid(node);
+	if (node->motions.n) {
+		if (node->motions.n > node->motionsEnabled.n) {
 			// the default is to enable all motions
-			int *moe = MALLOC(int*,node->motions.n * sizeof(int));
-			memset(moe,0,node->motions.n * sizeof(int));
-			memcpy(moe,node->motionsEnabled.p,node->motionsEnabled.n*sizeof(int));
-			for(int i=node->motionsEnabled.n;i<node->motions.n;i++)
+			int* moe = MALLOC(int*, node->motions.n * sizeof(int));
+			memset(moe, 0, node->motions.n * sizeof(int));
+			memcpy(moe, node->motionsEnabled.p, node->motionsEnabled.n * sizeof(int));
+			for (int i = node->motionsEnabled.n; i < node->motions.n; i++)
 				moe[i] = TRUE; //FALSE //not sure - specs don't say default, just empty [], I'll use TRUE while developing/debugging
 			FREE_IF_NZ(node->motionsEnabled.p);
 			node->motionsEnabled.p = moe;
 			node->motionsEnabled.n = node->motions.n;
 		}
-		for(int i=0;i<node->motions.n;i++){
+		for (int i = 0; i < node->motions.n; i++) {
 			check_compile(node->motions.p[i]);
 		}
 	}
 
 	int nsc = 0, nsn = 0;
-	float *psc = NULL, *psn = NULL;
-	if(node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate){
+	float* psc = NULL, * psn = NULL;
+	if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
 		float ee[6];
-		struct X3D_Coordinate * nc = (struct X3D_Coordinate * )node->skinCoord;
+		struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
 		nsc = nc->point.n;
 		psc = (float*)nc->point.p;
-		node->_origCoords = realloc(node->_origCoords,nsc*3*sizeof(float));
-		memcpy(node->_origCoords,psc,nsc*3*sizeof(float));
-		if(0){
+		node->_origCoords = realloc(node->_origCoords, nsc * 3 * sizeof(float));
+		memcpy(node->_origCoords, psc, nsc * 3 * sizeof(float));
+		if (0) {
 			//find a few coordinates in skinCoord I hacked, by xyz, and give me their index, for making a displacer
-			float myfind[9] = {-0.030000f, -0.070000f, 1.777000f,  -0.070000f, 1.777000f, 0.130000f,  1.777000f, 0.130000f, 0.070000f };
-			int i,j;
-			for(i=0;i<nsc;i++){
-				for(j=0;j<3;j++)
-					if(vecsametol3f(&psc[i*3],&myfind[j*3],.001f)){
-						printf("%d %f %f %f\n",i,myfind[j*3 + 0],myfind[j*3 +1],myfind[j*3 +2]);
+			float myfind[9] = { -0.030000f, -0.070000f, 1.777000f,  -0.070000f, 1.777000f, 0.130000f,  1.777000f, 0.130000f, 0.070000f };
+			int i, j;
+			for (i = 0; i < nsc; i++) {
+				for (j = 0; j < 3; j++)
+					if (vecsametol3f(&psc[i * 3], &myfind[j * 3], .001f)) {
+						printf("%d %f %f %f\n", i, myfind[j * 3 + 0], myfind[j * 3 + 1], myfind[j * 3 + 2]);
 					}
 			}
 		}
-		extent6f_from_box3fn(ee,nc->point.p->c, nc->point.n);
-		setExtent(ee[0],ee[1],ee[2],ee[3],ee[4],ee[5],X3D_NODE(node));
+		//extent6f_from_box3fn(ee,nc->point.p->c, nc->point.n);
+		//setExtent(ee[0],ee[1],ee[2],ee[3],ee[4],ee[5],X3D_NODE(node));
 	}
-	if(node->skinNormal && node->skinNormal->_nodeType == NODE_Normal){
-		struct X3D_Normal * nn = (struct X3D_Normal * )node->skinNormal;
+	if (node->skinNormal && node->skinNormal->_nodeType == NODE_Normal) {
+		struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal;
 		//Assuming 1 normal per coord, coord 1:1 normal
 		nsn = nn->vector.n;
 		psn = (float*)nn->vector.p;
-		node->_origNorms = realloc(node->_origNorms,nsn*3*sizeof(float));
-		memcpy(node->_origNorms,psn,nsn*3*sizeof(float));
+		node->_origNorms = realloc(node->_origNorms, nsn * 3 * sizeof(float));
+		memcpy(node->_origNorms, psn, nsn * 3 * sizeof(float));
 	}
-	
+
 	//allocate the joint-transform_index and joint-weight arrays
 	//Nov 2016: max 4: meaning each skinCoord can have up to 4 joints referencing/influencing it
 	//4 chosen so it's easier to port to GPU method with vec4
-	if(node->_NV == 0 || node->_NV != nsc){
-		node->_PVI = realloc(node->_PVI,nsc*4*sizeof(float)); //indexes, up to 4 joints per skinCoord
-		node->_PVW = realloc(node->_PVW,nsc*4*sizeof(float)); //weights, up to 4 joints per skinCoord
+	if (node->_NV == 0 || node->_NV != nsc) {
+		node->_PVI = realloc(node->_PVI, nsc * 4 * sizeof(float)); //indexes, up to 4 joints per skinCoord
+		node->_PVW = realloc(node->_PVW, nsc * 4 * sizeof(float)); //weights, up to 4 joints per skinCoord
 		node->_NV = nsc;
 	}
 	//allocate the transform array
-	if(node->_JT == NULL) {
-		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
+	if (node->_JT == NULL) {
+		if (vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU) {
 			//new stack quat + position
-		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+		}
+		else if (vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU) {
 			node->_JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
 		}
 	}
+	node->_renderFlags |= VF_Geom; //a HAnimHumanoid is a child but also skin is geom
 	MARK_NODE_COMPILED
 	pop_humanoid();
 
@@ -876,6 +878,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				}
 			}
 		}
+
 	}
 
 
@@ -972,13 +975,20 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						parent->_change++;
 					}
 				}
+				//extent6f_from_box3fn(ee, psc, nsc);
+				//setExtent(ee[0], ee[1], ee[2], ee[3], ee[4], ee[5], X3D_NODE(node));
 
 			}
 		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
 			//push shader flaga with += SKELETAL
 		}
-
 		if(1) normalChildren(node->skin);
+		if(0) for (int j = 0; j < node->skin.n; j++) {
+			printf("skin[%d] extent: ", j);
+			for (int i = 0; i < 6; i++) printf("%4.3f ", node->skin.p[j]->_extent[i]);
+			printf("\n");
+		}
+
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
 			//pop shader flags
 		} else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -997,8 +1007,10 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 	} //if skin
-
+	//if (renderstate()->render_geom) printf("humanoid gets geom and other=%d\n",renderstate()->render_other);
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+	//printf("bboxCenter %f %f %f size %f %f %f\n", node->bboxCenter.c[0], node->bboxCenter.c[1], node->bboxCenter.c[2],
+	//	node->bboxSize.c[0], node->bboxSize.c[1], node->bboxSize.c[2]);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
 

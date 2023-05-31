@@ -151,6 +151,10 @@ void vector_ensureSpace_(int elSize, struct Vector* me, char *fi, int line) {
 	}
 	ASSERT(me->n<me->allocn);
 }
+void testVector_(int elSize, struct Vector* me) {
+	//goal trigger memory checking for over-runs without changing data
+	me->data = realloc(me->data, me->allocn * elSize);
+}
 
 void vector_popBack_(struct Vector* me, size_t count)
 {
