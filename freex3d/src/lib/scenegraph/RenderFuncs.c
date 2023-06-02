@@ -2041,6 +2041,9 @@ void *returnInterpolatorPointer (int nodeType) {
 		case NODE_ColorInterpolator: do_interp = do_ColorInterpolator; break;
 		case NODE_PositionInterpolator: do_interp = do_PositionInterpolator; break;
 		case NODE_CoordinateInterpolator: do_interp = do_OintCoord; break;
+		case NODE_VectorInterpolator: do_interp = do_OintVector; break;
+		case NODE_CoordinateMorpher: do_interp = do_CoordinateMorph; break;
+		case NODE_NormalMorpher: do_interp = do_NormalMorph; break;
 		case NODE_NormalInterpolator: do_interp = do_OintNormal; break;
 		case NODE_EaseInEaseOut: do_interp = do_EaseInEaseOut; break;
 		case NODE_SplinePositionInterpolator: do_interp = do_SplinePositionInterpolator; break;

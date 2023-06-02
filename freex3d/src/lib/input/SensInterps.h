@@ -47,9 +47,10 @@ do_active_inactive(int *act,
 int
 find_key(int kin, float frac, float *keys);
 
-void
-do_OintScalar(void *node);
-
+void do_OintScalar(void *node);
+void do_OintVector(void* node);
+void do_CoordinateMorph(void* node);
+void do_NormalMorph(void* node);
 void
 do_OintCoord(void *node);
 void do_OintNormal(void *node);

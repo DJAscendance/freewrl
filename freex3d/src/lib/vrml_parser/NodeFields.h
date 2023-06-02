@@ -823,6 +823,14 @@ EXPOSED_FIELD(CoordinateInterpolator2D,metadata,sfnode,metadata,FIELDTYPE_SFNode
 EVENT_OUT(CoordinateInterpolator2D,value_changed,mfvec2f,value_changed,FIELDTYPE_MFVec2f)
 END_NODE(CoordinateInterpolator2D)
 
+/* CoordinateMorpher node */
+BEGIN_NODE(CoordinateMorpher)
+EVENT_IN(CoordinateMorpher,set_weights,mffloat,set_weights,FIELDTYPE_MFFloat)
+EXPOSED_FIELD(CoordinateMorpher,keyValue,mfvec3f,keyValue,FIELDTYPE_MFVec3f,UNCA_LENGTH)
+EXPOSED_FIELD(CoordinateMorpher,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(CoordinateMorpher,value_changed,mfvec3f,value_changed,FIELDTYPE_MFVec3f)
+END_NODE(CoordinateMorpher)
+
 /* Cylinder node */
 BEGIN_NODE(Cylinder)
 EXPOSED_FIELD(Cylinder,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -2870,6 +2878,14 @@ EXPOSED_FIELD(NormalInterpolator,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_
 EVENT_OUT(NormalInterpolator,value_changed,mfvec3f,value_changed,FIELDTYPE_MFVec3f)
 END_NODE(NormalInterpolator)
 
+/* NormalMorpher node */
+BEGIN_NODE(NormalMorpher)
+EVENT_IN(NormalMorpher,set_weights,mffloat,set_weights,FIELDTYPE_MFFloat)
+EXPOSED_FIELD(NormalMorpher,keyValue,mfvec3f,keyValue,FIELDTYPE_MFVec3f,UNCA_NONE)
+EXPOSED_FIELD(NormalMorpher,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(NormalMorpher,value_changed,mfvec3f,value_changed,FIELDTYPE_MFVec3f)
+END_NODE(NormalMorpher)
+
 /* NurbsCurve node */
 BEGIN_NODE(NurbsCurve)
 EXPOSED_FIELD(NurbsCurve,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
@@ -4484,6 +4500,15 @@ EXPOSED_FIELD(UnlitMaterial,normalTexture,sfnode,normalTexture,FIELDTYPE_SFNode,
 EXPOSED_FIELD(UnlitMaterial,normalTextureMapping,sfstring,normalTextureMapping,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(UnlitMaterial,transparency,sffloat,transparency,FIELDTYPE_SFFloat,UNCA_NONE)
 END_NODE(UnlitMaterial)
+
+/* VectorInterpolator node */
+BEGIN_NODE(VectorInterpolator)
+EVENT_IN(VectorInterpolator,set_fraction,sffloat,set_fraction,FIELDTYPE_SFFloat)
+EXPOSED_FIELD(VectorInterpolator,key,mffloat,key,FIELDTYPE_MFFloat,UNCA_NONE)
+EXPOSED_FIELD(VectorInterpolator,keyValue,mffloat,keyValue,FIELDTYPE_MFFloat,UNCA_NONE)
+EXPOSED_FIELD(VectorInterpolator,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EVENT_OUT(VectorInterpolator,value_changed,mffloat,value_changed,FIELDTYPE_MFFloat)
+END_NODE(VectorInterpolator)
 
 /* Viewpoint node */
 BEGIN_NODE(Viewpoint)

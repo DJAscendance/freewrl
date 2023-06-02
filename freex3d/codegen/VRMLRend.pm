@@ -84,6 +84,10 @@ our %defaultContainerType = (
 	FogCoordinate 		=>["fogCoord"],
 	CoordinateDeformer 	=>["children"],
 	CoordinateInterpolator 	=>["children"],
+	VectorInterpolator 	=>["children"],
+	CoordinateMorpher 	=>["children"],
+	NormalMorpher 		=>["children"],
+
 	CoordinateInterpolator2D 	=>["children"],
 	Cylinder 		=>["geometry"],
 	CylinderSensor 		=>["children"],

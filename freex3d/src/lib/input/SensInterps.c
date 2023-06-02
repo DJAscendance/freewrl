@@ -251,6 +251,166 @@ void do_OintScalar (void *node) {
 	}
 }
 
+/* VectorInterpolator - return MFFloat
+*  proposed by Instant Player team, see 26_Hanim pdf
+*/
+void do_OintVector(void* node) {
+	/* VectorInterpolator - store final value in px->value_changed */
+	struct X3D_VectorInterpolator* px;
+	int kin, kvin, ksize;
+	float* kVs;
+	int counter;
+
+	if (!node) return;
+	px = (struct X3D_VectorInterpolator*)node;
+	kin = px->key.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be an int
+	kVs = px->keyValue.p;
+	//ensure MF space
+	if (px->value_changed.n < ksize) {
+		px->value_changed.p = realloc(px->value_changed.p, ksize * sizeof(float));
+		px->value_changed.n = ksize;
+	}
+	MARK_EVENT(node, offsetof(struct X3D_VectorInterpolator, value_changed));
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p,0,ksize*sizeof(float));
+		return;
+	}
+	if (kin > kvin) kin = kvin; /* means we don't use whole of keyValue, but... */
+
+#ifdef SEVERBOSE
+	printf("VectorInterpolator, kin %d kvin %d, vc %f\n", kin, kvin, px->value_changed);
+#endif
+
+	/* set_fraction less than or greater than keys */
+	if (px->set_fraction <= px->key.p[0]) {
+		memcpy(px->value_changed.p, &kVs[0*ksize], ksize*sizeof(float));
+	}
+	else if (px->set_fraction >= px->key.p[kin - 1]) {
+		//px->value_changed = kVs[kvin - 1];
+		memcpy(px->value_changed.p, &kVs[(kvin - 1) * ksize], ksize * sizeof(float));
+	}
+	else {
+		/* have to go through and find the key before */
+		counter = find_key(kin, (float)(px->set_fraction), px->key.p);
+		float incrementfactor = (px->set_fraction - px->key.p[counter - 1]) /
+			(px->key.p[counter] - px->key.p[counter - 1]);
+		for (int i = 0; i < ksize; i++) {
+			px->value_changed.p[i] =
+				incrementfactor * (kVs[counter*ksize +i] - kVs[(counter - 1)*ksize +i]) +
+				kVs[(counter - 1)*ksize +i];
+		}
+	}
+}
+
+
+
+
+/* from Instant Player paper - see 26_Hanim .pdf "The Morph Node", Alexa, Buhr, Muller / Fraunhofer.
+CoordinateMorpher {
+eventIn MFFloat set_weights
+exposedFieldMFVec3f keyValue []
+eventOut MFVec3f value_changed
+}
+The CoordinateMorpher node linearly interpolates among a
+set of MFVec3f values. Unlike the CoordinateInterpolator it does
+not interpolate two key frames but is able to blend any number of
+shapes. The number of coordinates in the keyValue shall be an
+integer multiple of the number of keyframes in the key field. That
+integer multiple defines how many coordinates will be contained in
+the value_changed eventout slot
+dug9: so instead of find_key, and interpolating between 2, _all_ keyvalues are used in weighted sum.
+out[i] = in[i,j]*weight[j]
+*/
+void do_CoordinateMorph(void* node) {
+	struct X3D_CoordinateMorpher* px;
+	int kin, kvin, ksize;
+	struct SFVec3f* kVs;
+
+	if (!node) return;
+	px = (struct X3D_CoordinateMorpher*)node;
+
+
+	MARK_EVENT(node, offsetof(struct X3D_CoordinateMorpher, value_changed));
+
+	kin = px->set_weights.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be int
+	kVs = px->keyValue.p;
+
+	// ensure space
+	if (ksize != px->value_changed.n) {
+		px->value_changed.n = ksize;
+		px->value_changed.p = realloc(px->value_changed.p, sizeof(struct SFVec3f) * ksize);
+	}
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p, 0, ksize * sizeof(struct SFVec3f));
+		return;
+	}
+	if (kin > kvin) kin = kvin; // means we don't use whole of keyValue
+	struct SFVec3f* vc = px->value_changed.p;
+	struct SFVec3f* kv = px->keyValue.p;
+	float* wt = px->set_weights.p;
+	//big loop do weighted sum
+	float wtvc[3];
+	for (int i = 0; i < ksize; i++) {
+		vecset3f(vc[i].c, 0.0f, 0.0f, 0.0f);
+		for (int j = 0; j < kin; j++) 
+		{
+			vecscale3f(wtvc, kv[j*ksize +i].c, wt[j]);
+			vecadd3f(vc[i].c, vc[i].c, wtvc);
+		}
+	}
+}
+// NormalMorpher same as CoordinateMorpher above, except normalize summed value.
+void do_NormalMorph(void* node) {
+	struct X3D_NormalMorpher* px;
+	int kin, kvin, ksize;
+	struct SFVec3f* kVs;
+
+	if (!node) return;
+	px = (struct X3D_NormalMorpher*)node;
+
+
+	MARK_EVENT(node, offsetof(struct X3D_NormalMorpher, value_changed));
+
+	kin = px->set_weights.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be int
+	kVs = px->keyValue.p;
+
+	// ensure space
+	if (ksize != px->value_changed.n) {
+		px->value_changed.n = ksize;
+		px->value_changed.p = realloc(px->value_changed.p, sizeof(struct SFVec3f) * ksize);
+	}
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p, 0, ksize * sizeof(struct SFVec3f));
+		return;
+	}
+	if (kin > kvin) kin = kvin; // means we don't use whole of keyValue
+	struct SFVec3f* vc = px->value_changed.p;
+	struct SFVec3f* kv = px->keyValue.p;
+	float* wt = px->set_weights.p;
+	//big loop do weighted sum
+	float wtvc[3];
+	for (int i = 0; i < ksize; i++) {
+		vecset3f(vc[i].c, 0.0f, 0.0f, 0.0f);
+		for (int j = 0; j < kin; j++)
+		{
+			vecscale3f(wtvc, kv[j * ksize + i].c, wt[j]);
+			vecadd3f(vc[i].c, vc[i].c, wtvc);
+		}
+		vecnormalize3f(vc[i].c, vc[i].c);
+	}
+}
 
 void do_OintNormal(void *node) {
 	struct X3D_NormalInterpolator *px;
