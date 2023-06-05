@@ -3528,9 +3528,10 @@ void compile_DirectionalLight(struct X3D_DirectionalLight *);
 struct X3D_Virt virt_DirectionalLight = { (void *)prep_DirectionalLight,(void *)render_DirectionalLight,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_DirectionalLight};
 
 void render_Disk2D(struct X3D_Disk2D *);
+void rendray_Disk2D(struct X3D_Disk2D *);
 void collide_Disk2D(struct X3D_Disk2D *);
 void compile_Disk2D(struct X3D_Disk2D *);
-struct X3D_Virt virt_Disk2D = { NULL,(void *)render_Disk2D,NULL,NULL,NULL,NULL,NULL,NULL,(void *)collide_Disk2D,(void *)compile_Disk2D};
+struct X3D_Virt virt_Disk2D = { NULL,(void *)render_Disk2D,NULL,NULL,(void *)rendray_Disk2D,NULL,NULL,NULL,(void *)collide_Disk2D,(void *)compile_Disk2D};
 
 struct X3D_Virt virt_DoubleAxisHingeJoint = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4158,9 +4159,10 @@ void compile_ReceiverPdu(struct X3D_ReceiverPdu *);
 struct X3D_Virt virt_ReceiverPdu = { NULL,NULL,(void *)child_ReceiverPdu,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_ReceiverPdu};
 
 void render_Rectangle2D(struct X3D_Rectangle2D *);
+void rendray_Rectangle2D(struct X3D_Rectangle2D *);
 void collide_Rectangle2D(struct X3D_Rectangle2D *);
 void compile_Rectangle2D(struct X3D_Rectangle2D *);
-struct X3D_Virt virt_Rectangle2D = { NULL,(void *)render_Rectangle2D,NULL,NULL,NULL,NULL,NULL,NULL,(void *)collide_Rectangle2D,(void *)compile_Rectangle2D};
+struct X3D_Virt virt_Rectangle2D = { NULL,(void *)render_Rectangle2D,NULL,NULL,(void *)rendray_Rectangle2D,NULL,NULL,NULL,(void *)collide_Rectangle2D,(void *)compile_Rectangle2D};
 
 struct X3D_Virt virt_RigidBody = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 

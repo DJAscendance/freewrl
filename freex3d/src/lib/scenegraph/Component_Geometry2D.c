@@ -605,7 +605,28 @@ void render_Disk2D (struct X3D_Disk2D *node){
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
-//rendray_Disk2D
+void rendray_Disk2D(struct X3D_Disk2D* node) {
+	//copy from rendray_Cylinder and hack
+	float ri,ro, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	ri = node->innerRadius;
+	ro = node->outerRadius;
+	z = 0.0f;
+	/* Caps */
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float rhit2 = cx * cx + cy * cy;
+			if (ro * ro > rhit2 && ri * ri < rhit2) {
+				rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "disk2d");
+			}
+		}
+	}
+}
 
 /***********************************************************************************/
 
@@ -773,8 +794,27 @@ void render_Rectangle2D (struct X3D_Rectangle2D *node) {
 	}
 	gglobal()->Mainloop.trisThisLoop += 2;
 }
-// rendray_Rectangle2D
 
+void rendray_Rectangle2D(struct X3D_Rectangle2D* node) {
+	//copy from rendray_Cylinder and hack
+	float sx,sy, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	sx = node->size.c[0];
+	sy = node->size.c[1];
+	z = 0.0f;
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			if (fabs(cx) < fabs(sx) && fabs(cy) < fabs(sy)) {
+				rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "disk2d");
+			}
+		}
+	}
+}
 /***********************************************************************************/
 //http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geometry2D.html#ArcClose2D
 // "the angle starts at +x and goes toward +y"
