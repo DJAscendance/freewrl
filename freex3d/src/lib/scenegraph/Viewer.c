@@ -253,7 +253,7 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		vrmlrot_to_quaternion (&viewer->Quat,1.0,0.0,0.0,0.0);
 
 		viewer->headlight = TRUE;
-		viewer->collision = FALSE;
+		viewer->collision = TRUE; // FALSE;
 		viewer->speed = 1.0;
 		viewer->Dist = 10.0;
 		//viewer->exploreDist = 10.0;
