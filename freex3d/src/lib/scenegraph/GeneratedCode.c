@@ -4341,9 +4341,10 @@ void render_TriangleSet(struct X3D_TriangleSet *);
 struct X3D_Virt virt_TriangleSet = { NULL,(void *)render_TriangleSet,NULL,NULL,(void *)rendray_TriangleSet,(void *)make_TriangleSet,NULL,NULL,(void *)collide_TriangleSet,NULL};
 
 void render_TriangleSet2D(struct X3D_TriangleSet2D *);
+void rendray_TriangleSet2D(struct X3D_TriangleSet2D *);
 void collide_TriangleSet2D(struct X3D_TriangleSet2D *);
 void compile_TriangleSet2D(struct X3D_TriangleSet2D *);
-struct X3D_Virt virt_TriangleSet2D = { NULL,(void *)render_TriangleSet2D,NULL,NULL,NULL,NULL,NULL,NULL,(void *)collide_TriangleSet2D,(void *)compile_TriangleSet2D};
+struct X3D_Virt virt_TriangleSet2D = { NULL,(void *)render_TriangleSet2D,NULL,NULL,(void *)rendray_TriangleSet2D,NULL,NULL,NULL,(void *)collide_TriangleSet2D,(void *)compile_TriangleSet2D};
 
 void render_TriangleStripSet(struct X3D_TriangleStripSet *);
 struct X3D_Virt virt_TriangleStripSet = { NULL,(void *)render_TriangleStripSet,NULL,NULL,(void *)rendray_TriangleStripSet,(void *)make_TriangleStripSet,NULL,NULL,(void *)collide_TriangleStripSet,NULL};

@@ -367,7 +367,7 @@ int isLeftSide2f(float* p1, float* p2, float* px) {
 	vecdif2f(v2, px, p1);
 	veccross3f(v3, v1, v2);
 	vecscale3f(v3, v3, 1.0f / (veclength3f(v1) * veclength3f(v2)));  //sine(angle)
-	float sineangle = veclength3f(v3);
+	float sineangle = v3[2];
 	return sineangle < 0 ? -1 : (sineangle > 0 ? 1 : 0); //1 left -1 right 0 on-line
 }
 BOOL angleCounterClockwiseBetween(float a0, float a1, float angle) {
@@ -409,7 +409,7 @@ void rendray_ArcClose2D(struct X3D_ArcClose2D* node) {
 						rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dpie");
 					else {
 						//closuretype chord
-						//hypothesis if hitpoint is to the left of line [start - end], then its inside
+						//hypothesis if hitpoint is to the right of clockwise chord [start - end], then its inside
 						float p1[2], p2[2], px[2];
 						p1[0] = r * cos(a0);
 						p1[1] = r * sin(a0);
@@ -417,7 +417,7 @@ void rendray_ArcClose2D(struct X3D_ArcClose2D* node) {
 						p2[1] = r * sin(a1);
 						px[0] = cx;
 						px[1] = cy;
-						if (isLeftSide2f(p1, p2, px)>=0) {
+						if (isLeftSide2f(p1, p2, px) < 0) {
 							rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dchord");
 						}
 					}
@@ -797,6 +797,45 @@ void render_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	}
 }
 //rendray_TriangleSet2D
+void rendray_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+	//copy from rendray_Cylinder and hack
+	float r, a0, a1, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	z = 0.0f;
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float px[2];
+			px[0] = cx;
+			px[1] = cy;
+			int iside[3];
+			struct SFVec2f* pp = node->vertices.p;
+			for (int i = 0; i < node->vertices.n; i += 3) {
+				//assuming clockwise vertices around triangle,
+				//if hitpoint is to the right of all 3 triangle sides, its inside
+				iside[0] = isLeftSide2f(pp[i].c, pp[i + 1].c, px);
+				iside[1] = isLeftSide2f(pp[i + 1].c, pp[i + 2].c, px);
+				iside[2] = isLeftSide2f(pp[i + 2].c, pp[i].c, px);
+				//printf("i %d isides %d %d %d\n", i, iside[0], iside[1], iside[2]);
+				if (iside[0] <= 0 && iside[1] <=0 && iside[2] <= 0) {
+					rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "triangleset2d");
+					break;
+				}
+				//assuming counter-clockwise vertices around triangle,
+				//if hitpoint is to the left of all 3 triangle sides, its inside
+				if (iside[0] >= 0 && iside[1] >= 0 && iside[2] >= 0) {
+					rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "triangleset2d");
+					break;
+				}
+
+			}
+		}
+	}
+}
 
 
 /***********************************************************************************/
