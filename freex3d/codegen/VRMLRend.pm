@@ -1018,6 +1018,7 @@ our %RendRayC = map {($_=>1)} qw/
 	Cone
         Disk2D
         Rectangle2D
+        ArcClose2D
 	Teapot
 	Pyramid
 	GeoElevationGrid

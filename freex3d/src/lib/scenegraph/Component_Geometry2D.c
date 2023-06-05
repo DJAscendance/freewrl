@@ -352,7 +352,80 @@ void render_ArcClose2D_LINE (struct X3D_ArcClose2D *node) {
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
-// rendray_ArcClose2D
+int isLeftSide2f(float* p1, float* p2, float* px) {
+//https://en.wikipedia.org/wiki/Cross_product 
+//vector 1 v1 = b - a
+//vector 2 v2 = c - a
+//sin(angle) = | v2xv1 / (| v1 | *| v2 | ) |
+
+	float v1[3];
+	float v2[3];
+	float v3[3];
+	vecset3f(v1, 0.0f, 0.0f, 0.0f);
+	vecset3f(v2, 0.0f, 0.0f, 0.0f);
+	vecdif2f(v1, p2, p1);
+	vecdif2f(v2, px, p1);
+	veccross3f(v3, v1, v2);
+	vecscale3f(v3, v3, 1.0f / (veclength3f(v1) * veclength3f(v2)));  //sine(angle)
+	float sineangle = veclength3f(v3);
+	return sineangle < 0 ? -1 : (sineangle > 0 ? 1 : 0); //1 left -1 right 0 on-line
+}
+BOOL angleCounterClockwiseBetween(float a0, float a1, float angle) {
+	// a0 < angle < a1 ? TRUE : FALSE
+	// technique - get them all +ve angles and a1, angle > a0
+	// but I invented this technique in 5 minutes, if not working please fix - dug9
+	float na0, na1, nangle; //normalized angles
+	na0 = atan2(sin(a0), cos(a0)) + 2*PI;
+	na1 = atan2(sin(a1), cos(a1)) + 2*PI;
+	nangle = atan2(sin(angle), cos(angle)) + 2*PI;
+	if (na1 < na0) na1 += 2 * PI;
+	if (nangle < na0) nangle += 2 * PI;
+	if (nangle > na0 && nangle < na1) return TRUE;
+	return FALSE;
+}
+void rendray_ArcClose2D(struct X3D_ArcClose2D* node) {
+	//copy from rendray_Cylinder and hack
+	float r, a0,a1, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	r = node->radius;
+	a0 = node->startAngle;
+	a1 = node->endAngle;
+	z = 0.0f;
+	/* Caps */
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float rhit2 = cx * cx + cy * cy;
+			if (r * r > rhit2 ) {
+				//inside circle
+				float angle = atan2(cy, cx);
+				if(angleCounterClockwiseBetween(a0,a1,angle)){
+					//inside pie
+					if(!strcmp(node->closureType->strptr,"PIE"))
+						rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dpie");
+					else {
+						//closuretype chord
+						//hypothesis if hitpoint is to the left of line [start - end], then its inside
+						float p1[2], p2[2], px[2];
+						p1[0] = r * cos(a0);
+						p1[1] = r * sin(a0);
+						p2[0] = r * cos(a1);
+						p2[1] = r * sin(a1);
+						px[0] = cx;
+						px[1] = cy;
+						if (isLeftSide2f(p1, p2, px)>=0) {
+							rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dchord");
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 /***********************************************************************************/
 
