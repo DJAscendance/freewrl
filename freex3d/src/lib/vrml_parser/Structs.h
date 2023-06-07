@@ -31,8 +31,10 @@
 #define __FREEWRL_STRUCTS_H__
 
 //#include <system_threads.h>
-//union point_XYZ { GLDOUBLE x, y, z; GLDOUBLE c[3]; };
-struct point_XYZ { GLDOUBLE x, y, z; };
+struct point_XYZ {GLDOUBLE x,y,z;};
+union upoint_XYZ { struct point_XYZ p; GLDOUBLE c[3]; };
+// initialize like this: 	union upoint_XYZ uxyz = { .c = {1,2,3} }; 
+// or this: uxyz = {.p.x = 1, .p.y = 2, .p.z = 3 };
 struct orient_XYZA {GLDOUBLE x,y,z,a;};
 
 struct X3D_Virt {

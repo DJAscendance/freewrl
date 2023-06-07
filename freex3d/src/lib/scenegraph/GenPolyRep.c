@@ -1459,7 +1459,7 @@ void compute_spy_spz(struct point_XYZ *spy, struct point_XYZ *spz, struct SFVec3
 	double alpha,gamma;	/* angles for the rotation	*/
 	int spi;
 	float spylen;
-	struct point_XYZ spp1 = {0.0, 0.0, 0.0};
+	struct point_XYZ spp1 = {.x=0.0, .y=0.0, .z=0.0};
 
 
 	/* need to find the rotation from SCP[spi].y to (0 1 0)*/

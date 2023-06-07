@@ -1924,7 +1924,7 @@ void collide_Text (struct X3D_Text *node)
 {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth,atop,abottom,astep,modelMatrix[16];
-    struct point_XYZ delta = {0,0,-1};
+    struct point_XYZ delta = {.x=0,.y=0,.z=-1};
     struct X3D_PolyRep *pr;
 	ttglobal tg;
     int change = 0;

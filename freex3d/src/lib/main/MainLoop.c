@@ -6957,7 +6957,7 @@ void get_hyperhit() {
 	*/
     double x1,y1,z1,x2,y2,z2,x3,y3,z3;
 	GLDOUBLE mvpi[16];
-	struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
+	struct point_XYZ r11 = {.x=0.0,.y=0.0,.z=1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
 	struct point_XYZ tp;
 
 	//OLDCODE struct currayhit *rh;  //*rhh,

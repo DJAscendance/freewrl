@@ -205,8 +205,8 @@ void prep_Billboard (struct X3D_Billboard *node) {
 		// not sure why the old way looked at viewer Quat in case of axisOfRotation 0 0 0
 		// x didn't work with geoViewpoint
 		struct point_XYZ vpos, ax, cp, cp2, arcp;
-		static const struct point_XYZ orig = {0.0, 0.0, 0.0};
-		static const struct point_XYZ zvec = {0.0, 0.0, 1.0};
+		static const struct point_XYZ orig = {.x=0.0, .y=0.0, .z=0.0};
+		static const struct point_XYZ zvec = {.x=0.0, .y=0.0, .z=1.0};
 		struct orient_XYZA viewer_orient;
 		GLDOUBLE mod[16];
 		GLDOUBLE proj[16];
@@ -458,7 +458,7 @@ void proximity_LOD (struct X3D_LOD *node) {
 		//feature-AFFINE_GLU_UNPROJECT
 		//this is centered on the avatar (correct)
 		double modi[16];
-		struct point_XYZ orig = {0.0,0.0,0.0};
+		struct point_XYZ orig = {.x=0.0,.y=0.0,.z=0.0};
 		matinverseAFFINE(modi,mod);
 		transform(&vec,&orig,modi);
 		//printf("new vec= %f %f %f\n", vec.x,vec.y,vec.z);

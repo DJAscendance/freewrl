@@ -75,7 +75,7 @@ void accumulateFallingClimbing(double y1, double y2, double ystep, struct point_
 #define DEBUGPTSPRINT(x,y,z) {}
 #endif
 
-static const struct point_XYZ zero = {0,0,0};
+static const struct point_XYZ zero = {.x=0,.y=0,.z=0};
 
 typedef struct pcollision{
 	float* prd_newc_floats;// = NULL;
@@ -1096,7 +1096,7 @@ static struct point_XYZ get_line_disp(double y1, double y2, double ystep, double
   normal, or the vertical displacement(in case of stepping) that is needed for them not to intersect any more.*/
 static struct point_XYZ get_point_disp(double y1, double y2, double ystep, double r, struct point_XYZ p1, struct point_XYZ n) {
     double y;
-    struct point_XYZ result = {0,0,0};
+    struct point_XYZ result = { .x = 0,.y = 0,.z = 0 };
     struct point_XYZ cp;
 
     /*check if stepup.*/
@@ -1148,7 +1148,7 @@ static struct point_XYZ get_point_disp(double y1, double y2, double ystep, doubl
 struct point_XYZ box_disp(double y1, double y2, double ystep, double r,struct point_XYZ p0, struct point_XYZ i, struct point_XYZ j, struct point_XYZ k) {
     struct point_XYZ p[8];
     struct point_XYZ n[6];
-    struct point_XYZ maxdispv = {0,0,0};
+    struct point_XYZ maxdispv = {.x=0,.y=0,.z=0};
 	double maxdisp = 0;
     //struct point_XYZ middle;
     /*draw this up, you will understand: */
@@ -1381,7 +1381,7 @@ struct point_XYZ cone_disp(double y1, double y2, double ystep, double r, struct 
     struct point_XYZ normalside; /* collision normal of side (points outside)*/
     struct point_XYZ normaltop; /* collision normal of top (points up)*/
     //struct point_XYZ bn_normal; /* bn, normalized;*/
-    struct point_XYZ mindispv= {0,0,0};
+    struct point_XYZ mindispv= { .x = 0,.y = 0,.z = 0 };
     double mindisp = 1E99;
 
     /*find closest point of cone base to origin. */
@@ -1461,7 +1461,7 @@ struct point_XYZ cylinder_disp(double y1, double y2, double ystep, double r, str
     struct point_XYZ normalbase; /* collision normal of base (points downwards)*/
     struct point_XYZ normalside; /* collision normal of side (points outside)*/
     struct point_XYZ normaltop; /* collision normal of top (points upwards)*/
-    struct point_XYZ mindispv= {0,0,0};
+    struct point_XYZ mindispv= { .x = 0,.y = 0,.z = 0 };
     double mindisp = 1E99;
 
     /*find closest point of cone base to origin. */
@@ -1642,7 +1642,7 @@ flags - doublesided, front/back facing hints, no-stepping (?)
 static struct point_XYZ polyrep_disp_rec2(float *coord, int* cindex, int ntri, int ccw, struct point_XYZ* n, struct point_XYZ dispsum, prflags flags) {
 	struct point_XYZ p[3];
     double maxdisp = 0;
-    struct point_XYZ maxdispv = {0,0,0};
+    struct point_XYZ maxdispv = { .x = 0,.y = 0,.z = 0 };
     double disp;
     struct point_XYZ dispv;
     int i;
@@ -1897,7 +1897,7 @@ struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags fl
 static struct point_XYZ planar_polyrep_disp_rec(double y1, double y2, double ystep, double r, float *coord, int *cindex, int ntri, struct point_XYZ n, struct point_XYZ dispsum, prflags flags) {
     struct point_XYZ p[3];
     double lmaxdisp = 0;
-    struct point_XYZ maxdispv = {0,0,0};
+    struct point_XYZ maxdispv = { .x = 0,.y = 0,.z = 0 };
     double disp;
     struct point_XYZ dispv;
     /* static int recursion_count = 0; */
@@ -2123,7 +2123,7 @@ void render_collisions(int Viewer_type) {
 			else
 			{
 				/* precompute MBB/extent etc in collision space for penetration vector */
-				struct point_XYZ pos = {0.0,0.0,0.0};
+				struct point_XYZ pos = {.x=0,.y=0,.z=0};
 				fi->penMin[0] = DOUBLE_MIN(pos.x,lastpos.x);
 				fi->penMin[1] = DOUBLE_MIN(pos.y,lastpos.y);
 				fi->penMin[2] = DOUBLE_MIN(pos.z,lastpos.z);

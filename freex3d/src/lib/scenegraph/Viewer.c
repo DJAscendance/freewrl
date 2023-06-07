@@ -585,7 +585,7 @@ int fwl_setNavMode(char *mode){
 
 void resolve_pos20(X3D_Viewer *viewer) {
 	/* my($this) = @_; */
-	struct point_XYZ rot, z_axis = { 0, 0, 1 };
+	struct point_XYZ rot, z_axis = { .x=0, .y=0, .z=1 };
 	Quaternion q_inv;
 
 	X3D_Viewer_Examine *examine = &viewer->examine;
@@ -913,7 +913,7 @@ static double
 
 void handle_examine(const int mev, const unsigned int button, float x, float y) {
 	Quaternion q, q_i, arc;
-	struct point_XYZ pp = { 0, 0, 0};
+	struct point_XYZ pp = {.x=0,.y=0,.z=0};
 	double squat_norm;
 	// OLDCODE UNUSED ppViewer p;
 	X3D_Viewer *viewer;
@@ -1008,7 +1008,7 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 	*/
 	//examine variant - doesn't move the vp/.pos
 	Quaternion q_i;
-	struct point_XYZ pp = { 0, 0, 0};
+	struct point_XYZ pp = {.x=0,.y=0,.z=0};
 	double yy;
 	X3D_Viewer *viewer;
 	// OLDCODE UNUSED ppViewer p;

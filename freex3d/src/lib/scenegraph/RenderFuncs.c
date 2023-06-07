@@ -801,7 +801,7 @@ GLint viewport[4] = {-1,-1,2,2};  //pseudo-viewport - doesn't change, used in gl
 	- in setup_pickray(pick=TRUE,,) the projMatrix is modified for the pick-ray-viewport
 	- when unprojecting geometry-local xyz to bearing-local/pick-viewport-local, use pseudo-viewport defined above
 */
-struct point_XYZ r1 = {0,0,-1}, r2 = {0,0,0}, r3 = {0,1,0}; //r3 y direction in case needed for testing
+struct point_XYZ r1 = {.x=0,.y=0,.z=-1}, r2 = {.x=0,.y=0,.z=0}, r3 = {.x=0,.y=1,.z=0}; //r3 y direction in case needed for testing
 
 
 struct X3D_Anchor *AnchorsAnchor()
@@ -980,7 +980,7 @@ for (i=0; i<16; i++) printf ("%4.3lf ",projMatrix[i]); printf ("\n");
 		//feature-AFFINE_GLU_UNPROJECT
 		//FLOPs	112 double:	matmultiplyAFFINE 36, matinverseAFFINE 49, 3x transform (affine) 9 =27
 		GLDOUBLE  mvpi[16]; //mvp[16],
-		struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
+		struct point_XYZ r11 = {.x=0.0,.y=0.0,.z=1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
 		{
 			//PointSensor needs an original camera axis (not modified pickray camera)
 			// to use as a plane normal to intersect the pickray/bearing with

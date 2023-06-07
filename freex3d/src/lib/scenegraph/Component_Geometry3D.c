@@ -1120,9 +1120,9 @@ int avatarCollisionVolumeIntersectMBBf(double *modelMatrix, float *minVals, floa
 
 void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	GLDOUBLE modelMatrix[16];
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	#ifdef RENDERVERBOSE
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	#endif
 	struct X3D_PolyRep* pr;
 	prflags flags = 0;
@@ -1344,12 +1344,12 @@ DEBUGGING_CODE}
 struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
 #define FLOAT_TOLERANCE 0.00000001
 void collide_Sphere (struct X3D_Sphere *node) {
-	struct point_XYZ t_orig = {0,0,0}; /*transformed origin*/
-	struct point_XYZ p_orig= {0,0,0} ; /*projected transformed origin */
-	struct point_XYZ n_orig = {0,0,0}; /*normal(unit length) transformed origin */
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 }; /*transformed origin*/
+	struct point_XYZ p_orig= { .x = 0,.y = 0,.z = 0 }; /*projected transformed origin */
+	struct point_XYZ n_orig = { .x = 0,.y = 0,.z = 0 }; /*normal(unit length) transformed origin */
 	GLDOUBLE modelMatrix[16];
 	GLDOUBLE awidth,atop,abottom,dist2;
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	GLDOUBLE radius;
 	struct sNaviInfo *naviinfo;
 	ttglobal tg = gglobal();
@@ -1380,7 +1380,7 @@ void collide_Sphere (struct X3D_Sphere *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		struct point_XYZ radscale;
 		double maxdisp = 0;
 		radscale.x = radscale.y = radscale.z = node->radius;
@@ -1545,10 +1545,10 @@ void collide_Sphere (struct X3D_Sphere *node) {
 void collide_Box (struct X3D_Box *node) {
 	/*easy access, naviinfo.step unused for sphere collisions */
 	struct sNaviInfo *naviinfo;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ kv = {0,0,0};
-	struct point_XYZ ov = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ kv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ ov = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
 	ttglobal tg = gglobal();
@@ -1760,9 +1760,9 @@ void collide_Cone (struct X3D_Cone *node) {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth, atop, abottom, astep, scale, modelMatrix[16];
 	float h,r;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	ttglobal tg = gglobal();
 	ppComponent_Geometry3D p = (ppComponent_Geometry3D)tg->Component_Geometry3D.prv;
@@ -1793,7 +1793,7 @@ void collide_Cone (struct X3D_Cone *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		double maxdisp = 0;
 		struct point_XYZ radscale;
 
@@ -2031,9 +2031,9 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth,atop,abottom,astep,scale,modelMatrix[16];
 	float h,r;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	ttglobal tg = gglobal();
 	ppComponent_Geometry3D p = (ppComponent_Geometry3D)tg->Component_Geometry3D.prv;
@@ -2063,7 +2063,7 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, radscale, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, radscale, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		double maxdisp = 0;
 
 		if(!p->collisionCylinder.npts) 
@@ -2149,9 +2149,9 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 
 void collide_Extrusion (struct X3D_Extrusion *node) {
 	GLDOUBLE modelMatrix[16];
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	#ifdef RENDERVERBOSE
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	#endif
 	struct X3D_PolyRep *pr;
 	prflags flags = 0;

@@ -1057,10 +1057,10 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 	/* Modified Box code. */
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ kv = {0,0,0};
-	struct point_XYZ ov = {0,0,0};
+	struct point_XYZ iv = {.x=0,.y=0,.z=0};
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ kv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ ov = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 
 	ttglobal tg = gglobal();
