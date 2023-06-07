@@ -1048,9 +1048,6 @@ static void *createLines (float start, float end, float radius, int closed, int 
 
 
 
-void collide_TriangleSet2D (struct X3D_TriangleSet2D *node) {
-	UNUSED (node);
-}
 
 void collide_Disk2D (struct X3D_Disk2D *node) {
 	UNUSED (node);
@@ -1127,3 +1124,59 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 		);
 	#endif
 }
+
+void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+	UNUSED(node);
+}
+struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
+#define FLOAT_TOLERANCE 0.00000001
+/*
+void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	struct point_XYZ maxdispv = { 0,0,0 };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	for(int i=0;i<node->vertices.n;i+=3){
+		double pts[3][3], nn[3], v1[3], v2[3], disp;
+		for (int j = 0; j < 3; j++) {
+			float2double(pts[j], node->vertices.p[i + j].c, 2);
+			pts[j][2] = 0.0;
+			transform(pts[j], pts[j], modelMatrix);
+		}
+		vecdifd(v1, pts[1], pts[0]);
+		vecdifd(v2, pts[2], pts[0]);
+		veccrossd(nn, v2, v1);
+		struct point_XYZ dispv = get_poly_disp_2(pts, 3, nn);
+		disp = vecdot(&dispv, &dispv);
+
+		//keep result only if:
+		// displacement is positive
+		// displacement is smaller than minimum displacement up to date
+		if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+			maxdisp = disp;
+			maxdispv = dispv;
+		}
+	}
+	vecscale(&maxdispv, &maxdispv, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv);
+
+}
+*/
