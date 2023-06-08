@@ -1053,7 +1053,7 @@ void collide_Disk2D (struct X3D_Disk2D *node) {
 	UNUSED (node);
 }
 
-void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
+void collide_Rectangle2D_OLD (struct X3D_Rectangle2D *node) {
 	/* Modified Box code. */
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
@@ -1125,17 +1125,75 @@ void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
 	#endif
 }
 
-void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
-	UNUSED(node);
-}
+//void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+//	UNUSED(node);
+//}
 struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
 #define FLOAT_TOLERANCE 0.00000001
-/*
+void collide_Rectangle2D(struct X3D_Rectangle2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	struct SFVec2f vertices[4];
+	vertices[0].c[0] = -node->size.c[0] * .5f;
+	vertices[0].c[1] = -node->size.c[1] * .5f;
+	vertices[1].c[0] = -node->size.c[0] * .5f;
+	vertices[1].c[1] =  node->size.c[1] * .5f;
+	vertices[2].c[0] =  node->size.c[0] * .5f;
+	vertices[2].c[1] =  node->size.c[1] * .5f;
+	vertices[3].c[0] =  node->size.c[0] * .5f;
+	vertices[3].c[1] = -node->size.c[1] * .5f;
+
+	union upoint_XYZ pts[4], nn, v1, v2;
+	double disp;
+	for (int j = 0; j < 4; j++) {
+		float2double(pts[j].c, vertices[j].c, 2);
+		pts[j].p.z = 0.0;
+		transform(&pts[j].p, &pts[j].p, modelMatrix);
+	}
+	vecdifd(v1.c, pts[1].c, pts[0].c);
+	vecdifd(v2.c, pts[3].c, pts[0].c);
+	veccrossd(nn.c, v2.c, v1.c);
+	union upoint_XYZ dispv;
+	dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 4, nn.p);
+	disp = vecdot(&dispv.p, &dispv.p);
+
+	//keep result only if:
+	// displacement is positive
+	// displacement is smaller than minimum displacement up to date
+	if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+		maxdisp = disp;
+		maxdispv = dispv;
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
+}
+
 void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
 	GLDOUBLE modelMatrix[16];
 
 	ttglobal tg = gglobal();
-	struct point_XYZ maxdispv = { 0,0,0 };
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
 	double maxdisp = 0.0;
 
 	// get the transformed position of the Box, and the scale-corrected radius. 
@@ -1154,17 +1212,19 @@ void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
 		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
 	}
 	for(int i=0;i<node->vertices.n;i+=3){
-		double pts[3][3], nn[3], v1[3], v2[3], disp;
+		union upoint_XYZ pts[3], nn, v1, v2;
+		double disp;
 		for (int j = 0; j < 3; j++) {
-			float2double(pts[j], node->vertices.p[i + j].c, 2);
-			pts[j][2] = 0.0;
-			transform(pts[j], pts[j], modelMatrix);
+			float2double(pts[j].c, node->vertices.p[i + j].c, 2);
+			pts[j].p.z = 0.0;
+			transform(&pts[j].p, &pts[j].p, modelMatrix);
 		}
-		vecdifd(v1, pts[1], pts[0]);
-		vecdifd(v2, pts[2], pts[0]);
-		veccrossd(nn, v2, v1);
-		struct point_XYZ dispv = get_poly_disp_2(pts, 3, nn);
-		disp = vecdot(&dispv, &dispv);
+		vecdifd(v1.c, pts[1].c, pts[0].c);
+		vecdifd(v2.c, pts[2].c, pts[0].c);
+		veccrossd(nn.c, v2.c, v1.c);
+		union upoint_XYZ dispv;
+		dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+		disp = vecdot(&dispv.p, &dispv.p);
 
 		//keep result only if:
 		// displacement is positive
@@ -1174,9 +1234,8 @@ void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
 			maxdispv = dispv;
 		}
 	}
-	vecscale(&maxdispv, &maxdispv, -1);
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
 
-	accumulate_disp(CollisionInfo(), maxdispv);
+	accumulate_disp(CollisionInfo(), maxdispv.p);
 
 }
-*/
