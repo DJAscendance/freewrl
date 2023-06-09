@@ -3333,8 +3333,9 @@ struct X3D_Virt virt_Arc2D = { NULL,(void *)render_Arc2D,NULL,NULL,NULL,NULL,NUL
 
 void render_ArcClose2D(struct X3D_ArcClose2D *);
 void rendray_ArcClose2D(struct X3D_ArcClose2D *);
+void collide_ArcClose2D(struct X3D_ArcClose2D *);
 void compile_ArcClose2D(struct X3D_ArcClose2D *);
-struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,(void *)rendray_ArcClose2D,NULL,NULL,NULL,NULL,(void *)compile_ArcClose2D};
+struct X3D_Virt virt_ArcClose2D = { NULL,(void *)render_ArcClose2D,NULL,NULL,(void *)rendray_ArcClose2D,NULL,NULL,NULL,(void *)collide_ArcClose2D,(void *)compile_ArcClose2D};
 
 void render_AudioBuffer(struct X3D_AudioBuffer *);
 struct X3D_Virt virt_AudioBuffer = { NULL,(void *)render_AudioBuffer,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};

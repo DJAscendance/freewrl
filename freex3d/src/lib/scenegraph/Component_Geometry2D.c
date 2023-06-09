@@ -245,6 +245,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	ofp = node->__points.p;
 	otp = node->__texCoords.p;
 	node->__points.p = sfp;
+	node->__points.n = numPoints;
 	node->__texCoords.p = stp;
 	node->__simpleDisk = simpleDisc;
 	node->__numPoints = numPoints;
@@ -537,7 +538,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	//GLfloat *stp;
 	struct SFVec2f *ofp, *otp;
 	//GLfloat *otp;
-	int i,j,k;
+	int i, j, k, m;
 	GLfloat id;
 	GLfloat od;
 	int tmpint;
@@ -570,7 +571,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		(*tp).c[0] = 0.5f; (*tp).c[1] = 0.5f; tp++;
 		id = 2.0f;
 
-		for (i=SEGMENTS_PER_CIRCLE,j=1,k=0; i >= 0; i--,j++,k+=4) {
+		for (i=SEGMENTS_PER_CIRCLE,j=1,k=0,m=0; i >= 0; i--,j++,k+=4,m++) {
 			(*fp).c[0] = node->outerRadius * sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
 			(*fp).c[1] = node->outerRadius * cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
@@ -584,6 +585,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 			(*tp).c[1] = 0.5f + (cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
 			tp++;
 		}
+
 		node->__wireindices = lindex;
 	} else {
 		tmpint = (SEGMENTS_PER_CIRCLE+1) * 2;
@@ -597,7 +599,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		od = 2.0f;
 		id = node->outerRadius * 2.0f / node->innerRadius;
 
-		for (i=SEGMENTS_PER_CIRCLE,j=0,k=0; i >= 0; i--,j+=2,k+=8) {
+		for (i=SEGMENTS_PER_CIRCLE,j=0,k=0,m=0; i >= 0; i--,j+=2,k+=8,m++) {
 			(*fp).c[0] = node->innerRadius * (float) sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
 			(*fp).c[1] = node->innerRadius * (float) cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
@@ -630,6 +632,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	ofp = node->__points.p;
 	otp = node->__texCoords.p;
 	node->__points.p = sfp;
+	node->__points.n = tmpint;
 	node->__texCoords.p = stp;
 	node->__simpleDisk = simpleDisc;
 	node->__numPoints = tmpint;
@@ -1045,89 +1048,6 @@ static void *createLines (float start, float end, float radius, int closed, int 
 	return (void *)points;
 }
 
-
-
-
-
-void collide_Disk2D (struct X3D_Disk2D *node) {
-	UNUSED (node);
-}
-
-void collide_Rectangle2D_OLD (struct X3D_Rectangle2D *node) {
-	/* Modified Box code. */
-	struct sNaviInfo *naviinfo;
-	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
-	struct point_XYZ iv = {.x=0,.y=0,.z=0};
-	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
-	struct point_XYZ kv = { .x = 0,.y = 0,.z = 0 };
-	struct point_XYZ ov = { .x = 0,.y = 0,.z = 0 };
-	struct point_XYZ delta;
-
-	ttglobal tg = gglobal();
-	/*easy access, naviinfo.step unused for sphere collisions */
-	naviinfo = (struct sNaviInfo*)tg->Bindable.naviinfo;
-	awidth = naviinfo->width; /*avatar width*/
-	atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
-	abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
-	astep = -naviinfo->height+naviinfo->step;
-
-
-	iv.x = node->size.c[0];
-	jv.y = node->size.c[1]; 
-	kv.z = 0.0;
-	ov.x = -(node->size.c[0])/2; ov.y = -(node->size.c[1])/2; ov.z = 0.0;
-
-	/* get the transformed position of the Box, and the scale-corrected radius. */
-	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
-
-	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
-	//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix); 
-
-	{
-		/*  minimum bounding box MBB test in avatar/collision space */
-		double shapeMBBmin[3], shapeMBBmax[3], dsize[3];
-		//int i;
-		float2double(dsize,node->size.c,3);
-		vecscaled(shapeMBBmax,dsize,.5);
-		vecscaled(shapeMBBmax,dsize,-.5);
-		//for(i=0;i<3;i++)
-		//{
-		//	shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
-		//	shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
-		//}
-		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
-	}
-	/* get transformed box edges and position */
-	transform(&ov,&ov,modelMatrix);
-	transform3x3(&iv,&iv,modelMatrix);
-	transform3x3(&jv,&jv,modelMatrix);
-	transform3x3(&kv,&kv,modelMatrix);
-
-	delta = box_disp(abottom,atop,astep,awidth,ov,iv,jv,kv);
-
-	vecscale(&delta,&delta,-1);
-
-	accumulate_disp(CollisionInfo(),delta);
-
-
-	#ifdef COLLISIONVERBOSE
-	if((fabs(delta.x) != 0. || fabs(delta.y) != 0. || fabs(delta.z) != 0.))
-		printf("COLLISION_BOX: (%f %f %f) (%f %f %f)\n",
-		ov.x, ov.y, ov.z,
-		delta.x, delta.y, delta.z
-		);
-	if((fabs(delta.x != 0.) || fabs(delta.y != 0.) || fabs(delta.z) != 0.))
-		printf("iv=(%f %f %f) jv=(%f %f %f) kv=(%f %f %f)\n",
-		iv.x, iv.y, iv.z,
-		jv.x, jv.y, jv.z,
-		kv.x, kv.y, kv.z
-		);
-	#endif
-}
-
-//void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
-//	UNUSED(node);
-//}
 struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
 #define FLOAT_TOLERANCE 0.00000001
 void collide_Rectangle2D(struct X3D_Rectangle2D* node) {
@@ -1232,6 +1152,150 @@ void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
 		if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
 			maxdisp = disp;
 			maxdispv = dispv;
+		}
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
+}
+
+void collide_ArcClose2D(struct X3D_ArcClose2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	union upoint_XYZ pts[3], nn, v1, v2;
+	double disp;
+
+	//triangle fan point:
+	float2double(pts[0].c, node->__points.p[0].c, 2);
+	pts[0].p.z = 0.0;
+	transform(&pts[0].p, &pts[0].p, modelMatrix);
+	//triangle fan starts at point[1]
+	for (int i = 1; i < node->__points.n; i++) {
+		float2double(pts[1].c, node->__points.p[i].c, 2);
+		pts[1].p.z = 0.0;
+		transform(&pts[1].p, &pts[1].p, modelMatrix);
+		float2double(pts[2].c, node->__points.p[2].c, 2);
+		pts[2].p.z = 0.0;
+		transform(&pts[2].p, &pts[2].p, modelMatrix);
+
+		vecdifd(v1.c, pts[1].c, pts[0].c);
+		vecdifd(v2.c, pts[2].c, pts[0].c);
+		veccrossd(nn.c, v2.c, v1.c);
+		union upoint_XYZ dispv;
+		dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+		disp = vecdot(&dispv.p, &dispv.p);
+
+		//keep result only if:
+		// displacement is positive
+		// displacement is smaller than minimum displacement up to date
+		if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+			maxdisp = disp;
+			maxdispv = dispv;
+		}
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
+}
+
+void collide_Disk2D(struct X3D_Disk2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	union upoint_XYZ pts[3], nn, v1, v2;
+	double disp;
+
+	if (node->__simpleDisk) {
+		//simple disk with TRIANGLE_FAN
+		//fan point:
+		float2double(pts[0].c, node->__points.p[0].c, 2);
+		pts[0].p.z = 0.0;
+		transform(&pts[0].p, &pts[0].p, modelMatrix);
+		//triangle fan starts at point[1]
+		for (int i = 1; i < node->__points.n; i++) {
+			float2double(pts[1].c, node->__points.p[i].c, 2);
+			pts[1].p.z = 0.0;
+			transform(&pts[1].p, &pts[1].p, modelMatrix);
+			float2double(pts[2].c, node->__points.p[2].c, 2);
+			pts[2].p.z = 0.0;
+			transform(&pts[2].p, &pts[2].p, modelMatrix);
+
+			vecdifd(v1.c, pts[1].c, pts[0].c);
+			vecdifd(v2.c, pts[2].c, pts[0].c);
+			veccrossd(nn.c, v2.c, v1.c);
+			union upoint_XYZ dispv;
+			dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+			disp = vecdot(&dispv.p, &dispv.p);
+
+			//keep result only if:
+			// displacement is positive
+			// displacement is smaller than minimum displacement up to date
+			if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+				maxdisp = disp;
+				maxdispv = dispv;
+			}
+		}
+	}else{ 
+		//donut disk with TRIANGLE_STRIP
+		for (int i = 0; i < node->__points.n -1; i++) {
+			for (int j = 0; j < 3; j++) {
+				float2double(pts[j].c, node->__points.p[i + j].c, 2);
+				pts[j].p.z = 0.0;
+				transform(&pts[j].p, &pts[j].p, modelMatrix);
+			}
+			vecdifd(v1.c, pts[1].c, pts[0].c);
+			vecdifd(v2.c, pts[2].c, pts[0].c);
+			veccrossd(nn.c, v2.c, v1.c);
+			union upoint_XYZ dispv;
+			dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+			disp = vecdot(&dispv.p, &dispv.p);
+
+			//keep result only if:
+			// displacement is positive
+			// displacement is smaller than minimum displacement up to date
+			if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+				maxdisp = disp;
+				maxdispv = dispv;
+			}
 		}
 	}
 	vecscale(&maxdispv.p, &maxdispv.p, -1);

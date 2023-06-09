@@ -911,6 +911,7 @@ our %OtherC = map {($_=>1)} qw/
 
 our %CollisionC = map {($_=>1)} qw/
 	Disk2D
+        ArcClose2D
 	Rectangle2D
 	TriangleSet2D
 	Sphere
