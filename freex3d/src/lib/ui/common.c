@@ -164,7 +164,7 @@ FILE* getRecordFile() {
 	}
 	return frecord;
 }
-static double last_time;
+static double last_time, run_time;
 void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
 	ttglobal tg = gglobal();
 	FILE* f = getRecordFile();
@@ -223,16 +223,17 @@ void _playbackthread(ttglobal tglobal) {
 	strcat(name, local_name);
 	strcat(name, ".fwplay");
 	FILE *fplay = fopen(name, "r+");
+	run_time = Time1970sec();
 	while (fscanf(fplay, "%s", &line)>0) {
 		//printf("%s\n",line);
 		switch (line[0]) {
 		case 'M':
 			sscanf(line, "%c,%d,%d,%f,%f,%d,%lf\n", &cc, &mev, &butnum, &fmouseX, &fmouseY, &windex, &dtime);
 			//printf("%c %d %d %d %d %d %lf\n", cc, mev, butnum, mouseX, mouseY, windex, rtime);
+			run_time += dtime;
 			this_time = Time1970sec();
-			delta_time = this_time - last_time;
-			if (delta_time < dtime) sleep((int)(1000 * (dtime - delta_time)));
-			last_time = Time1970sec();
+			delta_time = run_time - this_time;
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
 			//de-normalize mouse coords
 			scale = 2.0f / (float)tg->display.screenHeight;
 			mouseY = (int)((fmouseY + 1.0)/scale + .5f);
@@ -242,10 +243,10 @@ void _playbackthread(ttglobal tglobal) {
 			break;
 		case 'T':
 			sscanf(line, "%c,%d,%u,%f,%f,%d,%lf\n", &cc, &mev, &ID, &fmouseX, &fmouseY, &windex, &dtime);
+			run_time += dtime;
 			this_time = Time1970sec();
-			delta_time = this_time - last_time;
-			if (delta_time < dtime) sleep((int)(1000 * (dtime - delta_time)));
-			last_time = Time1970sec();
+			delta_time = run_time - this_time; 
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
 			//de-normalize touch coords
 			scale = 2.0f / (float)tg->display.screenHeight;
 			mouseY = (int)(fmouseY + 1.0) / scale;
@@ -255,10 +256,10 @@ void _playbackthread(ttglobal tglobal) {
 			break;
 		case 'K':
 			sscanf(line, "%c,%d,%d,%lf\n", &cc, &key, &type, &dtime);
+			run_time += dtime;
 			this_time = Time1970sec();
-			delta_time = this_time - last_time;
-			if (delta_time < dtime) sleep((int)(1000 * (dtime - delta_time)));
-			last_time = Time1970sec();
+			delta_time = run_time - this_time;
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
 			fwl_do_keyPress0(key, type);
 			break;
 		}
