@@ -6856,7 +6856,16 @@ void setSensitive(struct X3D_Node *parentNode, struct X3D_Node *datanode) {
 	se->interpptr = (void *)myp;
 	vector_pushBack(struct SensStruct *,p->SensorEvents,se);
 }
-
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
+char* getNodeDescription(struct X3D_Node* node) {
+	//not all nodetypes have description field, and those that do not all set, so expect some will return null.
+	int type, kind, iifield;
+	union anyVrml *value;
+	int iret = getFieldFromNodeAndName(node, "description", &type, &kind, &iifield, &value);
+	if (iret)
+		return value->sfstring->strptr;
+	return NULL;
+}
 /* we have a sensor event changed, look up event and do it */
 /* note, (Geo)ProximitySensor events are handled during tick, as they are time-sensitive only */
 static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int status) {
@@ -6889,7 +6898,16 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 				get_hyperhit();
 			}
 
-
+			if (0) {
+				printf("nodetype %s ", stringNodeType(se->datanode->_nodeType));
+				printf("Sensor description %s ", getNodeDescription(se->datanode));
+					//lookup_brotoDefname(X3D_PROTO(se->datanode->_executionContext), se->datanode));
+				vecprint3fb("\nhitray ",tg->RenderFuncs.ray_save_posn,"");
+				float norm[3];
+				vecnormalize3f(norm, tg->RenderFuncs.hyp_save_norm);
+				vecprint3fb("hitnorm ",norm , "");
+				printf("\n");
+			}
 			se->interpptr(se->datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
 			/* return; do not do this, incase more than 1 node uses this, eg,
 							an Anchor with a child of TouchSensor */

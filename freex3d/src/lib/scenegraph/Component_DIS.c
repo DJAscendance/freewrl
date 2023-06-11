@@ -2215,7 +2215,7 @@ struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int 
 }
 
 
-unsigned char buf2[32767];
+unsigned char buf2[32768];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
 	//4 nodes have the same field order for common fields, can be cast to Espdu 
