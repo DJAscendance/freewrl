@@ -107,6 +107,10 @@ void fv_usage()
 		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
 		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
+		"     --DISaddress <string>  DIS default ipv4 address or localhost \n"
+		"     --DISport <int>        DIS default port 1000 - 99999\n"
+		"     --DISsite <int>        DIS default site ID (facility / room ID) 1-255\n"
+		"     --DISapp <int>         DIS application instance ID 1-255\n"
 		"  -S|--set <int> testing set default 0, added to port number for DIS\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
@@ -188,11 +192,15 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
-	{"DIS",no_argument,0,'D'},
 	{"set",required_argument,0,'S'},
 	{"javascript",required_argument,0,'J'},
 	{"boxes",no_argument,0,'x'},
 	{"viewpoints",no_argument,0,'X'},
+	{"DIS",no_argument,0,'D'},
+	{"DISaddress",required_argument,0,128},
+	{"DISport",required_argument,0,129},
+	{"DISsite",required_argument,0,130},
+	{"DISapp",required_argument,0,131},
 	{0, 0, 0, 0}
     };
 
@@ -432,6 +440,22 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'D': /* --DIS, no argument */
 	    fwl_init_DIS();
 	    break;
+	case 128: /* --DISaddress <string> */
+		fwl_set_DISaddress(optarg);
+		break;
+	case 129: /* --DISport <integer 1000-99999> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISport(itmp);
+		break;
+	case 130: /* --DISsite <int 1-255> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISsite(itmp);
+		break;
+	case 131: /* --DISapp <int 1-255> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISapplication(itmp);
+		break;
+
 	case 'S': /* --set, required argument: int */
 		sscanf(optarg, "%d", &itmp);
 		fwl_set_testset(itmp);

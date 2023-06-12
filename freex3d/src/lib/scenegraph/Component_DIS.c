@@ -233,12 +233,41 @@ Extra = 11170,
 
 
 static int allow_DIS = 0;
+static char* DISaddress = NULL;
+static int DISport = 0;
+static int DISsite = 0;
+static int DISapplication = 0;
 void fwl_init_DIS(){
 	//from commandline --DIS or -D
 	allow_DIS = 1;
 }
+void fwl_set_DISaddress(char* address) {
+	DISaddress = address;
+}
+void fwl_set_DISport(int port) {
+	DISport = port;
+}
+void fwl_set_DISsite(int site) {
+	DISsite = site;
+}
+void fwl_set_DISapplication(int app) {
+	DISapplication = app;
+}
+
 int fwl_get_allow_DIS(){
 	return allow_DIS;
+}
+char* fwl_get_DISaddress() {
+	return DISaddress;
+}
+int fwl_get_DISport() {
+	return DISport;
+}
+int fwl_get_DISsite() {
+	return DISsite;
+}
+int fwl_get_DISapplication() {
+	return DISapplication;
 }
 void fwl_set_allow_DIS(int allow){
 	allow_DIS = allow ? 1 : 0;
@@ -404,6 +433,8 @@ enum PDUType
     PDU_DESCRIBE_OBJECT = 133,
     PDU_REQUEST_EVENT = 134,
     PDU_REQUEST_OBJECT = 135,  
+	PDU_UPDATE_SENSOR = 200, //new freewrl 2023
+	PDU_UPDATE_AVATAR = 201, //new freewrl 2023
 };
 
 void axisangle2ypr(float *xyza, float *ypr)
@@ -603,7 +634,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
+	if(0) printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
 		float xyz[3];
 		struct EntityStatePdu *espdu;
@@ -1298,8 +1329,10 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				//ENTITYSTATE
 				struct EntityStatePdu *espdu;
 				espdu = (struct EntityStatePdu*)pdu;
-				if(espdu->entityID.application != pnode->applicationID) break;
-				if(espdu->entityID.site != pnode->siteID) break;
+				// 2018.pdf 6.2.80.3 Application Number implied an instance number, 
+				// so should not be same unless loopback testing
+				// if(espdu->entityID.application == pnode->applicationID) break;
+				// if(espdu->entityID.site != pnode->siteID) break;
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
 				pnode->_change++; //mark node changed
@@ -1781,8 +1814,9 @@ int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
 
 				if(pnode->radioID != tpdu->myRadioCommunicationsFamilyPdu.radioId) break;
 				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
-				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
-				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+				//if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				//site.application should not be the same unless loopback testing
+				//if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application == pnode->applicationID) break;
 
 				ihit++;
 				pnode->_change++; //mark node changed
@@ -1844,8 +1878,10 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 
 				if(pnode->radioID != spdu->myRadioCommunicationsFamilyPdu.radioId) break;
 				if(spdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
-				if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
-				if(spdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+				//site won't necessarily be the same
+				//if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				//site.application should not be the same unless loopback testing
+				//if(spdu->myRadioCommunicationsFamilyPdu.entityId.application == pnode->applicationID) break;
 
 				ihit++;
 				pnode->_change++; //mark node changed
@@ -3496,9 +3532,24 @@ void compile_DIS_network(struct X3D_EspduTransform *node){
 	}
 	if(!node->_registered){
 		void *psock;
-		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
-		node->multicastRelayPort,
-		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		node->address->strptr = fwl_get_DISaddress() ? fwl_get_DISaddress() : node->address->strptr;
+		//if (!strcmp(node->address->strptr, "localhost")) {
+		//	//node->address->strptr = "127.0.0.1";
+		//	struct hostent* hp = gethostbyname(node->address->strptr);
+		//	printf("official host name %s\n", hp->h_name);
+		//}
+		node->port = fwl_get_DISport()? fwl_get_DISport():node->port;
+		node->siteID = fwl_get_DISsite()? fwl_get_DISsite():node->siteID ;
+		node->applicationID = fwl_get_DISapplication() ? fwl_get_DISapplication() : node->applicationID;
+		//printf("address %s port %d site %d app %d\n", node->address->strptr, node->port, node->siteID, node->applicationID);
+		psock = dis_register(X3D_NODE(node),
+			node->address->strptr,
+			node->applicationID,
+			node->entityID, node->multicastRelayHost->strptr, node->multicastRelayPort,
+			node->networkMode->strptr, node->port, 
+			node->readInterval, node->rtpHeaderExpected, 
+			node->siteID, 
+			node->writeInterval);
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
