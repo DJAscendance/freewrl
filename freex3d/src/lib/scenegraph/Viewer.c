@@ -3172,7 +3172,10 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *vp, Quaternion *Quat, stru
 void viewer_update_user_offsets0(X3D_Viewer *viewer){
 	//call this often when navigating
 	//saves accumulated navigation from bind pose, per viewpoint
-
+	// Q1. if we re-bind to the viewpoint, do we get our last pose with this vp, or the original design pose?
+	// we don't seem to get eventouts from .position and .orientation 
+	// Q2. should we MARK_EVENT(vp,offsetof(struct X3D_Viewpoint,position)); ?
+	// Q3. should the specs have separate eventOuts for updated pose so original pose is preseerved for re-bind?
 	struct X3D_Node *boundvp;
 	boundvp = getActiveLayerBoundViewpoint();
 	if(boundvp){
@@ -3195,6 +3198,7 @@ void viewer_update_user_offsets0(X3D_Viewer *viewer){
 				quaternion_to_vrmlrot(&viewer->Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 				oo[3] = -oo[3];
 				double2float(vp->orientation.c,oo,4);
+				//MARK_EVENT(vp, offsetof(struct X3D_Viewpoint, position));
 			}
 			break;
 			case NODE_GeoViewpoint:
