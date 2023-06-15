@@ -1352,10 +1352,12 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						pdu->padding = TAG_SAME_PROGRAM;
 					break;
 				}
-				if (espdu->entityType.category == 77) break; //its an avatar, handled elsewhere
+				int avatar = FALSE;
+				if (espdu->entityType.category == 77) avatar = TRUE;
+				//	break; //its an avatar, handled elsewhere
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
-				pdu->padding = TAG_ESPDU;
+				pdu->padding = avatar ? TAG_AVATAR : TAG_ESPDU;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
 
@@ -2084,8 +2086,8 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					}
 					//skip if we already got this entity and are just awaiting creation
 					already_done = FALSE;
-					printf("addEntities.n = %d\n", pnode->addEntities.n);
-					printf("espdu entity %d app %d site %d\n", espdu->entityID.entity, espdu->entityID.application, espdu->entityID.site);
+					//printf("addEntities.n = %d\n", pnode->addEntities.n);
+					//printf("espdu entity %d app %d site %d\n", espdu->entityID.entity, espdu->entityID.application, espdu->entityID.site);
 					for(j=0;j<pnode->addEntities.n;j++){
 						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
 						if(candi->_nodeType == NODE_DISEntityTypeMapping){
@@ -2099,17 +2101,17 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 							if(et->entityID == espdu->entityID.entity &&
 								et->applicationID == espdu->entityID.application &&
 								et->siteID == espdu->entityID.site) already_done = TRUE;
-							printf("addEntities[%d] entity %d app %d site %d already %d\n", 
-								j,et->entityID, et->applicationID, et->siteID, already_done);
+							//printf("addEntities[%d] entity %d app %d site %d already %d\n", 
+							//	j,et->entityID, et->applicationID, et->siteID, already_done);
 							if(already_done) break;
 						}
 
 					}
 					if (already_done) {
-						printf("already done\n");
+						//printf("already done\n");
 						break;
 					}
-					printf("not already done\n");
+					//printf("not already done\n");
 					pdu->padding = TAG_ENTITY_MANAGER;
 					ihit++;
 					//we'll use an EspduTransform struct just as a temp struct, not to register.
@@ -3089,6 +3091,7 @@ struct X3D_Node* findNodeByName(char* defname) {
 	}
 	return node;
 }
+/* using regular pdu2espdu
 struct Vector* avatars = NULL; //2023 multiplayer
 int dis_pdus2avatars(struct Vector* pdus) {
 	//2023 multiplayer
@@ -3327,6 +3330,7 @@ int dis_pdus2avatars(struct Vector* pdus) {
 	}
 	return ihit;
 }
+*/
 
 static double lasttime;
 static char buf[32768];
@@ -3380,7 +3384,7 @@ void dis_recvloop(){
 
 				int ihit;
 				if(dsock->registered){
-					printf("dsock.registered.n %d\n", dsock->registered->n);
+					//printf("dsock.registered.n %d\n", dsock->registered->n);
 					for(j=0;j<dsock->registered->n;j++){
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
@@ -3417,9 +3421,9 @@ void dis_recvloop(){
 				//2023 multiplayer>>
 				ihit = dis_pdus2sensors(pdus);
 				nhit += ihit;
-				ihit = dis_pdus2avatars(pdus);
-				printf("avatar hits %d\n", ihit);
-				nhit += ihit;
+				//ihit = dis_pdus2avatars(pdus);
+				//printf("avatar hits %d\n", ihit);
+				//nhit += ihit;
 				//<<2023 multiplayer
 				int counts[9] = { 0,0,0,0,0,0,0,0,0 };
 				for (int j = 0; j < pdus->n; j++) {
@@ -4991,11 +4995,11 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 						best = bnode;
 					}
 				}
-				printf("etm  %d %d %d %d %d %d %d\n", best->kind, best->domain, best->country, best->category, 
-					best->subcategory, best->specific, best->extra);
-				printf("es   %d %d %d %d %d %d %d\n", anode->entityKind, anode->entityDomain, anode->entityCountry, 
-					anode->entityCategory, anode->entitySubCategory, anode->entitySpecific, anode->entityExtra);
-				printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
+				//printf("etm  %d %d %d %d %d %d %d\n", best->kind, best->domain, best->country, best->category, 
+				//	best->subcategory, best->specific, best->extra);
+				//printf("es   %d %d %d %d %d %d %d\n", anode->entityKind, anode->entityDomain, anode->entityCountry, 
+				//	anode->entityCategory, anode->entitySubCategory, anode->entitySpecific, anode->entityExtra);
+				//printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
 				if(ibest > -1){
 					applicationID = anode->applicationID;
 					siteID = anode->siteID;
