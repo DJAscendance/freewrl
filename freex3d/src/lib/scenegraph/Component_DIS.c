@@ -638,6 +638,7 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
+		espdu->entityType.category = 1; //not 77
 		espdu->entityID.entity = pnode->entityID;
 		espdu->entityID.application = pnode->applicationID;
 		espdu->entityID.site = pnode->siteID;
@@ -1351,6 +1352,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						pdu->padding = TAG_SAME_PROGRAM;
 					break;
 				}
+				if (espdu->entityType.category == 77) break; //its an avatar, handled elsewhere
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
 				pdu->padding = TAG_ESPDU;
@@ -2082,6 +2084,8 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					}
 					//skip if we already got this entity and are just awaiting creation
 					already_done = FALSE;
+					printf("addEntities.n = %d\n", pnode->addEntities.n);
+					printf("espdu entity %d app %d site %d\n", espdu->entityID.entity, espdu->entityID.application, espdu->entityID.site);
 					for(j=0;j<pnode->addEntities.n;j++){
 						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
 						if(candi->_nodeType == NODE_DISEntityTypeMapping){
@@ -2091,17 +2095,21 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 							// || candi->_nodeType == NODE_ReceiverPdu 
 							// || candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
 							//else if radio etc
-							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)pnode->addEntities.p[j];
+							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)candi;
 							if(et->entityID == espdu->entityID.entity &&
 								et->applicationID == espdu->entityID.application &&
 								et->siteID == espdu->entityID.site) already_done = TRUE;
+							printf("addEntities[%d] entity %d app %d site %d already %d\n", 
+								j,et->entityID, et->applicationID, et->siteID, already_done);
 							if(already_done) break;
 						}
 
 					}
-					if(already_done) 
+					if (already_done) {
+						printf("already done\n");
 						break;
-
+					}
+					printf("not already done\n");
 					pdu->padding = TAG_ENTITY_MANAGER;
 					ihit++;
 					//we'll use an EspduTransform struct just as a temp struct, not to register.
@@ -2457,25 +2465,31 @@ struct Vector* dis_avatar2pdus() {
 		veccopyd(last_avatar_orientation, xyza);
 		last_avatar_orientation[3] = xyza[3];
 		pdus = newVector(struct Pdu*, 6);
-		struct EntityStateUpdatePdu* esupdu;
-		esupdu = (struct EntityStateUpdatePdu*)dis_ctor(type_EntityStateUpdatePdu);
-		//printf("esupdu->type = %d\n", esupdu->myEntityInformationFamilyPdu.myPdu.pduType);
-		//printf("Pdu->type = %d\n", ((struct Pdu*)(esupdu))->pduType);
+		struct EntityStatePdu* espdu;
+		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
+		if(0) printf("Pdu->type = %d\n", ((struct Pdu*)(espdu))->pduType);
 		//entity
-		esupdu->entityID.entity = fwl_get_DISapplication(); // application 1:1 avatar, entity = f(application)
-		esupdu->entityID.application = fwl_get_DISapplication();
-		esupdu->entityID.site = fwl_get_DISsite();
-		esupdu->entityLocation.x = pointd[0];
-		esupdu->entityLocation.y = pointd[1];
-		esupdu->entityLocation.z = pointd[2];
+		espdu->entityType.category = 77; //SPECIAL CATEGORY 77 FOR AVATARS
+		espdu->entityID.entity = fwl_get_DISapplication(); // application 1:1 avatar, entity = f(application)
+		espdu->entityID.application = fwl_get_DISapplication();
+		espdu->entityType.specific = fwl_get_DISapplication();
+		espdu->entityID.site = fwl_get_DISsite();
+		if(0) printf("kind %d domain %d country %d category %d sub %d specific %d extra %d\n ",
+			espdu->entityType.entityKind, espdu->entityType.domain, espdu->entityType.country,
+			espdu->entityType.category, espdu->entityType.subcategory,
+			espdu->entityType.specific, espdu->entityType.extra);
+
+		espdu->entityLocation.x = pointd[0];
+		espdu->entityLocation.y = pointd[1];
+		espdu->entityLocation.z = pointd[2];
 		double2float(xyzaf, xyza, 4);
 		xyzaf[3] = -xyzaf[3];
 		axisangle2ypr(xyzaf, ypr);
-		esupdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
-		esupdu->entityOrientation.theta = ypr[1];
-		esupdu->entityOrientation.phi = ypr[2];
+		espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+		espdu->entityOrientation.theta = ypr[1];
+		espdu->entityOrientation.phi = ypr[2];
 		//printf("send xyz %lf %lf %lf ypr %f %f %f\n", pointd[0], pointd[1], pointd[2], ypr[0], ypr[1], ypr[2]);
-		stack_push(struct Pdu*, pdus, (struct Pdu*)esupdu);
+		stack_push(struct Pdu*, pdus, (struct Pdu*)espdu);
 	}
 
 	return pdus;
@@ -3093,20 +3107,23 @@ int dis_pdus2avatars(struct Vector* pdus) {
 		pdu = vector_get(struct Pdu*, pdus, i);
 		if(pdu->padding == TAG_UNCLAIMED)
 		switch (pdu->pduType) {
-		case PDU_ENTITY_STATE_UPDATE:
+		case PDU_ENTITY_STATE:
 		{
-			//ENTITYSTATEUPDATE
-			//we assume all ENTITY_STATE_UPDATE pdus are avatar updates
+			//ENTITYSTATE category 77 avatar
+			//we assume ENTITY_STATE pdus with category 77 are avatar updates
 
-			struct EntityStateUpdatePdu* espdu;
-			espdu = (struct EntityStateUpdatePdu*)pdu;
+			struct EntityStatePdu* espdu;
+			espdu = (struct EntityStatePdu*)pdu;
 			if (espdu->entityID.application == fwl_get_DISapplication()
 				&& espdu->entityID.site == fwl_get_DISsite()) {
 				pdu->padding = TAG_SAME_PROGRAM;
 				ihit++;
 				break;
 			}
-
+			if (espdu->entityType.category != 77) {
+				// not avatar, remains unclaimed
+				break;
+			}
 			static struct X3D_Group* avatar_group = NULL;
 			if(!avatar_group) avatar_group = (struct X3D_Group*)findNodeByName("AvatarHolder");
 			if (!avatar_group) {
@@ -3119,7 +3136,7 @@ int dis_pdus2avatars(struct Vector* pdus) {
 			for (int j = 0; j < avatars->n; j++) {
 				// 2018.pdf 6.2.80.3 Application Number implied an instance number, 
 				// so should not be same unless loopback testing
-				struct X3D_EspduTransform* tnode = (struct X3D_EspduTransform*)avatars->p[i];
+				struct X3D_EspduTransform* tnode = (struct X3D_EspduTransform*)avatars->p[j];
 				int OK = TRUE;
 				//when sending avatars, we set entityID = sending programID
 				if (espdu->entityID.entity != tnode->entityID) OK = FALSE;
@@ -3363,6 +3380,7 @@ void dis_recvloop(){
 
 				int ihit;
 				if(dsock->registered){
+					printf("dsock.registered.n %d\n", dsock->registered->n);
 					for(j=0;j<dsock->registered->n;j++){
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
@@ -3400,6 +3418,7 @@ void dis_recvloop(){
 				ihit = dis_pdus2sensors(pdus);
 				nhit += ihit;
 				ihit = dis_pdus2avatars(pdus);
+				printf("avatar hits %d\n", ihit);
 				nhit += ihit;
 				//<<2023 multiplayer
 				int counts[9] = { 0,0,0,0,0,0,0,0,0 };
@@ -3408,13 +3427,13 @@ void dis_recvloop(){
 					counts[pdu->padding]++;
 				}
 				//TAG_UNCLAIMED = 0
-				printf("counts U%d S%d E%d M%d r%d t%d s%d A%d S%d\n",
+				if(0) printf("counts U%d S%d E%d M%d r%d t%d s%d A%d S%d\n",
 					counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7], counts[8]);
 				if(nhit < pdus->n){
 					// any 'left-over' pdus might be 'entity discovery' candidates
-					printf("leftovers %d avatarhits %d pdus %d",pdus->n - nhit, ihit, pdus->n);
+					if(0) printf("leftovers %d avatarhits %d pdus %d",pdus->n - nhit, ihit, pdus->n);
 					nhit = dis_pdus2newnode(dsock,sockem, pdus);
-					printf(" %d used\n",nhit);
+					if(0) printf(" %d used\n",nhit);
 				}
 			}
 		}while(more);
@@ -4924,19 +4943,20 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					//printf("compare %d",i);
 					//print_entitymapping(bnode);
 					jscore = 0;
-					if(anode->domain == bnode->domain) jscore++;
-					if(anode->category == bnode->category) jscore++;
-					if(anode->country == bnode->country) jscore++;
-					if(anode->kind == bnode->kind) jscore++;
-					if(anode->extra == bnode->extra) jscore++;
-					if(anode->subcategory == bnode->subcategory) jscore++;
-					if(anode->specific == bnode->specific) jscore++;
+					if (!bnode->kind || anode->kind == bnode->kind) jscore++;
+					if (!bnode->domain || anode->domain == bnode->domain) jscore++;
+					if (!bnode->country || anode->country == bnode->country) jscore++;
+					if (!bnode->category || anode->category == bnode->category) jscore++;
+					if (!bnode->subcategory || anode->subcategory == bnode->subcategory) jscore++;
+					if (!bnode->specific || anode->specific == bnode->specific) jscore++;
+					if (!bnode->extra || anode->extra == bnode->extra) jscore++;
 					if(jscore > iscore){
 						iscore = jscore;
 						ibest = i;
 						best = bnode;
 					}
 				}
+				printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
 				if(ibest > -1){
 					applicationID = node->applicationID;
 					siteID = node->siteID;
@@ -4958,19 +4978,24 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					//printf("compare %d",i);
 					//print_entitymapping(bnode);
 					jscore = 0;
-					if(anode->entityDomain == bnode->domain) jscore++;
-					if(anode->entityCategory == bnode->category) jscore++;
-					if(anode->entityCountry == bnode->country) jscore++;
-					if(anode->entityKind == bnode->kind) jscore++;
-					if(anode->entityExtra == bnode->extra) jscore++;
-					if(anode->entitySubCategory == bnode->subcategory) jscore++;
-					if(anode->entitySpecific == bnode->specific) jscore++;
+					if (!bnode->kind || anode->entityKind == bnode->kind) jscore++;
+					if (!bnode->domain || anode->entityDomain == bnode->domain) jscore++;
+					if (!bnode->country || anode->entityCountry == bnode->country) jscore++;
+					if (!bnode->category || anode->entityCategory == bnode->category) jscore++;
+					if (!bnode->subcategory || anode->entitySubCategory == bnode->subcategory) jscore++;
+					if (!bnode->specific || anode->entitySpecific == bnode->specific) jscore++;
+					if(!bnode->extra || anode->entityExtra == bnode->extra) jscore++;
 					if(jscore > iscore){
 						iscore = jscore;
 						ibest = i;
 						best = bnode;
 					}
 				}
+				printf("etm  %d %d %d %d %d %d %d\n", best->kind, best->domain, best->country, best->category, 
+					best->subcategory, best->specific, best->extra);
+				printf("es   %d %d %d %d %d %d %d\n", anode->entityKind, anode->entityDomain, anode->entityCountry, 
+					anode->entityCategory, anode->entitySubCategory, anode->entitySpecific, anode->entityExtra);
+				printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
 				if(ibest > -1){
 					applicationID = anode->applicationID;
 					siteID = anode->siteID;
