@@ -2077,8 +2077,8 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					if (espdu->entityID.application == fwl_get_DISapplication() &&
 						espdu->entityID.site == fwl_get_DISsite()) {
 						pdu->padding = TAG_SAME_PROGRAM;
-						ihit++;
-						continue;
+						//ihit++;
+						break;
 					}
 					//skip if we already got this entity and are just awaiting creation
 					already_done = FALSE;
@@ -2100,7 +2100,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 
 					}
 					if(already_done) 
-						continue;
+						break;
 
 					pdu->padding = TAG_ENTITY_MANAGER;
 					ihit++;
@@ -2147,7 +2147,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					// ?? do I need MARK_EVENT(X3D_NODE(pnode),offsetof (struct X3D_DISEntityManager,  addEntities));
 					//will get mapped and instanced as geom during entityManager scenegraph visit and compile
 					// >> pnode->_change ++;
-					ihit = 1;
+					//ihit = 1;
 				}
 				break;
 				default:
@@ -3100,6 +3100,13 @@ int dis_pdus2avatars(struct Vector* pdus) {
 
 			struct EntityStateUpdatePdu* espdu;
 			espdu = (struct EntityStateUpdatePdu*)pdu;
+			if (espdu->entityID.application == fwl_get_DISapplication()
+				&& espdu->entityID.site == fwl_get_DISsite()) {
+				pdu->padding = TAG_SAME_PROGRAM;
+				ihit++;
+				break;
+			}
+
 			static struct X3D_Group* avatar_group = NULL;
 			if(!avatar_group) avatar_group = (struct X3D_Group*)findNodeByName("AvatarHolder");
 			if (!avatar_group) {
@@ -3114,18 +3121,11 @@ int dis_pdus2avatars(struct Vector* pdus) {
 				// so should not be same unless loopback testing
 				struct X3D_EspduTransform* tnode = (struct X3D_EspduTransform*)avatars->p[i];
 				int OK = TRUE;
-				//if (espdu->entityID.application == tnode->applicationID
-				//	|| espdu->entityID.site == tnode->siteID) {
-				if (espdu->entityID.application == fwl_get_DISapplication()
-					&& espdu->entityID.site == fwl_get_DISsite()) {
-					pdu->padding = TAG_SAME_PROGRAM;
-					ihit++;
-					OK = FALSE;
-				}
 				//when sending avatars, we set entityID = sending programID
 				if (espdu->entityID.entity != tnode->entityID) OK = FALSE;
 				if (OK) {
 					pnode = tnode;
+					//still TAG_UNCLAIMED
 					break;
 				}
 			}
@@ -3421,7 +3421,7 @@ void dis_recvloop(){
 		if(dsock->registered){
 #define RETIRE_TIME 300.0 //5 MINUTES?
 			//check if any node listeners have gone inactive
-			//(2023 multiplayer sensors don't go stale. avatars have a separate stale check, see dis_pdus2avatars())
+			//2023 multiplayer sensors don't go stale. avatars do
 			struct X3D_DISEntityManager* sockem = NULL;
 			for(j=0;j<dsock->registered->n;j++){
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
