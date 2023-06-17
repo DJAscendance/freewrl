@@ -2426,18 +2426,166 @@ int sockread(SOCKET s, const char *buf, int len);
 int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len);
 int socksendto(struct dis_socket *dsock, const char *buf, int len);
 
-struct Vector* dis_events2pdus() {
+// https://stackoverflow.com/questions/2351087/what-is-the-best-32bit-hash-function-for-short-strings-tag-names 
+// hash: compute hash value of string 
+#define MULTIPLIER 37
+unsigned int hash37(const char* str)
+{
+	unsigned int h;
+	unsigned char* p;
+
+	h = 0;
+	for (p = (unsigned char*)str; *p != '\0'; p++)
+		h = MULTIPLIER * h + *p;
+	return h; // or, h % ARRAY_SIZE;
+}
+const char* getNodeName(struct X3D_Node* node);
+
+void dis_recv_sensor(int sensorIndex, int ev, int butStatus2, int status, float* posn3, float* norm3);
+struct dis_sensor {
+	int fromNode, dataNode;
+	int ev, butStatus2;
+	int status, padding;
+	float posn3[3], norm3[3];
+};
+static struct Vector* sensor_send_queue = NULL; //reset .n to 0 after pdu2buf
+
+struct Vector* dis_sensors2pdus() {
 // 2023 multiplayer experiment: sensor event sharing
+	//converts queued sensor events into a CommentPdu for sending
 	struct Vector* pdus = NULL;
-	if (0) {
-		pdus = newVector(struct Pdu*, 6);
+	if (sensor_send_queue && vectorSize(sensor_send_queue)) {
+		int nevents = vectorSize(sensor_send_queue); //garbage collect after send
+		pdus = newVector(struct Pdu*, 1);
 		struct CommentPdu* cpdu;
-		cpdu = (struct CommentPdu*)dis_ctor(type_CommentPdu);
+		cpdu = (struct CommentPdu*)dis_ctor(type_CommentPdu); //garbage collect after send
+		vector_pushBack(struct Pdu*, pdus, (struct Pdu*)cpdu);
 		//entity
 		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.entity = 33; //can be a code for sensors
 		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application = fwl_get_DISapplication();
+		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site = fwl_get_DISsite();
+		struct VariableDatum* vd;
+		vd = malloc(nevents * sizeof(struct VariableDatum)); //free this after pdu2buff
+		for (int i = 0; i < nevents; i++) {
+			struct dis_sensor* ds = vector_get_ptr(struct dis_sensor, sensor_send_queue, i);
+			vd[i].variableDatumID = i;
+			vd[i].variableDatumLength = 6;
+			vd[i].variableDatums = (void*)ds; //don't free this
+		}
+		cpdu->variableDatums = vd;
+		cpdu->numberOfVariableDatumRecords = nevents;
+		//printf("send+");
 	}
 	return pdus;
+}
+void clear_sensor_queue() {
+	if(sensor_send_queue) sensor_send_queue->n = 0;
+}
+void dis_send_sensor(struct X3D_Node* fromNode, struct X3D_Node* dataNode, int ev, int butStatus2, 
+	int status, float* posn3, float* norm3) {
+	//receives sensor event information from mainloop sendSensorEvents on event
+	// and queues for sensor2pdu
+	// called from Mainloop.c SendSensorEvents about line 6901
+	if (allow_DIS) {
+		//enqueue for sending on next dis_send_loop
+		if (!sensor_send_queue) sensor_send_queue = newStack(struct dis_sensor);
+		struct dis_sensor ds;
+		ds.ev = ev;
+		ds.butStatus2 = butStatus2;
+		ds.status = status;
+		veccopy3f(ds.posn3, posn3);
+		veccopy3f(ds.norm3, norm3);
+		//node addresses may be different in different app instances
+		//so we rely on DEF name
+		//but DEF name can be a medium long string, not good for pdu transmission
+		//so we convert to 4 byte int with a hash function
+		const char* def = getNodeName(fromNode);
+		ds.fromNode = hash37(def == NULL ? "" : def);
+		//printf("send_fromnode def %s has %d ", def, ds.fromNode);
+		def = getNodeName(dataNode);
+		ds.dataNode = hash37(def);
+		//printf("send_datanode def %s has %d \n", def, ds.dataNode);
+
+		stack_push(struct dis_sensor, sensor_send_queue, ds);
+	}
+}
+
+//struct Vector* sensors = NULL; //2023 multiplayer
+//void dis_registerSensor(struct X3D_Node* sensor) {
+//	//2023 multiplayer
+//	//call this from somewhere we handle sensor events
+//	if (!sensors) sensors = newVector(struct X3D_Node*, 10);
+//	for (int i = 0; i < sensors->n; i++)
+//		if (sensor == vector_get(struct X3D_Node*, sensors, i)) return; //already registered
+//	vector_pushBack(struct X3D_Node*, sensors, sensor);
+//}
+int getSensorCount();
+void getSensor(int k, struct X3D_Node** fromnode, struct X3D_Node** datanode);
+
+int dis_pdus2sensors(struct Vector* pdus) {
+	//2023 multiplayer
+	//one sensor update per pdu, or as many as we like?
+	//we need DEF or ID that's consistent across application instances
+	//- how about a hash, good for going one way, can't go back
+	//- so will need a list of registered sensors to compare hash(DEF) with .entity
+	int i, ihit;
+	struct Pdu* pdu;
+
+	ihit = 0;
+	if (!pdus || !pdus->n) return ihit;
+	for (i = 0; i < pdus->n; i++)
+	{
+		pdu = vector_get(struct Pdu*, pdus, i);
+		if (pdu->padding == TAG_UNCLAIMED)
+			switch (pdu->pduType) {
+			case PDU_COMMENT:
+			{
+				struct CommentPdu* cpdu;
+				cpdu = (struct CommentPdu*)pdu;
+				//don't loopback
+				if (cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application == fwl_get_DISapplication()
+					&& cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site == fwl_get_DISsite()) {
+					pdu->padding = TAG_SAME_PROGRAM;
+					ihit++;
+					break;
+				}
+				//find matching sensor
+				struct VariableDatum* vr = cpdu->variableDatums;
+				//printf("vd count %d\n", cpdu->numberOfVariableDatumRecords);
+				for (int j = 0; j < cpdu->numberOfVariableDatumRecords; j++) {
+					struct dis_sensor* ds = (struct dis_sensor*)vr[j].variableDatums;
+					//printf("ds-fromnode %d ds-datanode %d\n", ds->fromNode, ds->dataNode);
+
+					int nsensor = getSensorCount();
+					//printf("nsensor %d\n", nsensor);
+					for (int k = 0; k < nsensor; k++) {
+						struct X3D_Node* fromnode, * datanode;
+						getSensor(k, &fromnode, &datanode);
+						//rather than sending and receiving null terminted DEF strings, we'll use 32 bit int hash values
+						const char* def = getNodeName(fromnode);
+						int fromNode = hash37(def);
+						//printf("recv fromnode def %s hash %d ", def, fromNode);
+						def = getNodeName(datanode);
+						int dataNode = hash37(def);
+						//printf("recv datanode def %s hash %d\n", def, dataNode);
+						int match = ds->fromNode == fromNode && ds->dataNode == dataNode;
+						if (match) {
+							dis_recv_sensor(k, ds->ev, ds->butStatus2, ds->status, ds->posn3, ds->norm3);
+							//printf("recvmatch+");
+							break;
+						}
+					}
+				}
+				pdu->padding = TAG_SENSOR;
+				ihit++;
+				//printf("recv+");
+				break;
+			}
+			default:
+				break;
+			}
+	}
+	return ihit;
 }
 static double last_avatar_position[3] = { 0,0,0 };
 static double last_avatar_orientation[4] = { 0,0,0,0 };
@@ -2555,8 +2703,9 @@ void dis_sendloop(){
 				reset_node_pduchanged(node);
 			}
 		}
-		pdus = dis_events2pdus();
+		pdus = dis_sensors2pdus();
 		nb = dis_write_stream(&buf2[nbytes], pdus);
+		clear_sensor_queue();
 		nbytes += nb;
 		pdus = dis_avatar2pdus();
 		nb = dis_write_stream(&buf2[nbytes], pdus);
@@ -2997,77 +3146,7 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 	}
 	return nbytes;
 }
-// https://stackoverflow.com/questions/2351087/what-is-the-best-32bit-hash-function-for-short-strings-tag-names 
-// hash: compute hash value of string 
-#define MULTIPLIER 37
-unsigned int hash(const char* str)
-{
-	unsigned int h;
-	unsigned char* p;
 
-	h = 0;
-	for (p = (unsigned char*)str; *p != '\0'; p++)
-		h = MULTIPLIER * h + *p;
-	return h; // or, h % ARRAY_SIZE;
-}
-
-struct Vector* sensors = NULL; //2023 multiplayer
-void dis_registerSensor(struct X3D_Node* sensor) {
-	//2023 multiplayer
-	//call this from somewhere we handle sensor events
-	if (!sensors) sensors = newVector(struct X3D_Node*, 10);
-	for (int i = 0; i < sensors->n; i++)
-		if (sensor == vector_get(struct X3D_Node*, sensors, i)) return; //already registered
-	vector_pushBack(struct X3D_Node*, sensors, sensor);
-}
-int dis_pdus2sensors(struct Vector* pdus) {
-	//2023 multiplayer
-	//one sensor update per pdu, or as many as we like?
-	//we need DEF or ID that's consistent across application instances
-	//- how about a hash, good for going one way, can't go back
-	//- so will need a list of registered sensors to compare hash(DEF) with .entity
-	int i, ihit;
-	struct Pdu* pdu;
-
-	ihit = 0;
-	if (!pdus|| !pdus->n) return ihit;
-	if (!sensors || !sensors->n) return ihit;
-	for (i = 0; i < pdus->n; i++)
-	{
-		pdu = vector_get(struct Pdu*, pdus, i);
-		if(pdu->padding == TAG_UNCLAIMED)
-		switch (pdu->pduType) {
-		case PDU_COMMENT:
-		{
-			struct CommentPdu* cpdu;
-			cpdu = (struct CommentPdu*)pdu;
-			//don't loopback
-			if (cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application == fwl_get_DISapplication()
-				&& cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site == fwl_get_DISsite()) {
-				pdu->padding = TAG_SAME_PROGRAM;
-				ihit++;
-				break;
-			}
-			for (int j = 0; j < sensors->n; j++) {
-				struct X3D_Node* sensor = vector_get(struct X3D_Node*, sensors, j);
-				//rather than sending and receiving null terminted DEF strings, we'll use 32 bit int hash values
-				int hashval = hash(getNodeName(sensor));
-				if (cpdu->mySimulationManagementFamilyPdu.originatingEntityID.entity == hashval) {
-					//switch on sensor type
-					//parse values
-					//update sensor
-					ihit++;
-					pdu->padding = TAG_SENSOR;
-				}
-			}
-			break;
-		}
-		default:
-			break;
-		}
-	}
-	return ihit;
-}
 struct X3D_Node* findNodeByName(char* defname) {
 	//its weird we don't have a function for this already, 
 	//  some relating to parser, and some relating to EAI, 
@@ -3421,9 +3500,6 @@ void dis_recvloop(){
 				//2023 multiplayer>>
 				ihit = dis_pdus2sensors(pdus);
 				nhit += ihit;
-				//ihit = dis_pdus2avatars(pdus);
-				//printf("avatar hits %d\n", ihit);
-				//nhit += ihit;
 				//<<2023 multiplayer
 				int counts[9] = { 0,0,0,0,0,0,0,0,0 };
 				for (int j = 0; j < pdus->n; j++) {

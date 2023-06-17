@@ -6866,6 +6866,7 @@ char* getNodeDescription(struct X3D_Node* node) {
 		return value->sfstring->strptr;
 	return NULL;
 }
+void dis_send_sensor(struct X3D_Node* fromNode , struct X3D_Node* datanode, int ev, int butStatus2, int status, float *posn3, float *norm3);
 /* we have a sensor event changed, look up event and do it */
 /* note, (Geo)ProximitySensor events are handled during tick, as they are time-sensitive only */
 static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int status) {
@@ -6880,9 +6881,10 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 
 	/* if we are not calling a valid node, dont do anything! */
 	if (COS==NULL) return;
-
+	printf("sensorEvents.n= %d\n", vectorSize(p->SensorEvents));
 	for (count = 0; count < vectorSize(p->SensorEvents); count++) {
 		se = vector_get(struct SensStruct *,p->SensorEvents,count);
+		//printf("i %d description %s\n", count, getNodeDescription(se->datanode));
 		if (se->fromnode == COS) {
 			butStatus2 = butStatus;
 			/* should we set/use hypersensitive mode? */
@@ -6897,22 +6899,51 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 			} else if (ev==MotionNotify) {
 				get_hyperhit();
 			}
+			vecnormalize3f(tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_norm);
 
 			if (0) {
 				printf("nodetype %s ", stringNodeType(se->datanode->_nodeType));
 				printf("Sensor description %s ", getNodeDescription(se->datanode));
-					//lookup_brotoDefname(X3D_PROTO(se->datanode->_executionContext), se->datanode));
-				vecprint3fb("\nhitray ",tg->RenderFuncs.ray_save_posn,"");
+				printf("sensor def %s  ", lookup_brotoDefname(X3D_PROTO(se->datanode->_executionContext), se->datanode));
+				vecprint3fb("\nhitray ", tg->RenderFuncs.ray_save_posn, "");
 				float norm[3];
-				vecnormalize3f(norm, tg->RenderFuncs.hyp_save_norm);
-				vecprint3fb("hitnorm ",norm , "");
+				vecprint3fb("hitnorm ", norm, "");
+				printf("but %d status %d", butStatus2, status);
 				printf("\n");
 			}
+			dis_send_sensor(se->fromnode,se->datanode, ev, butStatus2, status, tg->RenderFuncs.hyp_save_posn, tg->RenderFuncs.hyp_save_norm);
+
+
 			se->interpptr(se->datanode, ev,butStatus2, status); //do_PlaneSensor, do_...
 			/* return; do not do this, incase more than 1 node uses this, eg,
 							an Anchor with a child of TouchSensor */
 		}
 	}
+}
+int getSensorCount() {
+	ttglobal tg = gglobal();
+	ppMainloop p;
+	p = (ppMainloop)tg->Mainloop.prv;
+	return p->SensorEvents ? vectorSize(p->SensorEvents) : 0;
+}
+void getSensor(int sensorIndex, struct X3D_Node** fromnode, struct X3D_Node** datanode) {
+	ttglobal tg = gglobal();
+	ppMainloop p;
+	p = (ppMainloop)tg->Mainloop.prv;
+	struct SensStruct* se = vector_get(struct SensStruct*, p->SensorEvents, sensorIndex);
+	*fromnode = se->fromnode;
+	*datanode = se->datanode;
+}
+
+void dis_recv_sensor(int sensorIndex, int ev, int butStatus2, int status, float* posn3, float* norm3) 
+{
+	ttglobal tg = gglobal();
+	ppMainloop p;
+	p = (ppMainloop)tg->Mainloop.prv;
+	struct SensStruct*  se = vector_get(struct SensStruct*, p->SensorEvents, sensorIndex);
+	veccopy3f(tg->RenderFuncs.hyp_save_norm, norm3);
+	veccopy3f(tg->RenderFuncs.hyp_save_posn, posn3);
+	se->interpptr(se->datanode, ev, butStatus2, status); //do_PlaneSensor, do_...
 }
 
 void prepare_model_view_pickmatrix_inverse0(GLDOUBLE *modelMatrix, GLDOUBLE *mvpi);
