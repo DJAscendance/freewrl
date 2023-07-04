@@ -3817,6 +3817,7 @@ our %Nodes = (
 		#siteID => ["SFInt32", 0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		
 		mapping => ["MFNode", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "( SPEC_X3D40)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		addedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		removedEntities => ["MFNode", [], "outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -5683,6 +5684,38 @@ our %Nodes = (
 		_frameSpeed =>["SFFloat",0.0,"initializeOnly",0,0],#ff
 	],"X3DParticlePhysicsModelNode"),
 	
+
+	# dug9 Humanoid Particle experiment
+	"MapEmitter" => new VRML::NodeType("MapEmitter", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+ 		on => ["SFBool", "TRUE","inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		speed  => ["SFFloat", 0,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_SPEED"],#ff
+		variation  => ["SFFloat", .25,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+                functionMap => ["SFNode", "NULL", "inputOutput", 0,0],#ff
+		gridSize =>["SFVec2f",[1,1],"initializeOnly",0,0],#ff
+                emitterColor => ["MFColor", [], "inputOutput",0,0],#ff
+                colorMatchTolerance => ["SFFloat",.01,"initializeOnly",0,0],#ff
+                classified => ["SFBool","FALSE","inputOnly",0,0],#ff
+                eboxes => ["MFVec4f",[],"inputOnly",0,0],#ff
+                iboxes => ["MFVec4f",[],"inputOnly",0,0],#ff
+	],"X3DParticleEmitterNode"),
+
+	"MapPhysicsModel" => new VRML::NodeType("MapPhysicsModel", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		gridSize =>["SFVec2f",[1,1],"initializeOnly",0,0],#ff
+                functionMap => ["SFNode", "NULL", "inputOutput", 0,0],#ff
+                obstacleColor => ["SFColor",[0,0,0],"initializeOnly",0,0],#ff
+                sinkColor => ["MFColor",[],"initializeOnly",0,0],#ff
+                pauseColor => ["SFColor",[1,0,0],"initializeOnly",0,0],#ff
+                pauseState => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                colorMatchTolerance => ["SFFloat",.01,"initializeOnly",0,0],#ff
+                classified => ["SFBool","FALSE","inputOnly",0,0],#ff
+                eboxes => ["MFVec4f",[],"inputOnly",0,0],#ff
+                iboxes => ["MFVec4f",[],"inputOnly",0,0],#ff
+		_sinkmaps => ["FreeWRLPTR", "NULL", "initializeOnly", 0,0],#ff
+	],"X3DParticlePhysicsModelNode"),
+
 
 	###################################################################################
 

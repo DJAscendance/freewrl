@@ -341,9 +341,10 @@ typedef struct {
 	float velocity[3];
 	float origin[3]; //zero normally. For boundedphysics, updated on each reflection to be last reflection point.
 	//float direction[3];
-	//float speed;
+	float speed;
 	float mass;
 	float surfaceArea;
+	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -352,6 +353,7 @@ enum {
 	GEOM_SPRITE = 4,
 	GEOM_TRIANGLE = 5,
 	GEOM_GEOMETRY = 6,
+	GEOM_HANIM = 7,
 };
 struct {
 const char *name;
@@ -363,6 +365,7 @@ int type;
 {"SPRITE",GEOM_SPRITE},
 {"TRIANGLE",GEOM_TRIANGLE},
 {"GEOMETRY",GEOM_GEOMETRY},
+{"HANIM",GEOM_HANIM},
 {NULL,0},
 };
 int lookup_geomtype(const char *name){
@@ -969,54 +972,628 @@ void apply_SurfaceEmitter(particle *pp, struct X3D_Node *emitter){
 	}
 
 }
-void apply_VolumeEmitter(particle *pp, struct X3D_Node *emitter){
-	struct X3D_VolumeEmitter *e = (struct X3D_VolumeEmitter *)emitter;
-	if(!e->_ifs && e->coord){
-		struct X3D_IndexedFaceSet *ifs;
+
+
+
+void apply_VolumeEmitter(particle* pp, struct X3D_Node* emitter) {
+	struct X3D_VolumeEmitter* e = (struct X3D_VolumeEmitter*)emitter;
+	if (!e->_ifs && e->coord) {
+		struct X3D_IndexedFaceSet* ifs;
 		ifs = createNewX3DNode0(NODE_IndexedFaceSet);
 		ifs->coord = e->coord;
 		ifs->coordIndex = e->coordIndex;
 		compile_geometry(X3D_NODE(ifs));
 		e->_ifs = ifs;
 	}
-	if(e->_ifs){
+	if (e->_ifs) {
 		int nint, i, isInside;
 		float xyz[3], plumb[3], nearest[3], normal[3];
 		float direction[3], speed;
-		struct X3D_IndexedFaceSet *ifs = (struct X3D_IndexedFaceSet *)e->_ifs;
-		
+		struct X3D_IndexedFaceSet* ifs = (struct X3D_IndexedFaceSet*)e->_ifs;
+
 		isInside = FALSE;
-		for(i=0;i<10;i++){
+		for (i = 0; i < 10; i++) {
 			randomPoint3D(xyz);
 			//spread random points over box
 			xyz[0] *= ifs->EXTENT_MAX_X - ifs->EXTENT_MIN_X;
 			xyz[1] *= ifs->EXTENT_MAX_Y - ifs->EXTENT_MIN_Y;
 			xyz[2] *= ifs->EXTENT_MAX_Z - ifs->EXTENT_MIN_Z;
-			veccopy3f(plumb,xyz);
+			veccopy3f(plumb, xyz);
 			plumb[2] = ifs->EXTENT_MIN_Z - 1.0f; //ray end point below box
-			nint = intersect_geometry(e->_ifs,xyz,plumb,nearest,normal);
+			nint = intersect_geometry(e->_ifs, xyz, plumb, nearest, normal);
 			nint = abs(nint) % 2;
-			if(nint == 1){
+			if (nint == 1) {
 				isInside = TRUE;
 				break; //if there's an odd number of intersections, its inside, else even outside
 			}
 		}
-		if(!isInside)
-			vecscale3f(xyz,xyz,0.0f); //emit from 0
+		if (!isInside)
+			vecscale3f(xyz, xyz, 0.0f); //emit from 0
 		//the rest is like point emitter
-		memcpy(pp->position,xyz,3*sizeof(float));
-		if(veclength3f(e->direction.c) < .00001){
+		memcpy(pp->position, xyz, 3 * sizeof(float));
+		if (veclength3f(e->direction.c) < .00001) {
 			randomDirection(direction);
-		}else{
-			memcpy(direction,e->direction.c,3*sizeof(float));
-			vecnormalize3f(direction,direction);
 		}
-		speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
-		vecscale3f(pp->velocity,direction,speed);
-		pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
-		pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
+		else {
+			memcpy(direction, e->direction.c, 3 * sizeof(float));
+			vecnormalize3f(direction, direction);
+		}
+		speed = e->speed * (1.0f + uniformRandCentered() * e->variation);
+		vecscale3f(pp->velocity, direction, speed);
+		pp->mass = e->mass * (1.0f + uniformRandCentered() * e->variation);
+		pp->surfaceArea = e->surfaceArea * (1.0f + uniformRandCentered() * e->variation);
 	}
 }
+
+
+// BEGIN HUMANOID PARTICLE SECTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+unsigned char* sample_image(textureTableIndexStruct_s* tt, float x, float y) {
+	//x, y in range 0.0 to 1.0
+	int px, py, ix, iy;
+	px = tt->x;
+	py = tt->y;
+	ix = (int)( px * x );
+	iy = (int)(py * y);
+	unsigned char* pixel = &tt->texdata[(iy * px + ix) * 4]; // tt->channels];
+	return pixel;
+}
+void set_image_pixel_color(unsigned char * image, int cols, int rows, unsigned char * pixel, int x, int y) {
+	memcpy(&image[(y * cols + x) * 4], pixel, 3);
+}
+unsigned char* get_image_pixel_color(unsigned char* image, int cols, int rows, int x, int y) {
+	return &image[(y * cols + x) * 4];
+}
+void set_image_pixel_transparency(unsigned char* image, int cols, int rows, unsigned char transparency, int x, int y) {
+	image[(y * cols + x) * 4 + 3] = transparency;
+}
+unsigned char get_image_pixel_transparency(unsigned char* image, int cols, int rows, int x, int y) {
+	return image[(y * cols + x) * 4 + 3];
+}
+unsigned char get_image_pixel_channel(unsigned char* image, int cols, int rows, int channel, int x, int y) {
+	return image[(y * cols + x) * 4 + channel];
+}
+void set_image_pixel_channel(unsigned char* image, int cols, int rows, unsigned char c, int channel, int x, int y) {
+	image[(y * cols + x) * 4 + channel] = c;
+}
+void print_image_channel(unsigned char* imageRGBA, int channel, int width, int height) {
+	for (int k = 0; k < width; k += 10) printf("%d         ", k / 10);
+	printf("\n");
+	for (int j = 0; j < height; j++) {
+		for (int k = 0; k < width; k++) {
+			unsigned char c = get_image_pixel_channel(imageRGBA, width, height, channel, k, j);
+			printf("%c", c + 'A');
+		}
+		printf(" %2d\n", j);
+	}
+}
+
+
+float* extent4f_clear(float* e) {
+	e[0] = 10000.0f;
+	e[1] = 10000.0f;
+	e[2] = -10000.0f;
+	e[3] = -10000.0f;
+	return e;
+}
+int extent4f_isSet(float* e4) {
+	//extents are set with min > max, so a way to tell
+	// if they are set is to check if min <= max or max >= min
+	int iret;
+	float* e = e4;
+	iret = (e[2] >= e[0] && e[3] >= e[1]) ? TRUE : FALSE;
+	return iret;
+}
+float * extent4f_union_extent4f(float *e4, float *ein4){
+	int i, isa, isb;
+	isa = extent4f_isSet(e4);
+	isb = extent4f_isSet(ein4);
+	if (isa && isb)
+	for (i = 0; i < 2; i++) {
+		e4[i]   = min(e4[i], ein4[i]); //the miniumum of the minimums
+		e4[i+2] = max(e4[i+2], ein4[i+2]); //the maximum of the maximums
+	}
+	else if (isb) veccopy4f(e4, ein4);
+	return e4;
+}
+float* extent4f_union_vec2f(float* extent4, float* p2) {
+	int i, isa, isb;
+	isa = extent4f_isSet(extent4);
+	if (!isa)
+		for (i = 0; i < 2; i++) {
+			extent4[i]   = p2[i];
+			extent4[i+2] = p2[i];
+		}
+	for (i = 0; i < 2; i++) {
+		extent4[i]   = min(extent4[i], p2[i]);
+		extent4[i+2] = max(extent4[i+2], p2[i]);
+	}
+	return extent4;
+}
+void extent4f_printf(float* extent4) {
+	printf("min %f %f max %f %f \n", extent4[0], extent4[1], extent4[2], extent4[3]);
+}
+float* pixel2color3(float * color, unsigned char* pixel) {
+	for (int i = 0; i < 3; i++)
+		color[i] = ((float)(int)pixel[i]) / 255.0f;
+	return color;
+}
+void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
+	struct X3D_MapEmitter* e = (struct X3D_MapEmitter*)emitter;
+	vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
+	pp->speed = e->speed;
+	pp->sink = -1; //we won't assign a sink until physics, because that's when we count the sinks
+	if (e->functionMap) {
+		//printf("functionMap type %s\n", stringNodeType(e->functionMap->_nodeType));
+		render_node(e->functionMap);
+		textureTableIndexStruct_s* tt = getTableTableFromTextureNode(e->functionMap);
+		if (tt && tt->status >= TEX_READ) {
+			if (e->emitterColor.n)
+			{
+				if (!e->classified) {
+					//make a 2D box around each emitter color area, so we don't have to 
+					// search the whole image pixel by pixel on each frame
+					printf("start classifying emitter..\n");
+					e->eboxes.p = malloc(e->emitterColor.n * sizeof(struct SFVec4f));
+					e->eboxes.n = e->emitterColor.n;
+					e->iboxes.p = malloc(e->emitterColor.n * sizeof(struct SFVec4f));
+					e->iboxes.n = e->emitterColor.n;
+					for (int i = 0; i < e->eboxes.n; i++) {
+						extent4f_clear(e->eboxes.p[i].c);
+						extent4f_clear(e->iboxes.p[i].c);
+					}
+					//for now assume one human-step-sized grid cell is 1m
+					int isteps[2];
+					isteps[0] = (int)(e->gridSize.c[0] + .5f);
+					isteps[1] = (int)(e->gridSize.c[1] + .5f);
+					for(int i=0; i< isteps[0];i++)
+						for (int j = 0; j < isteps[1]; j++) {
+							float x, y, s[3], exy[2], ixy[2];
+							//image sampling coords
+							x = (float)i / (float)e->gridSize.c[0];
+							y = (float)j / (float)e->gridSize.c[1];
+							ixy[0] = x;
+							ixy[1] = y;
+							//scene grid coords in meters
+							exy[0] = (float)i - e->gridSize.c[0]/2.0f;
+							exy[1] = (float)j - e->gridSize.c[1]/2.0f;
+							unsigned char* pixel = sample_image(tt, x, y);
+							pixel2color3(s, pixel);
+
+							for (int k = 0; k < e->emitterColor.n; k++) {
+								float* c = e->emitterColor.p[k].c;
+								int is_close = vecclose3f(s, c, e->colorMatchTolerance);
+								if (is_close) {
+									extent4f_union_vec2f(e->iboxes.p[k].c, ixy);
+									extent4f_union_vec2f(e->eboxes.p[k].c, exy);
+								}
+								//printf("k %d c %f %f %f s %f %f %f close %d\n", k, c[0], c[1], c[2], s[0], s[1], s[2], is_close);
+							}
+
+						}
+					for (int i = 0; i < e->eboxes.n; i++) {
+						extent4f_printf(e->eboxes.p[i].c);
+						extent4f_printf(e->iboxes.p[i].c);
+					}
+					printf("..end classfying emitter\n");
+					e->classified = TRUE;
+				}
+				// emit one from one randomly chosen emitter color area 
+				//  but only from the emitter areas found in the function_map image
+				int valid_regions = 0;
+				for (int i = 0; i < e->iboxes.n; i++)
+					if (extent4f_isSet(e->eboxes.p[i].c)) valid_regions++;
+				int iregion = (int)(uniformRand() * (float)(valid_regions));
+				int nvalid = -1;
+				int ivalid = 0;
+				for (int i = 0; i < e->iboxes.n; i++) 
+				{
+					int is_set = extent4f_isSet(e->iboxes.p[i].c);
+					if (is_set) nvalid++;
+					if (is_set && nvalid == iregion) {
+						int i = iregion;
+						float x, y, xyz[3], s[3];
+						float exy[2], ixy[2];
+						int more = TRUE;
+						do {
+							x = uniformRand();
+							y = uniformRand();
+							//scale to image box
+							ixy[0] = x * (e->iboxes.p[i].c[2] - e->iboxes.p[i].c[0]) + e->iboxes.p[i].c[0];
+							ixy[1] = y * (e->iboxes.p[i].c[3] - e->iboxes.p[i].c[1]) + e->iboxes.p[i].c[1];
+							//scale to scene box
+							exy[0] = x * (e->eboxes.p[i].c[2] - e->eboxes.p[i].c[0]) + e->eboxes.p[i].c[0];
+							exy[1] = y * (e->eboxes.p[i].c[3] - e->eboxes.p[i].c[1]) + e->eboxes.p[i].c[1];
+
+							unsigned char* pixel = sample_image(tt, ixy[0], ixy[1]);
+							pixel2color3(s, pixel);
+							if (vecclose3f(s, e->emitterColor.p[i].c, e->colorMatchTolerance))
+								more = FALSE;
+						} while (more);
+						vecset3f(xyz, exy[0], exy[1], 0.0f);
+						//the rest is like point emitter
+						printf("iregion %d xy %f %f valid_regions %d", iregion, exy[0], exy[1], valid_regions);
+						veccopy3f(pp->position, xyz);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+}
+
+int emitter_loaded(struct X3D_Node* emitter) {
+	int loaded = FALSE;
+	switch (emitter->_nodeType) {
+	case NODE_MapEmitter:
+	{
+		struct X3D_MapEmitter* e = (struct X3D_MapEmitter*)emitter;
+		if (e->functionMap) {
+			textureTableIndexStruct_s* tt = getTableTableFromTextureNode(e->functionMap);
+			tt->no_gl = TRUE; //don't load in GL, and preserve texdata for processing
+			render_node(e->functionMap);
+			if (tt && tt->status >= TEX_READ) loaded = TRUE;
+			//printf("functionMap type %s loaded %d \n", stringNodeType(e->functionMap->_nodeType), loaded);
+		}
+	}
+	break;
+	default:
+		loaded = TRUE;
+		break;
+	}
+	return loaded;
+}
+void norm2image(int *ixy, int *isize, float *fxy) {
+	//convert from 0-1 floats to image pixel coords
+	ixy[0] = (int)(fxy[0] * (float)isize[0] + .5f);
+	ixy[1] = (int)(fxy[1] * (float)isize[1] + .5f);
+	ixy[0] = max(min(isize[0] - 1, ixy[0]),0);
+	ixy[1] = max(min(isize[1] - 1, ixy[1]),0);
+}
+void image2norm(float* fxy, int* ixy, int* isize) {
+	//convert from image pixel coords to 0-1 floats
+	fxy[0] = (float)ixy[0] / (float)isize[0];
+	fxy[1] = (float)ixy[1] / (float)isize[1];
+}
+
+
+void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
+	struct X3D_MapPhysicsModel* px = (struct X3D_MapPhysicsModel*)physics;
+	//a = F/m;
+	//v += a*dt
+	if (px->enabled ) {
+		if (!px->classified) {
+			if (px->functionMap) {
+				//printf("functionMap type %s\n", stringNodeType(e->functionMap->_nodeType));
+				textureTableIndexStruct_s* tt = getTableTableFromTextureNode(px->functionMap);
+				tt->no_gl = TRUE;
+				render_node(px->functionMap);
+				
+				if (tt && tt->status >= TEX_READ) {
+				
+					if (px->sinkColor.n)
+					{
+						printf("start classifying physics..\n");
+						//make a 2D box around each sink color area, so we don't have to 
+						// search the whole image pixel by pixel on each frame
+						px->eboxes.p = malloc(px->sinkColor.n * sizeof(struct SFVec4f));
+						px->eboxes.n = px->sinkColor.n;
+						px->iboxes.p = malloc(px->sinkColor.n * sizeof(struct SFVec4f));
+						px->iboxes.n = px->sinkColor.n;
+						for (int i = 0; i < px->eboxes.n; i++) {
+							extent4f_clear(px->eboxes.p[i].c);
+							extent4f_clear(px->iboxes.p[i].c);
+						}
+						//for now assume one human-step-sized grid cell is 1m
+						int isteps[2];
+						isteps[0] = (int)(px->gridSize.c[0] + .5f);
+						isteps[1] = (int)(px->gridSize.c[1] + .5f);
+						for (int i = 0; i < isteps[0]; i++)
+							for (int j = 0; j < isteps[1]; j++) {
+								float x, y, s[3], exy[2], ixy[2];
+								//image sampling coords
+								x = (float)i / (float)px->gridSize.c[0];
+								y = (float)j / (float)px->gridSize.c[1];
+								ixy[0] = x;
+								ixy[1] = y;
+								//scene grid coords in meters
+								exy[0] = (float)i - px->gridSize.c[0] / 2.0f;
+								exy[1] = (float)j - px->gridSize.c[1] / 2.0f;
+								unsigned char* pixel = sample_image(tt, x, y);
+								pixel2color3(s, pixel);
+
+								for (int k = 0; k < px->sinkColor.n; k++) {
+									float* c = px->sinkColor.p[k].c;
+									int is_close = vecclose3f(s, c, px->colorMatchTolerance);
+									if (is_close) {
+										extent4f_union_vec2f(px->iboxes.p[k].c, ixy);
+										extent4f_union_vec2f(px->eboxes.p[k].c, exy);
+									}
+									//printf("k %d c %f %f %f s %f %f %f close %d\n", k, c[0], c[1], c[2], s[0], s[1], s[2], is_close);
+								}
+
+							}
+						printf("sink boxes\n");
+						for (int i = 0; i < px->eboxes.n; i++) {
+							extent4f_printf(px->eboxes.p[i].c);
+							extent4f_printf(px->iboxes.p[i].c);
+						}
+						// generate one sink map for each sink color area
+						int sinkmapsize = isteps[0] * isteps[1] * 4;
+						px->_sinkmaps = malloc(sinkmapsize * (px->eboxes.n + 1)); //one for each sink, plus a population map
+						unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps;
+						unsigned char* popmap = &sinkmaps[0]; 
+						memset(popmap, 0, sinkmapsize);
+
+						for (int i = 0; i < px->iboxes.n; i++)
+						{
+							
+							int is_set = extent4f_isSet(px->iboxes.p[i].c);
+							if (is_set) {
+							
+								//generate_sink_map()
+								unsigned char* texdata = &sinkmaps[(i+1) * sinkmapsize]; // malloc(isteps[0] * isteps[1] * 4);
+								memset(texdata, 0, isteps[0] * isteps[1] * 4);
+								//start sink map at center of ibox
+								int icenter[2];
+								float fcenter[2];
+								float* bbox = &px->iboxes.p[i].c[0];
+								fcenter[0] = ((bbox[0] + bbox[2]) / 2.0f);
+								fcenter[1] = ((bbox[1] + bbox[3]) / 2.0f);
+								norm2image(icenter, isteps, fcenter);
+								unsigned char pixel[3];
+								pixel[0] = 1; //1/255 is almost black, and we increase toward 255/255 white as the flooding progresses
+								pixel[1] = 1;
+								pixel[2] = 1;
+								set_image_pixel_color(texdata, isteps[0], isteps[1], pixel, icenter[0], icenter[1]);
+								//ideally a queue is used for breadth-first flood-filling
+								//2023 freewrl doesn't have a queue data structure
+								//will use 2 vectors, and alternate: current round, next round
+								//and use transparency to mark pixel 0=not done 1/255=queued 2/255=processed
+								struct ixy { int x, y; };
+								struct Vector* current = newVector(struct ixy, 100);
+								struct Vector* next = newVector(struct ixy, 100);
+								struct Vector* tmp;
+								struct ixy p, q, nebor[8];
+								unsigned char done, steps, * funcp;
+								float color[3];
+								//neighboring pixel relative coordinates, we'll do 8 surrounding pixels.
+								for (int i = 0; i < 8; i++) nebor[i].x = nebor[i].y = 0;
+								nebor[0].y = nebor[1].y = nebor[2].y = -1;
+								nebor[0].x = nebor[3].x = nebor[5].x = -1;
+								nebor[2].x = nebor[4].x = nebor[7].x = 1;
+								nebor[5].y = nebor[6].y = nebor[7].y = 1;
+								p.x = icenter[0];
+								p.y = icenter[1];
+								set_image_pixel_transparency(texdata, isteps[0], isteps[1], 1, p.x, p.y);
+								stack_push(struct ixy, current, p);
+								int more = TRUE;
+								steps = 0;
+								
+								while (more) {
+									steps++;
+									pixel[0] = pixel[1] = pixel[2] = steps;
+									for (int i = 0; i < vectorSize(current); i++) {
+										p = vector_get(struct ixy, current, i);
+										done = get_image_pixel_transparency(texdata, isteps[0], isteps[1], p.x, p.y);
+										if (done < 2) {
+											//mark as done and set the steps distance to sink
+											set_image_pixel_transparency(texdata, isteps[0], isteps[1], 2, p.x, p.y);
+											set_image_pixel_color(texdata, isteps[0], isteps[1], pixel, p.x, p.y);
+											//queue any un-done neighbors for next loop
+											for (int j = 0; j < 8; j++) {
+												q.x = p.x + nebor[j].x;
+												q.y = p.y + nebor[j].y;
+												//skip if outside image
+												if (q.x < 0 || q.x >= isteps[0] || q.y < 0 || q.y >= isteps[1]) continue;
+
+												//skip if obstacle in functionMap
+												float xx, yy;
+												xx = (float)q.x / px->gridSize.c[0];
+												yy = (float)q.y / px->gridSize.c[1];
+												funcp = sample_image(tt, xx,yy);
+												pixel2color3(color, funcp);
+												int is_close = vecclose3f(color, px->obstacleColor.c, px->colorMatchTolerance);
+												if (is_close) continue;
+
+												//skip if its already queued in next
+												done = get_image_pixel_transparency(texdata, isteps[0], isteps[1], q.x, q.y);
+												if (done > 0) continue;
+
+												//queue it and flag it as queued 1
+												stack_push(struct ixy, next, q);
+												set_image_pixel_transparency(texdata, isteps[0], isteps[1], 1, q.x, q.y);
+
+											}
+										}
+									} //more in current queue to flood fill
+									//recycle current vector, and swap current and next vectors
+									vector_clear(current);
+									tmp = current;
+									current = next;
+									next = tmp;
+									more = vectorSize(current);
+								} //more to flood fill
+								if (0) {
+									//print flood map to screen as characters, with A==0
+									printf("flood map %d x steps %d y steps %d\n", i, isteps[0], isteps[1]);
+									print_image_channel(texdata, 0, isteps[0], isteps[1]);
+									//for (int j = 0; j < isteps[1]; j++) {
+									//	for (int k = 0; k < isteps[0]; k++) {
+									//		unsigned char c = get_image_pixel_channel(texdata, isteps[0], isteps[1], 0, k, j);
+									//		printf("%c", c + 'A');
+									//	}
+									//	printf("\n");
+									//}
+								}
+								
+							} //if box is_set
+							
+						} //for each box
+						px->classified = TRUE;
+						printf("..end classifying physics\n");
+					} //if sinkcolors
+					
+				} //if tt
+				
+			} //functionmap
+		} //classified
+		else {
+			//classified, use sink maps
+			// coordinate systems:
+			// a) scene units, the classification bboxes
+			// b) functionMap image pixels, computed from tt->x, tt->y given 0-1 image fraction coords
+			// c) sinkmap grid pixels isteps, ibboxes
+			// we've been assuming the gridSize is in m and we have one grid cell per meter
+			//  and scene grid centered on 0,0
+			// and we've been assuming the functionMap image covers the same area as the gridSize (but different resolution)
+
+			int isteps[2];
+			isteps[0] = (int)(px->gridSize.c[0] + .5f);
+			isteps[1] = (int)(px->gridSize.c[1] + .5f);
+			int sinkmapsize = isteps[0] * isteps[1] * 4;
+			unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps; //have all sink maps + pop map packed in one malloc
+
+			//first sink map is the population map showing where particles are, for particle collision avoidance
+			unsigned char* popmap = &sinkmaps[0]; 
+			//mapemitter assigns a destination (sink) at random to particle
+			unsigned char* sinkmap; 
+			unsigned char* sinkcolor, * funccolor, sinkuchar;
+			float color[3];
+			struct ixy { int x, y; };
+			struct ixy p, q, nebor[8];
+			int debug = FALSE;
+			// we use the imageTexture functionmap below for checking for pauseZone
+			textureTableIndexStruct_s* tt = getTableTableFromTextureNode(px->functionMap);
+
+			//sinkmap first assigned here, now that we have the sink count
+			if (pp->sink == -1) {
+				pp->sink = (int)(uniformRand() * (float)px->sinkColor.n);
+				printf("pp.sink = %d\n", pp->sink);
+			}
+			sinkmap	= &sinkmaps[sinkmapsize * (pp->sink + 1)];
+			//pp.position is in scene/ground coords centered on 0,0
+			// we need grid coords of same size, but shifted wrt 0,0
+			p.x = (int)(pp->position[0] + px->gridSize.c[0]*.5f + .5f);
+			p.y = (int)(pp->position[1] + px->gridSize.c[1]*.5f + .5f);
+			if(debug) printf("pp.position %f %f p %d %d\n", pp->position[0], pp->position[1], p.x, p.y);
+			if (p.x < 0 || p.x >= isteps[0] || p.y < 0 || p.y >= isteps[1]) {
+				//vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
+				//vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+				return;
+			}
+
+			for (int i = 0; i < 8; i++) nebor[i].x = nebor[i].y = 0;
+			nebor[0].y = nebor[1].y = nebor[2].y = -1;
+			nebor[0].x = nebor[3].x = nebor[5].x = -1;
+			nebor[2].x = nebor[4].x = nebor[7].x = 1;
+			nebor[5].y = nebor[6].y = nebor[7].y = 1;
+
+			//which way to go? 
+			//check if we are on the sink/destination, if so recycle.
+			sinkcolor = get_image_pixel_color(sinkmap, isteps[0], isteps[1], p.x, p.y);
+			if (sinkcolor[0] == 1) {
+				//end of life, recycle - clear from population map
+				set_image_pixel_channel(popmap, isteps[0], isteps[1],0, 0, p.x, p.y);
+				pp->age = pp->lifespan;
+			}
+			else {
+				//check if we are on a wait area, will affect neighbor decision
+				float xx, yy;
+				xx = (float)p.x / px->gridSize.c[0];
+				yy = (float)p.y / px->gridSize.c[1];
+				funccolor = sample_image(tt, xx,yy);
+				pixel2color3(color, funccolor);
+				int on_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
+
+				//check neighbors and rank by shortest distance
+				int nlist, ilist[8], dlist[8], iscore[8];
+				int ishortest = -1;
+				int dshortest = 1000000;
+				//printf("sink map %d x steps %d y steps %d\n", pp->sink, isteps[0], isteps[1]);
+				//print_image_channel(sinkmap, 0, isteps[0], isteps[1]);
+				if(debug) print_image_channel(popmap, 0, isteps[0], isteps[1]);
+
+				for (int i = 0; i < 8; i++) {
+					dlist[i] = 2000000;
+					iscore[i] = 0;
+					q.x = p.x + nebor[i].x;
+					q.y = p.y + nebor[i].y;
+					//skip if outside image
+					if (q.x < 0 || q.x >= isteps[0] || q.y < 0 || q.y >= isteps[1]) continue;
+					iscore[i] = 1;
+					
+					//sinkcolor = get_image_pixel_color(sinkmap, isteps[0], isteps[1], q.x, q.y);
+					//printf("nebor %d q %d %d sinkcolor %d %d %d\n", i, q.x, q.y, sinkcolor[0], sinkcolor[1], sinkcolor[2]);
+					sinkuchar = get_image_pixel_channel(sinkmap, isteps[0], isteps[1], 0, q.x, q.y);
+					//printf("nebor %d q %d %d sinkred %d \n", i, q.x, q.y, sinkuchar);
+					//skip if obstacle
+					//if (sinkcolor[0] == 0) continue;
+					if (sinkuchar == 0) continue;
+					iscore[i] = 2;
+					//skip if we aren't on waitzone, and next is waitzone and wait function is on
+					if (!on_wait) {
+						xx = (float)q.x / px->gridSize.c[0];
+						yy = (float)q.y / px->gridSize.c[1];
+						funccolor = sample_image(tt, xx, yy);
+						pixel2color3(color, funccolor);
+						if (px->pauseState) {
+							int is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
+							if (is_wait) continue; //skip if its an active wait area and we aren't already on it
+						}
+					}
+					iscore[i] = 3;
+					//skip if someone already populating grid cell (avoid particle collision)
+					unsigned char populated = get_image_pixel_channel(popmap, isteps[0], isteps[1], 0, q.x, q.y);
+					//printf("nebor %d populated %d\n", i, populated);
+					if (populated) continue;
+					iscore[i] = 4;
+					dlist[i] = sinkuchar;
+					if (dlist[i] < dshortest) {
+						ishortest = i;
+						dshortest = dlist[i];
+						iscore[i] = 5;
+					}
+				}
+				if (debug) {
+					for (int m = 0; m < 8; m++) printf("iscore[%d]=%d,", m, iscore[m]);
+					printf("\n");
+				}
+				if (ishortest > -1) {
+					//move toward ishortest neighbor
+					q.x = p.x + nebor[ishortest].x;
+					q.y = p.y + nebor[ishortest].y;
+					float pxy[3], qxy[3], diff[3], dir[3];
+					pxy[0] = (float)p.x;
+					pxy[1] = (float)p.y;
+					pxy[2] = 0.0f;
+					qxy[0] = (float)q.x;
+					qxy[1] = (float)q.y;
+					qxy[2] = 0.0f;
+					vecdif3f(diff, qxy, pxy);
+					vecnormalize3f(dir, diff);
+
+					vecscale3f(pp->velocity, dir, pp->speed);
+					//clear last location
+					set_image_pixel_channel(popmap, isteps[0], isteps[1], 0,0, p.x, p.y);
+					//mark new location
+					if(0) set_image_pixel_channel(popmap, isteps[0], isteps[1], 1,0, q.x, q.y);
+					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
+
+				}
+				else {
+					//wait / stand
+					if(debug) printf("waiting particle %p\n", pp);
+					vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+				}
+				if(debug) getchar();
+			} //end of life
+		} //classified
+	} //enabled
+}
+// END HUMANOID PARTICLE SECTION <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
 void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp){
 	int j,k,ifloor, iceil, found;
 	float rgbaf[4], rgbac[4], rgba[4], fraclife;
@@ -1182,6 +1759,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 				sendArraysToGPU(GL_TRIANGLES, 0, 6);
 			}
 			break;
+			case GEOM_HANIM:
 			case GEOM_GEOMETRY:
 				render_node(node->geometry);
 				break;
@@ -1284,6 +1862,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 						apply_windphysics(&pp,node->physics.p[k],dtime); break;
 					case NODE_ForcePhysicsModel:
 						apply_forcephysics(&pp,node->physics.p[k],dtime); break;
+					case NODE_MapPhysicsModel:
+						apply_mapphysics(&pp, node->physics.p[k], dtime); break;
 					default:
 						break;
 				}
@@ -1307,7 +1887,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 		//CREATE via emitters (implied dtime = 0, so no physics on first frame)
 		_particles->n = j;
-		if(node->createParticles && _particles->n < maxparticles && node->emitter){
+		if(node->createParticles && _particles->n < maxparticles && node->emitter && emitter_loaded(node->emitter)){
 			//create new particles to reach maxparticles limit
 			int n_per_frame, n_needed, n_this_frame;
 			float particles_per_second, particles_per_frame;
@@ -1328,10 +1908,11 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			j = _particles->n;
 			for(i=0;i<n_this_frame;i++,j++){
 				particle pp;
+				memset(&pp,0,sizeof(particle)); 
+				vecset3f(pp.origin, 0.0f, 0.0f, 0.0f);//for bounded physics
 				pp.age = 0.0f;
-				memset(pp.origin,0,sizeof(float)*3); //for bounded physics
 				pp.lifespan = node->particleLifetime * (1.0f + uniformRandCentered()*node->lifetimeVariation);
-				memcpy(pp.size,node->particleSize.c,2*sizeof(float));
+				veccopy2f(pp.size,node->particleSize.c);
 				//emit particles
 				switch(node->emitter->_nodeType){
 					case NODE_ConeEmitter:		apply_ConeEmitter(&pp,node->emitter); break;
@@ -1342,6 +1923,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 					case NODE_PolylineEmitter:	apply_PolylineEmitter(&pp,node->emitter); break;
 					case NODE_SurfaceEmitter:	apply_SurfaceEmitter(&pp,node->emitter); break;
 					case NODE_VolumeEmitter:	apply_VolumeEmitter(&pp,node->emitter); break;
+					case NODE_MapEmitter:		apply_MapEmitter(&pp, node->emitter); break;
 					default:
 						break;
 				}
@@ -1554,6 +2136,9 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			case GEOM_GEOMETRY: 
 				render_node(node->geometry);
 			break;
+			case GEOM_HANIM:
+				render_node(node->geometry);
+				break;
 			default:
 				break;
 		}
@@ -1574,7 +2159,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			//glUniform1i(scap->textureCount,1);
 		}
 		float estart6[6], eout6[6];
-		extent6f_copy(estart6, peek_group_extent());
+		//extent6f_copy(estart6, peek_group_extent());
+		extent6f_clear(estart6);
 		for(i=0;i<vectorSize(_particles);i++){
 			particle pp = vector_get(particle,_particles,i);
 			//update particle-specific uniforms
@@ -1592,9 +2178,12 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			}
 			//draw
 			reallyDrawOnce();
-			extent6f_translate3f(eout6, estart6, pp.position);
-			union_group_extent(eout6);
+			//extent6f_translate3f(eout6, estart6, pp.position);
+			//union_group_extent(eout6);
+			//printf("pp.pos %f %f %f\n", pp.position[0], pp.position[1], pp.position[2]);
+			extent6f_union_vec3f(estart6,pp.position);
 		}
+		memcpy(node->_extent, estart6, 6 * sizeof(float));
 		clearDraw();
 		//cleanup after draw, like child_shape
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);

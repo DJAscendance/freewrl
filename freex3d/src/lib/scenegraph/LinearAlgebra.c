@@ -460,6 +460,14 @@ int vecsame3f(float *a, float *b){
 		if(a[i] != b[i]) isame = FALSE;
 	return isame;
 }
+int vecclose3f(float* a, float* b, float tol) {
+	int isame;
+	isame = TRUE;
+	for (int i = 0; i < 3; i++)
+		if (fabs(a[i] - b[i]) > tol) isame = FALSE;
+	return isame;
+}
+
 int vecsame4f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<4;i++)

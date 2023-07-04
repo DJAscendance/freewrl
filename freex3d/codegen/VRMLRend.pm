@@ -259,9 +259,11 @@ our %defaultContainerType = (
 	PolylineEmitter		=>["emitter"],
 	SurfaceEmitter		=>["emitter"],
 	VolumeEmitter		=>["emitter"],
+        MapEmitter              =>["emitter"],
 	WindPhysicsModel	=>["physics"],
 	BoundedPhysicsModel	=>["physics"],
 	ForcePhysicsModel	=>["physics"],
+        MapPhysicsModel         =>["physics"],
 	ParticleSystem		=>["shape"],
 
 	

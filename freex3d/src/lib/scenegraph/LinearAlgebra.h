@@ -218,6 +218,7 @@ float *vecmult2f(float *c, float *a, float *b);
 
 void vecprint3fb(char *name, float *p, char *eol);
 int vecsame3f(float *a, float *b);
+int vecclose3f(float* a, float* b, float tol);
 int vecapprox3f(float *a, float *b, float tol);
 int vecapprox2f(float *a, float *b, float tol);
 float *veccopy3f(float *b, float *a);

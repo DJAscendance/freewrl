@@ -5018,8 +5018,10 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 				//      and sending to the .addEntities list
 				//print_entitymapping(anode);
 				struct X3D_DISEntityTypeMapping *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
-				for(i=0;i<node->mapping.n;i++){
-					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+				struct Multi_Node* mapping = &node->mapping;
+				if (mapping->n == 0) mapping = &node->children;
+				for(i=0;i<mapping->n;i++){
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)mapping->p[i];
 					//printf("compare %d",i);
 					//print_entitymapping(bnode);
 					jscore = 0;

@@ -6881,7 +6881,7 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 
 	/* if we are not calling a valid node, dont do anything! */
 	if (COS==NULL) return;
-	printf("sensorEvents.n= %d\n", vectorSize(p->SensorEvents));
+	//printf("sensorEvents.n= %d\n", vectorSize(p->SensorEvents));
 	for (count = 0; count < vectorSize(p->SensorEvents); count++) {
 		se = vector_get(struct SensStruct *,p->SensorEvents,count);
 		//printf("i %d description %s\n", count, getNodeDescription(se->datanode));

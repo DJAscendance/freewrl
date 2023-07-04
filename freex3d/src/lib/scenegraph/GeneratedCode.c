@@ -396,6 +396,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_shaderflags_usershaders",
 	"_show_pin_point",
 	"_sideVBO",
+	"_sinkmaps",
 	"_sizeUnits",
 	"_smoothingCount",
 	"_smoothingDelta",
@@ -562,6 +563,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"child4Url",
 	"children",
 	"choice",
+	"classified",
 	"clipBoundary",
 	"closed",
 	"closureType",
@@ -575,6 +577,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"color",
 	"colorIndex",
 	"colorKey",
+	"colorMatchTolerance",
 	"colorPerVertex",
 	"colorRamp",
 	"colorSteps",
@@ -642,6 +645,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"duration",
 	"duration_changed",
 	"easeInEaseOut",
+	"eboxes",
 	"edgeColor",
 	"effects",
 	"elapsedTime",
@@ -650,6 +654,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"emissiveTexture",
 	"emissiveTextureMapping",
 	"emitter",
+	"emitterColor",
 	"enableHRTF",
 	"enabled",
 	"enabledAxes",
@@ -722,6 +727,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"frontTexture",
 	"frontUrl",
 	"function",
+	"functionMap",
 	"fuse",
 	"gain",
 	"gcCoords_changed",
@@ -749,6 +755,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"gradientThreshold",
 	"gradients",
 	"gravity",
+	"gridSize",
 	"groundAngle",
 	"groundColor",
 	"gustiness",
@@ -768,6 +775,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"horizontal",
+	"iboxes",
 	"image",
 	"index",
 	"indexDestination",
@@ -945,6 +953,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"normalizeVelocity",
 	"numComponents",
 	"objectType",
+	"obstacleColor",
 	"occlusionStrength",
 	"occlusionTexture",
 	"occlusionTextureMapping",
@@ -971,6 +980,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"particleLifetime",
 	"particleSize",
 	"parts",
+	"pauseColor",
+	"pauseState",
 	"pauseTime",
 	"periodicWave",
 	"phaseFunction",
@@ -1117,6 +1128,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"silhouetteRetainedOpacity",
 	"silhouetteSharpness",
 	"singleton",
+	"sinkColor",
 	"siteID",
 	"sites",
 	"size",
@@ -1454,6 +1466,9 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"addEntities",
 	"addGeometry",
 	"addTrimmingContour",
+	"classified",
+	"eboxes",
+	"iboxes",
 	"method",
 	"next",
 	"previous",
@@ -1659,6 +1674,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"emissiveColor",
 	"emissiveTexture",
 	"emissiveTextureMapping",
+	"emitterColor",
 	"enableHRTF",
 	"enabled",
 	"enabledAxes",
@@ -1712,6 +1728,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"frontTexture",
 	"frontUrl",
 	"function",
+	"functionMap",
 	"fuse",
 	"gain",
 	"geoCenter",
@@ -2123,6 +2140,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"color",
 	"colorIndex",
 	"colorKey",
+	"colorMatchTolerance",
 	"colorPerVertex",
 	"colorRamp",
 	"contentVolumeType",
@@ -2157,6 +2175,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"geodeticLongitude",
 	"geometricError",
 	"geometryType",
+	"gridSize",
 	"height",
 	"heightOffset",
 	"horizontal",
@@ -2182,6 +2201,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"normalIndex",
 	"normalPerVertex",
 	"numComponents",
+	"obstacleColor",
 	"order",
 	"originLatitude",
 	"originLongitude",
@@ -2189,6 +2209,8 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"outerRadius",
 	"paramterName",
 	"paramterValue",
+	"pauseColor",
+	"pauseState",
 	"phaseFunction",
 	"physics",
 	"planetId",
@@ -2210,6 +2232,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"secondaryAxis",
 	"sensorLocalOutput",
 	"shape",
+	"sinkColor",
 	"size",
 	"solid",
 	"sortOrder",
@@ -2769,6 +2792,8 @@ const char *NODES[] = {
 	"ListenerPointSource",
 	"LoadSensor",
 	"LocalFog",
+	"MapEmitter",
+	"MapPhysicsModel",
 	"Material",
 	"Matrix3VertexAttribute",
 	"Matrix4VertexAttribute",
@@ -3124,6 +3149,8 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_emitter,0,0,0,0,0,0},
+{FIELDNAMES_physics,0,0,0,0,0,0},
 {FIELDNAMES_material,FIELDNAMES_backMaterial,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3827,6 +3854,10 @@ void render_LoadSensor(struct X3D_LoadSensor *);
 struct X3D_Virt virt_LoadSensor = { NULL,(void *)render_LoadSensor,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_LocalFog = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_MapEmitter = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+struct X3D_Virt virt_MapPhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_Material(struct X3D_Material *);
 void compile_Material(struct X3D_Material *);
@@ -4559,6 +4590,8 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_ListenerPointSource,
 	 &virt_LoadSensor,
 	 &virt_LocalFog,
+	 &virt_MapEmitter,
+	 &virt_MapPhysicsModel,
 	 &virt_Material,
 	 &virt_Matrix3VertexAttribute,
 	 &virt_Matrix4VertexAttribute,
@@ -5701,6 +5734,7 @@ const int OFFSETS_DISEntityManager[] = {
 	(int) FIELDNAMES_applicationID, (int) offsetof (struct X3D_DISEntityManager, applicationID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_siteID, (int) offsetof (struct X3D_DISEntityManager, siteID),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_DISEntityManager, mapping),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_DISEntityManager, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) ( SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_DISEntityManager, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_addedEntities, (int) offsetof (struct X3D_DISEntityManager, addedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_removedEntities, (int) offsetof (struct X3D_DISEntityManager, removedEntities),  (int) FIELDTYPE_MFNode, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
@@ -7350,6 +7384,36 @@ const int OFFSETS_LocalFog[] = {
 	(int) FIELDNAMES___fogType, (int) offsetof (struct X3D_LocalFog, __fogType),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_LocalFog, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LocalFog, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MapEmitter[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MapEmitter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_on, (int) offsetof (struct X3D_MapEmitter, on),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_speed, (int) offsetof (struct X3D_MapEmitter, speed),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_SPEED,
+	(int) FIELDNAMES_variation, (int) offsetof (struct X3D_MapEmitter, variation),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_functionMap, (int) offsetof (struct X3D_MapEmitter, functionMap),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_gridSize, (int) offsetof (struct X3D_MapEmitter, gridSize),  (int) FIELDTYPE_SFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_emitterColor, (int) offsetof (struct X3D_MapEmitter, emitterColor),  (int) FIELDTYPE_MFColor, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_colorMatchTolerance, (int) offsetof (struct X3D_MapEmitter, colorMatchTolerance),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_classified, (int) offsetof (struct X3D_MapEmitter, classified),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_eboxes, (int) offsetof (struct X3D_MapEmitter, eboxes),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_iboxes, (int) offsetof (struct X3D_MapEmitter, iboxes),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MapPhysicsModel[] = {
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_MapPhysicsModel, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MapPhysicsModel, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_gridSize, (int) offsetof (struct X3D_MapPhysicsModel, gridSize),  (int) FIELDTYPE_SFVec2f, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_functionMap, (int) offsetof (struct X3D_MapPhysicsModel, functionMap),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_obstacleColor, (int) offsetof (struct X3D_MapPhysicsModel, obstacleColor),  (int) FIELDTYPE_SFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_sinkColor, (int) offsetof (struct X3D_MapPhysicsModel, sinkColor),  (int) FIELDTYPE_MFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_pauseColor, (int) offsetof (struct X3D_MapPhysicsModel, pauseColor),  (int) FIELDTYPE_SFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_pauseState, (int) offsetof (struct X3D_MapPhysicsModel, pauseState),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_colorMatchTolerance, (int) offsetof (struct X3D_MapPhysicsModel, colorMatchTolerance),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_classified, (int) offsetof (struct X3D_MapPhysicsModel, classified),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_eboxes, (int) offsetof (struct X3D_MapPhysicsModel, eboxes),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_iboxes, (int) offsetof (struct X3D_MapPhysicsModel, iboxes),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__sinkmaps, (int) offsetof (struct X3D_MapPhysicsModel, _sinkmaps),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_Material[] = {
@@ -10118,6 +10182,8 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_ListenerPointSource,
 	OFFSETS_LoadSensor,
 	OFFSETS_LocalFog,
+	OFFSETS_MapEmitter,
+	OFFSETS_MapPhysicsModel,
 	OFFSETS_Material,
 	OFFSETS_Matrix3VertexAttribute,
 	OFFSETS_Matrix4VertexAttribute,
@@ -10729,6 +10795,8 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ListenerPointSource : {tmp = MALLOC (struct X3D_ListenerPointSource *, size = sizeof (struct X3D_ListenerPointSource)); break;}
 		case NODE_LoadSensor : {tmp = MALLOC (struct X3D_LoadSensor *, size = sizeof (struct X3D_LoadSensor)); break;}
 		case NODE_LocalFog : {tmp = MALLOC (struct X3D_LocalFog *, size = sizeof (struct X3D_LocalFog)); break;}
+		case NODE_MapEmitter : {tmp = MALLOC (struct X3D_MapEmitter *, size = sizeof (struct X3D_MapEmitter)); break;}
+		case NODE_MapPhysicsModel : {tmp = MALLOC (struct X3D_MapPhysicsModel *, size = sizeof (struct X3D_MapPhysicsModel)); break;}
 		case NODE_Material : {tmp = MALLOC (struct X3D_Material *, size = sizeof (struct X3D_Material)); break;}
 		case NODE_Matrix3VertexAttribute : {tmp = MALLOC (struct X3D_Matrix3VertexAttribute *, size = sizeof (struct X3D_Matrix3VertexAttribute)); break;}
 		case NODE_Matrix4VertexAttribute : {tmp = MALLOC (struct X3D_Matrix4VertexAttribute *, size = sizeof (struct X3D_Matrix4VertexAttribute)); break;}
@@ -12136,6 +12204,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->applicationID = 1;
 			tmp2->siteID = 0;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
+			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->metadata = NULL;
 			tmp2->addedEntities.n=0; tmp2->addedEntities.p=0;
 			tmp2->removedEntities.n=0; tmp2->removedEntities.p=0;
@@ -14149,6 +14218,42 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__fogType = 1;
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MapEmitter : {
+			struct X3D_MapEmitter * tmp2;
+			tmp2 = (struct X3D_MapEmitter *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->on = TRUE;
+			tmp2->speed = 0.0f;
+			tmp2->variation = 0.25f;
+			tmp2->functionMap = NULL;
+			tmp2->gridSize.c[0] = 1.0f;tmp2->gridSize.c[1] = 1.0f;;
+			tmp2->emitterColor.n=0; tmp2->emitterColor.p=0;
+			tmp2->colorMatchTolerance = 0.01f;
+			tmp2->classified = FALSE;
+			tmp2->eboxes.n=0; tmp2->eboxes.p=0;
+			tmp2->iboxes.n=0; tmp2->iboxes.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MapPhysicsModel : {
+			struct X3D_MapPhysicsModel * tmp2;
+			tmp2 = (struct X3D_MapPhysicsModel *) tmp;
+			tmp2->enabled = TRUE;
+			tmp2->metadata = NULL;
+			tmp2->gridSize.c[0] = 1.0f;tmp2->gridSize.c[1] = 1.0f;;
+			tmp2->functionMap = NULL;
+			tmp2->obstacleColor.c[0] = 0.0f;tmp2->obstacleColor.c[1] = 0.0f;tmp2->obstacleColor.c[2] = 0.0f;;
+			tmp2->sinkColor.n=0; tmp2->sinkColor.p=0;
+			tmp2->pauseColor.c[0] = 1.0f;tmp2->pauseColor.c[1] = 0.0f;tmp2->pauseColor.c[2] = 0.0f;;
+			tmp2->pauseState = FALSE;
+			tmp2->colorMatchTolerance = 0.01f;
+			tmp2->classified = FALSE;
+			tmp2->eboxes.n=0; tmp2->eboxes.p=0;
+			tmp2->iboxes.n=0; tmp2->iboxes.p=0;
+			tmp2->_sinkmaps = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -18568,6 +18673,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," siteID (SFInt32) \t%d\n",tmp->siteID);
 			spacer fprintf (fp," mapping (MFNode):\n");
 			for (i=0; i<tmp->mapping.n; i++) { dump_scene(fp,level+1,tmp->mapping.p[i]); }
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
@@ -20571,6 +20678,32 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+		    break;
+		}
+		case NODE_MapEmitter : {
+			struct X3D_MapEmitter *tmp;
+			tmp = (struct X3D_MapEmitter *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," on (SFBool) \t%d\n",tmp->on);
+			spacer fprintf (fp," speed (SFFloat) \t%4.3f\n",tmp->speed);
+			spacer fprintf (fp," variation (SFFloat) \t%4.3f\n",tmp->variation);
+			spacer fprintf (fp," functionMap (SFNode):\n"); dump_scene(fp,level+1,tmp->functionMap); 
+			spacer fprintf (fp," emitterColor (MFColor):\n");
+			for (i=0; i<tmp->emitterColor.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->emitterColor.p[i]).c[0], (tmp->emitterColor.p[i]).c[1],(tmp->emitterColor.p[i]).c[2]); }
+		    break;
+		}
+		case NODE_MapPhysicsModel : {
+			struct X3D_MapPhysicsModel *tmp;
+			tmp = (struct X3D_MapPhysicsModel *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," functionMap (SFNode):\n"); dump_scene(fp,level+1,tmp->functionMap); 
 		    break;
 		}
 		case NODE_Material : {
@@ -23938,6 +24071,8 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_ListenerPointSource: return X3DSoundSourceNode; break;
 	case NODE_LoadSensor: return X3DNetworkSensorNode; break;
 	case NODE_LocalFog: return X3DChildNode; break;
+	case NODE_MapEmitter: return X3DParticleEmitterNode; break;
+	case NODE_MapPhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_Material: return X3DMaterialNode; break;
 	case NODE_Matrix3VertexAttribute: return X3DVertexAttributeNode; break;
 	case NODE_Matrix4VertexAttribute: return X3DVertexAttributeNode; break;
