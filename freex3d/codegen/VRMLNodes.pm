@@ -4199,96 +4199,6 @@ our %Nodes = (
 	], "X3DChildNode"),
 
 
-	###################################################################################
-
-	# Chapter 42:		Texture Projector Component (aka ProjectiveTextureMapping PTM)
-
-	###################################################################################
-
-
-	"TextureProjector" => new VRML::NodeType("TextureProjector",[
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-
-		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		texture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		backCull => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
-		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		fieldOfView => ["SFFloat", 45, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
-	], "X3DTextureProjectorNode"),
-	
-
-	"TextureProjectorParallel" => new VRML::NodeType("TextureProjectorParallel", [
-		#same field order as TextureProjector, except fieldOfView last, which is different
-		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-
-		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		texture => ["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		backCull => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
-		_dir => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_loc => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_upVec => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-		fieldOfView => ["SFVec4f", [-1, -1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
-
-	], "X3DTextureProjectorNode"),
-
-	"TextureProjectorPoint" => new VRML::NodeType("TextureProjectorPoint",[
-		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
-		global => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
-		on => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
-		shadows => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
-		shadowIntensity => ["SFFloat", 1.0, "inputOutput", 0,"UNCA_NONE"],#ff
-		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
-
-		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
-		location=> ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
-		direction => ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
-		nearDistance => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
-		farDistance => ["SFFloat", 10, "inputOutput", 0,"UNCA_NONE"],#ff
-		texture=>["SFNode","NULL","inputOutput", 0,"UNCA_NONE"],#ff
-		backCull => ["SFBool", "TRUE", "inputOutput", 0,"UNCA_NONE"],#ff
-
-		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
-		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", 0,"UNCA_NONE"],#ff
-		#aspectRatio => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
-		#fieldOfView => ["SFFloat", 45, "inputOutput", 0,"UNCA_NONE"],#ff
-
-	], "X3DTextureProjectorNode"),
-
 
 	###################################################################################
 
@@ -5882,6 +5792,222 @@ our %Nodes = (
 		phaseFunction => ["SFString", "Henyey-Greenstein", "initializeOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_phaseFunction => ["SFInt32",0,"initializeOnly",0,0],#ff
 	],"X3DComposableVolumeRenderStyleNode"),
+
+	###################################################################################
+
+	# Chapter 42:		Texture Projector Component (aka ProjectiveTextureMapping PTM)
+
+	###################################################################################
+
+
+	"TextureProjector" => new VRML::NodeType("TextureProjector",[
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		texture=>["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		backCull => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+
+		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		fieldOfView => ["SFFloat", 45, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DTextureProjectorNode"),
+	
+
+	"TextureProjectorParallel" => new VRML::NodeType("TextureProjectorParallel", [
+		#same field order as TextureProjector, except fieldOfView last, which is different
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		global => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		on => ["SFBool", "FALSE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		shadows => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		shadowIntensity => ["SFFloat", 1.0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		location=> ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		direction => ["SFVec3f", [0, 0, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		nearDistance => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		farDistance => ["SFFloat", 10, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		texture => ["SFNode","NULL","inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		backCull => ["SFBool", "TRUE", "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+
+		_dir => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_loc => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_upVec => ["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		aspectRatio => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		fieldOfView => ["SFVec4f", [-1, -1, 1, 1], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DTextureProjectorNode"),
+
+	"TextureProjectorPoint" => new VRML::NodeType("TextureProjectorPoint",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		global => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		on => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		shadows => ["SFBool", "FALSE", "inputOutput", 0,"UNCA_NONE"],#ff
+		shadowIntensity => ["SFFloat", 1.0, "inputOutput", 0,"UNCA_NONE"],#ff
+		ambientIntensity => ["SFFloat", 0, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		color => ["SFColor", [1, 1, 1], "inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		intensity => ["SFFloat", 1, "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		location=> ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
+		direction => ["SFVec3f", [0, 0, 1], "inputOutput", 0,"UNCA_NONE"],#ff
+		nearDistance => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
+		farDistance => ["SFFloat", 10, "inputOutput", 0,"UNCA_NONE"],#ff
+		texture=>["SFNode","NULL","inputOutput", 0,"UNCA_NONE"],#ff
+		backCull => ["SFBool", "TRUE", "inputOutput", 0,"UNCA_NONE"],#ff
+
+		_dir =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_loc =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		_upVec =>["SFVec4f",[0,0,0,0],"initializeOnly",0,0],#ff
+		upVector => ["SFVec3f", [0, 1, 0], "inputOutput", 0,"UNCA_NONE"],#ff
+		#aspectRatio => ["SFFloat", 1, "inputOutput", 0,"UNCA_NONE"],#ff
+		#fieldOfView => ["SFFloat", 45, "inputOutput", 0,"UNCA_NONE"],#ff
+
+	], "X3DTextureProjectorNode"),
+
+
+
+	###################################################################################
+
+	#	43.	MIDI Component (proposed July 2023)
+
+	###################################################################################
+
+	"MIDIFileSource" => new VRML::NodeType("MIDIFileSource",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+
+		__loadstatus =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+                __blob => ["MFInt32","NULL","initializeOnly",0,0],#ff
+
+	], "X3DMIDISourceNode"),
+
+	"MIDIPortSource" => new VRML::NodeType("MIDIPortSource",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		port => ["SFInt32", 0, "inputOutput", 0,"UNCA_NONE"],#ff
+
+	], "X3DMIDISourceNode"),
+
+	"MIDIFileDestination" => new VRML::NodeType("MIDIFileDestination",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DMIDIDestinationNode"),
+
+
+	"MIDIPortDestination" => new VRML::NodeType("MIDIPortDestination",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		port => ["SFInt32", 0, "inputOutput", 0,"UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DMIDIDestinationNode"),
+
+	"MIDIOut" => new VRML::NodeType("MIDIOut",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","outputOnly",0,0],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DMIDIProcessingNode"),
+
+	"MIDIIn" => new VRML::NodeType("MIDIIn",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","inputOnly",0,0],#ff
+
+	], "X3DMIDISourceNode"),
+
+	"MIDIConverterOut" => new VRML::NodeType("MIDIConverterOut",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		octave => ["MFInt32",[],"outputOnly",0,0],#ff
+		key12 => ["MFInt32",[],"outputOnly",0,0],#ff
+		key88 => ["MFInt32",[],"outputOnly",0,0],#ff
+		keyPiano => ["MFInt32",[],"outputOnly",0,0],#ff
+		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
+	], "X3DMIDINode"),
+	"MIDIConverterIn" => new VRML::NodeType("MIDIConverterIn",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		octave => ["MFInt32",[],"inputOnly",0,0],#ff
+		key12 => ["MFInt32",[],"inputOnly",0,0],#ff
+		key88 => ["MFInt32",[],"inputOnly",0,0],#ff
+		keyPiano => ["MFInt32",[],"inputOnly",0,0],#ff
+		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
+	], "X3DMIDINode"),
+
+	"MIDIToneSplitter" => new VRML::NodeType("MIDIToneSplitter",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		octaveFilter => ["SFInt32",-1,"inputOutput",0,0],#ff
+		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
+		C => ["SFBool","FALSE","outputOnly",0,0],#ff
+		Cs => ["SFBool","FALSE","outputOnly",0,0],#ff
+		D => ["SFBool","FALSE","outputOnly",0,0],#ff
+		Ds => ["SFBool","FALSE","outputOnly",0,0],#ff
+		E => ["SFBool","FALSE","outputOnly",0,0],#ff
+		F => ["SFBool","FALSE","outputOnly",0,0],#ff
+		Fs => ["SFBool","FALSE","outputOnly",0,0],#ff
+		G => ["SFBool","FALSE","outputOnly",0,0],#ff
+		Gs => ["SFBool","FALSE","outputOnly",0,0],#ff
+		A => ["SFBool","FALSE","outputOnly",0,0],#ff
+		As => ["SFBool","FALSE","outputOnly",0,0],#ff
+		B => ["SFBool","FALSE","outputOnly",0,0],#ff
+	], "X3DMIDINode"),
+	"MIDIToneMerger" => new VRML::NodeType("MIDIToneMerger",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		octave => ["SFInt32",0,"inputOutput",0,0],#ff
+		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
+		C => ["SFBool","FALSE","inputOnly",0,0],#ff
+		Cs => ["SFBool","FALSE","inputOnly",0,0],#ff
+		D => ["SFBool","FALSE","inputOnly",0,0],#ff
+		Ds => ["SFBool","FALSE","inputOnly",0,0],#ff
+		E => ["SFBool","FALSE","inputOnly",0,0],#ff
+		F => ["SFBool","FALSE","inputOnly",0,0],#ff
+		Fs => ["SFBool","FALSE","inputOnly",0,0],#ff
+		G => ["SFBool","FALSE","inputOnly",0,0],#ff
+		Gs => ["SFBool","FALSE","inputOnly",0,0],#ff
+		A => ["SFBool","FALSE","inputOnly",0,0],#ff
+		As => ["SFBool","FALSE","inputOnly",0,0],#ff
+		B => ["SFBool","FALSE","inputOnly",0,0],#ff
+
+	], "X3DMIDINode"),
+
+	"MIDIAudioSynth" => new VRML::NodeType("MIDIAudioSynth",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		polyphony => ["SFInt32",10,"inputOutput",0,0],#ff
+
+	], "X3DSoundSourceNode"),
+
 
 
 	###################################################################################

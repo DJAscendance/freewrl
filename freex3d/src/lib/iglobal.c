@@ -77,6 +77,8 @@ void Component_RigidBodyPhysics_init(struct tComponent_RigidBodyPhysics *t);
 void Component_RigidBodyPhysics_clear(struct tComponent_RigidBodyPhysics *t);
 void Component_Followers_init(struct tComponent_Followers *t);
 void Component_Followers_clear(struct tComponent_Followers *t);
+void Component_MIDI_init(struct tComponent_MIDI* t);
+void Component_MIDI_clear(struct tComponent_MIDI* t);
 
 void Component_KeyDevice_init(struct tComponent_KeyDevice *t);
 
@@ -349,6 +351,7 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	Component_Sound_init(&iglobal->Component_Sound);
 	Component_Text_init(&iglobal->Component_Text);
     Component_VolumeRendering_init(&iglobal->Component_VolumeRendering);
+	Component_MIDI_init(&iglobal->Component_MIDI);
 	Component_Grouping_init(&iglobal->Component_Grouping);
 
 	RenderFuncs_init(&iglobal->RenderFuncs);
@@ -431,6 +434,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->Viewer.prv);
 	FREE_IF_NZ(tg->Tess.prv);
 	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_Grouping.prv);
+	Component_MIDI_clear(&tg->Component_MIDI); FREE_IF_NZ(tg->Component_MIDI.prv);
 	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
 	//FREE_IF_NZ(tg->Component_Sound.prv);

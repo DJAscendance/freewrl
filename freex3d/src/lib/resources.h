@@ -93,6 +93,7 @@ typedef enum resource_media_type {
 	resm_i3dm,
 	resm_pnts,
 	resm_cmpt,
+	resm_midi, //midi
 	resm_external, //June 2016 html > frontend anchoring
 } resource_media_type_t;
 

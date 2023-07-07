@@ -2308,6 +2308,122 @@ EXPOSED_FIELD(LocalFog,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
 EXPOSED_FIELD(LocalFog,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(LocalFog)
 
+/* MIDIAudioSynth node */
+BEGIN_NODE(MIDIAudioSynth)
+EXPOSED_FIELD(MIDIAudioSynth,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIAudioSynth,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIAudioSynth,polyphony,sfint32,polyphony,FIELDTYPE_SFInt32,0)
+END_NODE(MIDIAudioSynth)
+
+/* MIDIConverterIn node */
+BEGIN_NODE(MIDIConverterIn)
+EXPOSED_FIELD(MIDIConverterIn,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIConverterIn,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_IN(MIDIConverterIn,octave,mfint32,octave,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIConverterIn,key12,mfint32,key12,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIConverterIn,key88,mfint32,key88,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIConverterIn,keyPiano,mfint32,keyPiano,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIConverterIn,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+END_NODE(MIDIConverterIn)
+
+/* MIDIConverterOut node */
+BEGIN_NODE(MIDIConverterOut)
+EXPOSED_FIELD(MIDIConverterOut,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIConverterOut,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_OUT(MIDIConverterOut,octave,mfint32,octave,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIConverterOut,key12,mfint32,key12,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIConverterOut,key88,mfint32,key88,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIConverterOut,keyPiano,mfint32,keyPiano,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIConverterOut,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+END_NODE(MIDIConverterOut)
+
+/* MIDIFileDestination node */
+BEGIN_NODE(MIDIFileDestination)
+EXPOSED_FIELD(MIDIFileDestination,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIFileDestination,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIFileDestination,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIFileDestination,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIFileDestination)
+
+/* MIDIFileSource node */
+BEGIN_NODE(MIDIFileSource)
+EXPOSED_FIELD(MIDIFileSource,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIFileSource,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIFileSource,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+END_NODE(MIDIFileSource)
+
+/* MIDIIn node */
+BEGIN_NODE(MIDIIn)
+EXPOSED_FIELD(MIDIIn,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIIn,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_IN(MIDIIn,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIIn,pedal,sfbool,pedal,FIELDTYPE_SFBool)
+END_NODE(MIDIIn)
+
+/* MIDIOut node */
+BEGIN_NODE(MIDIOut)
+EXPOSED_FIELD(MIDIOut,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIOut,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_OUT(MIDIOut,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIOut,pedal,sfbool,pedal,FIELDTYPE_SFBool)
+EXPOSED_FIELD(MIDIOut,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIOut)
+
+/* MIDIPortDestination node */
+BEGIN_NODE(MIDIPortDestination)
+EXPOSED_FIELD(MIDIPortDestination,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIPortDestination,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIPortDestination,port,sfint32,port,FIELDTYPE_SFInt32,UNCA_NONE)
+EXPOSED_FIELD(MIDIPortDestination,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIPortDestination)
+
+/* MIDIPortSource node */
+BEGIN_NODE(MIDIPortSource)
+EXPOSED_FIELD(MIDIPortSource,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIPortSource,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIPortSource,port,sfint32,port,FIELDTYPE_SFInt32,UNCA_NONE)
+END_NODE(MIDIPortSource)
+
+/* MIDIToneMerger node */
+BEGIN_NODE(MIDIToneMerger)
+EXPOSED_FIELD(MIDIToneMerger,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIToneMerger,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIToneMerger,octave,sfint32,octave,FIELDTYPE_SFInt32,0)
+EVENT_OUT(MIDIToneMerger,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIToneMerger,C,sfbool,C,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,Cs,sfbool,Cs,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,D,sfbool,D,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,Ds,sfbool,Ds,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,E,sfbool,E,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,F,sfbool,F,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,Fs,sfbool,Fs,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,G,sfbool,G,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,Gs,sfbool,Gs,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,A,sfbool,A,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,As,sfbool,As,FIELDTYPE_SFBool)
+EVENT_IN(MIDIToneMerger,B,sfbool,B,FIELDTYPE_SFBool)
+END_NODE(MIDIToneMerger)
+
+/* MIDIToneSplitter node */
+BEGIN_NODE(MIDIToneSplitter)
+EXPOSED_FIELD(MIDIToneSplitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIToneSplitter,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIToneSplitter,octaveFilter,sfint32,octaveFilter,FIELDTYPE_SFInt32,0)
+EVENT_IN(MIDIToneSplitter,midiNote,mfint32,midiNote,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIToneSplitter,C,sfbool,C,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,Cs,sfbool,Cs,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,D,sfbool,D,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,Ds,sfbool,Ds,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,E,sfbool,E,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,F,sfbool,F,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,Fs,sfbool,Fs,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,G,sfbool,G,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,Gs,sfbool,Gs,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,A,sfbool,A,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,As,sfbool,As,FIELDTYPE_SFBool)
+EVENT_OUT(MIDIToneSplitter,B,sfbool,B,FIELDTYPE_SFBool)
+END_NODE(MIDIToneSplitter)
+
 /* MapEmitter node */
 BEGIN_NODE(MapEmitter)
 EXPOSED_FIELD(MapEmitter,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

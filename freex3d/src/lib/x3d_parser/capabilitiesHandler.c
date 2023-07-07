@@ -76,6 +76,7 @@ static const int capabilities[] = {
 	COM_Sound,	1, 		/* May 12, 2009 */
 	COM_VolumeRendering,  4, /* Oct 1, 2016 */
 	COM_ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
+	COM_MIDI,		3,			/*July 2023*/
 	INT_ID_UNDEFINED, 	INT_ID_UNDEFINED,
 };
 
@@ -93,6 +94,7 @@ static const int CADInterchangeProfile[] = {
 	COM_Navigation,		2,
 	COM_Shaders,		1,
 	COM_CADGeometry,	2,
+	COM_MIDI,			3,
 	INT_ID_UNDEFINED, 		INT_ID_UNDEFINED};
 
 
@@ -139,6 +141,7 @@ static const int FullProfile[] = {
 	COM_Followers,			1,
 	COM_ParticleSystems,		3,
 	COM_ProjectiveTextureMapping, 2,
+	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -163,6 +166,9 @@ static const int ImmersiveProfile[] = {
 	COM_EnvironmentalEffects,	2,
 	COM_Scripting,			1,
 	COM_EventUtilities,		1,
+	COM_ParticleSystems,		3,
+	COM_ProjectiveTextureMapping, 2,
+	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -184,7 +190,6 @@ static const int InteractiveProfile[] = {
 	COM_EnvironmentalSensor,	1,
 	COM_EnvironmentalEffects,	1,
 	COM_EventUtilities,		1,
-	COM_Layering,			1,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 

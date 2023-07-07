@@ -1107,6 +1107,7 @@ char *resourceMediaTypeToString (int mt) {
 		case  resm_i3dm: return " resm_i3dm";
 		case  resm_pnts: return " resm_pnts";
 		case  resm_cmpt: return " resm_cmpt";
+		case  resm_midi: return " resm_midi";
 		default: return "resource OUT OF RANGE";
 	}
 }

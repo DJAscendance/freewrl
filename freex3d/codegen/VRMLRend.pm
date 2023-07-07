@@ -396,6 +396,19 @@ our %defaultContainerType = (
 	GeoSystemParameters	=>["systemParameters"],
 	BufferGeometry 		=>["geometry"],
 	Tile			=>["children"],
+
+	MIDIPortSource			=>["children"],
+	MIDIFileSource 			=>["children"],
+	MIDIPortDestination		=>["children"],
+	MIDIFileDestination		=>["children"],
+	MIDIOut				=>["children"],
+	MIDIIn				=>["children"],
+	MIDIConverterOut		=>["children"],
+	MIDIConverterIn			=>["children"],
+	MIDIToneSplitter		=>["children"],
+	MIDIToneMerger			=>["children"],
+	MIDIAudioSynth			=>["children"],
+
 );
 
 
@@ -525,6 +538,19 @@ our %RendC = map {($_=>1)} qw/
 	Viewpoint
 	OrthoViewpoint
 	GeoViewpoint
+
+	MIDIPortSource
+	MIDIFileSource
+	MIDIPortDestination
+	MIDIFileDestination
+	MIDIOut
+	MIDIIn
+	MIDIConverterOut
+	MIDIConverterIn
+	MIDIToneSplitter
+	MIDIToneMerger
+	MIDIAudioSynth
+
 /;
 
 #######################################################################
@@ -840,6 +866,8 @@ our %CompileC = map {($_=>1)} qw/
 	GeoSRF
 	BufferGeometry
 	Tile
+
+	MIDIFileSource
 /;
 
 
@@ -1131,6 +1159,7 @@ our %ComponentC = map {($_=>1)} qw/
 	Texturing3D
 	Time
 	VolumeRendering
+        MIDI
 /;
 
 

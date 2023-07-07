@@ -336,6 +336,9 @@ iOLDCODE	}Component_Networking;
 	struct tComponent_VolumeRendering{
 		void *prv;
 	}Component_VolumeRendering;
+	struct tComponent_MIDI {
+		void* prv;
+	}Component_MIDI;
 	struct tComponent_Grouping{
 		void *prv;
 	}Component_Grouping;

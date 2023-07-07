@@ -69,10 +69,18 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 /* Table of built-in fieldIds */
        const char *FIELDNAMES[] = {
 	"A",
+	"As",
 	"B",
 	"C",
+	"Cs",
+	"D",
+	"Ds",
+	"E",
 	"F",
 	"FIFOsize",
+	"Fs",
+	"G",
+	"Gs",
 	"_CPU_Routes_out",
 	"_GPU_Routes_out",
 	"_JT",
@@ -95,6 +103,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__afterPound",
 	"__autoOffset",
 	"__backTexture",
+	"__blob",
 	"__botpoints",
 	"__bottomTexture",
 	"__child1Node",
@@ -822,6 +831,9 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"jump",
 	"justify",
 	"key",
+	"key12",
+	"key88",
+	"keyPiano",
 	"keyPress",
 	"keyRelease",
 	"keyValue",
@@ -897,6 +909,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"metallicRoughnessTexture",
 	"metallicRoughnessTextureMapping",
 	"method",
+	"midiNote",
 	"minAngle",
 	"minAngle1",
 	"minBack",
@@ -957,6 +970,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"occlusionStrength",
 	"occlusionTexture",
 	"occlusionTextureMapping",
+	"octave",
+	"octaveFilter",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -983,6 +998,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"pauseColor",
 	"pauseState",
 	"pauseTime",
+	"pedal",
 	"periodicWave",
 	"phaseFunction",
 	"physics",
@@ -1004,6 +1020,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"pointSizeMinValue",
 	"pointSizeScaleFactor",
 	"polarAspect",
+	"polyphony",
 	"port",
 	"position",
 	"position_changed",
@@ -1330,6 +1347,18 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 
 /* Table of EVENT_OUTs */
        const char *EVENT_OUT[] = {
+	"A",
+	"As",
+	"B",
+	"C",
+	"Cs",
+	"D",
+	"Ds",
+	"E",
+	"F",
+	"Fs",
+	"G",
+	"Gs",
 	"actionKeyPress",
 	"actionKeyRelease",
 	"addedEntities",
@@ -1407,11 +1436,15 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"isSelected",
 	"isStandAlone",
 	"isValid",
+	"key12",
+	"key88",
+	"keyPiano",
 	"keyPress",
 	"keyRelease",
 	"level_changed",
 	"lineBounds",
 	"loadTime",
+	"midiNote",
 	"modifiedFraction_changed",
 	"motor1Angle",
 	"motor1AngleRate",
@@ -1423,8 +1456,10 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"motor3AngleRate",
 	"motor3Axis",
 	"normal_changed",
+	"octave",
 	"orientation_changed",
 	"origin",
+	"pedal",
 	"pickedGeometry",
 	"pickedNormal",
 	"pickedPoint",
@@ -1461,6 +1496,18 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 
 /* Table of EVENT_INs */
        const char *EVENT_IN[] = {
+	"A",
+	"As",
+	"B",
+	"C",
+	"Cs",
+	"D",
+	"Ds",
+	"E",
+	"F",
+	"Fs",
+	"G",
+	"Gs",
 	"activate",
 	"addChildren",
 	"addEntities",
@@ -1469,8 +1516,14 @@ const int EVENT_OUT_COUNT = ARR_SIZE(EVENT_OUT);
 	"classified",
 	"eboxes",
 	"iboxes",
+	"key12",
+	"key88",
+	"keyPiano",
 	"method",
+	"midiNote",
 	"next",
+	"octave",
+	"pedal",
 	"previous",
 	"removeChildren",
 	"removeEntities",
@@ -1874,6 +1927,8 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"occlusionStrength",
 	"occlusionTexture",
 	"occlusionTextureMapping",
+	"octave",
+	"octaveFilter",
 	"offset",
 	"offsetUnits",
 	"on",
@@ -1903,6 +1958,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"pointSizeMaxValue",
 	"pointSizeMinValue",
 	"pointSizeScaleFactor",
+	"polyphony",
 	"port",
 	"position",
 	"power",
@@ -2344,6 +2400,7 @@ const char *COMPONENTS[] = {
 	"Layering",
 	"Layout",
 	"Lighting",
+	"MIDI",
 	"NURBS",
 	"Navigation",
 	"Networking",
@@ -2792,6 +2849,17 @@ const char *NODES[] = {
 	"ListenerPointSource",
 	"LoadSensor",
 	"LocalFog",
+	"MIDIAudioSynth",
+	"MIDIConverterIn",
+	"MIDIConverterOut",
+	"MIDIFileDestination",
+	"MIDIFileSource",
+	"MIDIIn",
+	"MIDIOut",
+	"MIDIPortDestination",
+	"MIDIPortSource",
+	"MIDIToneMerger",
+	"MIDIToneSplitter",
 	"MapEmitter",
 	"MapPhysicsModel",
 	"Material",
@@ -3145,6 +3213,17 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_lineProperties,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3854,6 +3933,40 @@ void render_LoadSensor(struct X3D_LoadSensor *);
 struct X3D_Virt virt_LoadSensor = { NULL,(void *)render_LoadSensor,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_LocalFog = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIAudioSynth(struct X3D_MIDIAudioSynth *);
+struct X3D_Virt virt_MIDIAudioSynth = { NULL,(void *)render_MIDIAudioSynth,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIConverterIn(struct X3D_MIDIConverterIn *);
+struct X3D_Virt virt_MIDIConverterIn = { NULL,(void *)render_MIDIConverterIn,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIConverterOut(struct X3D_MIDIConverterOut *);
+struct X3D_Virt virt_MIDIConverterOut = { NULL,(void *)render_MIDIConverterOut,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIFileDestination(struct X3D_MIDIFileDestination *);
+struct X3D_Virt virt_MIDIFileDestination = { NULL,(void *)render_MIDIFileDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIFileSource(struct X3D_MIDIFileSource *);
+void compile_MIDIFileSource(struct X3D_MIDIFileSource *);
+struct X3D_Virt virt_MIDIFileSource = { NULL,(void *)render_MIDIFileSource,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_MIDIFileSource};
+
+void render_MIDIIn(struct X3D_MIDIIn *);
+struct X3D_Virt virt_MIDIIn = { NULL,(void *)render_MIDIIn,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIOut(struct X3D_MIDIOut *);
+struct X3D_Virt virt_MIDIOut = { NULL,(void *)render_MIDIOut,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIPortDestination(struct X3D_MIDIPortDestination *);
+struct X3D_Virt virt_MIDIPortDestination = { NULL,(void *)render_MIDIPortDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIPortSource(struct X3D_MIDIPortSource *);
+struct X3D_Virt virt_MIDIPortSource = { NULL,(void *)render_MIDIPortSource,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIToneMerger(struct X3D_MIDIToneMerger *);
+struct X3D_Virt virt_MIDIToneMerger = { NULL,(void *)render_MIDIToneMerger,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter *);
+struct X3D_Virt virt_MIDIToneSplitter = { NULL,(void *)render_MIDIToneSplitter,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_MapEmitter = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4590,6 +4703,17 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_ListenerPointSource,
 	 &virt_LoadSensor,
 	 &virt_LocalFog,
+	 &virt_MIDIAudioSynth,
+	 &virt_MIDIConverterIn,
+	 &virt_MIDIConverterOut,
+	 &virt_MIDIFileDestination,
+	 &virt_MIDIFileSource,
+	 &virt_MIDIIn,
+	 &virt_MIDIOut,
+	 &virt_MIDIPortDestination,
+	 &virt_MIDIPortSource,
+	 &virt_MIDIToneMerger,
+	 &virt_MIDIToneSplitter,
 	 &virt_MapEmitter,
 	 &virt_MapPhysicsModel,
 	 &virt_Material,
@@ -7384,6 +7508,115 @@ const int OFFSETS_LocalFog[] = {
 	(int) FIELDNAMES___fogType, (int) offsetof (struct X3D_LocalFog, __fogType),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_LocalFog, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_LocalFog, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIAudioSynth[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIAudioSynth, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIAudioSynth, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_polyphony, (int) offsetof (struct X3D_MIDIAudioSynth, polyphony),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIConverterIn[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIConverterIn, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIConverterIn, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_octave, (int) offsetof (struct X3D_MIDIConverterIn, octave),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_key12, (int) offsetof (struct X3D_MIDIConverterIn, key12),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_key88, (int) offsetof (struct X3D_MIDIConverterIn, key88),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_keyPiano, (int) offsetof (struct X3D_MIDIConverterIn, keyPiano),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIConverterIn, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIConverterOut[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIConverterOut, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIConverterOut, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_octave, (int) offsetof (struct X3D_MIDIConverterOut, octave),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_key12, (int) offsetof (struct X3D_MIDIConverterOut, key12),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_key88, (int) offsetof (struct X3D_MIDIConverterOut, key88),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_keyPiano, (int) offsetof (struct X3D_MIDIConverterOut, keyPiano),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIConverterOut, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIFileDestination[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIFileDestination, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIFileDestination, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_MIDIFileDestination, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_MIDIFileDestination, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIFileSource[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIFileSource, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIFileSource, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_url, (int) offsetof (struct X3D_MIDIFileSource, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_MIDIFileSource, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_MIDIFileSource, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_MIDIFileSource, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___blob, (int) offsetof (struct X3D_MIDIFileSource, __blob),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIIn[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIIn, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIIn, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIIn, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_pedal, (int) offsetof (struct X3D_MIDIIn, pedal),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIOut[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIOut, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIOut, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIOut, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_pedal, (int) offsetof (struct X3D_MIDIOut, pedal),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_MIDIOut, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIPortDestination[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIPortDestination, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIPortDestination, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_port, (int) offsetof (struct X3D_MIDIPortDestination, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_MIDIPortDestination, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIPortSource[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIPortSource, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIPortSource, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_port, (int) offsetof (struct X3D_MIDIPortSource, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIToneMerger[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIToneMerger, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIToneMerger, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_octave, (int) offsetof (struct X3D_MIDIToneMerger, octave),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIToneMerger, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_C, (int) offsetof (struct X3D_MIDIToneMerger, C),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Cs, (int) offsetof (struct X3D_MIDIToneMerger, Cs),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_D, (int) offsetof (struct X3D_MIDIToneMerger, D),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Ds, (int) offsetof (struct X3D_MIDIToneMerger, Ds),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_E, (int) offsetof (struct X3D_MIDIToneMerger, E),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_F, (int) offsetof (struct X3D_MIDIToneMerger, F),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Fs, (int) offsetof (struct X3D_MIDIToneMerger, Fs),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_G, (int) offsetof (struct X3D_MIDIToneMerger, G),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Gs, (int) offsetof (struct X3D_MIDIToneMerger, Gs),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_A, (int) offsetof (struct X3D_MIDIToneMerger, A),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_As, (int) offsetof (struct X3D_MIDIToneMerger, As),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_B, (int) offsetof (struct X3D_MIDIToneMerger, B),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIToneSplitter[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIToneSplitter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIToneSplitter, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_octaveFilter, (int) offsetof (struct X3D_MIDIToneSplitter, octaveFilter),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_midiNote, (int) offsetof (struct X3D_MIDIToneSplitter, midiNote),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_C, (int) offsetof (struct X3D_MIDIToneSplitter, C),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Cs, (int) offsetof (struct X3D_MIDIToneSplitter, Cs),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_D, (int) offsetof (struct X3D_MIDIToneSplitter, D),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Ds, (int) offsetof (struct X3D_MIDIToneSplitter, Ds),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_E, (int) offsetof (struct X3D_MIDIToneSplitter, E),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_F, (int) offsetof (struct X3D_MIDIToneSplitter, F),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Fs, (int) offsetof (struct X3D_MIDIToneSplitter, Fs),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_G, (int) offsetof (struct X3D_MIDIToneSplitter, G),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_Gs, (int) offsetof (struct X3D_MIDIToneSplitter, Gs),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_A, (int) offsetof (struct X3D_MIDIToneSplitter, A),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_As, (int) offsetof (struct X3D_MIDIToneSplitter, As),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_B, (int) offsetof (struct X3D_MIDIToneSplitter, B),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MapEmitter[] = {
@@ -10182,6 +10415,17 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_ListenerPointSource,
 	OFFSETS_LoadSensor,
 	OFFSETS_LocalFog,
+	OFFSETS_MIDIAudioSynth,
+	OFFSETS_MIDIConverterIn,
+	OFFSETS_MIDIConverterOut,
+	OFFSETS_MIDIFileDestination,
+	OFFSETS_MIDIFileSource,
+	OFFSETS_MIDIIn,
+	OFFSETS_MIDIOut,
+	OFFSETS_MIDIPortDestination,
+	OFFSETS_MIDIPortSource,
+	OFFSETS_MIDIToneMerger,
+	OFFSETS_MIDIToneSplitter,
 	OFFSETS_MapEmitter,
 	OFFSETS_MapPhysicsModel,
 	OFFSETS_Material,
@@ -10795,6 +11039,17 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ListenerPointSource : {tmp = MALLOC (struct X3D_ListenerPointSource *, size = sizeof (struct X3D_ListenerPointSource)); break;}
 		case NODE_LoadSensor : {tmp = MALLOC (struct X3D_LoadSensor *, size = sizeof (struct X3D_LoadSensor)); break;}
 		case NODE_LocalFog : {tmp = MALLOC (struct X3D_LocalFog *, size = sizeof (struct X3D_LocalFog)); break;}
+		case NODE_MIDIAudioSynth : {tmp = MALLOC (struct X3D_MIDIAudioSynth *, size = sizeof (struct X3D_MIDIAudioSynth)); break;}
+		case NODE_MIDIConverterIn : {tmp = MALLOC (struct X3D_MIDIConverterIn *, size = sizeof (struct X3D_MIDIConverterIn)); break;}
+		case NODE_MIDIConverterOut : {tmp = MALLOC (struct X3D_MIDIConverterOut *, size = sizeof (struct X3D_MIDIConverterOut)); break;}
+		case NODE_MIDIFileDestination : {tmp = MALLOC (struct X3D_MIDIFileDestination *, size = sizeof (struct X3D_MIDIFileDestination)); break;}
+		case NODE_MIDIFileSource : {tmp = MALLOC (struct X3D_MIDIFileSource *, size = sizeof (struct X3D_MIDIFileSource)); break;}
+		case NODE_MIDIIn : {tmp = MALLOC (struct X3D_MIDIIn *, size = sizeof (struct X3D_MIDIIn)); break;}
+		case NODE_MIDIOut : {tmp = MALLOC (struct X3D_MIDIOut *, size = sizeof (struct X3D_MIDIOut)); break;}
+		case NODE_MIDIPortDestination : {tmp = MALLOC (struct X3D_MIDIPortDestination *, size = sizeof (struct X3D_MIDIPortDestination)); break;}
+		case NODE_MIDIPortSource : {tmp = MALLOC (struct X3D_MIDIPortSource *, size = sizeof (struct X3D_MIDIPortSource)); break;}
+		case NODE_MIDIToneMerger : {tmp = MALLOC (struct X3D_MIDIToneMerger *, size = sizeof (struct X3D_MIDIToneMerger)); break;}
+		case NODE_MIDIToneSplitter : {tmp = MALLOC (struct X3D_MIDIToneSplitter *, size = sizeof (struct X3D_MIDIToneSplitter)); break;}
 		case NODE_MapEmitter : {tmp = MALLOC (struct X3D_MapEmitter *, size = sizeof (struct X3D_MapEmitter)); break;}
 		case NODE_MapPhysicsModel : {tmp = MALLOC (struct X3D_MapPhysicsModel *, size = sizeof (struct X3D_MapPhysicsModel)); break;}
 		case NODE_Material : {tmp = MALLOC (struct X3D_Material *, size = sizeof (struct X3D_Material)); break;}
@@ -14218,6 +14473,148 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__fogType = 1;
 			tmp2->enabled = TRUE;
 			tmp2->metadata = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIAudioSynth : {
+			struct X3D_MIDIAudioSynth * tmp2;
+			tmp2 = (struct X3D_MIDIAudioSynth *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->polyphony = 10;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIConverterIn : {
+			struct X3D_MIDIConverterIn * tmp2;
+			tmp2 = (struct X3D_MIDIConverterIn *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->octave.n=0; tmp2->octave.p=0;
+			tmp2->key12.n=0; tmp2->key12.p=0;
+			tmp2->key88.n=0; tmp2->key88.p=0;
+			tmp2->keyPiano.n=0; tmp2->keyPiano.p=0;
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIConverterOut : {
+			struct X3D_MIDIConverterOut * tmp2;
+			tmp2 = (struct X3D_MIDIConverterOut *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->octave.n=0; tmp2->octave.p=0;
+			tmp2->key12.n=0; tmp2->key12.p=0;
+			tmp2->key88.n=0; tmp2->key88.p=0;
+			tmp2->keyPiano.n=0; tmp2->keyPiano.p=0;
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIFileDestination : {
+			struct X3D_MIDIFileDestination * tmp2;
+			tmp2 = (struct X3D_MIDIFileDestination *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIFileSource : {
+			struct X3D_MIDIFileSource * tmp2;
+			tmp2 = (struct X3D_MIDIFileSource *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->url.n=0; tmp2->url.p=0;
+			tmp2->__loadstatus = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__loadResource = 0;
+			tmp2->__blob.n=0; tmp2->__blob.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIIn : {
+			struct X3D_MIDIIn * tmp2;
+			tmp2 = (struct X3D_MIDIIn *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->pedal = FALSE;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIOut : {
+			struct X3D_MIDIOut * tmp2;
+			tmp2 = (struct X3D_MIDIOut *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->pedal = FALSE;
+			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIPortDestination : {
+			struct X3D_MIDIPortDestination * tmp2;
+			tmp2 = (struct X3D_MIDIPortDestination *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->port = 0;
+			tmp2->children.n=0; tmp2->children.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIPortSource : {
+			struct X3D_MIDIPortSource * tmp2;
+			tmp2 = (struct X3D_MIDIPortSource *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->port = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIToneMerger : {
+			struct X3D_MIDIToneMerger * tmp2;
+			tmp2 = (struct X3D_MIDIToneMerger *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->octave = 0;
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->C = FALSE;
+			tmp2->Cs = FALSE;
+			tmp2->D = FALSE;
+			tmp2->Ds = FALSE;
+			tmp2->E = FALSE;
+			tmp2->F = FALSE;
+			tmp2->Fs = FALSE;
+			tmp2->G = FALSE;
+			tmp2->Gs = FALSE;
+			tmp2->A = FALSE;
+			tmp2->As = FALSE;
+			tmp2->B = FALSE;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIToneSplitter : {
+			struct X3D_MIDIToneSplitter * tmp2;
+			tmp2 = (struct X3D_MIDIToneSplitter *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->octaveFilter = -1;
+			tmp2->midiNote.n=0; tmp2->midiNote.p=0;
+			tmp2->C = FALSE;
+			tmp2->Cs = FALSE;
+			tmp2->D = FALSE;
+			tmp2->Ds = FALSE;
+			tmp2->E = FALSE;
+			tmp2->F = FALSE;
+			tmp2->Fs = FALSE;
+			tmp2->G = FALSE;
+			tmp2->Gs = FALSE;
+			tmp2->A = FALSE;
+			tmp2->As = FALSE;
+			tmp2->B = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -20680,6 +21077,131 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 		    }
 		    break;
 		}
+		case NODE_MIDIAudioSynth : {
+			struct X3D_MIDIAudioSynth *tmp;
+			tmp = (struct X3D_MIDIAudioSynth *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," polyphony (SFInt32) \t%d\n",tmp->polyphony);
+		    break;
+		}
+		case NODE_MIDIConverterIn : {
+			struct X3D_MIDIConverterIn *tmp;
+			tmp = (struct X3D_MIDIConverterIn *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    break;
+		}
+		case NODE_MIDIConverterOut : {
+			struct X3D_MIDIConverterOut *tmp;
+			tmp = (struct X3D_MIDIConverterOut *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    break;
+		}
+		case NODE_MIDIFileDestination : {
+			struct X3D_MIDIFileDestination *tmp;
+			tmp = (struct X3D_MIDIFileDestination *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    break;
+		}
+		case NODE_MIDIFileSource : {
+			struct X3D_MIDIFileSource *tmp;
+			tmp = (struct X3D_MIDIFileSource *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," url (MFString): \n");
+			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
+		    break;
+		}
+		case NODE_MIDIIn : {
+			struct X3D_MIDIIn *tmp;
+			tmp = (struct X3D_MIDIIn *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+		    break;
+		}
+		case NODE_MIDIOut : {
+			struct X3D_MIDIOut *tmp;
+			tmp = (struct X3D_MIDIOut *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    break;
+		}
+		case NODE_MIDIPortDestination : {
+			struct X3D_MIDIPortDestination *tmp;
+			tmp = (struct X3D_MIDIPortDestination *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    break;
+		}
+		case NODE_MIDIPortSource : {
+			struct X3D_MIDIPortSource *tmp;
+			tmp = (struct X3D_MIDIPortSource *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
+		    break;
+		}
+		case NODE_MIDIToneMerger : {
+			struct X3D_MIDIToneMerger *tmp;
+			tmp = (struct X3D_MIDIToneMerger *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," octave (SFInt32) \t%d\n",tmp->octave);
+		    break;
+		}
+		case NODE_MIDIToneSplitter : {
+			struct X3D_MIDIToneSplitter *tmp;
+			tmp = (struct X3D_MIDIToneSplitter *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," octaveFilter (SFInt32) \t%d\n",tmp->octaveFilter);
+		    break;
+		}
 		case NODE_MapEmitter : {
 			struct X3D_MapEmitter *tmp;
 			tmp = (struct X3D_MapEmitter *) node;
@@ -24071,6 +24593,17 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_ListenerPointSource: return X3DSoundSourceNode; break;
 	case NODE_LoadSensor: return X3DNetworkSensorNode; break;
 	case NODE_LocalFog: return X3DChildNode; break;
+	case NODE_MIDIAudioSynth: return X3DSoundSourceNode; break;
+	case NODE_MIDIConverterIn: return X3DMIDINode; break;
+	case NODE_MIDIConverterOut: return X3DMIDINode; break;
+	case NODE_MIDIFileDestination: return X3DMIDIDestinationNode; break;
+	case NODE_MIDIFileSource: return X3DMIDISourceNode; break;
+	case NODE_MIDIIn: return X3DMIDISourceNode; break;
+	case NODE_MIDIOut: return X3DMIDIProcessingNode; break;
+	case NODE_MIDIPortDestination: return X3DMIDIDestinationNode; break;
+	case NODE_MIDIPortSource: return X3DMIDISourceNode; break;
+	case NODE_MIDIToneMerger: return X3DMIDINode; break;
+	case NODE_MIDIToneSplitter: return X3DMIDINode; break;
 	case NODE_MapEmitter: return X3DParticleEmitterNode; break;
 	case NODE_MapPhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_Material: return X3DMaterialNode; break;

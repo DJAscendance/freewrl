@@ -618,7 +618,10 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DSoundSourceNode				82
 #define X3DSoundDestinationNode			83
 #define X3DSoundChannelNode				84
-
+#define X3DMIDINode						85
+#define X3DMIDISourceNode				86
+#define X3DMIDIDestinationNode			87
+#define X3DMIDIProcessingNode			88
 
 
 
