@@ -713,6 +713,9 @@
     <ClInclude Include="..\..\src\lib\threads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\libmidi\libmidi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="$(SRCWIN)\winGLES2.rc">

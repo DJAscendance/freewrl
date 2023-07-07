@@ -66,7 +66,7 @@ struct bufAccess {
 // structs that go in void * node->_intern field
 struct X3D_InternalRep {
 	//abstract type for all that go in _intern
-	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep 8 MidiRep
 };
 
 

@@ -1,6 +1,7 @@
 
 // license: MIT or equivalent permissive
-//
+// MS visualStudio - /MD needed in Debug_glew 
+//  .. because some lib-Release-only-facing .cpp like JScript_sm.cpp facing release mozjs-24.dll conflict with MDd
 #include "LabSound.h"
 #include <algorithm>
 #include <array>

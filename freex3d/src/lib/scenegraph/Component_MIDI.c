@@ -41,8 +41,10 @@ X3D MIDI Experimental Component 2023
 #include "LinearAlgebra.h"
 #include "../../libmidi/libmidi.h"
 
+
 typedef struct pComponent_MIDI {
-	void *nothing;
+	Stack* midi_context_stack;
+	Stack* midi_parent_stack;
 }*ppComponent_MIDI;
 void* Component_MIDI_constructor() {
 	void* v = MALLOCV(sizeof(struct pComponent_MIDI));
@@ -57,7 +59,8 @@ void Component_MIDI_init(struct tComponent_MIDI* t) {
 	t->prv = Component_MIDI_constructor();
 	{
 		ppComponent_MIDI p = (ppComponent_MIDI)t->prv;
-		//p->audio_context_stack = newStack(int);
+		p->midi_context_stack = newStack(int);
+		p->midi_parent_stack = newStack(icset);
 	}
 }
 void Component_MIDI_clear(struct tComponent_MIDI* t) {
@@ -66,6 +69,158 @@ void Component_MIDI_clear(struct tComponent_MIDI* t) {
 }
 //ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
 
+
+#ifdef HAVE_LIBREMIDI
+
+struct X3D_MidiRep {
+	int itype; //==8, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep 8 MidiRep
+	int icontext; //map audio_contexts[icontext] = libmidi context
+	int inode; //map nodes[inode] = libmidi node
+	unsigned int iframe; //last frame visited on scenegraph traversal
+	int ibuffer; //just for source nodes with a buffer, like MIDIFileSource
+	void* connections;
+	int last_indexSource[10];
+	int last_indexDestination[10];
+	int last_count;
+};
+struct X3D_MidiRep* getMidiRep(struct X3D_Node* pnode) {
+	//main benefit of _intern Rep structure: saves switch-casing on _NodeType 
+	// to get specific common fields used for internal processing only
+	// -- just put the common fields in the Rep
+	// in our case it would be our lookup table int, maybe some AudioNode fields related to connecting, starting, stopping
+	struct X3D_MidiRep* srep = NULL;
+	if (pnode) {
+		srep = (struct X3D_MidiRep*)pnode->_intern;
+		if (!srep) {
+			srep = (struct X3D_MidiRep*)malloc(sizeof(struct X3D_MidiRep));
+			memset(srep, 0, sizeof(struct X3D_MidiRep));
+			srep->itype = 8; //MidiRep
+			pnode->_intern = (struct X3D_GeomRep*)srep;
+		}
+	}
+	return srep;
+}
+
+void register_visit_check(struct X3D_Node* node);
+void visit_check_midi(struct X3D_Node* node, unsigned int iframe) {
+	struct X3D_MidiRep* srep = getMidiRep(node);
+	if (srep->icontext) {
+		if (iframe == srep->iframe) {
+			libmidi_resumeContext0(srep->icontext);
+			//libmidi_resumeNode0(node);
+		}
+		else {
+			//not visited on last frame, perhaps in a switch deactivated branch
+			//lets pause the context
+			libmidi_pauseContext0(srep->icontext);
+			//libmidi_pauseNode0(node);
+		}
+	}
+}
+// v4 visibility functions, push & pop (to be) called from all X3DGroupingNode child_ functions
+void push_midi_context(int midi_context) {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	stack_push(int, p->midi_context_stack, midi_context);
+}
+void create_and_push_midi_context(struct X3D_Node* node) {
+	//Hypothesis: Destination / output audio nodes create a context, and child source and processing audio nodes use the context
+	struct X3D_MidiRep* srep = getMidiRep(node);
+	if (!srep->icontext) {
+		int jcontext = peek_midi_context();
+		if (!jcontext) {
+			jcontext = libmidi_createContext0();
+		}
+		srep->icontext = jcontext;
+		register_visit_check(node); //mainloop will check for you if it visits a node on a frame
+	}
+	push_midi_context(srep->icontext);
+}
+void pop_midi_context() {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	stack_pop(int, p->midi_context_stack);
+}
+int peek_midi_context() {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	return stack_top(int, p->midi_context_stack);
+}
+void push_midi_parent(int inode) {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	icset aps = { 0, 0, 0, 0, 0, 0 };
+	aps.p = inode;
+	aps.d = 0;
+	aps.ld = 0;
+	stack_push(icset, p->midi_parent_stack, aps);
+}
+void push_midi_parent3(int inode, int dstChan, int lstDst) {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	icset aps = { 0, 0, 0, 0, 0, 0 };
+	aps.p = inode;
+	aps.d = dstChan;
+	aps.ld = lstDst;
+	stack_push(icset, p->midi_parent_stack, aps);
+}
+void push_midi_parentnode(struct X3D_Node* node) {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	struct X3D_MidiRep* srep = getMidiRep(node);
+	push_midi_parent(srep->inode);
+}
+void pop_midi_parent() {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
+	stack_pop(icset, p->midi_parent_stack);
+}
+icset peek_midi_parent() {
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_Sound.prv;
+	return stack_top(icset, p->midi_parent_stack);
+}
+
+int midinewconnect(struct X3D_MidiRep* srep, icset iparent) {
+	if (!srep->connections) srep->connections = newStack(ivec3);
+	int duplicate = 0;
+	for (int i = 0; i < vectorSize(srep->connections); i++) {
+		icset conn = vector_get(icset, srep->connections, i);
+		if (conn.p == iparent.p && conn.n == iparent.n && conn.d == iparent.d && conn.s == iparent.s)
+			duplicate = 1;
+	}
+	if (!duplicate) {
+		stack_push(icset, srep->connections, iparent);
+	}
+	return 1 - duplicate;
+}
+int mididisconnect(struct X3D_MidiRep* srep, icset iparent) {
+	if (iparent.d == iparent.ld && iparent.s == iparent.ls) return 0; //no change in destination or source
+	if (!srep->connections) return 0; //no connections yet to delete
+	int found_old = -1;
+	for (int i = 0; i < vectorSize(srep->connections); i++) {
+		icset conn = vector_get(icset, srep->connections, i);
+		// LOGIC HERE IS STILL UNDER REVIEW
+		// proposed merger node: ls = s, ld = d at end of each render_ChannelMerger  
+		// v4 draft merger/selector nodes: ls = s at end of each render_ChannelSelector 
+		// the problem is initializing on first render only, so non-zero ls = s, ld = d
+		if (conn.p == iparent.p && conn.n == iparent.n) {
+			if (iparent.d != iparent.ld && conn.d == iparent.ld)
+				if (conn.s == iparent.s || conn.s == iparent.ls) found_old = i; //WHAT IF BOTH DESTINATION AND SOURCE CHANGE ON SAME FRAME?
+			if (iparent.s != iparent.ls && conn.s == iparent.ls)
+				if (conn.d == iparent.d || conn.d == iparent.ld) found_old = i; //WHAT IF BOTH DESTINATION AND SOURCE CHANGE ON SAME FRAME?
+		}
+	}
+	if (found_old > -1) {
+		vector_remove_elem(icset, srep->connections, found_old);
+	}
+	return found_old > -1 ? 1 : 0;
+}
+void update_midi_connections(struct X3D_MidiRep* srep, icset iparent)
+{
+	if (midinewconnect(srep, iparent)) {
+		libmidi_connect(srep->icontext, iparent);
+		//libmidi_print_connections();
+	}
+	if (mididisconnect(srep, iparent)) {
+		libmidi_disconnect(srep->icontext, iparent);
+		//libmidi_print_connections();
+	}
+}
+
+void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {}
 enum {
 	LOADER_INITIAL_STATE = 0,
 	LOADER_REQUEST_RESOURCE,
@@ -119,7 +274,7 @@ void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 					return;
 				}
 				node->__loadstatus = LOADER_LOADED;
-				node->__blob.p = of->fileData;
+				node->__blob.p = (int*)of->fileData;
 				node->__blob.n = of->fileDataSize;
 			}
 			else if ((res->status == ress_failed) || (res->status == ress_invalid)) {
@@ -134,7 +289,7 @@ void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 		res = node->__loadResource;
 
 		//printf ("inline parsing.... %s\n",resourceStatusToString(res->status));
-		printf ("res complete %d\n",res->complete);
+		printf("res complete %d\n", res->complete);
 		if (res->complete) {
 			if (res->status == ress_parsed) {
 				node->__loadstatus = LOADER_LOADED;
@@ -152,12 +307,9 @@ void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 		retval = TRUE;
 	}
 	if (node->__loadstatus == LOADER_STABLE || node->__loadstatus == LOADER_LOADED)
-	MARK_NODE_COMPILED
+		MARK_NODE_COMPILED
 }
 
-
-#ifdef HAVE_LIBREMIDI
-void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {}
 void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 	COMPILE_IF_REQUIRED;
 	if (node->__loadstatus == LOADER_LOADED) printf("loaded ");

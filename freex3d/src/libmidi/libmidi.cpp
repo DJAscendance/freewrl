@@ -24,5 +24,23 @@ General design:
 #include <libremidi/libremidi.hpp>
 #include <thread>
 
+//make the interface flat C
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "libmidi.h"
+
+int libmidi_createContext0() {
+	return 0;
+}
+void libmidi_pauseContext0(int icontext) {}
+void libmidi_resumeContext0(int icontext) {}
+void libmidi_print_connections() {}
+void libmidi_connect(int icontext, icset iparent) {}
+void libmidi_disconnect(int icontext, icset iparent) {}
+#ifdef __cplusplus
+}
+#endif
+
 #else // HAVE_LIBREMIDI
 #endif //HAVE_LIBREMIDI
