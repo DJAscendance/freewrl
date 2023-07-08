@@ -50,15 +50,15 @@ typedef struct MidiNode {
     int itype;
     int numberOfInputs;
     int numberOfOutputs;
-    //std::list<std::shared_ptr<MidiNode>> inputs;
-    std::list<std::shared_ptr<MidiNode>> outputs;
+    //std::list<MidiNode> inputs;
+    std::list<MidiNode*> outputs;
 } MidiNode;
 struct mcstruct {
     std::thread context;
     bool running;
     int next_node;
     //int next_bus;
-    std::map<int, std::shared_ptr<MidiNode>> nodes;
+    std::map<int, MidiNode*> nodes;
     std::map<int, int> nodetype;
  };
 static int next_midi_context = 0;
@@ -81,8 +81,8 @@ int libmidi_createContext0() {
     ac->running = FALSE;
 	return next_midi_context;
 }
-void midifilesourcefunction(libremidi::reader &r) {
-    for (const auto& track : r.tracks)
+void midifilesourcefunction(libremidi::reader *r) {
+    for (const auto& track : r->tracks)
     {
         std::cout << "\nNew track\n\n";
         for (const libremidi::track_event& event : track)
@@ -143,6 +143,8 @@ void midifilesourcefunction(libremidi::reader &r) {
             std::cout << '\n';
         }
     }
+    std::cout << "end of tracks" << std::endl;
+    std::cout << "bye bye" << std::endl;
 }
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
     struct mcstruct* ac = midi_contexts[icontext];
@@ -155,21 +157,25 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         std::shared_ptr<MidiNode> input;
         MidiNode* input_ptr;
         if (!srepn->inode) {
-
+            MidiNode *input = new MidiNode();
+            input->itype = 1; //1=MIDIFileInput
+            input->numberOfOutputs = 1;
+            input->numberOfInputs = 0;
             // Initialize our reader object
-            libremidi::reader r(true); //use abolute? time I think
+            libremidi::reader *midireader = new libremidi::reader(true); //use abolute? time I think
 
             // Parse
-            libremidi::reader::parse_result result = r.parse((uint8_t*)pnode->__blob.p,pnode->__blob.n);
+            libremidi::reader::parse_result result = midireader->parse((uint8_t*)pnode->__blob.p,pnode->__blob.n);
 
             // If parsing succeeded, use the parsed data
             if (result != libremidi::reader::invalid) {
-                //thread filesource(midifilesourcefunction, &r);
-                for (auto& track : r.tracks) {
-                    for (const libremidi::track_event& event : track) {
-                        std::cout << (int)event.m.bytes[0] << '\n';
-                    }
-                }
+                std::thread filesource(midifilesourcefunction, midireader);
+                filesource.detach();
+                //for (auto& track : r.tracks) {
+                //    for (const libremidi::track_event& event : track) {
+                //        std::cout << (int)event.m.bytes[0] << '\n';
+                //    }
+                //}
             }
             //create midi node
             //{
@@ -184,7 +190,7 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
 
             ac->next_node++;
             ac->nodes[ac->next_node] = input;
-            ac->nodetype[ac->next_node] = NODE_MicrophoneSource;
+            ac->nodetype[ac->next_node] = NODE_MIDIFileSource;
             srepn->inode = ac->next_node;
             srepn->icontext = icontext;
             //if (iparent.x)
@@ -243,18 +249,18 @@ struct midiconnection {
     int dstindex;
 };
 static std::list<midiconnection> midiconnections;
-void context_disconnect(std::shared_ptr<MidiNode> destination, std::shared_ptr<MidiNode> source, int indexDst, int indexSrc) {
+void context_disconnect(MidiNode* destination, MidiNode* source, int indexDst, int indexSrc) {
     source->outputs.remove(destination);
     //destination->inputs.remove(source);
 }
-void context_connect(std::shared_ptr<MidiNode> destination, std::shared_ptr<MidiNode> source, int indexDst, int indexSrc) {
+void context_connect(MidiNode* destination, MidiNode* source, int indexDst, int indexSrc) {
     source->outputs.push_back(destination);
     //destination->inputs.push_back(source);
 }
 void libmidi_connect2(int icontext, int idestination, int isource, int indexDst, int indexSrc) {
     struct mcstruct* ac = midi_contexts[icontext];
-    std::shared_ptr<MidiNode> destination = ac->nodes[idestination];
-    std::shared_ptr<MidiNode> source = ac->nodes[isource];
+    MidiNode* destination = ac->nodes[idestination];
+    MidiNode* source = ac->nodes[isource];
     int dstInputs = destination->numberOfInputs;
     int srcOutputs = source->numberOfOutputs;
     if (indexDst > dstInputs) {
@@ -285,8 +291,8 @@ void libmidi_connect2(int icontext, int idestination, int isource, int indexDst,
 }
 void libmidi_disconnect2(int icontext, int idestination, int isource, int indexDst, int indexSrc) {
     struct mcstruct* ac = midi_contexts[icontext];
-    std::shared_ptr<MidiNode> destination = ac->nodes[idestination];
-    std::shared_ptr<MidiNode> source = ac->nodes[isource];
+    MidiNode* destination = ac->nodes[idestination];
+    MidiNode* source = ac->nodes[isource];
     int dstInputs = destination->numberOfInputs;
     int srcOutputs = source->numberOfOutputs;
     if (indexDst > dstInputs) {
