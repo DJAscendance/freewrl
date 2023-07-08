@@ -22,7 +22,10 @@ General design:
 #include <cstdlib>
 #include <iostream>
 #include <libremidi/libremidi.hpp>
-#include <thread>
+#include <libremidi/reader.hpp>
+#include <thread> //https://en.cppreference.com/w/cpp/thread/thread
+#include <mutex>
+#include <condition_variable>
 #include <map>
 
 
@@ -51,7 +54,7 @@ typedef struct MidiNode {
     std::list<std::shared_ptr<MidiNode>> outputs;
 } MidiNode;
 struct mcstruct {
-    int context;
+    std::thread context;
     bool running;
     int next_node;
     //int next_bus;
@@ -60,18 +63,141 @@ struct mcstruct {
  };
 static int next_midi_context = 0;
 static std::map<int, struct mcstruct*> midi_contexts;
+void midi_context_function(struct mcstruct* ac) {
+    while (true) {
+        if (!ac->running) 
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        else {
 
+        }
+    }
+}
 int libmidi_createContext0() {
     struct mcstruct *ac = new mcstruct();
 
     next_midi_context++;
     midi_contexts[next_midi_context] = ac;
-    ac->context = next_midi_context;
+    ac->context = std::thread(midi_context_function, ac);
     ac->running = FALSE;
 	return next_midi_context;
 }
+void midifilesourcefunction(libremidi::reader &r) {
+    for (const auto& track : r.tracks)
+    {
+        std::cout << "\nNew track\n\n";
+        for (const libremidi::track_event& event : track)
+        {
+            std::cout << "Event at " << event.tick << " : ";
+            if (event.m.is_meta_event())
+            {
+                std::cout << "Meta event";
+            }
+            else
+            {
+                switch (event.m.get_message_type())
+                {
+                case libremidi::message_type::NOTE_ON:
+                    std::cout << "Note ON: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "note " << (int)event.m.bytes[1] << ' '
+                        << "velocity " << (int)event.m.bytes[2] << ' ';
+                    break;
+                case libremidi::message_type::NOTE_OFF:
+                    std::cout << "Note OFF: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "note " << (int)event.m.bytes[1] << ' '
+                        << "velocity " << (int)event.m.bytes[2] << ' ';
+                    break;
+                case libremidi::message_type::CONTROL_CHANGE:
+                    std::cout << "Control: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "control " << (int)event.m.bytes[1] << ' '
+                        << "value " << (int)event.m.bytes[2] << ' ';
+                    break;
+                case libremidi::message_type::PROGRAM_CHANGE:
+                    std::cout << "Program: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "program " << (int)event.m.bytes[1] << ' ';
+                    break;
+                case libremidi::message_type::AFTERTOUCH:
+                    std::cout << "Aftertouch: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "value " << (int)event.m.bytes[1] << ' ';
+                    break;
+                case libremidi::message_type::POLY_PRESSURE:
+                    std::cout << "Poly pressure: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "note " << (int)event.m.bytes[1] << ' '
+                        << "value " << (int)event.m.bytes[2] << ' ';
+                    break;
+                case libremidi::message_type::PITCH_BEND:
+                    std::cout << "Poly pressure: "
+                        << "channel " << event.m.get_channel() << ' '
+                        << "bend " << (int)(event.m.bytes[1] << 7 + event.m.bytes[2]) << ' ';
+                    break;
+                default:
+                    std::cout << "Unsupported.";
+                    break;
+                }
+            }
+            std::cout << '\n';
+        }
+    }
+}
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
+    struct mcstruct* ac = midi_contexts[icontext];
+    //goal- switch-case on x3d nodeType and do any midinode create+connect, update input or update output
+    struct X3D_MidiRep* srepn = (struct X3D_MidiRep*)node->_intern;
+    switch (node->_nodeType) {
+    case NODE_MIDIFileSource:
+    {
+        struct X3D_MIDIFileSource* pnode = (struct X3D_MIDIFileSource*)node;
+        std::shared_ptr<MidiNode> input;
+        MidiNode* input_ptr;
+        if (!srepn->inode) {
 
+            // Initialize our reader object
+            libremidi::reader r(true); //use abolute? time I think
+
+            // Parse
+            libremidi::reader::parse_result result = r.parse((uint8_t*)pnode->__blob.p,pnode->__blob.n);
+
+            // If parsing succeeded, use the parsed data
+            if (result != libremidi::reader::invalid) {
+                //thread filesource(midifilesourcefunction, &r);
+                for (auto& track : r.tracks) {
+                    for (const libremidi::track_event& event : track) {
+                        std::cout << (int)event.m.bytes[0] << '\n';
+                    }
+                }
+            }
+            //create midi node
+            //{
+            //    std::lock_guard<std::mutex> lock(ac->context);
+            //    ac->context., "microphone");
+            //    //input = lab::MakeAudioHardwareInputNode(r);
+            //    std::shared_ptr<AudioHardwareInputNode> inputNode(
+            //        new AudioHardwareInputNode(*ac->context.get(), ac->context.get()->destinationNode()->device()->sourceProvider()));
+            //    input = inputNode;
+            //    //ac->context.get()->connect(ac->context.get()->destinationNode(), inputNode, 0, 0);
+            //}
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MicrophoneSource;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+            //if (iparent.x)
+            //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
+        }
+        //copy changed values from x3d to labsound
+        //input_ptr = static_cast<AudioHardwareInputNode*>(ac->nodes[srepn->inode].get());
+    }
+    break;
+
+    default:
+        break;
+    }
 }
 void libmidi_pauseContext0(int icontext) {}
 void libmidi_resumeContext0(int icontext) {}

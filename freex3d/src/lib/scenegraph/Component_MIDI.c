@@ -39,8 +39,11 @@ X3D MIDI Experimental Component 2023
 #include "../main/headers.h"
 
 #include "LinearAlgebra.h"
+#ifdef HAVE_LIBREMIDI
 #include "../../libmidi/libmidi.h"
-
+#else
+typedef struct icset { int p; int d; int ld; int n; int s; int ls; } icset;
+#endif
 
 typedef struct pComponent_MIDI {
 	Stack* midi_context_stack;
@@ -60,7 +63,11 @@ void Component_MIDI_init(struct tComponent_MIDI* t) {
 	{
 		ppComponent_MIDI p = (ppComponent_MIDI)t->prv;
 		p->midi_context_stack = newStack(int);
+		stack_push(int, p->midi_context_stack, 0); //a null will signal we have no audio context yet.
 		p->midi_parent_stack = newStack(icset);
+		icset aps = { 0, 0, 0, 0, 0, 0 };
+		stack_push(icset, p->midi_parent_stack, aps); //a null will signal we have no audio parent yet.
+
 	}
 }
 void Component_MIDI_clear(struct tComponent_MIDI* t) {
@@ -72,6 +79,7 @@ void Component_MIDI_clear(struct tComponent_MIDI* t) {
 
 #ifdef HAVE_LIBREMIDI
 
+/*
 struct X3D_MidiRep {
 	int itype; //==8, 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep 8 MidiRep
 	int icontext; //map audio_contexts[icontext] = libmidi context
@@ -83,6 +91,7 @@ struct X3D_MidiRep {
 	int last_indexDestination[10];
 	int last_count;
 };
+*/
 struct X3D_MidiRep* getMidiRep(struct X3D_Node* pnode) {
 	//main benefit of _intern Rep structure: saves switch-casing on _NodeType 
 	// to get specific common fields used for internal processing only
