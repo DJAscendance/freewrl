@@ -192,9 +192,6 @@ int mididisconnect(struct X3D_MidiRep* srep, icset iparent) {
 	int found_old = -1;
 	for (int i = 0; i < vectorSize(srep->connections); i++) {
 		icset conn = vector_get(icset, srep->connections, i);
-		// LOGIC HERE IS STILL UNDER REVIEW
-		// proposed merger node: ls = s, ld = d at end of each render_ChannelMerger  
-		// v4 draft merger/selector nodes: ls = s at end of each render_ChannelSelector 
 		// the problem is initializing on first render only, so non-zero ls = s, ld = d
 		if (conn.p == iparent.p && conn.n == iparent.n) {
 			if (iparent.d != iparent.ld && conn.d == iparent.ld)
@@ -313,17 +310,50 @@ void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 	COMPILE_IF_REQUIRED;
 	if (node->__loadstatus == LOADER_LOADED) printf("loaded ");
-	if (node->__loadstatus == LOADER_LOADED) {
+	if (node->__loadstatus != LOADER_LOADED) return;
+
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset iparent = peek_midi_parent();
+	if (!srep->ibuffer) {
 		//start a thread to parse the blob
-		printf("loaded .mid file size = %d\n",node->__blob.n);
+		printf("loaded .mid file size = %d\n", node->__blob.n);
+		srep->ibuffer = node->__blob.n;
+		int icontext = peek_midi_context();
+		libmidi_updateNode3(icontext, iparent, anode);
 	}
+
+	if (node->_ichange != node->_change) {
+		//if (node->_ichange == 0) return;
+		int icontext = peek_midi_context();
+		libmidi_updateNode3(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+		node->_ichange = node->_change;
+		node->_ichange++; //come in here every loop
+		//could MARK_EVENT outputs
+	}
+	iparent.n = srep->inode;
+	iparent.s = 0;
+	update_connections(srep, iparent);
 
 }
 void render_MIDIPortDestination(struct X3D_MIDIPortDestination* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset have_parent = peek_midi_parent();
+	create_and_push_midi_context(anode);
+	if (!have_parent.p)
+		push_midi_parent(1); //should be the audio context device node
+
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
 			render_node(X3D_NODE(node->children.p[i]));
 	}
+	if (!have_parent.p)
+		pop_midi_parent(); //audio context device node 1
+	pop_midi_context();
 
 }
 void render_MIDIFileDestination(struct X3D_MIDIFileDestination* node) {

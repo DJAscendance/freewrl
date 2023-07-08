@@ -400,7 +400,7 @@ typedef ptw32_handle_t pthread_t;
     {NODE_MicrophoneSource, "MicS"},
     {0,NULL},
     };
-    const char* nodetype_lookup(int itype) {
+    static const char* nodetype_lookup(int itype) {
         int i;
         const char *cname;
         struct type_name* tn;

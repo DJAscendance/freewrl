@@ -18,6 +18,7 @@ typedef struct ivec3 { int x; int y; int z; } ivec3;
 #define EXPORT_DLL   //UN-DEFINE IT, WE AREN'T USING A LIB AT ALL
 
 EXPORT_DLL extern int libmidi_createContext0();
+EXPORT_DLL extern void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node);
 EXPORT_DLL extern void libmidi_pauseContext0(int icontext);
 EXPORT_DLL extern void libmidi_resumeContext0(int icontext);
 EXPORT_DLL extern void libmidi_print_connections();
