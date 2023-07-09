@@ -52,6 +52,10 @@ typedef struct MidiNode {
     int numberOfOutputs;
     //std::list<MidiNode> inputs;
     std::list<MidiNode*> outputs;
+    void (*takemessage)(MidiNode*, struct libremidi::message *);
+    libremidi::reader* reader;
+    int run;
+    int loop;
 } MidiNode;
 struct mcstruct {
     std::thread context;
@@ -81,86 +85,196 @@ int libmidi_createContext0() {
     ac->running = FALSE;
 	return next_midi_context;
 }
-void midifilesourcefunction(libremidi::reader *r) {
-    for (const auto& track : r->tracks)
-    {
-        std::cout << "\nNew track\n\n";
-        for (const libremidi::track_event& event : track)
+void midifilesourcefunction(MidiNode* mnode) {
+
+    libremidi::reader* r = mnode->reader;
+    do {
+        for (const auto& track : r->tracks)
         {
-            std::cout << "Event at " << event.tick << " : ";
-            if (event.m.is_meta_event())
+            std::cout << "\nNew track\n\n";
+            for (const libremidi::track_event& event : track)
             {
-                std::cout << "Meta event";
-            }
-            else
-            {
-                switch (event.m.get_message_type())
+                while (mnode->run != TRUE) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                std::cout << "Event at " << event.tick << " : ";
+                if (event.m.is_meta_event())
                 {
-                case libremidi::message_type::NOTE_ON:
-                    std::cout << "Note ON: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "note " << (int)event.m.bytes[1] << ' '
-                        << "velocity " << (int)event.m.bytes[2] << ' ';
-                    break;
-                case libremidi::message_type::NOTE_OFF:
-                    std::cout << "Note OFF: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "note " << (int)event.m.bytes[1] << ' '
-                        << "velocity " << (int)event.m.bytes[2] << ' ';
-                    break;
-                case libremidi::message_type::CONTROL_CHANGE:
-                    std::cout << "Control: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "control " << (int)event.m.bytes[1] << ' '
-                        << "value " << (int)event.m.bytes[2] << ' ';
-                    break;
-                case libremidi::message_type::PROGRAM_CHANGE:
-                    std::cout << "Program: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "program " << (int)event.m.bytes[1] << ' ';
-                    break;
-                case libremidi::message_type::AFTERTOUCH:
-                    std::cout << "Aftertouch: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "value " << (int)event.m.bytes[1] << ' ';
-                    break;
-                case libremidi::message_type::POLY_PRESSURE:
-                    std::cout << "Poly pressure: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "note " << (int)event.m.bytes[1] << ' '
-                        << "value " << (int)event.m.bytes[2] << ' ';
-                    break;
-                case libremidi::message_type::PITCH_BEND:
-                    std::cout << "Poly pressure: "
-                        << "channel " << event.m.get_channel() << ' '
-                        << "bend " << (int)(event.m.bytes[1] << 7 + event.m.bytes[2]) << ' ';
-                    break;
-                default:
-                    std::cout << "Unsupported.";
-                    break;
+                    std::cout << "Meta event";
                 }
+                else
+                {
+                    //std::wcout << "outputs.count" << mnode->outputs.size() << std::endl;
+                    for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+                    {
+                        MidiNode* mout = *it;
+                        libremidi::message msg = event.m;
+                        //std::cout << "mout->takemessage=" << mout->takemessage << std::endl;
+                        if (mout->takemessage) mout->takemessage(mout, &msg);
+                    }
+                    if (0) switch (event.m.get_message_type())
+                    {
+                    case libremidi::message_type::NOTE_ON:
+                        std::cout << "Note ON: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "note " << (int)event.m.bytes[1] << ' '
+                            << "velocity " << (int)event.m.bytes[2] << ' ';
+                        break;
+                    case libremidi::message_type::NOTE_OFF:
+                        std::cout << "Note OFF: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "note " << (int)event.m.bytes[1] << ' '
+                            << "velocity " << (int)event.m.bytes[2] << ' ';
+                        break;
+                    case libremidi::message_type::CONTROL_CHANGE:
+                        std::cout << "Control: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "control " << (int)event.m.bytes[1] << ' '
+                            << "value " << (int)event.m.bytes[2] << ' ';
+                        break;
+                    case libremidi::message_type::PROGRAM_CHANGE:
+                        std::cout << "Program: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "program " << (int)event.m.bytes[1] << ' ';
+                        break;
+                    case libremidi::message_type::AFTERTOUCH:
+                        std::cout << "Aftertouch: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "value " << (int)event.m.bytes[1] << ' ';
+                        break;
+                    case libremidi::message_type::POLY_PRESSURE:
+                        std::cout << "Poly pressure: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "note " << (int)event.m.bytes[1] << ' '
+                            << "value " << (int)event.m.bytes[2] << ' ';
+                        break;
+                    case libremidi::message_type::PITCH_BEND:
+                        std::cout << "Poly pressure: "
+                            << "channel " << event.m.get_channel() << ' '
+                            << "bend " << (int)(event.m.bytes[1] << 7 + event.m.bytes[2]) << ' ';
+                        break;
+                    default:
+                        std::cout << "Unsupported.";
+                        break;
+                    }
+                }
+                std::cout << '\n';
             }
-            std::cout << '\n';
         }
-    }
-    std::cout << "end of tracks" << std::endl;
+        std::cout << "end of tracks" << std::endl;
+    } while (mnode->loop == TRUE);
     std::cout << "bye bye" << std::endl;
+}
+void midiPortDestination_takemessage(MidiNode* midiNode, struct libremidi::message* msg) {
+    const struct libremidi::message& m = *msg;
+}
+void midiPrintDestination_takemessage(MidiNode* midiNode, struct libremidi::message * msg) {
+    const struct libremidi::message& m = *msg;
+    switch (m.get_message_type())
+    {
+    case libremidi::message_type::NOTE_ON:
+        std::cout << "Note ON: "
+            << "channel " << m.get_channel() << ' '
+            << "note " << (int)m.bytes[1] << ' '
+            << "velocity " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::NOTE_OFF:
+        std::cout << "Note OFF: "
+            << "channel " << m.get_channel() << ' '
+            << "note " << (int)m.bytes[1] << ' '
+            << "velocity " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::CONTROL_CHANGE:
+        std::cout << "Control: "
+            << "channel " << m.get_channel() << ' '
+            << "control " << (int)m.bytes[1] << ' '
+            << "value " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::PROGRAM_CHANGE:
+        std::cout << "Program: "
+            << "channel " << m.get_channel() << ' '
+            << "program " << (int)m.bytes[1] << ' ';
+        break;
+    case libremidi::message_type::AFTERTOUCH:
+        std::cout << "Aftertouch: "
+            << "channel " << m.get_channel() << ' '
+            << "value " << (int)m.bytes[1] << ' ';
+        break;
+    case libremidi::message_type::POLY_PRESSURE:
+        std::cout << "Poly pressure: "
+            << "channel " << m.get_channel() << ' '
+            << "note " << (int)m.bytes[1] << ' '
+            << "value " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::PITCH_BEND:
+        std::cout << "Poly pressure: "
+            << "channel " << m.get_channel() << ' '
+            << "bend " << (int)(m.bytes[1] << 7 + m.bytes[2]) << ' ';
+        break;
+    default:
+        std::cout << "Unsupported.";
+        break;
+    }
+
+    std::cout << " PrintDest\n";
+
 }
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
     struct mcstruct* ac = midi_contexts[icontext];
     //goal- switch-case on x3d nodeType and do any midinode create+connect, update input or update output
     struct X3D_MidiRep* srepn = (struct X3D_MidiRep*)node->_intern;
     switch (node->_nodeType) {
+    case NODE_MIDIPortDestination:
+    {
+        struct X3D_MIDIPortDestination* pnode = (struct X3D_MIDIPortDestination*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 3; //1=MIDIPortDestination
+            input->numberOfOutputs = 0;
+            input->numberOfInputs = 1;
+            input->takemessage = midiPortDestination_takemessage;
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIPortDestination;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+         }
+
+    }
+    break;
+    case NODE_MIDIPrintDestination:
+    {
+        struct X3D_MIDIPrintDestination* pnode = (struct X3D_MIDIPrintDestination*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 4; //1=MIDIPrintDestination
+            input->numberOfOutputs = 0;
+            input->numberOfInputs = 1;
+            input->takemessage = midiPrintDestination_takemessage;
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIPrintDestination;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+         }
+
+    }
+    break;
+
     case NODE_MIDIFileSource:
     {
         struct X3D_MIDIFileSource* pnode = (struct X3D_MIDIFileSource*)node;
-        std::shared_ptr<MidiNode> input;
-        MidiNode* input_ptr;
+        MidiNode* input;
         if (!srepn->inode) {
-            MidiNode *input = new MidiNode();
+            input = new MidiNode();
             input->itype = 1; //1=MIDIFileInput
             input->numberOfOutputs = 1;
             input->numberOfInputs = 0;
+            input->takemessage = NULL;
+            input->loop = FALSE;
+            input->run = FALSE;
             // Initialize our reader object
             libremidi::reader *midireader = new libremidi::reader(true); //use abolute? time I think
 
@@ -169,24 +283,15 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
 
             // If parsing succeeded, use the parsed data
             if (result != libremidi::reader::invalid) {
-                std::thread filesource(midifilesourcefunction, midireader);
-                filesource.detach();
+                input->reader = midireader;
+                std::thread filesource(midifilesourcefunction, input);
+                filesource.detach(); //so it doesn't try and join when done
                 //for (auto& track : r.tracks) {
                 //    for (const libremidi::track_event& event : track) {
                 //        std::cout << (int)event.m.bytes[0] << '\n';
                 //    }
                 //}
             }
-            //create midi node
-            //{
-            //    std::lock_guard<std::mutex> lock(ac->context);
-            //    ac->context., "microphone");
-            //    //input = lab::MakeAudioHardwareInputNode(r);
-            //    std::shared_ptr<AudioHardwareInputNode> inputNode(
-            //        new AudioHardwareInputNode(*ac->context.get(), ac->context.get()->destinationNode()->device()->sourceProvider()));
-            //    input = inputNode;
-            //    //ac->context.get()->connect(ac->context.get()->destinationNode(), inputNode, 0, 0);
-            //}
 
             ac->next_node++;
             ac->nodes[ac->next_node] = input;
@@ -196,8 +301,12 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
             //if (iparent.x)
             //    libsound_connect2(icontext, iparent.x, srepn->inode, iparent.y, iparent.z);
         }
-        //copy changed values from x3d to labsound
-        //input_ptr = static_cast<AudioHardwareInputNode*>(ac->nodes[srepn->inode].get());
+        else {
+            input = ac->nodes[srepn->inode];
+            //printf("setting source node to run\n");
+            input->run = TRUE;
+            //copy changed values from x3d to libmidi
+        }
     }
     break;
 

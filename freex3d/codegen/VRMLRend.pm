@@ -400,6 +400,7 @@ our %defaultContainerType = (
 	MIDIPortSource			=>["children"],
 	MIDIFileSource 			=>["children"],
 	MIDIPortDestination		=>["children"],
+	MIDIPrintDestination		=>["children"],
 	MIDIFileDestination		=>["children"],
 	MIDIOut				=>["children"],
 	MIDIIn				=>["children"],
@@ -543,6 +544,8 @@ our %RendC = map {($_=>1)} qw/
 	MIDIFileSource
 	MIDIPortDestination
 	MIDIFileDestination
+	MIDIPrintDestination
+
 	MIDIOut
 	MIDIIn
 	MIDIConverterOut

@@ -2384,6 +2384,13 @@ EXPOSED_FIELD(MIDIPortSource,description,sfstring,description,FIELDTYPE_SFString
 EXPOSED_FIELD(MIDIPortSource,port,sfint32,port,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(MIDIPortSource)
 
+/* MIDIPrintDestination node */
+BEGIN_NODE(MIDIPrintDestination)
+EXPOSED_FIELD(MIDIPrintDestination,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIPrintDestination,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIPrintDestination,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIPrintDestination)
+
 /* MIDIToneMerger node */
 BEGIN_NODE(MIDIToneMerger)
 EXPOSED_FIELD(MIDIToneMerger,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

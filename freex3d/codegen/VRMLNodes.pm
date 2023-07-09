@@ -5927,6 +5927,13 @@ our %Nodes = (
 
 	], "X3DMIDIDestinationNode"),
 
+	"MIDIPrintDestination" => new VRML::NodeType("MIDIPortDestination",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+
+	], "X3DMIDIDestinationNode"),
+
 	"MIDIOut" => new VRML::NodeType("MIDIOut",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff

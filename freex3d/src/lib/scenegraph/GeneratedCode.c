@@ -2858,6 +2858,7 @@ const char *NODES[] = {
 	"MIDIOut",
 	"MIDIPortDestination",
 	"MIDIPortSource",
+	"MIDIPrintDestination",
 	"MIDIToneMerger",
 	"MIDIToneSplitter",
 	"MapEmitter",
@@ -3213,6 +3214,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_lineProperties,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3961,6 +3963,9 @@ struct X3D_Virt virt_MIDIPortDestination = { NULL,(void *)render_MIDIPortDestina
 
 void render_MIDIPortSource(struct X3D_MIDIPortSource *);
 struct X3D_Virt virt_MIDIPortSource = { NULL,(void *)render_MIDIPortSource,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIPrintDestination(struct X3D_MIDIPrintDestination *);
+struct X3D_Virt virt_MIDIPrintDestination = { NULL,(void *)render_MIDIPrintDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_MIDIToneMerger(struct X3D_MIDIToneMerger *);
 struct X3D_Virt virt_MIDIToneMerger = { NULL,(void *)render_MIDIToneMerger,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4712,6 +4717,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_MIDIOut,
 	 &virt_MIDIPortDestination,
 	 &virt_MIDIPortSource,
+	 &virt_MIDIPrintDestination,
 	 &virt_MIDIToneMerger,
 	 &virt_MIDIToneSplitter,
 	 &virt_MapEmitter,
@@ -7581,6 +7587,12 @@ const int OFFSETS_MIDIPortSource[] = {
 	(int) FIELDNAMES_port, (int) offsetof (struct X3D_MIDIPortSource, port),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_MIDIPrintDestination[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIPrintDestination, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIPrintDestination, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_MIDIPrintDestination, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_MIDIToneMerger[] = {
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIToneMerger, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIToneMerger, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
@@ -10424,6 +10436,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_MIDIOut,
 	OFFSETS_MIDIPortDestination,
 	OFFSETS_MIDIPortSource,
+	OFFSETS_MIDIPrintDestination,
 	OFFSETS_MIDIToneMerger,
 	OFFSETS_MIDIToneSplitter,
 	OFFSETS_MapEmitter,
@@ -11048,6 +11061,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MIDIOut : {tmp = MALLOC (struct X3D_MIDIOut *, size = sizeof (struct X3D_MIDIOut)); break;}
 		case NODE_MIDIPortDestination : {tmp = MALLOC (struct X3D_MIDIPortDestination *, size = sizeof (struct X3D_MIDIPortDestination)); break;}
 		case NODE_MIDIPortSource : {tmp = MALLOC (struct X3D_MIDIPortSource *, size = sizeof (struct X3D_MIDIPortSource)); break;}
+		case NODE_MIDIPrintDestination : {tmp = MALLOC (struct X3D_MIDIPrintDestination *, size = sizeof (struct X3D_MIDIPrintDestination)); break;}
 		case NODE_MIDIToneMerger : {tmp = MALLOC (struct X3D_MIDIToneMerger *, size = sizeof (struct X3D_MIDIToneMerger)); break;}
 		case NODE_MIDIToneSplitter : {tmp = MALLOC (struct X3D_MIDIToneSplitter *, size = sizeof (struct X3D_MIDIToneSplitter)); break;}
 		case NODE_MapEmitter : {tmp = MALLOC (struct X3D_MapEmitter *, size = sizeof (struct X3D_MapEmitter)); break;}
@@ -14571,6 +14585,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->description = newASCIIString("");
 			tmp2->port = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIPrintDestination : {
+			struct X3D_MIDIPrintDestination * tmp2;
+			tmp2 = (struct X3D_MIDIPrintDestination *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21180,6 +21203,18 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," port (SFInt32) \t%d\n",tmp->port);
 		    break;
 		}
+		case NODE_MIDIPrintDestination : {
+			struct X3D_MIDIPrintDestination *tmp;
+			tmp = (struct X3D_MIDIPrintDestination *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    break;
+		}
 		case NODE_MIDIToneMerger : {
 			struct X3D_MIDIToneMerger *tmp;
 			tmp = (struct X3D_MIDIToneMerger *) node;
@@ -24602,6 +24637,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_MIDIOut: return X3DMIDIProcessingNode; break;
 	case NODE_MIDIPortDestination: return X3DMIDIDestinationNode; break;
 	case NODE_MIDIPortSource: return X3DMIDISourceNode; break;
+	case NODE_MIDIPrintDestination: return X3DMIDIDestinationNode; break;
 	case NODE_MIDIToneMerger: return X3DMIDINode; break;
 	case NODE_MIDIToneSplitter: return X3DMIDINode; break;
 	case NODE_MapEmitter: return X3DParticleEmitterNode; break;

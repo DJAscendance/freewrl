@@ -160,25 +160,12 @@ void push_midi_parent(int inode) {
 	aps.ld = 0;
 	stack_push(icset, p->midi_parent_stack, aps);
 }
-void push_midi_parent3(int inode, int dstChan, int lstDst) {
-	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
-	icset aps = { 0, 0, 0, 0, 0, 0 };
-	aps.p = inode;
-	aps.d = dstChan;
-	aps.ld = lstDst;
-	stack_push(icset, p->midi_parent_stack, aps);
-}
-void push_midi_parentnode(struct X3D_Node* node) {
-	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
-	struct X3D_MidiRep* srep = getMidiRep(node);
-	push_midi_parent(srep->inode);
-}
 void pop_midi_parent() {
 	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
 	stack_pop(icset, p->midi_parent_stack);
 }
 icset peek_midi_parent() {
-	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_Sound.prv;
+	ppComponent_MIDI p = (ppComponent_MIDI)gglobal()->Component_MIDI.prv;
 	return stack_top(icset, p->midi_parent_stack);
 }
 
@@ -318,7 +305,7 @@ void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 
 void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 	COMPILE_IF_REQUIRED;
-	if (node->__loadstatus == LOADER_LOADED) printf("loaded ");
+	//if (node->__loadstatus == LOADER_LOADED) printf("loaded ");
 	if (node->__loadstatus != LOADER_LOADED) return;
 
 	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
@@ -333,7 +320,8 @@ void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 		libmidi_updateNode3(icontext, iparent, anode);
 	}
 
-	if (node->_ichange != node->_change) {
+	//if (node->_ichange != node->_change) {
+	if(TRUE){
 		//if (node->_ichange == 0) return;
 		int icontext = peek_midi_context();
 		libmidi_updateNode3(icontext, iparent, anode);
@@ -344,17 +332,19 @@ void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {
 	}
 	iparent.n = srep->inode;
 	iparent.s = 0;
-	update_connections(srep, iparent);
+	update_midi_connections(srep, iparent);
 
 }
 void render_MIDIPortDestination(struct X3D_MIDIPortDestination* node) {
 	struct X3D_Node* anode = (struct X3D_Node*)node;
 	icset have_parent = peek_midi_parent();
 	create_and_push_midi_context(anode);
-	if (!have_parent.p)
-		push_midi_parent(1); //should be the audio context device node
-
 	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	libmidi_updateNode3(peek_midi_context(), have_parent, anode);
+	if (!have_parent.p) {
+		push_midi_parent(srep->inode); // 1); //should be the audio context device node
+		icset junk = peek_midi_parent();
+	}
 	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
@@ -362,6 +352,28 @@ void render_MIDIPortDestination(struct X3D_MIDIPortDestination* node) {
 	}
 	if (!have_parent.p)
 		pop_midi_parent(); //audio context device node 1
+	//libmidi_print_connections();
+	pop_midi_context();
+
+}
+void render_MIDIPrintDestination(struct X3D_MIDIPrintDestination* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset have_parent = peek_midi_parent();
+	create_and_push_midi_context(anode);
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	libmidi_updateNode3(peek_midi_context(), have_parent, anode);
+	if (!have_parent.p) {
+		push_midi_parent(srep->inode); // 1); //should be the audio context device node
+		icset junk = peek_midi_parent();
+	}
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->children.n) {
+		for (int i = 0; i < node->children.n; i++)
+			render_node(X3D_NODE(node->children.p[i]));
+	}
+	if (!have_parent.p)
+		pop_midi_parent(); //audio context device node 1
+	//libmidi_print_connections();
 	pop_midi_context();
 
 }

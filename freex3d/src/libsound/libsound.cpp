@@ -158,7 +158,7 @@ inline std::shared_ptr<AudioBus> MakeBusFromSampleFile(char const* const name, i
 template <typename Duration>
 void Wait(Duration duration)
 {
-    std::this_thread::sleep_for(duration<);
+    std::this_thread::sleep_for(duration);
 }
 
 enum {
