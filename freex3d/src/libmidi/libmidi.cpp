@@ -28,7 +28,38 @@ General design:
 #include <condition_variable>
 #include <map>
 
+static libremidi::midi_in midiin;
+static libremidi::midi_out midiout;
 
+extern "C" {
+    void midiin_C_callback(libremidi::message * msg);
+}
+void midiin_callback(libremidi::message& msg)
+{
+    midiin_C_callback(&msg);
+}
+void set_midiin_callback() {
+    std::cout << "setting input callback" << std::endl;
+    midiin.set_callback(
+        [](const libremidi::message& message)
+        {
+            std::cout << "input callback called " << std::endl;
+            std::vector<unsigned char> messout(message.size());
+            auto nBytes = message.size();
+            for (auto i = 0U; i < nBytes; i++)
+                std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+            if (nBytes > 0)
+                std::cout << "stamp = " << message.timestamp << std::endl;
+            messout[0] = message[0];
+            messout[1] = message[1];
+            messout[2] = message[2];
+            if (messout[2] > 0 && messout[2] < 64)
+                messout[2] = 64;
+            midiout.send_message(messout);
+
+        });
+
+}
 //make the interface flat C
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +76,7 @@ typedef struct {
 typedef ptw32_handle_t pthread_t;
 #include "../lib/vrml_parser/Structs.h"
 #include "libmidi.h"
+
 
 typedef struct MidiNode {
     int itype;
@@ -165,6 +197,19 @@ void midifilesourcefunction(MidiNode* mnode) {
 }
 void midiPortDestination_takemessage(MidiNode* midiNode, struct libremidi::message* msg) {
     const struct libremidi::message& m = *msg;
+    std::vector<unsigned char> messout(m.size());
+    auto nBytes = m.size();
+    for (auto i = 0U; i < nBytes; i++)
+        std::cout << "Byte " << i << " = " << (int)m[i] << ", ";
+    if (nBytes > 0)
+        std::cout << "stamp = " << m.timestamp << std::endl;
+    messout[0] = m[0];
+    messout[1] = m[1];
+    messout[2] = m[2];
+    if (messout[2] > 0 && messout[2] < 64)
+        messout[2] = 64;
+    midiout.send_message(messout);
+
 }
 void midiPrintDestination_takemessage(MidiNode* midiNode, struct libremidi::message * msg) {
     const struct libremidi::message& m = *msg;
@@ -222,8 +267,6 @@ void print_ports() {
     //do once per run if there are midi nodes in scene
     printf("MIDI ports:\n");
     std::string portName;
-    static libremidi::midi_out midiout;
-    static libremidi::midi_out midiin;
     unsigned int i = 0, nPorts = midiout.get_port_count();
     if (nPorts == 0)
         std::cout << "No ports available!" << std::endl;
@@ -236,49 +279,108 @@ void print_ports() {
 
     ports_printed = TRUE;
 }
+MidiNode* midiin_node = NULL;
+
+void midiin_C_callback(libremidi::message* msg){
+//void midiportsourcefunction(const libremidi::message * messin) {
+    const struct libremidi::message& message = *msg;
+
+    MidiNode* mnode = midiin_node;
+    std::vector<unsigned char> messout(message.size());
+    auto nBytes = message.size();
+    for (auto i = 0U; i < nBytes; i++)
+        std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+    if (nBytes > 0)
+        std::cout << "stamp = " << message.timestamp << std::endl;
+    messout[0] = message[0];
+    messout[1] = message[1];
+    messout[2] = message[2];
+    if (messout[2] > 0 && messout[2] < 64)
+        messout[2] = 64;
+    libremidi::message* msgo = new libremidi::message(messout, message.timestamp);
+    //midiout.send_message(messout);
+    for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+    {
+        MidiNode* mout = *it;
+        //std::cout << "mout->takemessage=" << mout->takemessage << std::endl;
+        if (mout->takemessage) mout->takemessage(mout, msgo);
+    }
+}
+//std::function<void(libremidi::message*)> standard_function(midiin_C_callback);
+//libremidi::midi_in::message_callback standard_function(midiin_C_callback);
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
+    // midi node type 1=PortSource 2=PortDestination 3=FileSource 4=FileDestination 5=PrintDestination
     struct mcstruct* ac = midi_contexts[icontext];
     //goal- switch-case on x3d nodeType and do any midinode create+connect, update input or update output
     struct X3D_MidiRep* srepn = (struct X3D_MidiRep*)node->_intern;
     if (!ports_printed) print_ports();
     switch (node->_nodeType) {
+    case NODE_MIDIPortSource:
+    {
+        struct X3D_MIDIPortSource* pnode = (struct X3D_MIDIPortSource*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 1; //1=MIDIPortSource
+            input->numberOfOutputs = 0;
+            input->numberOfInputs = 1;
+            input->takemessage = NULL;
+            midiin_node = input;
+            midiin.open_port(pnode->port);
+            printf("have a MIDIPortSource node, handling it'n");
+            set_midiin_callback();
+            //..midiin.set_callback((void*)midiin_C_callback); // standard_function); // midiin_callback);
+            /*
+            midiin.set_callback(
+                [](const libremidi::message& message)
+                {
+                    std::vector<unsigned char> messout(message.size());
+                    auto nBytes = message.size();
+                    for (auto i = 0U; i < nBytes; i++)
+                        std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+                    if (nBytes > 0)
+                        std::cout << "stamp = " << message.timestamp << std::endl;
+                    messout[0] = message[0];
+                    messout[1] = message[1];
+                    messout[2] = message[2];
+                    if (messout[2] > 0 && messout[2] < 64)
+                        messout[2] = 64;
+                    midiout.send_message(messout);
+
+                });
+            */
+            // Don't ignore sysex, timing, or active sensing messages.
+            midiin.ignore_types(false, false, false);
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIPortSource;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+
+    }
+    break;
     case NODE_MIDIPortDestination:
     {
         struct X3D_MIDIPortDestination* pnode = (struct X3D_MIDIPortDestination*)node;
         MidiNode* input;
         if (!srepn->inode) {
             input = new MidiNode();
-            input->itype = 3; //1=MIDIPortDestination
+            input->itype = 2; //MIDIPortDestination
             input->numberOfOutputs = 0;
             input->numberOfInputs = 1;
             input->takemessage = midiPortDestination_takemessage;
+            midiin.open_port(pnode->port);
+            //std::thread portsource(midiportsourcefunction, input);
+            //portsource.detach(); //so it doesn't try and join when done
 
             ac->next_node++;
             ac->nodes[ac->next_node] = input;
             ac->nodetype[ac->next_node] = NODE_MIDIPortDestination;
             srepn->inode = ac->next_node;
             srepn->icontext = icontext;
-         }
-
-    }
-    break;
-    case NODE_MIDIPrintDestination:
-    {
-        struct X3D_MIDIPrintDestination* pnode = (struct X3D_MIDIPrintDestination*)node;
-        MidiNode* input;
-        if (!srepn->inode) {
-            input = new MidiNode();
-            input->itype = 4; //1=MIDIPrintDestination
-            input->numberOfOutputs = 0;
-            input->numberOfInputs = 1;
-            input->takemessage = midiPrintDestination_takemessage;
-
-            ac->next_node++;
-            ac->nodes[ac->next_node] = input;
-            ac->nodetype[ac->next_node] = NODE_MIDIPrintDestination;
-            srepn->inode = ac->next_node;
-            srepn->icontext = icontext;
-         }
+        }
 
     }
     break;
@@ -289,7 +391,7 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         MidiNode* input;
         if (!srepn->inode) {
             input = new MidiNode();
-            input->itype = 1; //1=MIDIFileInput
+            input->itype = 3; //MIDIFileSource
             input->numberOfOutputs = 1;
             input->numberOfInputs = 0;
             input->takemessage = NULL;
@@ -327,6 +429,26 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
             input->run = TRUE;
             //copy changed values from x3d to libmidi
         }
+    }
+    break;
+    case NODE_MIDIPrintDestination:
+    {
+        struct X3D_MIDIPrintDestination* pnode = (struct X3D_MIDIPrintDestination*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 5; //MIDIPrintDestination
+            input->numberOfOutputs = 0;
+            input->numberOfInputs = 1;
+            input->takemessage = midiPrintDestination_takemessage;
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIPrintDestination;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+
     }
     break;
 

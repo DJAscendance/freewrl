@@ -213,7 +213,27 @@ void update_midi_connections(struct X3D_MidiRep* srep, icset iparent)
 	}
 }
 
-void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {}
+void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset iparent = peek_midi_parent();
+
+	//if (node->_ichange != node->_change) {
+	if (TRUE) {
+		//if (node->_ichange == 0) return;
+		int icontext = peek_midi_context();
+		libmidi_updateNode3(icontext, iparent, anode);
+		//MARK_NODE_COMPILED
+		node->_ichange = node->_change;
+		node->_ichange++; //come in here every loop
+		//could MARK_EVENT outputs
+	}
+	iparent.n = srep->inode;
+	iparent.s = 0;
+	update_midi_connections(srep, iparent);
+
+}
 enum {
 	LOADER_INITIAL_STATE = 0,
 	LOADER_REQUEST_RESOURCE,
