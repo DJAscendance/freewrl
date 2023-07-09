@@ -217,10 +217,30 @@ void midiPrintDestination_takemessage(MidiNode* midiNode, struct libremidi::mess
     std::cout << " PrintDest\n";
 
 }
+static int ports_printed = FALSE;
+void print_ports() {
+    //do once per run if there are midi nodes in scene
+    printf("MIDI ports:\n");
+    std::string portName;
+    static libremidi::midi_out midiout;
+    static libremidi::midi_out midiin;
+    unsigned int i = 0, nPorts = midiout.get_port_count();
+    if (nPorts == 0)
+        std::cout << "No ports available!" << std::endl;
+    else
+    for (i = 0; i < nPorts; i++)
+    {
+        portName = midiout.get_port_name(i);
+        std::cout << "  port #" << i << ": " << portName << '\n';
+    }
+
+    ports_printed = TRUE;
+}
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
     struct mcstruct* ac = midi_contexts[icontext];
     //goal- switch-case on x3d nodeType and do any midinode create+connect, update input or update output
     struct X3D_MidiRep* srepn = (struct X3D_MidiRep*)node->_intern;
+    if (!ports_printed) print_ports();
     switch (node->_nodeType) {
     case NODE_MIDIPortDestination:
     {
