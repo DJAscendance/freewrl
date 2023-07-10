@@ -106,7 +106,7 @@ void common_init(struct tcommon *t){
 		p->colorScheme = NULL;
 		p->colorSchemeChanged = 0;
 		p->pin_statusbar = 1;
-		p->pin_menubar = 0;
+		p->pin_menubar = 1;
 		p->want_menubar = 1;
 		p->want_statusbar = 1;
 		p->keyvals = NULL;
