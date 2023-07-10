@@ -6005,6 +6005,7 @@ our %Nodes = (
 		A => ["SFBool","FALSE","inputOnly",0,0],#ff
 		As => ["SFBool","FALSE","inputOnly",0,0],#ff
 		B => ["SFBool","FALSE","inputOnly",0,0],#ff
+                _lastnote => ["MFBool",[],"inputOnly",0,0],#ff
 
 	], "X3DMIDINode"),
 

@@ -384,7 +384,6 @@ void render_MIDIPrintDestination(struct X3D_MIDIPrintDestination* node) {
 	libmidi_updateNode3(peek_midi_context(), have_parent, anode);
 	if (!have_parent.p) {
 		push_midi_parent(srep->inode); // 1); //should be the audio context device node
-		icset junk = peek_midi_parent();
 	}
 	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->children.n) {
@@ -405,17 +404,135 @@ void render_MIDIFileDestination(struct X3D_MIDIFileDestination* node) {
 
 }
 void render_MIDIOut(struct X3D_MIDIOut* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset have_parent = peek_midi_parent();
+	create_and_push_midi_context(anode);
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	libmidi_updateNode3(peek_midi_context(), have_parent, anode);
+	if (!have_parent.p) {
+		push_midi_parent(srep->inode); // 1); //should be the audio context device node
+	}
+	srep->iframe = gglobal()->Mainloop.iframe;
 	if (node->children.n) {
 		for (int i = 0; i < node->children.n; i++)
-			//libsound_updateNode0(icontext,anode,(struct X3D_Node*) node->children.p[i]);
 			render_node(X3D_NODE(node->children.p[i]));
 	}
+	if (!have_parent.p)
+		pop_midi_parent(); //audio context device node 1
+	pop_midi_context();
 }
-void render_MIDIIn(struct X3D_MIDIIn* node) {}
+void render_MIDIIn(struct X3D_MIDIIn* node) {
+
+}
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut* node) {}
 void render_MIDIConverterIn(struct MIDIConverterIn* node) {}
-void render_MIDIToneSplitter(struct MIDIToneSplitter* node) {}
-void render_MIDIToneMerger(struct MIDIToneMerger* node) {}
+void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
+	struct X3D_Node* anode = X3D_NODE(node);
+	if (node->_ichange != node->_change) {
+		for (int i = 0; i < node->midiNote.n; i++)
+		{
+			int note = abs(node->midiNote.p[i]);
+			int status = node->midiNote.p[i] < 0 ? FALSE : TRUE;
+			int octave = note / 12;
+			int inote = note % 12;
+			if (octave == node->octaveFilter || node->octaveFilter == -1)
+			{
+				switch (inote) {
+				case 0: node->C   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, C)); break;
+				case 1: node->Cs  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, Cs)); break;
+				case 2: node->D   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, D)); break;
+				case 3: node->Ds  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, Ds)); break;
+				case 4: node->E   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, E)); break;
+				case 5: node->F   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, F)); break;
+				case 6: node->Fs  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, Fs)); break;
+				case 7: node->G   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, G)); break;
+				case 8: node->Gs  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, Gs)); break;
+				case 9: node->A   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, A)); break;
+				case 10: node->As = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, As)); break;
+				case 11: node->B  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, B)); break;
+				default: break;
+				}
+			}
+		}
+		MARK_NODE_COMPILED
+
+	}
+}
+void offset_notefields_MidiToneMerger(size_t * cfield) {
+	cfield[0] = (offsetof(struct X3D_MIDIToneMerger, C));
+	cfield[1] = (offsetof(struct X3D_MIDIToneMerger, Cs));
+	cfield[2] = (offsetof(struct X3D_MIDIToneMerger, D));
+	cfield[3] = (offsetof(struct X3D_MIDIToneMerger, Ds));
+	cfield[4] = (offsetof(struct X3D_MIDIToneMerger, E));
+	cfield[5] = (offsetof(struct X3D_MIDIToneMerger, F));
+	cfield[6] = (offsetof(struct X3D_MIDIToneMerger, Fs));
+	cfield[7] = (offsetof(struct X3D_MIDIToneMerger, G));
+	cfield[8] = (offsetof(struct X3D_MIDIToneMerger, Gs));
+	cfield[9] = (offsetof(struct X3D_MIDIToneMerger, A));
+	cfield[10] = (offsetof(struct X3D_MIDIToneMerger, As));
+	cfield[11] = (offsetof(struct X3D_MIDIToneMerger, B));
+}
+void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
+	struct X3D_Node* anode = X3D_NODE(node);
+	//static struct Multi_Bool lastnote;
+	static size_t cfields[12];
+	if (node->_lastnote.n == 0)
+	{
+		//we store last frame's note on/off values, so we can detect if something changed
+		node->_lastnote.p = malloc(12 * sizeof(int));
+		node->_lastnote.n = 12;
+		for (int i = 0; i < 12; i++) node->_lastnote.p[i] = FALSE;
+		offset_notefields_MidiToneMerger(cfields);
+	}
+	if (node->_ichange != node->_change) {
+		int n, mark, mnote[12]; //max polyphony 12,assume fixed octave and max 12 changed notes in octave per frame
+		n = 0;
+		mark = FALSE;
+		for(int i=0;i<node->_lastnote.n;i++)
+		{
+			int lastval = node->_lastnote.p[i];
+			int octave = node->octave;
+			int inote = i;
+			int note = i + 12 * octave;
+			int *field = (int*)(cfields[i] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
+			int curval = *field;
+			if(curval != lastval) { 
+				mnote[n] = curval ? note : -note; n++; 
+				mark = TRUE;
+			}
+			node->_lastnote.p[i] = curval;
+			/*
+			if (octave == node->octave )
+			{
+				switch (inote) {
+				case 0:  if (node->C != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; } break;
+				case 1:  if (node->Cs != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; } break;
+				case 2:  if (node->D != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; } break;
+				case 3:  if (node->Ds != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 4:  if (node->E != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 5:  if (node->F != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 6:  if (node->Fs != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 7:  if (node->G != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 8:  if (node->Gs != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 9: if (node->A != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				case 10: if (node->As != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; } break;
+				case 11: if (node->B != status) { mnote[n] = node->C ? note : -note; n++; mark = TRUE; }break;
+				default: break;
+				}
+			}
+			*/
+		}
+		if (mark) {
+			node->midiNote.p = realloc(node->midiNote.p, n * sizeof(int));
+			memcpy(node->midiNote.p, mnote, n * sizeof(int));
+			node->midiNote.n = n;
+			MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiNote));
+		}
+		MARK_NODE_COMPILED
+
+	}
+
+}
 void render_MIDIAudioSynth(struct MIDIAudioSynth* node) {}
 
 #else //HAVE_LIBREMIDI

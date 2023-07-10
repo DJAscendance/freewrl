@@ -27,6 +27,7 @@ General design:
 #include <mutex>
 #include <condition_variable>
 #include <map>
+#include <queue>
 
 static libremidi::midi_in midiin;
 static libremidi::midi_out midiout;
@@ -63,6 +64,49 @@ void set_midiin_callback() {
         });
 
 }
+// A threadsafe-queue. https://stackoverflow.com/questions/15278343/c11-thread-safe-queue 
+template <class T>
+class SafeQueue
+{
+public:
+    SafeQueue(void)
+        : q()
+        , m()
+        , c()
+    {}
+
+    ~SafeQueue(void)
+    {}
+
+    // Add an element to the queue.
+    void enqueue(T t)
+    {
+        std::lock_guard<std::mutex> lock(m);
+        q.push(t);
+        c.notify_one();
+    }
+
+    // Get the "front"-element.
+    // If the queue is empty, wait till a element is avaiable.
+    T dequeue(void)
+    {
+        std::unique_lock<std::mutex> lock(m);
+        if (q.empty()) return nullptr;
+        //while (q.empty())
+        //{
+        //    // release lock as long as the wait and reaquire it afterwards.
+        //    c.wait(lock);
+        //}
+        T val = q.front();
+        q.pop();
+        return val;
+    }
+
+private:
+    std::queue<T> q;
+    mutable std::mutex m;
+    std::condition_variable c;
+};
 
 //make the interface flat C
 #ifdef __cplusplus
@@ -92,6 +136,7 @@ typedef struct MidiNode {
     libremidi::reader* reader;
     int run;
     int loop;
+    void* queue;
 } MidiNode;
 struct mcstruct {
     std::thread context;
@@ -280,6 +325,105 @@ void midiPrintDestination_takemessage(MidiNode* midiNode, const struct libremidi
     std::cout << " PrintDest\n";
 
 }
+void midiOut_takemessage(MidiNode* midiNode, const struct libremidi::message* msg) {
+    const struct libremidi::message& m = *msg;
+    if (!midiNode->queue)
+        midiNode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
+    SafeQueue<const struct libremidi::message*> *que = (SafeQueue<const struct libremidi::message*>*)midiNode->queue;
+    std::cout << "enqueuing one" << std::endl;
+    que->enqueue(new libremidi::message(*msg));
+    std::cout << "enqueued one" << std::endl;
+
+    /*
+    switch (m.get_message_type())
+    {
+    case libremidi::message_type::NOTE_ON:
+        std::cout << "Note ON: "
+            << "channel " << m.get_channel() << ' '
+            << "note " << (int)m.bytes[1] << ' '
+            << "velocity " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::NOTE_OFF:
+        std::cout << "Note OFF: "
+            << "channel " << m.get_channel() << ' '
+            << "note " << (int)m.bytes[1] << ' '
+            << "velocity " << (int)m.bytes[2] << ' ';
+        break;
+    case libremidi::message_type::CONTROL_CHANGE:
+        std::cout << "Control: "
+            << "channel " << m.get_channel() << ' '
+            << "control " << (int)m.bytes[1] << ' '
+            << "value " << (int)m.bytes[2] << ' ';
+        break;
+    }
+    */
+}
+void mark_event(struct X3D_Node* from, int totalptr);
+//#define MARK_EVENT(node,offset)	mark_event(X3D_NODE(node),(int) offset)
+void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
+    struct X3D_Node* anode = X3D_NODE(node);
+    const struct libremidi::message *msg;
+    if (!midiNode->queue)
+        midiNode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
+    SafeQueue<const struct libremidi::message*>* que = (SafeQueue<const struct libremidi::message*>*)midiNode->queue;
+    Multi_Int32* last = &node->midiNote;
+    int cur[1000], n = 0;
+    int pedal = FALSE;
+    int mark = FALSE;
+    //std::cout << "starting dequeue loop" << std::endl;
+
+    while (msg = que->dequeue()) {
+        std::cout << "dequed one" << std::endl;
+        
+        const struct libremidi::message& m = *msg;
+        switch (m.get_message_type())
+        {
+        case libremidi::message_type::NOTE_ON:
+            std::cout << "Note ON: "
+                << "channel " << m.get_channel() << ' '
+                << "note " << (int)m.bytes[1] << ' '
+                << "velocity " << (int)m.bytes[2] << ' ';
+            cur[n] = (int)m.bytes[2] > 0 ? (int)m.bytes[1] : -(int)m.bytes[1];
+            n++;
+            break;
+        case libremidi::message_type::NOTE_OFF:
+            std::cout << "Note OFF: "
+                << "channel " << m.get_channel() << ' '
+                << "note " << (int)m.bytes[1] << ' '
+                << "velocity " << (int)m.bytes[2] << ' ';
+            cur[n] = -(int)m.bytes[1]; //negative sign for OFF, + for ON
+            n++;
+            break;
+        case libremidi::message_type::CONTROL_CHANGE:
+            std::cout << "Control: "
+                << "channel " << m.get_channel() << ' '
+                << "control " << (int)m.bytes[1] << ' '
+                << "value " << (int)m.bytes[2] << ' ';
+            pedal = node->pedal;
+            node->pedal = m.bytes[2] > 0 ? TRUE : FALSE;
+            if(pedal != node->pedal) MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, pedal));
+            break;
+        default:
+            break;
+        }
+        
+       //I don't have a destructor,memory use will escalate ~msg();
+    }
+    //std::cout << "ended dequeue loop" << std::endl;
+
+    if (n) {
+        node->midiNote.p = (int *)realloc(node->midiNote.p, n * sizeof(int));
+        memcpy(node->midiNote.p, cur, n * sizeof(int));
+        node->midiNote.n = n;
+        MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, midiNote));
+    }
+    else {
+        node->midiNote.n = 0;
+    }
+    //std::cout << "finished midiOut render" << std::endl;
+
+}
+
 static int ports_printed = FALSE;
 void print_ports() {
     //do once per run if there are midi nodes in scene
@@ -340,7 +484,7 @@ void midiin_C_callback(const libremidi::message* msg){
 //std::function<void(libremidi::message*)> standard_function(midiin_C_callback);
 //libremidi::midi_in::message_callback standard_function(midiin_C_callback);
 void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* node) {
-    // midi node type 1=PortSource 2=PortDestination 3=FileSource 4=FileDestination 5=PrintDestination
+    // midi node type 1=PortSource 2=PortDestination 3=FileSource 4=FileDestination 5=PrintDestination 6=MIDIOut
     struct mcstruct* ac = midi_contexts[icontext];
     //goal- switch-case on x3d nodeType and do any midinode create+connect, update input or update output
     struct X3D_MidiRep* srepn = (struct X3D_MidiRep*)node->_intern;
@@ -483,6 +627,29 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
             srepn->icontext = icontext;
         }
 
+    }
+    break;
+    case NODE_MIDIOut:
+    {
+        struct X3D_MIDIOut* pnode = (struct X3D_MIDIOut*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 6; //MIDIPrintDestination
+            input->numberOfOutputs = 0;
+            input->numberOfInputs = 1;
+            input->takemessage = midiOut_takemessage;
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIPrintDestination;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+        //update x3d node fields
+        input = ac->nodes[srepn->inode];
+        //read input queue and convert to MFInt32 midiNote and SFInt32 pedal
+        midiOut_message2fields(input, pnode);
     }
     break;
 

@@ -321,6 +321,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_lastenabled",
 	"_lastframe",
 	"_lastframetime",
+	"_lastnote",
 	"_lastp0",
 	"_lastp0time",
 	"_lastr0",
@@ -7610,6 +7611,7 @@ const int OFFSETS_MIDIToneMerger[] = {
 	(int) FIELDNAMES_A, (int) offsetof (struct X3D_MIDIToneMerger, A),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_As, (int) offsetof (struct X3D_MIDIToneMerger, As),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_B, (int) offsetof (struct X3D_MIDIToneMerger, B),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__lastnote, (int) offsetof (struct X3D_MIDIToneMerger, _lastnote),  (int) FIELDTYPE_MFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MIDIToneSplitter[] = {
@@ -14616,6 +14618,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->A = FALSE;
 			tmp2->As = FALSE;
 			tmp2->B = FALSE;
+			tmp2->_lastnote.n=0; tmp2->_lastnote.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
