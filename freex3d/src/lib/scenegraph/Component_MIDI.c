@@ -438,19 +438,106 @@ void render_MIDIIn(struct X3D_MIDIIn* node) {
 	update_midi_connections(srep, iparent);
 }
 
+enum message_type 
+{
+	INVALID = 0x0,
+	// Standard Message
+	NOTE_OFF = 0x80,
+	NOTE_ON = 0x90,
+	POLY_PRESSURE = 0xA0,
+	CONTROL_CHANGE = 0xB0,
+	PROGRAM_CHANGE = 0xC0,
+	AFTERTOUCH = 0xD0,
+	PITCH_BEND = 0xE0,
+
+	// System Common Messages
+	SYSTEM_EXCLUSIVE = 0xF0,
+	TIME_CODE = 0xF1,
+	SONG_POS_POINTER = 0xF2,
+	SONG_SELECT = 0xF3,
+	RESERVED1 = 0xF4,
+	RESERVED2 = 0xF5,
+	TUNE_REQUEST = 0xF6,
+	EOX = 0xF7,
+
+	// System Realtime Messages
+	TIME_CLOCK = 0xF8,
+	RESERVED3 = 0xF9,
+	START = 0xFA,
+	CONTINUE = 0xFB,
+	STOP = 0xFC,
+	RESERVED4 = 0xFD,
+	ACTIVE_SENSING = 0xFE,
+	SYSTEM_RESET = 0xFF
+};
+typedef unsigned char ubyte;
+void midimsg_uint2ubytes(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity) {
+	//we don't care about big endian etc just unpack opposite of packing
+	//we are assuming the msg is a 3 byte note on/off, may need if/else on command for others
+	ubyte* bytes = (ubyte*)&msg;
+	*channel = (bytes[0] & 0xF) + 1;
+	*command = bytes[0] - (*channel - 1);
+	*note = bytes[1];
+	*velocity = bytes[2];
+
+}
+unsigned int midimsg_ubytes2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity) {
+	unsigned int msg;
+	ubyte* bytes = (ubyte*)&msg;
+	bytes[0] = (channel - 1) | command;
+	bytes[1] = note;
+	bytes[2] = velocity;
+	return msg;
+}
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut* node) {}
 void render_MIDIConverterIn(struct MIDIConverterIn* node) {}
+void offset_notefields_MidiToneSplitter(size_t* cfield) {
+	cfield[0] = (offsetof(struct X3D_MIDIToneSplitter, C));
+	cfield[1] = (offsetof(struct X3D_MIDIToneSplitter, Cs));
+	cfield[2] = (offsetof(struct X3D_MIDIToneSplitter, D));
+	cfield[3] = (offsetof(struct X3D_MIDIToneSplitter, Ds));
+	cfield[4] = (offsetof(struct X3D_MIDIToneSplitter, E));
+	cfield[5] = (offsetof(struct X3D_MIDIToneSplitter, F));
+	cfield[6] = (offsetof(struct X3D_MIDIToneSplitter, Fs));
+	cfield[7] = (offsetof(struct X3D_MIDIToneSplitter, G));
+	cfield[8] = (offsetof(struct X3D_MIDIToneSplitter, Gs));
+	cfield[9] = (offsetof(struct X3D_MIDIToneSplitter, A));
+	cfield[10] = (offsetof(struct X3D_MIDIToneSplitter, As));
+	cfield[11] = (offsetof(struct X3D_MIDIToneSplitter, B));
+	cfield[12] = (offsetof(struct X3D_MIDIToneSplitter, pedal));
+
+}
 void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
+	static size_t cfields[13] = { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0 };
+	if (cfields[0] == 0) offset_notefields_MidiToneSplitter(cfields);
+
 	struct X3D_Node* anode = X3D_NODE(node);
 	if (node->_ichange != node->_change) {
-		for (int i = 0; i < node->midiNote.n; i++)
+		for (int i = 0; i < node->midiMsg.n; i++)
 		{
-			int note = abs(node->midiNote.p[i]);
-			int status = node->midiNote.p[i] < 0 ? FALSE : TRUE;
+			ubyte note, channel, command, velocity;
+			unsigned int msg = (unsigned int)node->midiMsg.p[i];
+			midimsg_uint2ubytes(msg, &channel, &command, &note, &velocity);
+			int status = command == NOTE_ON && velocity > 0 ? TRUE : FALSE;
 			int octave = note / 12;
 			int inote = note % 12;
-			if (octave == node->octaveFilter || node->octaveFilter == -1)
-			{
+			if (channel == node->channelFilter || node->channelFilter == -1) {
+				if (command == NOTE_ON || command == NOTE_OFF) {
+					if (octave == node->octaveFilter || node->octaveFilter == -1)
+					{
+						//printf("inote = %d cfields %zu\n", inote,cfields[inote]);
+						int* field = (int*)(cfields[inote] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
+						*field = status;
+						MARK_EVENT(anode, cfields[inote]);
+					}
+				}
+				else if (command == CONTROL_CHANGE && note == 64) {
+					node->pedal = velocity == 0 ? FALSE : TRUE;
+					MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, pedal));
+				}
+			}
+
+				/*
 				switch (inote) {
 				case 0: node->C   = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, C)); break;
 				case 1: node->Cs  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, Cs)); break;
@@ -466,7 +553,7 @@ void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
 				case 11: node->B  = status; MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, B)); break;
 				default: break;
 				}
-			}
+				*/
 		}
 		MARK_NODE_COMPILED
 
@@ -485,17 +572,18 @@ void offset_notefields_MidiToneMerger(size_t * cfield) {
 	cfield[9] = (offsetof(struct X3D_MIDIToneMerger, A));
 	cfield[10] = (offsetof(struct X3D_MIDIToneMerger, As));
 	cfield[11] = (offsetof(struct X3D_MIDIToneMerger, B));
+	cfield[12] = (offsetof(struct X3D_MIDIToneMerger, pedal));
 }
 void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 	struct X3D_Node* anode = X3D_NODE(node);
 	//static struct Multi_Bool lastnote;
-	static size_t cfields[12];
+	static size_t cfields[13]; //reserve last one for pedal
 	if (node->_lastnote.n == 0)
 	{
 		//we store last frame's note on/off values, so we can detect if something changed
-		node->_lastnote.p = malloc(12 * sizeof(int));
-		node->_lastnote.n = 12;
-		for (int i = 0; i < 12; i++) node->_lastnote.p[i] = FALSE;
+		node->_lastnote.p = malloc(13 * sizeof(int));
+		node->_lastnote.n = 13;
+		for (int i = 0; i < 13; i++) node->_lastnote.p[i] = FALSE;
 		offset_notefields_MidiToneMerger(cfields);
 	}
 	if (node->_ichange != node->_change) {
@@ -506,12 +594,24 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 		{
 			int lastval = node->_lastnote.p[i];
 			int octave = node->octave;
+			int channel = node->channel;
 			int inote = i;
 			int note = i + 12 * octave;
 			int *field = (int*)(cfields[i] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
 			int curval = *field;
 			if(curval != lastval) { 
-				mnote[n] = curval ? note : -note; n++; 
+				ubyte command;
+				if (i < 12) {
+					command = curval ? NOTE_ON : NOTE_OFF;
+				}
+				else {
+					command = CONTROL_CHANGE;
+					note = 64; //pedal?
+				}
+				ubyte velocity = curval ? 127 : 0;
+				mnote[n] = midimsg_ubytes2uint(channel, command, note, velocity);
+				n++;
+				//mnote[n] = curval ? note : -note; n++; 
 				mark = TRUE;
 			}
 			node->_lastnote.p[i] = curval;
@@ -537,10 +637,10 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 			*/
 		}
 		if (mark) {
-			node->midiNote.p = realloc(node->midiNote.p, n * sizeof(int));
-			memcpy(node->midiNote.p, mnote, n * sizeof(int));
-			node->midiNote.n = n;
-			MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiNote));
+			node->midiMsg.p = realloc(node->midiMsg.p, n * sizeof(int));
+			memcpy(node->midiMsg.p, mnote, n * sizeof(int));
+			node->midiMsg.n = n;
+			MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiMsg));
 		}
 		MARK_NODE_COMPILED
 

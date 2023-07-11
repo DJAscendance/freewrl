@@ -358,6 +358,9 @@ void midiOut_takemessage(MidiNode* midiNode, const struct libremidi::message* ms
     }
     */
 }
+typedef unsigned char ubyte;
+void midimsg_uint2ubytes(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity);
+unsigned int midimsg_ubytes2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity);
 void mark_event(struct X3D_Node* from, int totalptr);
 //#define MARK_EVENT(node,offset)	mark_event(X3D_NODE(node),(int) offset)
 void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
@@ -366,9 +369,9 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
     if (!midiNode->queue)
         midiNode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
     SafeQueue<const struct libremidi::message*>* que = (SafeQueue<const struct libremidi::message*>*)midiNode->queue;
-    Multi_Int32* last = &node->midiNote;
-    int cur[1000], n = 0;
-    int pedal = FALSE;
+    Multi_Int32* last = &node->midiMsg;
+    unsigned int cur[1000], n = 0;
+    //int pedal = FALSE;
     int mark = FALSE;
     //std::cout << "starting dequeue loop" << std::endl;
 
@@ -383,7 +386,8 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
                 << "channel " << m.get_channel() << ' '
                 << "note " << (int)m.bytes[1] << ' '
                 << "velocity " << (int)m.bytes[2] << ' ';
-            cur[n] = (int)m.bytes[2] > 0 ? (int)m.bytes[1] : -(int)m.bytes[1];
+            //cur[n] = (int)m.bytes[2] > 0 ? (int)m.bytes[1] : -(int)m.bytes[1];
+            cur[n] = midimsg_ubytes2uint(m.get_channel(), (ubyte)m.get_message_type(), m.bytes[1], m.bytes[2]);
             n++;
             break;
         case libremidi::message_type::NOTE_OFF:
@@ -391,7 +395,8 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
                 << "channel " << m.get_channel() << ' '
                 << "note " << (int)m.bytes[1] << ' '
                 << "velocity " << (int)m.bytes[2] << ' ';
-            cur[n] = -(int)m.bytes[1]; //negative sign for OFF, + for ON
+            //cur[n] = -(int)m.bytes[1]; //negative sign for OFF, + for ON
+            cur[n] = midimsg_ubytes2uint(m.get_channel(), (ubyte)m.get_message_type(), m.bytes[1], m.bytes[2]);
             n++;
             break;
         case libremidi::message_type::CONTROL_CHANGE:
@@ -399,9 +404,11 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
                 << "channel " << m.get_channel() << ' '
                 << "control " << (int)m.bytes[1] << ' '
                 << "value " << (int)m.bytes[2] << ' ';
-            pedal = node->pedal;
-            node->pedal = m.bytes[2] > 0 ? TRUE : FALSE;
-            if(pedal != node->pedal) MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, pedal));
+            //pedal = node->pedal;
+            //node->pedal = m.bytes[2] > 0 ? TRUE : FALSE;
+            //if(pedal != node->pedal) MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, pedal));
+            cur[n] = midimsg_ubytes2uint(m.get_channel(), (ubyte)m.get_message_type(), m.bytes[1], m.bytes[2]);
+            n++;
             break;
         default:
             break;
@@ -412,13 +419,13 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
     //std::cout << "ended dequeue loop" << std::endl;
 
     if (n) {
-        node->midiNote.p = (int *)realloc(node->midiNote.p, n * sizeof(int));
-        memcpy(node->midiNote.p, cur, n * sizeof(int));
-        node->midiNote.n = n;
-        MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, midiNote));
+        node->midiMsg.p = (int *)realloc(node->midiMsg.p, n * sizeof(int));
+        memcpy(node->midiMsg.p, cur, n * sizeof(int));
+        node->midiMsg.n = n;
+        MARK_EVENT(anode, offsetof(struct X3D_MIDIOut, midiMsg));
     }
     else {
-        node->midiNote.n = 0;
+        node->midiMsg.n = 0;
     }
     //std::cout << "finished midiOut render" << std::endl;
 
@@ -427,10 +434,12 @@ double TickTime();
 void midiin_midinote2messages(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
     static double lasttime = 0.0;
     if (lasttime == 0.0) lasttime = TickTime();
-    for (int i = 0; i < pnode->midiNote.n; i++) {
+    for (int i = 0; i < pnode->midiMsg.n; i++) {
         //libremidi::message *msg = new libremidi:message()
-        unsigned char inote = abs(pnode->midiNote.p[i]);
-        unsigned char velocity = pnode->midiNote.p[i] > 0 ? 64 : 0;
+        ubyte channel, command, note, velocity;
+        midimsg_uint2ubytes(pnode->midiMsg.p[i], &channel, &command, &note, &velocity);
+        //unsigned char inote = abs(pnode->midiMsg.p[i]);
+        //unsigned char velocity = pnode->midiMsg.p[i] > 0 ? 64 : 0;
         //std::vector<unsigned char> messout(3);
         //messout[0] = 144; // 176; //its a note
         //messout[1] = inote;
@@ -439,10 +448,19 @@ void midiin_midinote2messages(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
         double timestamp = now - lasttime;
         lasttime = now;
         libremidi::message msg; // = libremidi::message(messout, timestamp);
-        if (velocity)
-            msg = libremidi::message::note_on(1, inote, velocity);
-        else
-            msg = libremidi::message::note_off(1, inote, velocity);
+        std::vector<unsigned char> messout(3);
+        messout[0] = command | channel;
+        messout[1] = note;
+        messout[2] = velocity;
+        msg = libremidi::message(messout, timestamp);
+        printf("MI %d %d %d %lf", messout[0], messout[1], messout[2], timestamp);
+ /*       if (command == (ubyte)libremidi::message_type::NOTE_ON || command == (ubyte)libremidi::message_type::NOTE_OFF)
+        {
+            if (velocity)
+                msg = libremidi::message::note_on(1, note, velocity);
+            else
+                msg = libremidi::message::note_off(1, note, velocity);
+        }*/
         for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
         {
             MidiNode* mout = *it;
@@ -451,7 +469,7 @@ void midiin_midinote2messages(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
         }
         
     }
-    pnode->midiNote.n = 0;
+    pnode->midiMsg.n = 0;
 }
 
 

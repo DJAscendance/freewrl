@@ -5937,8 +5937,7 @@ our %Nodes = (
 	"MIDIOut" => new VRML::NodeType("MIDIOut",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
-		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
-		pedal => ["SFBool","FALSE","outputOnly",0,0],#ff
+		midiMsg => ["MFInt32",[],"outputOnly",0,0],#ff
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 
 	], "X3DMIDIProcessingNode"),
@@ -5946,8 +5945,7 @@ our %Nodes = (
 	"MIDIIn" => new VRML::NodeType("MIDIIn",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
-		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
-		pedal => ["SFBool","FALSE","inputOnly",0,0],#ff
+		midiMsg => ["MFInt32",[],"inputOnly",0,0],#ff
 
 	], "X3DMIDISourceNode"),
 
@@ -5958,7 +5956,8 @@ our %Nodes = (
 		key12 => ["MFInt32",[],"outputOnly",0,0],#ff
 		key88 => ["MFInt32",[],"outputOnly",0,0],#ff
 		keyPiano => ["MFInt32",[],"outputOnly",0,0],#ff
-		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","outputOnly",0,0],#ff
+		midiMsg => ["MFInt32",[],"inputOnly",0,0],#ff
 	], "X3DMIDINode"),
 	"MIDIConverterIn" => new VRML::NodeType("MIDIConverterIn",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
@@ -5967,14 +5966,16 @@ our %Nodes = (
 		key12 => ["MFInt32",[],"inputOnly",0,0],#ff
 		key88 => ["MFInt32",[],"inputOnly",0,0],#ff
 		keyPiano => ["MFInt32",[],"inputOnly",0,0],#ff
-		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","inputOnly",0,0],#ff
+		midiMsg => ["MFInt32",[],"outputOnly",0,0],#ff
 	], "X3DMIDINode"),
 
 	"MIDIToneSplitter" => new VRML::NodeType("MIDIToneSplitter",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
 		octaveFilter => ["SFInt32",-1,"inputOutput",0,0],#ff
-		midiNote => ["MFInt32",[],"inputOnly",0,0],#ff
+		channelFilter => ["SFInt32",-1,"inputOutput",0,0],#ff
+		midiMsg => ["MFInt32",[],"inputOnly",0,0],#ff
 		C => ["SFBool","FALSE","outputOnly",0,0],#ff
 		Cs => ["SFBool","FALSE","outputOnly",0,0],#ff
 		D => ["SFBool","FALSE","outputOnly",0,0],#ff
@@ -5987,12 +5988,14 @@ our %Nodes = (
 		A => ["SFBool","FALSE","outputOnly",0,0],#ff
 		As => ["SFBool","FALSE","outputOnly",0,0],#ff
 		B => ["SFBool","FALSE","outputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","outputOnly",0,0],#ff
 	], "X3DMIDINode"),
 	"MIDIToneMerger" => new VRML::NodeType("MIDIToneMerger",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
-		octave => ["SFInt32",0,"inputOutput",0,0],#ff
-		midiNote => ["MFInt32",[],"outputOnly",0,0],#ff
+		octave => ["SFInt32",5,"inputOutput",0,0],#ff
+		channel => ["SFInt32",1,"inputOutput",0,0],#ff
+		midiMsg => ["MFInt32",[],"outputOnly",0,0],#ff
 		C => ["SFBool","FALSE","inputOnly",0,0],#ff
 		Cs => ["SFBool","FALSE","inputOnly",0,0],#ff
 		D => ["SFBool","FALSE","inputOnly",0,0],#ff
@@ -6005,6 +6008,7 @@ our %Nodes = (
 		A => ["SFBool","FALSE","inputOnly",0,0],#ff
 		As => ["SFBool","FALSE","inputOnly",0,0],#ff
 		B => ["SFBool","FALSE","inputOnly",0,0],#ff
+		pedal => ["SFBool","FALSE","inputOnly",0,0],#ff
                 _lastnote => ["MFBool",[],"inputOnly",0,0],#ff
 
 	], "X3DMIDINode"),
