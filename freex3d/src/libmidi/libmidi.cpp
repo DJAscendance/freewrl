@@ -423,6 +423,37 @@ void midiOut_message2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
     //std::cout << "finished midiOut render" << std::endl;
 
 }
+double TickTime();
+void midiin_midinote2messages(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
+    static double lasttime = 0.0;
+    if (lasttime == 0.0) lasttime = TickTime();
+    for (int i = 0; i < pnode->midiNote.n; i++) {
+        //libremidi::message *msg = new libremidi:message()
+        unsigned char inote = abs(pnode->midiNote.p[i]);
+        unsigned char velocity = pnode->midiNote.p[i] > 0 ? 64 : 0;
+        //std::vector<unsigned char> messout(3);
+        //messout[0] = 144; // 176; //its a note
+        //messout[1] = inote;
+        //messout[2] = on;
+        double now = TickTime();
+        double timestamp = now - lasttime;
+        lasttime = now;
+        libremidi::message msg; // = libremidi::message(messout, timestamp);
+        if (velocity)
+            msg = libremidi::message::note_on(1, inote, velocity);
+        else
+            msg = libremidi::message::note_off(1, inote, velocity);
+        for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+        {
+            MidiNode* mout = *it;
+            //std::cout << "mout->takemessage=" << mout->takemessage << std::endl;
+            if (mout->takemessage) mout->takemessage(mout, &msg);
+        }
+        
+    }
+    pnode->midiNote.n = 0;
+}
+
 
 static int ports_printed = FALSE;
 void print_ports() {
@@ -457,28 +488,28 @@ MidiNode* midiin_node = NULL;
 
 void midiin_C_callback(const libremidi::message* msg){
 //void midiportsourcefunction(const libremidi::message * messin) {
-    const struct libremidi::message& message = *msg;
+    const struct libremidi::message& messin = *msg;
 
     MidiNode* mnode = midiin_node;
-    std::vector<unsigned char> messout(message.size());
-    auto nBytes = message.size();
+    std::vector<unsigned char> messout(messin.size());
+    auto nBytes = messin.size();
     std::cout << "CB ";
     for (auto i = 0U; i < nBytes; i++)
-        std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+        std::cout << "Byte " << i << " = " << (int)messin[i] << ", ";
     if (nBytes > 0)
-        std::cout << "stamp = " << message.timestamp << std::endl;
-    messout[0] = message[0];
-    messout[1] = message[1];
-    messout[2] = message[2];
+        std::cout << "stamp = " << messin.timestamp << std::endl;
+    messout[0] = messin[0];
+    messout[1] = messin[1];
+    messout[2] = messin[2];
     if (messout[2] > 0 && messout[2] < 64)
         messout[2] = 64;
-    libremidi::message* msgo = new libremidi::message(messout, message.timestamp);
+    libremidi::message msgo = libremidi::message(messout, messin.timestamp);
     //midiout.send_message(messout);
     for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
     {
         MidiNode* mout = *it;
         //std::cout << "mout->takemessage=" << mout->takemessage << std::endl;
-        if (mout->takemessage) mout->takemessage(mout, msgo);
+        if (mout->takemessage) mout->takemessage(mout, &msgo);
     }
 }
 //std::function<void(libremidi::message*)> standard_function(midiin_C_callback);
@@ -650,6 +681,29 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         input = ac->nodes[srepn->inode];
         //read input queue and convert to MFInt32 midiNote and SFInt32 pedal
         midiOut_message2fields(input, pnode);
+    }
+    break;
+    case NODE_MIDIIn:
+    {
+        struct X3D_MIDIIn* pnode = (struct X3D_MIDIIn*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 1; //1=MIDIPortSource
+            input->numberOfOutputs = 1;
+            input->numberOfInputs = 0;
+            input->takemessage = NULL; //it takes a normal ROUTE, not midi messages
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIIn;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+        input = ac->nodes[srepn->inode];
+        //convert MFInt32 midiNote to string of messages with this timestamp
+        midiin_midinote2messages(input, pnode);
+
     }
     break;
 

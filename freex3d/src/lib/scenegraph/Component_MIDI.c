@@ -422,8 +422,22 @@ void render_MIDIOut(struct X3D_MIDIOut* node) {
 	pop_midi_context();
 }
 void render_MIDIIn(struct X3D_MIDIIn* node) {
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	srep->iframe = gglobal()->Mainloop.iframe;
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset iparent = peek_midi_parent();
 
+	if (node->_ichange != node->_change) {
+	//if (TRUE) {
+		int icontext = peek_midi_context();
+		libmidi_updateNode3(icontext, iparent, anode);
+		MARK_NODE_COMPILED
+	}
+	iparent.n = srep->inode;
+	iparent.s = 0;
+	update_midi_connections(srep, iparent);
 }
+
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut* node) {}
 void render_MIDIConverterIn(struct MIDIConverterIn* node) {}
 void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
