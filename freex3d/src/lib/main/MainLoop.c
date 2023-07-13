@@ -6899,7 +6899,8 @@ static void sendSensorEvents(struct X3D_Node* COS,int ev, int butStatus, int sta
 			} else if (ev==MotionNotify) {
 				get_hyperhit();
 			}
-			vecnormalize3f(tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_norm);
+			// don't normalize, norm is a point not a vector:
+			// vecnormalize3f(tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_norm);
 
 			if (0) {
 				printf("nodetype %s ", stringNodeType(se->datanode->_nodeType));
