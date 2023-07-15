@@ -1319,8 +1319,9 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	defname = fwpars[0]._string;
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__DEFnames){
-		for(i=0;i<vectorSize(_ec->__DEFnames);i++){
-			bd = vector_get(struct brotoDefpair *,_ec->__DEFnames,i);
+		struct Vector* defnames = (struct Vector*)_ec->__DEFnames;
+		for(i=0;i<vectorSize(defnames);i++){
+			bd = vector_get_ptr(struct brotoDefpair,defnames,i);
 			//Q. is it the DEF we search for, and node we replace, OR
 			//   is it the node we search for, and DEF we replace?
 			if(!strcmp(bd->name,defname)){
@@ -1339,12 +1340,44 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 		//I guess its an add
 		if(!_ec->__DEFnames)
 			_ec->__DEFnames = newVector(struct brotoDefpair*,4);
-		bd = (struct brotoDefpair*)malloc(sizeof(struct brotoDefpair));
-		bd->node = node;
-		bd->name = strdup(defname);
-		stack_push(struct brotoDefpair *,_ec->__DEFnames,bd);
+		struct brotoDefpair bd2;
+		memset(&bd2, 0, sizeof(struct brotoDefpair));
+		bd2.node = node;
+		bd2.name = strdup(defname);
+		stack_push(struct brotoDefpair,(struct Vector*)_ec->__DEFnames,bd2);
 	}
 	return nr;
+}
+void remove_node_from_parents_children(struct X3D_Node* node) {
+		for (int i = 0; i < vectorSize(node->_parentVector); i++) {
+			struct X3D_Node* pnode = vector_get(struct X3D_Node*, node->_parentVector, i);
+			int type, kind, iifield;
+			union anyVrml* value, *valuer;
+			int kids = getFieldFromNodeAndName(pnode, "children", &type, &kind, &iifield, &value);
+			if(!kids) kids = getFieldFromNodeAndName(pnode, "__children", &type, &kind, &iifield, &value);
+			if(kids){
+				//if(getFieldFromNodeAndName(pnode, "children", &type, &kind, &iifield, &valuer))
+				//	AddRemoveChildren(node, value, (struct X3D_Node**)valuer->mfnode.p, valuer->mfnode.n, 2, __FILE__, __LINE__);
+				//	removeChildren->n = 0;
+				//else {
+				int n = 0;
+				int done = FALSE;
+				for (int j = 0; j < value->mfnode.n; j++) {
+					if (value->mfnode.p[j] == node) {
+						if (!done) {
+							remove_parent(node, pnode);
+							done = TRUE;
+						}
+					}
+					else {
+						value->mfnode.p[n] = value->mfnode.p[j];
+						n++;
+					}
+				}
+				value->mfnode.n = n;
+			}
+		}
+
 }
 int remove_broto_node(struct X3D_Proto *context, struct X3D_Node* node);
 int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
@@ -1358,14 +1391,15 @@ int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	if(_ec->__DEFnames){
 		struct brotoDefpair *bd;
 		for(i=0;i<vectorSize(_ec->__DEFnames);i++){
-			bd = vector_get(struct brotoDefpair *,_ec->__DEFnames,i);
+			bd = vector_get_ptr(struct brotoDefpair,_ec->__DEFnames,i);
 			if(!strcmp(bd->name,defname)){
 				node = bd->node;
 				//Q. are we supposed to delete the node 
 				//OR are we just supposed to remove the DEF name mapping?
 				//remove DEF name mapping:
-				vector_remove_elem(struct brotoDefpair *,_ec->__DEFnames,i);
+				vector_remove_elem(struct brotoDefpair,_ec->__DEFnames,i);
 				//remove node
+				remove_node_from_parents_children(node);
 				remove_broto_node(_ec,node);
 				break;
 			}

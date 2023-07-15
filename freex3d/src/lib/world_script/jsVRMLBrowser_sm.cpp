@@ -129,7 +129,26 @@ typedef struct intTableIndex{
 struct CRStruct *getCRoutes();
 int getCRouteCount();
 
+struct X3D_Node* broto_search_DEFname(struct X3D_Proto* context, const char* name);
+struct X3D_Node* broto_search_ALLnames(struct X3D_Proto* context, const char* name, int* source);
+void remove_node_from_parents_children(struct X3D_Node* node);
+int remove_broto_node(struct X3D_Proto* context, struct X3D_Node* node);
+void remove_node_from_def_list(struct X3D_Proto* ec, struct X3D_Node* node, char* defname) {
+	if (ec->__DEFnames) {
+		struct brotoDefpair* bd;
+		for (int i = 0; i < vectorSize((Vector*)ec->__DEFnames); i++) {
+			bd = vector_get_ptr(struct brotoDefpair, (Vector*)ec->__DEFnames, i);
+			if (!strcmp(bd->name, defname)) {
+				node = bd->node;
+				//remove DEF name mapping:
+				vector_remove_elem(struct brotoDefpair, (Vector*)ec->__DEFnames, i);
+				break;
+			}
+		}
+	}
 
+}
+void* addDeleteRoute0(void* ec, const char* callingFunc, struct X3D_Node* fromNode, const char* sfromField, struct X3D_Node* toNode, const char* stoField);
 } //extern "C"
 
 #include "jsUtils_sm.h"
@@ -1516,21 +1535,498 @@ static JSClass RouteArrayClass = {
 };
 
 
+static JSBool
+X3DExecutionContext_createNode(JSContext* context, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(context, &SFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+
+	char* _c;
+
+	/* for the return of the nodes */
+	struct X3D_Group* retGroup;
+	struct Multi_Node* newHandle = NULL;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_createNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			int ctype;
+			//check builtins
+			ctype = findFieldInNODES(_c);
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+
+			if (ctype > -1) {
+				node = (struct X3D_Node*)createNewX3DNode(ctype);
+				add_node_to_broto_context(ec, node);
+
+				AnyNative* lhs;
+				if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
+					printf("AnyNativeNew failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				if (!JS_SetPrivateFw(context, obj, lhs)) {
+					printf("JS_SetPrivate failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				//lhs->valueChanged = NULL; 
+				lhs->v->sfnode = node;
+			}
+			else {
+				printf("\nIncorrect argument format for createNode('nodetype').\n");
+				JS_free(context, _c);
+				return JS_FALSE;
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for createNode('nodetype').\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+static JSBool
+X3DExecutionContext_createProto(JSContext* context, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(context, &SFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	struct X3D_Node* node = NULL;
+	struct X3D_Proto* ec;
+	struct X3D_Proto* proto;
+	proto = NULL;
+
+	char* _c;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_createProto: obj = %u, str = \"%s\"\n",	obj, _c);
+#endif
+		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+		if (isAvailableBroto(_c, ec, &proto))
+		{
+			struct X3D_Proto* source, * dest;
+			node = X3D_NODE(brotoInstance(proto, 1));
+			node->_executionContext = X3D_NODE(ec); //me->ptr;
+			add_node_to_broto_context(ec, node);
+			//during parsing, setting of fields would occur between instance and body,
+			//so field values perculate down.
+			//here we elect default field values
+			source = X3D_PROTO(X3D_PROTO(node)->__prototype);
+			dest = X3D_PROTO(node);
+			deep_copy_broto_body2(&source, &dest);
+
+			AnyNative* lhs;
+			if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
+				printf("AnyNativeNew failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			if (!JS_SetPrivateFw(context, obj, lhs)) {
+				printf("JS_SetPrivate failed in SFNodeConstr.\n");
+				return JS_FALSE;
+			}
+			//lhs->valueChanged = NULL; 
+			lhs->v->sfnode = node;
+		}
+		else {
+			printf("\nIncorrect argument for createProto('prototype').\n");
+			JS_free(context, _c);
+			return JS_FALSE;
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for createNode('nodetype').\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+/*
+struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
+struct X3D_Node * broto_search_ALLnames(struct X3D_Proto *context, const char *name, int *source);
+int X3DExecutionContext_getNamedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
+	int nr = 0;
+	struct X3D_Node* node = NULL;
+	//broto warning - DEF name list should be per-executionContext
+	//struct X3D_Proto *ec = (struct X3D_Proto *)fwn; //we want the script node's parent context for imported nodes, I think
+	node = broto_search_DEFname(ec, fwpars[0]._string);
+
+	if(node){
+		//fwretval->_web3dval.native = node;  //Q should this be &node? to convert it from X3D_Node to anyVrml->sfnode?
+		fwretval->_web3dval.anyvrml = malloc(sizeof(union anyVrml));
+		fwretval->_web3dval.anyvrml->sfnode = node;
+		fwretval->_web3dval.fieldType = FIELDTYPE_SFNode;
+		fwretval->_web3dval.gc = 1;
+		fwretval->itype = 'W';
+		nr = 1;
+	}
+	return nr;
+}
+*/
+
+static JSBool
+X3DExecutionContext_getNamedNode(JSContext* context, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(context, &SFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_getNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			node = broto_search_DEFname(ec, _c);
+
+			if (node != NULL) {
+				AnyNative* lhs;
+				if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
+					printf("AnyNativeNew failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				if (!JS_SetPrivateFw(context, obj, lhs)) {
+					printf("JS_SetPrivate failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				//lhs->valueChanged = NULL; 
+				lhs->v->sfnode = node;
+			}
+			else {
+				printf("\nIncorrect argument for getNamedNode('DEFname').\n");
+				JS_free(context, _c);
+				return JS_FALSE;
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for getNamedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+static JSBool
+X3DExecutionContext_removeNamedNode(JSContext* context, uintN argc, jsval* vp) {
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_removeNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			node = broto_search_DEFname(ec, _c);
+
+			if (node != NULL) {
+				remove_node_from_parents_children(node);
+				remove_broto_node(ec, node);
+				remove_node_from_def_list(ec, node, _c);
+			}
+			else {
+				printf("\nIncorrect argument for removeNamedNode('DEFname').\n");
+				JS_free(context, _c);
+				return JS_FALSE;
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for removeNamedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
+static JSBool
+X3DExecutionContext_updateNamedNode(JSContext* context, uintN argc, jsval* vp) {
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	JSObject* _ob2;
+	struct X3D_Node* node = NULL;
+	struct brotoDefpair* bd;
+	int found = 0;
+	char* defname;
+
+	if (argc == 2 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		defname = JS_EncodeString(context, js_c);
+		if (argv[1].isObject()) {
+			_ob2 = JSVAL_TO_OBJECT(argv[1]);
+			AnyNative* _node = NULL;
+			if ((_node = (AnyNative*)JS_GetPrivateFw(context, _ob2)) == NULL) {
+				printf("JS_GetPrivate failed for arg format \"o d\" in SFRotationConstr.\n");
+				return JS_FALSE;
+			}
+			node = _node->v->sfnode;
+
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_removeNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			if (ec->__DEFnames) {
+				struct Vector* defnames = (struct Vector*)ec->__DEFnames;
+				for (int i = 0; i < vectorSize(defnames); i++) {
+					bd = vector_get_ptr(struct brotoDefpair, defnames, i);
+					//Q. is it the DEF we search for, and node we replace, OR
+					//   is it the node we search for, and DEF we replace?
+					if (!strcmp(bd->name, defname)) {
+						bd->node = node;
+						found = 1;
+						break;
+					}
+					if (bd->node == node) {
+						bd->name = strdup(defname);
+						found = 2;
+						break;
+					}
+				}
+			}
+			if (!found) {
+				//I guess its an add
+				if (!ec->__DEFnames)
+					ec->__DEFnames = newVector(struct brotoDefpair, 4);
+				struct brotoDefpair bd2;
+				memset(&bd2, 0, sizeof(struct brotoDefpair));
+				bd2.node = node;
+				bd2.name = strdup(defname);
+				stack_push(struct brotoDefpair, (struct Vector*)ec->__DEFnames, bd2);
+			}
+			else {
+				printf("\nIncorrect argument for updateNamedNode('DEFname').\n");
+				JS_free(context, defname);
+				return JS_FALSE;
+			}
+		}
+		JS_free(context, defname);
+	}
+	else {
+		printf("\nIncorrect argument format for updateNamedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
+
+static JSBool X3DExecutionContext_addRoute(JSContext* context, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(context, vp);
+	jsval* argv = JS_ARGV(context, vp);
+
+	JSObject* fromNodeObj, * toNodeObj;
+	JSClass* _cls[2];
+	char * fromField, * toField;
+	const char* _c_args =
+		"SFNode fromNode, SFString fromEventOut, SFNode toNode, SFString toEventIn",
+		* _c_format = "oSoS";
+	JSString* fromFieldStringJS, * toFieldStringJS;
+	struct X3D_Node* fromNode;
+	struct X3D_Node* toNode;
+	int fromOfs, toOfs, len;
+	int fromtype, totype;
+	int xxx;
+	int myField;
+
+	/* first, are there 4 arguments? */
+	if (argc != 4) {
+		printf("Problem with script - add/delete route command needs 4 parameters\n");
+		return JS_FALSE;
+	}
+
+	/* get the arguments, and ensure that they are obj, string, obj, string */
+	if (JS_ConvertArguments(context, argc, argv, _c_format,
+		&fromNodeObj, &fromFieldStringJS, &toNodeObj, &toFieldStringJS)) {
+		fromField = JS_EncodeString(context, fromFieldStringJS);
+		toField = JS_EncodeString(context, toFieldStringJS);
+
+		if ((_cls[0] = JS_GET_CLASS(context, fromNodeObj)) == NULL) {
+			printf("JS_GetClass failed for arg 0 in doVRMLRoute called from %s.\n",
+				"addRoute");
+			return JS_FALSE;
+		}
+		if ((_cls[1] = JS_GET_CLASS(context, toNodeObj)) == NULL) {
+			printf("JS_GetClass failed for arg 2 in doVRMLRoute called from %s.\n",
+				"addRoute");
+			return JS_FALSE;
+		}
+
+		/* make sure these are both SFNodes */
+		if (memcmp("SFNode", (_cls[0])->name, strlen((_cls[0])->name)) != 0 &&
+			memcmp("SFNode", (_cls[1])->name, strlen((_cls[1])->name)) != 0) {
+			printf("\nArguments 0 and 2 must be SFNode in doVRMLRoute called from %s(%s): %s\n",
+				"addRoute", _c_args, "addRoute");
+			return JS_FALSE;
+		}
+
+		/* get the "private" data for these nodes. It will consist of a SFNodeNative structure */
+		AnyNative* fromNative;
+		AnyNative* toNative;
+		if ((fromNative = (AnyNative*)JS_GetPrivateFw(context,fromNodeObj)) == NULL) {
+			printf("problem getting native props first node\n");
+			return JS_FALSE;
+		}
+		if ((toNative = (AnyNative*)JS_GetPrivateFw(context, toNodeObj)) == NULL) {
+			printf("problem getting native props second node\n");
+			return JS_FALSE;
+		}
+
+		/* get the "handle" for the actual memory pointer */
+		fromNode = X3D_NODE(fromNative->v->sfnode);
+		toNode = X3D_NODE(toNative->v->sfnode);
+
+#ifdef JSVERBOSE
+		printf("routing from a node of type %s to a node of type %s\n",
+			stringNodeType(fromNode->_nodeType),
+			stringNodeType(toNode->_nodeType));
+#endif	
+		struct X3D_Proto* ec;
+		//ec = getExecutionContextFromCx(cx);
+		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+
+		void* xroute;
+		int nr = 0;
+		xroute = addDeleteRoute0(ec, "addRoute", fromNode, fromField, toNode, toField);
+		//find its index
+		struct Vector* routes = (struct Vector*)ec->__ROUTES;
+		int index = -1;
+		for (int j = 0; j < vectorSize(routes); j++) {
+			struct brotoRoute* route = vector_get(struct brotoRoute*, routes, j);
+			if ((void*)route == (void*)xroute) {
+				index = j;
+				break;
+			}
+		}
+		if (index > -1) {
+			JSObject* _obj;
+			//int* _index = (int*) MALLOC(void *, sizeof(int));
+			_obj = JS_NewObject(context, &X3DRouteClass, NULL, obj); //could parent be context or RouteArray?
+			ADD_ROOT(context, _obj)
+
+			long long iindex = index + 1; //instead of malloc and free wrapper for long, just send a longlong on x64
+			if (!JS_SetPrivateFw(context, _obj, (void*)iindex)) {
+				printf("JS_SetPrivate failed in RouteArray.\n");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(_obj));
+		}
+		JS_free(context, fromField);
+		JS_free(context, toField);
+	}
+	else {
+		printf("\nIncorrect argument format for %s(%s).\n",
+			"addRoute", _c_args);
+		return JS_FALSE;
+	}
+	return JS_TRUE;
+}
+static JSBool X3DExecutionContext_deleteRoute(JSContext* context, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(context, vp);
+	jsval* argv = JS_ARGV(context, vp);
+	JSObject* routeObj;
+	JSClass* _cls[1];
+	const char* _c_args =
+		"X3DRoute route",
+		* _c_format = "o";
+
+	/* first, are there 4 arguments? */
+	if (argc != 1) {
+		printf("Problem with script - delete route command needs 1 parameter\n");
+		return JS_FALSE;
+	}
+
+	/* get the arguments, and ensure that they are obj, string, obj, string */
+	if (JS_ConvertArguments(context, argc, argv, _c_format,
+		&routeObj)) {
+
+		if ((_cls[0] = JS_GET_CLASS(context, routeObj)) == NULL) {
+			printf("JS_GetClass failed for arg 0 in deleteRoute \n");
+			return JS_FALSE;
+		}
+
+		/* make sure these are both SFNodes */
+		if (memcmp("X3DRoute", (_cls[0])->name, strlen((_cls[0])->name)) != 0 ) {
+			printf("\nArguments 0 must be X3DRoute in deleteRoute \n");
+			return JS_FALSE;
+		}
+		long long iindex;
+		if ((iindex = (long long)JS_GetPrivateFw(context, routeObj)) == 0) {
+			printf("problem getting native prop for route\n");
+		}
+		struct X3D_Proto* ec;
+		//ec = getExecutionContextFromCx(cx);
+		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+
+		void* xroute;
+		int nr = 0;
+		struct Vector* routes = (struct Vector*)ec->__ROUTES;
+		int index = iindex -1;
+		struct brotoRoute* broute = vector_get(struct brotoRoute*, routes, index);
+		CRoutes_RemoveSimpleB(broute->from.node, broute->from.ifield, broute->from.builtIn, broute->to.node, broute->to.ifield, broute->to.builtIn, broute->ft);
+		vector_remove_elem(struct brotoRoute*, routes, index);
+	}
+	else {
+		printf("\nIncorrect argument format for deleteRoute.\n");
+		return JS_FALSE;
+	}
+	return JS_TRUE;
+}
 
 
 
 static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	//executionContext
-	//{"addRoute", X3DExecutionContext_addRoute, 0},
-	//{"deleteRoute", X3DExecutionContext_deleteRoute, 0},
-	//{"createNode", X3DExecutionContext_createNode, 0},
-	//{"createProto", X3DExecutionContext_createProto, 0},
+	{"addRoute", X3DExecutionContext_addRoute, 0},
+	{"deleteRoute", X3DExecutionContext_deleteRoute, 0},
+	{"createNode", X3DExecutionContext_createNode, 0},
+	{"createProto", X3DExecutionContext_createProto, 0},
 	//{"getImportedNode", X3DExecutionContext_getImportedNode, 0},
 	//{"updateImportedNode", X3DExecutionContext_updateImportedNode, 0},
 	//{"removeImportedNode", X3DExecutionContext_removeImportedNode, 0},
-	//{"getNamedNode", X3DExecutionContext_getNamedNode, 0},
-	//{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},
-	//{"removeNamedNode", X3DExecutionContext_removeNamedNode, 0},
+	{"getNamedNode", X3DExecutionContext_getNamedNode, 0},
+	{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},
+	{"removeNamedNode", X3DExecutionContext_removeNamedNode, 0},
 	////scene
 	//{"setMetaData", X3DScene_setMetaData, 0},
 	//{"getMetaData", X3DScene_getMetaData, 0},
