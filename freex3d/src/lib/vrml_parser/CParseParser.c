@@ -1325,7 +1325,7 @@ static BOOL parser_metaStatement(struct VRMLParser* me) {
         CPARSE_ERROR_CURID("Expected a string after a META keyword")
             }
 
-    if ((val1 != NULL) && (val2 != NULL)) { handleMetaDataStringString(val1,val2); }
+    if ((val1 != NULL) && (val2 != NULL)) { handleMetaDataStringString(me->ectx, val1->strptr,val2->strptr); }
 
     /* cleanup */
     if (val1 != NULL) {FREE_IF_NZ(val1->strptr); FREE_IF_NZ(val1);}

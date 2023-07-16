@@ -276,10 +276,25 @@ void handleVersion(const char *versionString) {
 
 
 
-void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2) {
+void handleMetaDataStringString(void *ectx, char *name, char *content) {
 	#ifdef CAPABILITIESVERBOSE
 	printf ("handleMetaDataStringString, :%s:, :%s:\n",val1->strptr, val2->strptr);
 	#endif
+	if (ectx) {
+		int nodetype = X3D_NODE(ectx)->_nodeType;
+		if (nodetype == NODE_Proto || nodetype == NODE_Inline) {
+			struct X3D_Proto* ec = (struct X3D_Proto*)ectx;
+			//add to __META section.
+			if (!ec->__META)
+				ec->__META = newVector(struct metarecord, 10);
+
+			struct Vector* metalist = (struct Vector*)ec->__META;
+			struct metarecord mr;
+			mr.name = strdup(name);
+			mr.content = strdup(content);
+			vector_pushBack(struct metarecord, metalist, mr);
+		}
+	}
 }
 
 // UNIT category unitname conversionfactor

@@ -95,6 +95,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"__GC",
 	"__IMPORTS",
 	"__IS",
+	"__META",
 	"__ROUTES",
 	"__Samples",
 	"__SphereIndxVBO",
@@ -7249,6 +7250,7 @@ const int OFFSETS_Inline[] = {
 	(int) FIELDNAMES___DEFnames, (int) offsetof (struct X3D_Inline, __DEFnames),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___IS, (int) offsetof (struct X3D_Inline, __IS),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___scripts, (int) offsetof (struct X3D_Inline, __scripts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___META, (int) offsetof (struct X3D_Inline, __META),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_Inline, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_Inline, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___afterPound, (int) offsetof (struct X3D_Inline, __afterPound),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -8941,6 +8943,7 @@ const int OFFSETS_Proto[] = {
 	(int) FIELDNAMES___DEFnames, (int) offsetof (struct X3D_Proto, __DEFnames),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___IS, (int) offsetof (struct X3D_Proto, __IS),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___scripts, (int) offsetof (struct X3D_Proto, __scripts),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___META, (int) offsetof (struct X3D_Proto, __META),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_Proto, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES___oldurl, (int) offsetof (struct X3D_Proto, __oldurl),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___afterPound, (int) offsetof (struct X3D_Proto, __afterPound),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -14150,6 +14153,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__DEFnames = 0;
 			tmp2->__IS = 0;
 			tmp2->__scripts = 0;
+			tmp2->__META = 0;
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
 			tmp2->__afterPound = 0;
@@ -16294,6 +16298,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__DEFnames = 0;
 			tmp2->__IS = 0;
 			tmp2->__scripts = 0;
+			tmp2->__META = 0;
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->__oldurl.n=0; tmp2->__oldurl.p=0;
 			tmp2->__afterPound = 0;

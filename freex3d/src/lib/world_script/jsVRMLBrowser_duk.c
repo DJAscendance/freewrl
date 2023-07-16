@@ -1634,21 +1634,55 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 }
 int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	const char *name, *value;
+	const char *name, *content;
 	name = fwpars[0]._string;
-	value = fwpars[1]._string;
+	content = fwpars[1]._string;
 	//strdup and put in a global or per-scene or per execution context (name,value) list
+	struct X3D_Proto* _ec = (struct X3D_Proto*)fwn;
+	if (!_ec->__META)
+		_ec->__META = newVector(struct metarecord, 10);
+
+	struct Vector* metalist = (struct Vector*)_ec->__META;
+	struct metarecord* mr;
+	int done = FALSE;
+	for (int i = 0; i < vectorSize(metalist); i++) {
+		mr = vector_get_ptr(struct metarecord, metalist, i);
+		if (!strcmp(mr->name, name)) {
+			mr->content = strdup(content);
+			done = TRUE;
+			break;
+		}
+	}
+	if (!done) {
+		//add
+		struct metarecord mr2;
+		mr2.name = strdup(name);
+		mr2.content = strdup(content);
+		vector_pushBack(struct metarecord, metalist, mr2);
+	}
 	return nr;
 }
 int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
 	const char *name;
-	char *value;
-	value = NULL;
+	char *content;
+	content = NULL;
 	name = fwpars[0]._string;
 	//do a search in the perscene/perexecution context array
-	if(value){
-		fwretval->_string = value;
+	struct X3D_Proto* _ec = (struct X3D_Proto*)fwn;
+	if (_ec->__META) {
+		struct Vector* metalist = (struct Vector*)_ec->__META;
+		struct metarecord* mr;
+		for (int i = 0; i < vectorSize(metalist); i++) {
+			mr = vector_get_ptr(struct metarecord, metalist, i);
+			if (!strcmp(mr->name, name)) {
+				content = strdup(mr->content);
+				break;
+			}
+		}
+	}
+	if(content){
+		fwretval->_string = content;
 		fwretval->itype = 'S';
 		nr = 1;
 	}

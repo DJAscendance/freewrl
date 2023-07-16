@@ -1012,11 +1012,20 @@ static void parseScene(char **atts) {
 		/* printf("parseScene: field:%s=%s\n", atts[i], atts[i + 1]); */
 	}
 }
-static void parseMeta(char **atts) {
+static void parseMeta(void* ud, char **atts) {
+	struct X3D_Proto* ec = (struct X3D_Proto*)getContext(ud, TOP);
+	char* name, * content;
+	name = NULL;
+	content = NULL;
 	int i;
 	for (i = 0; atts[i]; i += 2) {
 		/* printf("parseMeta field:%s=%s\n", atts[i], atts[i + 1]); */
+		if (!strcmp(atts[i], "name"))
+			name = atts[i + 1];
+		if (!strcmp(atts[i], "category"))
+			content = atts[i + 1];
 	}
+	handleMetaDataStringString((void*)ec, name, content);
 }
 static void parseUnit(void *ud, char **atts) {
 	double conversionFactor = 1.0;
@@ -2053,7 +2062,7 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 			case X3DSP_ROUTE: 
 				parseRoutes_B(ud,myAtts);
 				break;
-			case X3DSP_meta: parseMeta(myAtts); break;
+			case X3DSP_meta: parseMeta(ud, myAtts); break;
 			case X3DSP_Scene: parseScene(myAtts); break;
 			case X3DSP_head:
 			case X3DSP_Header: parseHeader(myAtts); break;

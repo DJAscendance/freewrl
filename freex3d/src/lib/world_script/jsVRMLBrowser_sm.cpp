@@ -149,6 +149,8 @@ void remove_node_from_def_list(struct X3D_Proto* ec, struct X3D_Node* node, char
 
 }
 void* addDeleteRoute0(void* ec, const char* callingFunc, struct X3D_Node* fromNode, const char* sfromField, struct X3D_Node* toNode, const char* stoField);
+void update_weakRoutes(struct X3D_Proto* context); 
+
 } //extern "C"
 
 #include "jsUtils_sm.h"
@@ -2013,7 +2015,156 @@ static JSBool X3DExecutionContext_deleteRoute(JSContext* context, uintN argc, js
 	return JS_TRUE;
 }
 
+static JSBool
+X3DExecutionContext_getImportedNode(JSContext* context, uintN argc, jsval* vp) {
+	//has optional 2nd parameter in specs (importname,exportname)
+	JSObject* obj = JS_NewObject(context, &SFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+		jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
 
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_getNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			int source = 0;
+			node = broto_search_DEFname(ec, _c);
+			node = broto_search_ALLnames(ec, _c, &source);
+			if (source == 0) node = NULL;  //source ==1,2 is for IMPORT and EXPORT
+
+			if (node != NULL) {
+				AnyNative* lhs;
+				if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
+					printf("AnyNativeNew failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				if (!JS_SetPrivateFw(context, obj, lhs)) {
+					printf("JS_SetPrivate failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				//lhs->valueChanged = NULL; 
+				lhs->v->sfnode = node;
+			}
+			else {
+				printf("\nIncorrect argument for getImportedNode('DEFname').\n");
+				JS_free(context, _c);
+				return JS_FALSE;
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for getImportedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+/*
+	if(_ec->__IMPORTS){
+		for(i=0;i<vectorSize(_ec->__IMPORTS);i++){
+			mxp = vector_get(struct IMEXPORT *,_ec->__IMPORTS,i);
+			//Q. is it the DEF we search for, and node we replace, OR
+			//   is it the node we search for, and DEF we replace?
+			if(!strcmp(nline,mxp->inlinename) && !strcmp(mxp->mxname,mxname)){
+				mxp->as = strdup(as);
+				found = 1;
+				break;
+			}
+		}
+	}
+	if(!found){
+		//I guess its an add
+		if(!_ec->__IMPORTS)
+			_ec->__IMPORTS = newVector(struct IMEXPORT *,4);
+		mxp = (struct IMEXPORT *)malloc(sizeof(struct IMEXPORT));
+		mxp->mxname = strdup(mxname);
+		mxp->as = strdup(as);
+		mxp->inlinename = strdup(nline);
+		stack_push(struct IMEXPORT *,_ec->__IMPORTS,mxp);
+	}
+	update_weakRoutes(_ec);
+
+*/
+
+static JSBool
+X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp) {
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "SS";
+	JSString* js_1, * js_2, * js_3;
+	JSObject* _ob2;
+	struct X3D_Node* node = NULL;
+	int found = 0;
+	const char* as, * mxname, * nline;
+	struct IMEXPORT* mxp;
+
+
+	if (argc >= 2) {
+		if (argc == 2)
+			JS_ConvertArguments(context, argc, argv, "SS", &js_1, &js_2);
+		if (argc == 3)
+			JS_ConvertArguments(context, argc, argv, "SSS", &js_1, &js_2, &js_3);
+
+		nline = JS_EncodeString(context, js_1);
+		mxname = JS_EncodeString(context, js_2);
+		as = mxname;
+		if (argc == 3)
+			as = JS_EncodeString(context, js_3);
+
+
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_removeNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+
+		struct X3D_Proto* ec;
+		//ec = getExecutionContextFromCx(cx);
+		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+		struct Vector* imports = (struct Vector*)ec->__IMPORTS;
+		if (imports) {
+			for (int i = 0; i < vectorSize(imports); i++) {
+				mxp = vector_get(struct IMEXPORT*, imports, i);
+				//Q. is it the DEF we search for, and node we replace, OR
+				//   is it the node we search for, and DEF we replace?
+				if (!strcmp(nline, mxp->inlinename) && !strcmp(mxp->mxname, mxname)) {
+					mxp->as = strdup(as);
+					found = 1;
+					break;
+				}
+			}
+		}
+		if (!found) {
+			//I guess its an add
+			if (!ec->__IMPORTS)
+				ec->__IMPORTS = newVector(struct IMEXPORT*, 4);
+			mxp = (struct IMEXPORT*)malloc(sizeof(struct IMEXPORT));
+			mxp->mxname = strdup(mxname);
+			mxp->as = strdup(as);
+			mxp->inlinename = strdup(nline);
+			stack_push(struct IMEXPORT*, (struct Vector *)ec->__IMPORTS, mxp);
+		}
+		update_weakRoutes(ec);
+		//JS_free(context, mxname); //? what's wrong
+	}
+	else {
+		printf("\nIncorrect argument format for updateImportedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
 
 static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	//executionContext
@@ -2021,8 +2172,8 @@ static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	{"deleteRoute", X3DExecutionContext_deleteRoute, 0},
 	{"createNode", X3DExecutionContext_createNode, 0},
 	{"createProto", X3DExecutionContext_createProto, 0},
-	//{"getImportedNode", X3DExecutionContext_getImportedNode, 0},
-	//{"updateImportedNode", X3DExecutionContext_updateImportedNode, 0},
+	{"getImportedNode", X3DExecutionContext_getImportedNode, 0},
+	{"updateImportedNode", X3DExecutionContext_updateImportedNode, 0},
 	//{"removeImportedNode", X3DExecutionContext_removeImportedNode, 0},
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 0},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},

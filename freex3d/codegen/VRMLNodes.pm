@@ -122,6 +122,7 @@ our %Nodes = (
 		__DEFnames => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		__IS => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		__scripts => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+                __META => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__oldurl => ["MFString", [], "initializeOnly", 0,0],#ff
 		__afterPound => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
@@ -263,6 +264,7 @@ our %Nodes = (
 		__DEFnames => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		__IS => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		__scripts => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
+                __META => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
 		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		__oldurl => ["MFString", [], "initializeOnly", 0,0],#ff
 		__afterPound => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
@@ -274,9 +276,9 @@ our %Nodes = (
 		__oldload => ["SFBool", "FALSE", "initializeOnly", 0,0],#ff
 		__unitlengthfactor => ["SFDouble", 1.0, "initializeOnly", 0,0],#ff
 		__specversion => ["SFInt32",0,"initializeOnly",0,0],#ff
+                # inline-specific
 		refresh => ["SFTime", 0, "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		__lasttime => ["SFTime", 0, "initializeOnly", 0,0],#ff
-		
 		# load => ["SFBool", "TRUE","initializeOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		# url => ["MFString", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
