@@ -2014,6 +2014,9 @@ static JSBool X3DExecutionContext_deleteRoute(JSContext* context, uintN argc, js
 	}
 	return JS_TRUE;
 }
+struct X3D_Node* broto_search_DEFname(struct X3D_Proto* context, const char* name);
+struct IMEXPORT* broto_search_IMPORTname(struct X3D_Proto* context, const char* name);
+struct IMEXPORT* broto_search_EXPORTname(struct X3D_Proto* context, const char* name);
 
 static JSBool
 X3DExecutionContext_getImportedNode(JSContext* context, uintN argc, jsval* vp) {
@@ -2037,11 +2040,15 @@ X3DExecutionContext_getImportedNode(JSContext* context, uintN argc, jsval* vp) {
 			struct X3D_Proto* ec;
 			//ec = getExecutionContextFromCx(cx);
 			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
-			int source = 0;
-			node = broto_search_DEFname(ec, _c);
+			//struct IMEXPORT* im = broto_search_IMPORTname(ec, _c);
+			//if (im) node = im->nodeptr;
+			// 
+			//imports show up late. The main scene parser never sees the nodeptr in the inline, leaves it null.
+			//then if you patiently wait for the inline to load, something has to go hunting for 
+			// the imported node in the inline. broto_search_ALLnames has some code for that.
+			int source;
 			node = broto_search_ALLnames(ec, _c, &source);
-			if (source == 0) node = NULL;  //source ==1,2 is for IMPORT and EXPORT
-
+			if (source == 0) node = NULL; //import must be source 2
 			if (node != NULL) {
 				AnyNative* lhs;
 				if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
@@ -2056,9 +2063,7 @@ X3DExecutionContext_getImportedNode(JSContext* context, uintN argc, jsval* vp) {
 				lhs->v->sfnode = node;
 			}
 			else {
-				printf("\nIncorrect argument for getImportedNode('DEFname').\n");
-				JS_free(context, _c);
-				return JS_FALSE;
+				printf("Incorrect argument for getImportedNode('DEFname').\n");
 			}
 		}
 		JS_free(context, _c);
@@ -2071,36 +2076,231 @@ X3DExecutionContext_getImportedNode(JSContext* context, uintN argc, jsval* vp) {
 	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
 	return JS_TRUE;
 }
+static JSBool
+X3DExecutionContext_removeImportedNode(JSContext* context, uintN argc, jsval* vp) {
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
 
-/*
-	if(_ec->__IMPORTS){
-		for(i=0;i<vectorSize(_ec->__IMPORTS);i++){
-			mxp = vector_get(struct IMEXPORT *,_ec->__IMPORTS,i);
-			//Q. is it the DEF we search for, and node we replace, OR
-			//   is it the node we search for, and DEF we replace?
-			if(!strcmp(nline,mxp->inlinename) && !strcmp(mxp->mxname,mxname)){
-				mxp->as = strdup(as);
-				found = 1;
-				break;
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_getNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			struct IMEXPORT* im = broto_search_IMPORTname(ec, _c);
+
+			if (im) {
+				struct IMEXPORT* def;
+				struct Vector* imports = (struct Vector*)ec->__IMPORTS;
+				int k = 0;
+				for (int i = 0; i < vectorSize(imports); i++) {
+					def = vector_get(struct IMEXPORT*, imports, i);
+					vector_set(struct IMEXPORT*, imports, i, def);
+					if (im != def) k++;
+				}
+				imports->n = k;
 			}
 		}
+		JS_free(context, _c);
 	}
-	if(!found){
-		//I guess its an add
-		if(!_ec->__IMPORTS)
-			_ec->__IMPORTS = newVector(struct IMEXPORT *,4);
-		mxp = (struct IMEXPORT *)malloc(sizeof(struct IMEXPORT));
-		mxp->mxname = strdup(mxname);
-		mxp->as = strdup(as);
-		mxp->inlinename = strdup(nline);
-		stack_push(struct IMEXPORT *,_ec->__IMPORTS,mxp);
+	else {
+		printf("\nIncorrect argument format for getImportedNode('DEFname').\n");
+		return JS_FALSE;
 	}
-	update_weakRoutes(_ec);
 
-*/
+	return JS_TRUE;
+}
+
 
 static JSBool
 X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp) {
+	//2023 interpretation of parameters:
+	// string1 is the main scene local DEF name (the AS name)
+	// string2 is the inline export name
+	// no need for 3rd string for inline name:
+	// - if you want to say which inline, use <inline name>.<export name> in string2
+	// - otherwise if no "." it assumes that's the export name and will search for that in all inlines
+	//
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "SS";
+	JSString* js_1, * js_2, * js_3;
+	JSObject* _ob2;
+	struct X3D_Node* node = NULL;
+	int found = 0;
+	const char* as, * mxname, * impname;
+	char* nline;
+	struct IMEXPORT* mxp;
+
+
+	if (argc == 2) {
+		JS_ConvertArguments(context, argc, argv, "SS", &js_1, &js_2);
+
+		as = JS_EncodeString(context, js_1);
+		mxname = JS_EncodeString(context, js_2);
+		impname = strdup(mxname);
+		nline = NULL;
+		const char* dot = strstr(mxname, ".");
+		if (dot) {
+			nline = strdup(mxname);
+			nline[dot - mxname] = 0;
+			impname = strdup(&dot[1]);
+		}
+		printf("as [%s] impname [%s] nline [%s]\n", as, impname, nline);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_removeNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+
+		struct X3D_Proto* ec;
+		//ec = getExecutionContextFromCx(cx);
+		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+		struct Vector* imports = (struct Vector*)ec->__IMPORTS;
+		if (imports) {
+			for (int i = 0; i < vectorSize(imports); i++) {
+				mxp = vector_get(struct IMEXPORT*, imports, i);
+				//Q. is it the DEF we search for, and node we replace, OR
+				//   is it the node we search for, and DEF we replace?
+				int inlineOK = !nline || !strcmp(nline, mxp->inlinename);
+				int asOK = !strcmp(as, mxp->as);
+				int impOK = !strcmp(impname, mxp->mxname);
+				if(inlineOK && impOK){
+					//if (!strcmp(nline, mxp->inlinename) && !strcmp(mxp->mxname, mxname)) {
+					printf("updating import new as [%s] old import [%s] inline [%s]\n", as, impname, nline);
+					mxp->as = strdup(as);
+					found = 1;
+					break;
+				}
+			}
+		}
+		if (!found) {
+			//I guess its an add
+			if (!ec->__IMPORTS)
+				ec->__IMPORTS = newVector(struct IMEXPORT*, 4);
+			mxp = (struct IMEXPORT*)malloc(sizeof(struct IMEXPORT));
+			mxp->mxname = strdup(impname);
+			mxp->as = strdup(as);
+			mxp->inlinename = nline ? strdup(nline) : NULL;
+			printf("adding import mapping as [%s] import [%s] inline [%s]\n", impname, as, nline);
+			stack_push(struct IMEXPORT*, (struct Vector *)ec->__IMPORTS, mxp);
+		}
+		update_weakRoutes(ec);
+		//JS_free(context, mxname); //? what's wrong
+	}
+	else {
+		printf("\nIncorrect argument format for updateImportedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
+
+
+static JSBool
+X3DScene_getExportedNode(JSContext* context, uintN argc, jsval* vp) {
+	//has optional 2nd parameter in specs (importname,exportname)
+	JSObject* obj = JS_NewObject(context, &SFNodeClass, NULL, NULL);
+	ADD_ROOT(cx, obj)
+		jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_getNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			int source = 0;
+			struct IMEXPORT * ex = broto_search_EXPORTname(ec, _c);
+			if (ex) node = ex->nodeptr;
+			if (node != NULL) {
+				AnyNative* lhs;
+				if ((lhs = (AnyNative*)AnyNativeNew(FIELDTYPE_SFNode, NULL, NULL)) == NULL) {
+					printf("AnyNativeNew failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				if (!JS_SetPrivateFw(context, obj, lhs)) {
+					printf("JS_SetPrivate failed in SFNodeConstr.\n");
+					return JS_FALSE;
+				}
+				//lhs->valueChanged = NULL; 
+				lhs->v->sfnode = node;
+			}
+			else {
+				printf("Incorrect argument for getExportedNode('DEFname').\n");
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for getExportedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(context, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+static JSBool
+X3DScene_removeExportedNode(JSContext* context, uintN argc, jsval* vp) {
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* _c;
+
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		_c = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DExecutionContext_getNamedNode: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			struct IMEXPORT* ex = broto_search_EXPORTname(ec, _c);
+
+			if (ex) {
+				struct IMEXPORT* def;
+				struct Vector* exports = (struct Vector*)ec->__EXPORTS;
+				int k = 0;
+				for (int i = 0; i < vectorSize(exports); i++) {
+					def = vector_get(struct IMEXPORT*, exports, i);
+					vector_set(struct IMEXPORT*, exports, i, def);
+					if (ex != def) k++;
+				}
+				exports->n = k;
+			}
+		}
+		JS_free(context, _c);
+	}
+	else {
+		printf("\nIncorrect argument format for removeExportedNode('DEFname').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
+
+
+static JSBool
+X3DScene_updateExportedNode(JSContext* context, uintN argc, jsval* vp) {
 	jsval* argv = JS_ARGV(context, vp);
 	const char* _c_format = "SS";
 	JSString* js_1, * js_2, * js_3;
@@ -2132,10 +2332,10 @@ X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp
 		struct X3D_Proto* ec;
 		//ec = getExecutionContextFromCx(cx);
 		ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
-		struct Vector* imports = (struct Vector*)ec->__IMPORTS;
-		if (imports) {
-			for (int i = 0; i < vectorSize(imports); i++) {
-				mxp = vector_get(struct IMEXPORT*, imports, i);
+		struct Vector* exports = (struct Vector*)ec->__EXPORTS;
+		if (exports) {
+			for (int i = 0; i < vectorSize(exports); i++) {
+				mxp = vector_get(struct IMEXPORT*, exports, i);
 				//Q. is it the DEF we search for, and node we replace, OR
 				//   is it the node we search for, and DEF we replace?
 				if (!strcmp(nline, mxp->inlinename) && !strcmp(mxp->mxname, mxname)) {
@@ -2147,13 +2347,13 @@ X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp
 		}
 		if (!found) {
 			//I guess its an add
-			if (!ec->__IMPORTS)
-				ec->__IMPORTS = newVector(struct IMEXPORT*, 4);
+			if (!ec->__EXPORTS)
+				ec->__EXPORTS = newVector(struct IMEXPORT*, 4);
 			mxp = (struct IMEXPORT*)malloc(sizeof(struct IMEXPORT));
 			mxp->mxname = strdup(mxname);
 			mxp->as = strdup(as);
 			mxp->inlinename = strdup(nline);
-			stack_push(struct IMEXPORT*, (struct Vector *)ec->__IMPORTS, mxp);
+			stack_push(struct IMEXPORT*, (struct Vector*)ec->__EXPORTS, mxp);
 		}
 		update_weakRoutes(ec);
 		//JS_free(context, mxname); //? what's wrong
@@ -2165,6 +2365,7 @@ X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp
 
 	return JS_TRUE;
 }
+
 static JSBool
 X3DScene_getMetaData(JSContext* context, uintN argc, jsval* vp) {
 	//has optional 2nd parameter in specs (importname,exportname)
@@ -2269,16 +2470,16 @@ static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	{"createProto", X3DExecutionContext_createProto, 0},
 	{"getImportedNode", X3DExecutionContext_getImportedNode, 0},
 	{"updateImportedNode", X3DExecutionContext_updateImportedNode, 0},
-	//{"removeImportedNode", X3DExecutionContext_removeImportedNode, 0},
+	{"removeImportedNode", X3DExecutionContext_removeImportedNode, 0},
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 0},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},
 	{"removeNamedNode", X3DExecutionContext_removeNamedNode, 0},
-	////scene
+	//scene
 	{"setMetaData", X3DScene_setMetaData, 0},
 	{"getMetaData", X3DScene_getMetaData, 0},
-	//{"getExportedNode", X3DScene_getExportedNode, 0},
-	//{"updateExportedNode", X3DScene_updateExportedNode, 0},
-	//{"removeExportedNode", X3DScene_removeExportedNode, 0},
+	{"getExportedNode", X3DScene_getExportedNode, 0},
+	{"updateExportedNode", X3DScene_updateExportedNode, 0},
+	{"removeExportedNode", X3DScene_removeExportedNode, 0},
 	{0}
 };
 

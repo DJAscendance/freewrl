@@ -347,7 +347,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	for (count = 0; count < nwatch; count ++) {
 
 		cnode = watchlist[count];
-
+		render_node(cnode); //might not be def/use, this might be the only node list its in
 		/* printf ("node type of node %d is %d\n",count,tnode->_nodeType); */
 		switch (cnode->_nodeType) {
 		case NODE_ImageTexture:

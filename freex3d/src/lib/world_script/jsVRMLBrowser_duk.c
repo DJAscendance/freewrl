@@ -1469,29 +1469,46 @@ int X3DExecutionContext_getImportedNode(FWType fwtype, void *ec, void *fwn, int 
 
 void update_weakRoutes(struct X3D_Proto *context);
 int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
-	// I think what they mean by updateImportedNode(string,string[,string]) is:
-	//   updateImportedNode(Inline DEF name, Inline's Export AS name [,optional Import AS name])
+	//2023 interpretation of parameters:
+	// string1 is the main scene local DEF name (the AS name)
+	// string2 is the inline export name
+	// no need for 3rd string for inline name:
+	// - if you want to say which inline, use <inline name>.<export name> in string2
+	// - otherwise if no "." it assumes that's the export name and will search for that in all inlines
+	//
 	int i, nr = 0;
 	//broto warning - DEF name list should be per-executionContext
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	const char *as, *mxname, *nline;
+	const char* as, * mxname, * impname;
+	char* nline;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
-	nline = fwpars[0]._string;
+	as = fwpars[0]._string;
 	mxname = fwpars[1]._string;
-	as = mxname;
-	if(argc == 3)
-		as = fwpars[2]._string;
+	impname = strdup(mxname);
+	nline = NULL;
+	const char* dot = strstr(mxname, ".");
+	if (dot) {
+		nline = strdup(mxname);
+		nline[dot - mxname] = 0;
+		impname = strdup(&dot[1]);
+	}
+	printf("as [%s] impname [%s] nline [%s]\n", as, impname, nline);
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__IMPORTS){
 		for(i=0;i<vectorSize(_ec->__IMPORTS);i++){
 			mxp = vector_get(struct IMEXPORT *,_ec->__IMPORTS,i);
 			//Q. is it the DEF we search for, and node we replace, OR
 			//   is it the node we search for, and DEF we replace?
-			if(!strcmp(nline,mxp->inlinename) && !strcmp(mxp->mxname,mxname)){
+			int inlineOK = !nline || !strcmp(nline, mxp->inlinename);
+			int asOK = !strcmp(as, mxp->as);
+			int impOK = !strcmp(impname, mxp->mxname);
+			if (inlineOK && impOK) {
+				//if (!strcmp(nline, mxp->inlinename) && !strcmp(mxp->mxname, mxname)) {
+				printf("updating import new as [%s] old import [%s] inline [%s]\n", as, impname, nline);
 				mxp->as = strdup(as);
 				found = 1;
 				break;
@@ -1503,9 +1520,10 @@ int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, i
 		if(!_ec->__IMPORTS)
 			_ec->__IMPORTS = newVector(struct IMEXPORT *,4);
 		mxp = (struct IMEXPORT *)malloc(sizeof(struct IMEXPORT));
-		mxp->mxname = strdup(mxname);
+		mxp->mxname = strdup(impname);
 		mxp->as = strdup(as);
-		mxp->inlinename = strdup(nline);
+		mxp->inlinename = nline ? strdup(nline) : NULL;
+		printf("adding import mapping as [%s] import [%s] inline [%s]\n", impname, as, nline);
 		stack_push(struct IMEXPORT *,_ec->__IMPORTS,mxp);
 	}
 	update_weakRoutes(_ec);
@@ -1696,7 +1714,7 @@ static FWFunctionSpec (X3DExecutionContextFunctions)[] = {
 	{"createNode", VRBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
 	{"createProto", X3DExecutionContext_createProto, 'W',{1,-1,0,"S"}},
 	{"getImportedNode", X3DExecutionContext_getImportedNode, 'W',{1,-1,0,"S"}},
-	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{3,-1,0,"SSS"}},
+	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{2,-1,0,"SS"}},
 	{"removeImportedNode", X3DExecutionContext_removeImportedNode, '0',{1,-1,0,"S"}},
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 'W',{1,-1,0,"S"}},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, '0',{2,-1,0,"SW"}},
