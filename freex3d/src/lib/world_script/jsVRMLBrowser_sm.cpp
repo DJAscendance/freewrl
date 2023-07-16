@@ -2165,6 +2165,101 @@ X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp
 
 	return JS_TRUE;
 }
+static JSBool
+X3DScene_getMetaData(JSContext* context, uintN argc, jsval* vp) {
+	//has optional 2nd parameter in specs (importname,exportname)
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "S";
+	JSString* js_c;
+	char* name, *content;
+	content = NULL;
+	if (argc == 1 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_c)) {
+		name = JS_EncodeString(context, js_c);
+#ifdef JSVERBOSE
+		printf("X3DScene_getMetaData: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			if (ec->__META) {
+				struct Vector* metalist = (struct Vector*)ec->__META;
+				struct metarecord* mr;
+				for (int i = 0; i < vectorSize(metalist); i++) {
+					mr = vector_get_ptr(struct metarecord, metalist, i);
+					if (!strcmp(mr->name, name)) {
+						content = strdup(mr->content);
+						break;
+					}
+				}
+			}
+		}
+		JS_free(context, name);
+	}
+	else {
+		printf("\nIncorrect argument format for Scene.getMetaData('name').\n");
+		return JS_FALSE;
+	}
+
+	JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(JS_NewStringCopyZ(context, content)));
+	return JS_TRUE;
+}
+static JSBool
+X3DScene_setMetaData(JSContext* context, uintN argc, jsval* vp) {
+	//has optional 2nd parameter in specs (importname,exportname)
+	jsval* argv = JS_ARGV(context, vp);
+	const char* _c_format = "SS";
+	JSString* js_name, *js_content;
+	char* name, * content;
+
+	if (argc == 2 &&
+		JS_ConvertArguments(context, argc, argv, _c_format, &js_name, &js_content)) {
+		name = JS_EncodeString(context, js_name);
+		content = JS_EncodeString(context, js_content);
+#ifdef JSVERBOSE
+		printf("X3DScene_getMetaData: obj = %u, str = \"%s\"\n",
+			obj, _c);
+#endif
+		{
+			struct X3D_Node* node = NULL;
+			struct X3D_Proto* ec;
+			//ec = getExecutionContextFromCx(cx);
+			ec = (struct X3D_Proto*)JS_GetContextPrivate(context);
+			if (!ec->__META)
+				ec->__META = newVector(struct metarecord, 10);
+
+			struct Vector* metalist = (struct Vector*)ec->__META;
+			struct metarecord* mr;
+			int done = FALSE;
+			for (int i = 0; i < vectorSize(metalist); i++) {
+				mr = vector_get_ptr(struct metarecord, metalist, i);
+				if (!strcmp(mr->name, name)) {
+					mr->content = strdup(content);
+					done = TRUE;
+					break;
+				}
+			}
+			if (!done) {
+				//add
+				struct metarecord mr2;
+				mr2.name = strdup(name);
+				mr2.content = strdup(content);
+				vector_pushBack(struct metarecord, metalist, mr2);
+			}
+		}
+		JS_free(context, name);
+		JS_free(context, content);
+	}
+	else {
+		printf("\nIncorrect argument format for Scene.setMetaData('name','content').\n");
+		return JS_FALSE;
+	}
+
+	return JS_TRUE;
+}
 
 static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	//executionContext
@@ -2179,8 +2274,8 @@ static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},
 	{"removeNamedNode", X3DExecutionContext_removeNamedNode, 0},
 	////scene
-	//{"setMetaData", X3DScene_setMetaData, 0},
-	//{"getMetaData", X3DScene_getMetaData, 0},
+	{"setMetaData", X3DScene_setMetaData, 0},
+	{"getMetaData", X3DScene_getMetaData, 0},
 	//{"getExportedNode", X3DScene_getExportedNode, 0},
 	//{"updateExportedNode", X3DScene_updateExportedNode, 0},
 	//{"removeExportedNode", X3DScene_removeExportedNode, 0},
