@@ -1696,13 +1696,28 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
 
 	}
-	else if ((ev == MotionNotify) && (node->isActive) && but1) {
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
+
+		/* autoOffset? */
+		if (node->autoOffset) {
+#ifdef LINESENSOR_FLOAT_OFFSET
+			node->offset = node->_origPoint.c[1];
+#else
+			veccopy3f(node->offset.c, node->translation_changed.c);
+#endif
+			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, offset));
+		}
+	}
+	if ((ev == MotionNotify || ev == ButtonPress) && (node->isActive) && but1) {
 		float xxxoffset, xxxorigin;
 		//float diroffset[3], nondiroffset[3];
 		/* trackpoint changed */
 		veccopy3f(node->_oldtrackPoint.c,trackpoint);
 		
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c) || ev == ButtonPress) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, trackPoint_changed));
 
@@ -1751,21 +1766,7 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		//save current for use in mouse-up auto-offset
 		node->_origPoint.c[1] = xxx;
 	}
-	else if (ev == ButtonRelease) {
-		/* set isActive false */
-		node->isActive = FALSE;
-		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
 
-		/* autoOffset? */
-		if (node->autoOffset) {
-#ifdef LINESENSOR_FLOAT_OFFSET
-			node->offset = node->_origPoint.c[1];
-#else
-			veccopy3f(node->offset.c,node->translation_changed.c);
-#endif
-			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, offset));
-		}
-	}
 
 }
 
@@ -1821,12 +1822,15 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 		float distance = veclength3f(vecdif3f(tt,rposn,norm));
 		//printf("dist0 = %f\n",distance);
 		veccopy3f(trackpoint,rposn); 
+		//unconditionally send trackpoint_changed
 		veccopy3f(node->_origPoint.c,trackpoint); 
+		veccopy3f(node->_oldtrackPoint.c, trackpoint);
+		veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
 
 		/* set isActive true */
 		node->isActive = TRUE;
 		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
-
 	}
 	else if ((ev == MotionNotify) && (node->isActive) && but1) {
 		/* trackpoint changed */
@@ -1876,6 +1880,9 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 		/* set isActive false */
 		node->isActive = FALSE;
 		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+		//unconditionally re-send trackpoint_changed
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
+
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
@@ -1981,7 +1988,25 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
 		}
 
-	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		if (touchID == op->ID) {
+			//printf("release %d\n",touchID);
+			node->isActive = FALSE;
+			MARK_EVENT(ptr, offsetof(struct X3D_PlaneSensor, isActive));
+			op->reset = TRUE;
+			/* autoOffset? */
+			if (node->autoOffset) {
+				veccopy3f(node->offset.c, node->translation_changed.c);
+
+				MARK_EVENT(ptr, offsetof(struct X3D_PlaneSensor, offset));
+			}
+		}
+	}
+
+	
+	if ((ev==MotionNotify || ev==ButtonPress) && (node->isActive) && but1) {
 		/* hyperhit saved in render_hypersensitive phase */
 		if(dp->ID == op->ID){
 			/* trackpoint changed */
@@ -1991,7 +2016,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 
 			veccopy3f(node->_oldtrackPoint.c, trackpoint);
 			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-			if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
+			if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c) || ev==ButtonPress) {
 				veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 				MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
 
@@ -2019,22 +2044,7 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 			}
 		}
 
-	} else if (ev==ButtonRelease) {
-		/* set isActive false */
-		if(touchID == op->ID){
-			//printf("release %d\n",touchID);
-			node->isActive=FALSE;
-			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
-			op->reset = TRUE;
-			/* autoOffset? */
-			if (node->autoOffset) {
-				veccopy3f(node->offset.c,node->translation_changed.c);
-
-				MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, offset));
-			}
-		}
-	}
-
+	} 
 }
 
 //MIT AND EQUIVALENT PERMISSIVE LICENSE >>>>>>>>>
@@ -3202,7 +3212,17 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		node->isActive=TRUE;
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
 
-	}else if ((ev == MotionNotify) && (node->isActive)) {
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, isActive));
+		/* save auto offset of rotation */
+		if (node->autoOffset) {
+			node->offset = node->rotation_changed.c[3];
+		}
+	}
+	if ((ev == MotionNotify || ev == ButtonPress) && (node->isActive)) {
 		float trackpoint[3], rotation4f[4];
 		//specs > cylsensor: "trackPoint_changed events represent the unclamped intersection points 
 		// on the surface of the invisible cylinder or disk"
@@ -3275,20 +3295,12 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		if(!node->sensorLocalOutput)
 			axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
 		veccopy3f(node->_oldtrackPoint.c,trackpoint);
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c) || ev == ButtonPress) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
 		}
 
-	} else if (ev==ButtonRelease) {
-		/* set isActive false */
-		node->isActive=FALSE;
-		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
-		/* save auto offset of rotation */
-		if (node->autoOffset) {
-			node->offset = node->rotation_changed.c[3];
-		}
-	}
+	} 
 }
 // see Mainloop.c get_hyperhit() for more explanation:
 // in sensor-node-local coordinates (not quite sensor-local if sensor node has axisRotation):
@@ -3479,7 +3491,8 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		if (node->autoOffset) {
 			veccopy4f(node->offset.c,node->rotation_changed.c);
 		}
-	} else if ((ev==MotionNotify) && (node->isActive)) {
+	} 
+	if ((ev==MotionNotify || ev==ButtonPress) && (node->isActive)) {
 		
 		float dotProd;
 		float newRad;
