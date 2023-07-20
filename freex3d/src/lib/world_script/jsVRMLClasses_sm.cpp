@@ -586,12 +586,12 @@ JSFunctionSpec (MFInt32Functions)[] = {
 	{0}
 };
 
-#ifdef NEWCLASSES
+
 JSClass MFBoolClass = {
 	"MFBool",
 	JSCLASS_HAS_PRIVATE,
 	MFBoolAddProperty,
-	JS_PropertyStub,
+	JS_DeletePropertyStub,
 	MFBoolGetProperty,
 	MFBoolSetProperty,
 	JS_EnumerateStub,
@@ -606,7 +606,7 @@ JSFunctionSpec (MFBoolFunctions)[] = {
 	{0}
 };
 
-
+#ifdef NEWCLASSES
 JSClass MFDoubleClass = {
 	"MFDouble",
 	JSCLASS_HAS_PRIVATE,
@@ -983,7 +983,7 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFDoubleClass, MFDoubleConstr, &MFDoubleFunctions, &MFDoubleProperties, "MFDoubleClass"},
 		{ &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
         { &MFInt32Class, &MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
-	//	{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, &MFBoolProperties, "MFBoolClass"},
+		{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, NULL, "MFBoolClass"},
 
         { &MFColorClass, &MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
 	//	{ &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, &MFColorRGBAProperties, "MFColorRGBAClass"},
@@ -2460,6 +2460,13 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
 				X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 				break;
+			case FIELDTYPE_MFBool:
+			case FIELDTYPE_MFInt32:
+			case FIELDTYPE_MFFloat:
+			case FIELDTYPE_MFDouble:
+			case FIELDTYPE_MFTime:
+			case FIELDTYPE_MFString:
+			case FIELDTYPE_MFNode:
 			case FIELDTYPE_MFColor:
 			case FIELDTYPE_MFColorRGBA:
 			case FIELDTYPE_MFVec2f:
@@ -2468,18 +2475,13 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			case FIELDTYPE_MFVec2d:
 			case FIELDTYPE_MFVec3d:
 			case FIELDTYPE_MFVec4d:
-			case FIELDTYPE_MFFloat:
-			case FIELDTYPE_MFDouble:
-			case FIELDTYPE_MFTime:
-			case FIELDTYPE_MFInt32:
-			case FIELDTYPE_MFString:
-			case FIELDTYPE_MFNode:
 			case FIELDTYPE_MFRotation:
 			case FIELDTYPE_SFImage:
 			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {
 				X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 				break;
-			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+			default: 
+				printf ("unhandled type FIELDTYPE_ %d in ___getSFNodeField\n", type) ;
 				return JS_FALSE;
 			}
 		}else{

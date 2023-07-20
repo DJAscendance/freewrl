@@ -2444,7 +2444,7 @@ getECMANative(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutableHan
 			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {
 				X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 				break;
-			default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+			default: printf ("unhandled type FIELDTYPE_ %d in  __getSFNodeField\n", type) ;
 				return JS_FALSE;
 			}
 		}else{

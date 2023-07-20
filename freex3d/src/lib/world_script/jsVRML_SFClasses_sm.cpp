@@ -2095,6 +2095,13 @@ SFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 				case FIELDTYPE_SFRotation:
 					X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 					break;
+				case FIELDTYPE_MFInt32:
+				case FIELDTYPE_MFBool:
+				case FIELDTYPE_MFFloat:
+				case FIELDTYPE_MFDouble:
+				case FIELDTYPE_MFTime:
+				case FIELDTYPE_MFString:
+				case FIELDTYPE_MFNode:
 				case FIELDTYPE_MFColor:
 				case FIELDTYPE_MFColorRGBA:
 				case FIELDTYPE_MFVec2f:
@@ -2103,18 +2110,13 @@ SFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 				case FIELDTYPE_MFVec2d:
 				case FIELDTYPE_MFVec3d:
 				case FIELDTYPE_MFVec4d:
-				case FIELDTYPE_MFFloat:
-				case FIELDTYPE_MFDouble:
-				case FIELDTYPE_MFTime:
-				case FIELDTYPE_MFInt32:
-				case FIELDTYPE_MFString:
-				case FIELDTYPE_MFNode:
 				case FIELDTYPE_MFRotation:
 				case FIELDTYPE_SFImage:
 				//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 					X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 					break;
-				default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+				default: 
+					printf ("unhandled type FIELDTYPE_ %d in getSFNodeProperty!\n", type) ;
 				return JS_FALSE;
 				}
 	
@@ -2315,7 +2317,7 @@ SFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 				//	JS_MF_TO_X3D(cx, obj, value, type, vp);
 				//	break;
 				default: 
-					printf ("unhandled type FIELDTYPE_ %d in setSFNodeField\n", type) ;
+					printf ("unhandled type FIELDTYPE_ %d in setSFNodeProperty?\n", type) ;
 				return JS_FALSE;
 				}
 			}

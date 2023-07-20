@@ -406,6 +406,16 @@ JSBool MFInt32GetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
+JSBool MFBoolToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+
+JSBool MFBoolAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFBoolGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFBoolSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+
 JSBool MFNodeToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFNodeAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFNodeConstr(JSContext *cx, uintN argc, jsval *vp);

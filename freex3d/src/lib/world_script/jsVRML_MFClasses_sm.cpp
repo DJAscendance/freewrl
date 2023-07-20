@@ -445,7 +445,7 @@ MFFloatSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFFloat);
 }
 
-
+// MFInt32
 JSBool
 MFInt32ToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
@@ -627,6 +627,193 @@ MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFInt32);
 }
 
+// MFBool
+JSBool
+MFBoolToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolToString\n");
+#endif
+
+	if (!doMFToString(cx, obj, "MFBool", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFBoolAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolAssign\n");
+#endif
+
+	SET_MF_ECMA_HAS_CHANGED
+
+		if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFBoolClass, FIELDTYPE_SFBool)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+
+JSBool
+MFBoolConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFBoolClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFBoolConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFBoolConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	int32 _i;
+	unsigned int i;
+	union anyVrml* anyv;
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolConstr\n");
+#endif
+
+	ADD_ROOT(cx, obj)
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFBool, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(int) * upper_power_of_two(argc); //newsize in bytes
+		if (argc > 0) {
+			anyv->mfbool.p = MALLOC(int*, newsize);
+			memset(anyv->mfbool.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+			DEFINE_MF_ECMA_HAS_CHANGED
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFBoolConstr: obj = %p, %u args\n", obj, argc);
+#endif
+
+	/* any values here that we should add in? */
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		if (!vp.isInt32()) {
+			printf("JS_ValueToInt32 failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		_i = vp.toInt32();
+#ifdef JSVRMLCLASSESVERBOSE
+		printf("value at %d is %d\n", i, _i);
+#endif
+		if (SM_method() == 2) {
+			anyv->mfbool.p[i] = _i;
+			anyv->mfbool .n = i + 1;
+		}
+		else {
+			if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf("JS_DefineElement failed for arg %u in MFBoolConstr.\n", i);
+				return JS_FALSE;
+			}
+		}
+	}
+
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFBoolAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolAddProperty\n");
+#endif
+
+	return doMFAddProperty(cx, obj, id, vp, "MFBoolAddProperty");
+}
+
+JSBool
+MFBoolGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolGetProperty\n");
+#endif
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = 0", FIELDTYPE_MFBool);
+}
+
+JSBool
+MFBoolSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolSetProperty\n");
+#endif
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFBool);
+}
+
+
+// MFNode
 
 JSBool
 MFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
@@ -810,6 +997,7 @@ MFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFNode);
 }
 
+// MFTime
 
 JSBool
 MFTimeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -961,7 +1149,7 @@ MFTimeAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
-//MFDOUBLE
+// MFDouble
 
 JSBool
 MFDoubleAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
@@ -1116,8 +1304,7 @@ MFDoubleAssign(JSContext* cx, uintN argc, jsval* vp) {
 
 }
 
-//MFVec2f
-
+// MFVec2f
 
 JSBool
 MFVec2fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -1275,7 +1462,7 @@ MFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
-/* MFVec3f */
+// MFVec3f 
 JSBool
 MFVec3fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -1434,7 +1621,7 @@ MFVec3fAssign(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 
-/* VrmlMatrix */
+// VrmlMatrix 
 
 static void _setmatrix (JSContext *cx, JSObject *obj, double *matrix) {
 	jsval val;
@@ -2185,7 +2372,7 @@ VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 	return doMFSetProperty(cx, obj, id, vp,1000); /* do not have a FIELDTYPE for this */
 }
 
-/* MFRotation */
+// MFRotation
 JSBool
 MFRotationAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -2342,7 +2529,7 @@ MFRotationAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
-/* MFStrings */
+// MFStrings 
 JSBool
 MFStringAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();

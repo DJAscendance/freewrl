@@ -1009,29 +1009,42 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 
 //	if (!JSVAL_IS_OBJECT(*newval)) { //don't know what this guards against
 		switch (dataType) {
-			case FIELDTYPE_MFString:
-				newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
-			case FIELDTYPE_MFFloat: 
-				newobj = JS_NewObject(cx,&MFFloatClass,NULL,NULL); break;
-			case FIELDTYPE_MFTime: 
-				newobj = JS_NewObject(cx,&MFTimeClass,NULL,NULL); break;
+			case FIELDTYPE_MFInt32:
+				newobj = JS_NewObject(cx, &MFInt32Class, NULL, NULL); break;
+			case FIELDTYPE_MFBool:
+				newobj = JS_NewObject(cx, &MFInt32Class, NULL, NULL); break;
+			case FIELDTYPE_MFFloat:
+				newobj = JS_NewObject(cx, &MFFloatClass, NULL, NULL); break;
+			case FIELDTYPE_MFTime:
+				newobj = JS_NewObject(cx, &MFTimeClass, NULL, NULL); break;
 			case FIELDTYPE_MFDouble:
 				newobj = JS_NewObject(cx, &MFDoubleClass, NULL, NULL); break;
-			case FIELDTYPE_MFInt32:
-				newobj = JS_NewObject(cx,&MFInt32Class,NULL,NULL); break;
+			case FIELDTYPE_MFString:
+				newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
 			case FIELDTYPE_SFImage: 
 				newobj = JS_NewObject(cx,&SFImageClass,NULL,NULL); break;
-			case FIELDTYPE_MFVec3f: 
-				newobj = JS_NewObject(cx,&MFVec3fClass,NULL,NULL); break;
-			case FIELDTYPE_MFColor: 
-				newobj = JS_NewObject(cx,&MFColorClass,NULL,NULL); break;
-			case FIELDTYPE_MFNode: 
+			case FIELDTYPE_MFColor:
+				newobj = JS_NewObject(cx, &MFColorClass, NULL, NULL); break;
+			//case FIELDTYPE_MFColorRGBA:
+			//	newobj = JS_NewObject(cx, &MFColorRGBAClass, NULL, NULL); break;
+			case FIELDTYPE_MFNode:
 				newobj = JS_NewObject(cx,&MFNodeClass,NULL,NULL); break;
 			case FIELDTYPE_MFVec2f: 
 				newobj = JS_NewObject(cx,&MFVec2fClass,NULL,NULL); break;
-			case FIELDTYPE_MFRotation: 
+			case FIELDTYPE_MFVec3f:
+				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFVec4f:
+				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFVec2d:
+				newobj = JS_NewObject(cx, &MFVec2fClass, NULL, NULL); break;
+			case FIELDTYPE_MFVec3d:
+				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFVec4d:
+				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFRotation:
 				newobj = JS_NewObject(cx,&MFRotationClass,NULL,NULL); break;
-			default: printf ("invalid type in X3D_MF_TO_JS\n"); return;
+			default: 
+				printf ("invalid type in X3D_MF_TO_JS\n"); return;
 		}
 		//set private
 		if ((ptr = (AnyNative *) AnyNativeNew(dataType,Data,valueChanged)) == NULL) {
@@ -1335,6 +1348,13 @@ static JSBool getSFNodeField(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Hand
 			X3D_SF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)),
 				returnElementLength(*(fieldOffsetsPtr+2)) * returnElementRowSize(*(fieldOffsetsPtr+2)) , *(fieldOffsetsPtr+2), vp);
 			break;
+		case FIELDTYPE_MFInt32:
+		case FIELDTYPE_MFBool:
+		case FIELDTYPE_MFFloat:
+		case FIELDTYPE_MFDouble:
+		case FIELDTYPE_MFTime:
+		case FIELDTYPE_MFString:
+		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFColor:
 		case FIELDTYPE_MFColorRGBA:
 		case FIELDTYPE_MFVec2f:
@@ -1343,18 +1363,13 @@ static JSBool getSFNodeField(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Hand
 		case FIELDTYPE_MFVec2d:
 		case FIELDTYPE_MFVec3d:
 		case FIELDTYPE_MFVec4d:
-		case FIELDTYPE_MFFloat:
-		case FIELDTYPE_MFDouble:
-		case FIELDTYPE_MFTime:
-		case FIELDTYPE_MFInt32:
-		case FIELDTYPE_MFString:
-		case FIELDTYPE_MFNode:
 		case FIELDTYPE_MFRotation:
 		case FIELDTYPE_SFImage:
 			X3D_MF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
 				(char *)FIELDNAMES[*(fieldOffsetsPtr+0)]);
 			break;
-		default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", *(fieldOffsetsPtr+2)) ;
+		default: 
+			printf ("unhandled type FIELDTYPE_ %d in getSFNodeField line %d\n", *(fieldOffsetsPtr+2), __LINE__) ;
 		return JS_FALSE;
 	}
 
