@@ -305,6 +305,7 @@ JSBool SFVec2fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool SFVec2fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
+
 JSBool SFVec3fAdd(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fCross(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fDivide(JSContext *cx, uintN argc, jsval *vp);
@@ -319,6 +320,25 @@ JSBool SFVec3fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool SFVec3fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool SFVec2dAdd(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dDivide(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dDot(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dLength(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dMultiply(JSContext* cx, uintN argc, jsval* vp);
+/* JSBool SFVec2fNegate(JSContext *cx, uintN argc, jsval *vp); */
+JSBool SFVec2dNormalize(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dSubtract(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dConstr(JSContext* cx, uintN argc, jsval* vp);
+
+
+JSBool SFVec2dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFVec2dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+
+
 
 JSBool SFVec3dAdd(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3dCross(JSContext *cx, uintN argc, jsval *vp);
@@ -514,6 +534,9 @@ extern JSFunctionSpec (SFVec2fFunctions)[];
 extern JSClass SFVec3fClass;
 extern JSPropertySpec (SFVec3fProperties)[];
 extern JSFunctionSpec (SFVec3fFunctions)[];
+extern JSClass SFVec2dClass;
+extern JSPropertySpec(SFVecdfProperties)[];
+extern JSFunctionSpec(SFVecdfFunctions)[];
 extern JSClass SFVec3dClass;
 extern JSPropertySpec (SFVec3dProperties)[];
 extern JSFunctionSpec (SFVec3dFunctions)[];

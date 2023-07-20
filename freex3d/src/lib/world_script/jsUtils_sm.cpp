@@ -552,11 +552,15 @@ void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, in
 	if(!(*newval).isObject()) {
 		/* find a script to create the correct object */
 		switch (dataType) {
-			case FIELDTYPE_SFVec3f: script = "new SFVec3f()"; break;
-			case FIELDTYPE_SFVec3d: script = "new SFVec3d()"; break;
-			case FIELDTYPE_SFColor: script = "new SFColor()"; break;
-			case FIELDTYPE_SFNode: script = "new SFNode()"; break;
 			case FIELDTYPE_SFVec2f: script = "new SFVec2f()"; break;
+			case FIELDTYPE_SFVec3f: script = "new SFVec3f()"; break;
+			case FIELDTYPE_SFVec4f: script = "new SFVec4f()"; break;
+			case FIELDTYPE_SFVec2d: script = "new SFVec2d()"; break;
+			case FIELDTYPE_SFVec3d: script = "new SFVec3d()"; break;
+			case FIELDTYPE_SFVec4d: script = "new SFVec4d()"; break;
+			case FIELDTYPE_SFColor: script = "new SFColor()"; break;
+			case FIELDTYPE_SFColorRGBA: script = "new SFColorRGBA()"; break;
+			case FIELDTYPE_SFNode: script = "new SFNode()"; break;
 			case FIELDTYPE_SFRotation: script = "new SFRotation()"; break;
 			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
 		}
@@ -642,16 +646,24 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 		JSObject *newobj;
 		AnyNative *ptr;
 		switch (dataType) {
+			case FIELDTYPE_SFVec2f:
+				newobj = JS_NewObject(cx, &SFVec2fClass, NULL, NULL); break;
 			case FIELDTYPE_SFVec3f:
 				newobj = JS_NewObject(cx,&SFVec3fClass,NULL,NULL); break;
+			case FIELDTYPE_SFVec4f:
+				newobj = JS_NewObject(cx, &SFVec4fClass, NULL, NULL); break;
+			case FIELDTYPE_SFVec2d:
+				newobj = JS_NewObject(cx, &SFVec2dClass, NULL, NULL); break;
 			case FIELDTYPE_SFVec3d:
-				newobj = JS_NewObject(cx,&SFVec3dClass,NULL,NULL); break;
+				newobj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL); break;
+			case FIELDTYPE_SFVec4d:
+				newobj = JS_NewObject(cx,&SFVec4dClass,NULL,NULL); break;
 			case FIELDTYPE_SFColor:
 				newobj = JS_NewObject(cx,&SFColorClass,NULL,NULL); break;
+			case FIELDTYPE_SFColorRGBA:
+				newobj = JS_NewObject(cx, &SFColorRGBAClass, NULL, NULL); break;
 			case FIELDTYPE_SFNode:
 				newobj = JS_NewObject(cx,&SFNodeClass,NULL,NULL); break;
-			case FIELDTYPE_SFVec2f:
-				newobj = JS_NewObject(cx,&SFVec2fClass,NULL,NULL); break;
 			case FIELDTYPE_SFRotation:
 				newobj = JS_NewObject(cx,&SFRotationClass,NULL,NULL); break;
 			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;

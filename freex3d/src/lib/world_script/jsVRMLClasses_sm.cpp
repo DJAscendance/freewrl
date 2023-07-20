@@ -349,12 +349,12 @@ JSFunctionSpec (SFVec2fFunctions)[] = {
 	{0}
 };
 
-#ifdef NEWCLASSES
+//SFVec2d
 JSClass SFVec2dClass = {
 	"SFVec2d",
 	JSCLASS_HAS_PRIVATE,
 	JS_PropertyStub,
-	JS_PropertyStub,
+	JS_DeletePropertyStub,
 	SFVec2dGetProperty,
 	SFVec2dSetProperty,
 	JS_EnumerateStub,
@@ -382,8 +382,8 @@ JSFunctionSpec (SFVec2dFunctions)[] = {
 	{0}
 };
 
-#endif /* NEWCLASSES */
 
+//SFVec4f
 JSClass SFVec4fClass = {
 	"SFVec4f",
 	JSCLASS_HAS_PRIVATE,
@@ -972,7 +972,7 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &SFVec2fClass, &SFVec2fConstr, &SFVec2fFunctions, &SFVec2fProperties, "SFVec2fClass"},
 		{ &SFVec3fClass, &SFVec3fConstr, &SFVec3fFunctions, &SFVec3fProperties, "SFVec3fClass"},
 		{ &SFVec4fClass, &SFVec4fConstr, &SFVec4fFunctions, &SFVec4fProperties, "SFVec4fClass"},
-	// { &SFVec2dClass, SFVec2dConstr, &SFVec2dFunctions, &SFVec2dProperties, "SFVec2dClass"},
+		{ &SFVec2dClass, SFVec2dConstr, &SFVec2dFunctions, &SFVec2dProperties, "SFVec2dClass"},
         { &SFVec3dClass, &SFVec3dConstr, &SFVec3dFunctions, &SFVec3dProperties, "SFVec3dClass"},
 		{ &SFVec4dClass, &SFVec4dConstr, &SFVec4dFunctions, &SFVec4dProperties, "SFVec4dClass"},
 		{ &SFRotationClass, &SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},

@@ -895,6 +895,7 @@ void SFVec2fNativeAssign(void *top, void *fromp)
 	(to->v) = (from->v);
 }
 
+
 void *SFVec3fNativeNew() {
 	SFVec3fNative *ptr;
 	ptr = MALLOC(SFVec3fNative *, sizeof(*ptr));
@@ -908,6 +909,23 @@ void SFVec3fNativeAssign(void *top, void *fromp) {
 	to->valueChanged++;
 	(to->v) = (from->v);
 }
+
+void* SFVec2dNativeNew()
+{
+	SFVec2dNative* ptr;
+	ptr = MALLOC(SFVec2dNative*, sizeof(*ptr));
+	ptr->valueChanged = 0;
+	return ptr;
+}
+
+void SFVec2dNativeAssign(void* top, void* fromp)
+{
+	SFVec2dNative* to = (SFVec2dNative*)top;
+	SFVec2dNative* from = (SFVec2dNative*)fromp;
+	to->valueChanged++;
+	(to->v) = (from->v);
+}
+
 
 void *SFVec3dNativeNew() {
 	SFVec3dNative *ptr;
