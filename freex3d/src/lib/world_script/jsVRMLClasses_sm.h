@@ -429,12 +429,17 @@ JSBool MFTimeToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-
-
-
 JSBool MFTimeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFTimeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFTimeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFDoubleToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFDoubleAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFDoubleGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFDoubleSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 
@@ -538,6 +543,10 @@ extern JSFunctionSpec (MFStringFunctions)[];
 extern JSClass MFTimeClass;
 extern JSPropertySpec (MFTimeProperties)[] ;
 extern JSFunctionSpec (MFTimeFunctions)[];
+extern JSClass MFDoubleClass;
+extern JSPropertySpec(MFDoubleProperties)[];
+extern JSFunctionSpec(MFDoubleFunctions)[];
+
 extern JSClass MFVec2fClass;
 extern JSFunctionSpec (MFVec2fFunctions)[];
 extern JSClass MFVec3fClass;

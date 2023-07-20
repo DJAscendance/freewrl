@@ -2084,21 +2084,27 @@ SFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 					X3D_ECMA_TO_JS(cx, value,sfsize,type,vp);
 					break;
 				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFColorRGBA:
 				case FIELDTYPE_SFNode:
 				case FIELDTYPE_SFVec2f:
-				//case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3f:
-				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4f:
+				case FIELDTYPE_SFVec2d:
+				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4d:
-				//case FIELDTYPE_SFColorRGBA:
 				case FIELDTYPE_SFRotation:
 					X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 					break;
 				case FIELDTYPE_MFColor:
-				case FIELDTYPE_MFVec3f:
+				case FIELDTYPE_MFColorRGBA:
 				case FIELDTYPE_MFVec2f:
+				case FIELDTYPE_MFVec3f:
+				case FIELDTYPE_MFVec4f:
+				case FIELDTYPE_MFVec2d:
+				case FIELDTYPE_MFVec3d:
+				case FIELDTYPE_MFVec4d:
 				case FIELDTYPE_MFFloat:
+				case FIELDTYPE_MFDouble:
 				case FIELDTYPE_MFTime:
 				case FIELDTYPE_MFInt32:
 				case FIELDTYPE_MFString:

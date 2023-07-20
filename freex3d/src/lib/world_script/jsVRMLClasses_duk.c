@@ -3850,35 +3850,42 @@ struct FWTYPE MFVec4dType = {
 };
 
 void initVRMLFields(FWType* typeArray, int *n){
-	typeArray[*n] = &SFFloatType; (*n)++;
-	typeArray[*n] = &MFFloatType; (*n)++;
-	typeArray[*n] = &SFRotationType; (*n)++;
-	typeArray[*n] = &MFRotationType; (*n)++;
-	typeArray[*n] = &SFVec3fType; (*n)++;
-	typeArray[*n] = &MFVec3fType; (*n)++;
-	typeArray[*n] = &SFBoolType; (*n)++;
-	typeArray[*n] = &MFBoolType; (*n)++;
 	typeArray[*n] = &SFInt32Type; (*n)++;
 	typeArray[*n] = &MFInt32Type; (*n)++;
+	typeArray[*n] = &SFFloatType; (*n)++;
+	typeArray[*n] = &MFFloatType; (*n)++;
+	typeArray[*n] = &SFTimeType; (*n)++;
+	typeArray[*n] = &MFTimeType; (*n)++;
+	typeArray[*n] = &SFDoubleType; (*n)++;
+	typeArray[*n] = &MFDoubleType; (*n)++;
+	typeArray[*n] = &SFBoolType; (*n)++;
+	typeArray[*n] = &MFBoolType; (*n)++;
 	typeArray[*n] = &SFNodeType; (*n)++;
 	typeArray[*n] = &MFNodeType; (*n)++;
+	typeArray[*n] = &SFRotationType; (*n)++;
+	typeArray[*n] = &MFRotationType; (*n)++;
 	typeArray[*n] = &SFColorType; (*n)++;
 	typeArray[*n] = &MFColorType; (*n)++;
 	typeArray[*n] = &SFColorRGBAType; (*n)++;
 	typeArray[*n] = &MFColorRGBAType; (*n)++;
-	typeArray[*n] = &SFTimeType; (*n)++;
-	typeArray[*n] = &MFTimeType; (*n)++;
 	typeArray[*n] = &SFStringType; (*n)++;
 	typeArray[*n] = &MFStringType; (*n)++;
 	typeArray[*n] = &SFVec2fType; (*n)++;
 	typeArray[*n] = &MFVec2fType; (*n)++;
+	typeArray[*n] = &SFVec3fType; (*n)++;
+	typeArray[*n] = &MFVec3fType; (*n)++;
+	typeArray[*n] = &SFVec4fType; (*n)++;
+	typeArray[*n] = &MFVec4fType; (*n)++;
+	typeArray[*n] = &SFVec2dType; (*n)++;
+	typeArray[*n] = &MFVec2dType; (*n)++;
+	typeArray[*n] = &SFVec3dType; (*n)++;
+	typeArray[*n] = &MFVec3dType; (*n)++;
+	typeArray[*n] = &SFVec4dType; (*n)++;
+	typeArray[*n] = &MFVec4dType; (*n)++;
+
 	typeArray[*n] = &SFImageType; (*n)++;
 	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
 	//typeArray[*n] = &FreeWRLThreadType; (*n)++;
-	typeArray[*n] = &SFVec3dType; (*n)++;
-	typeArray[*n] = &MFVec3dType; (*n)++;
-	typeArray[*n] = &SFDoubleType; (*n)++;
-	typeArray[*n] = &MFDoubleType; (*n)++;
 	//typeArray[*n] = &SFMatrix3fType; (*n)++;
 	//typeArray[*n] = &MFMatrix3fType; (*n)++;
 	//typeArray[*n] = &SFMatrix3dType; (*n)++;
@@ -3889,12 +3896,6 @@ void initVRMLFields(FWType* typeArray, int *n){
 	//typeArray[*n] = &MFMatrix4dType; (*n)++;
 	typeArray[*n] = &X3DMatrix3Type; (*n)++;
 	typeArray[*n] = &X3DMatrix4Type; (*n)++;
-	typeArray[*n] = &SFVec2dType; (*n)++;
-	typeArray[*n] = &MFVec2dType; (*n)++;
-	typeArray[*n] = &SFVec4fType; (*n)++;
-	typeArray[*n] = &MFVec4fType; (*n)++;
-	typeArray[*n] = &SFVec4dType; (*n)++;
-	typeArray[*n] = &MFVec4dType; (*n)++;
 }
 
 #endif /* ifdef JAVASCRIPT_DUK */

@@ -769,17 +769,41 @@ JSClass MFTimeClass = {
 	JS_MY_Finalize
 };
 
-JSPropertySpec (MFTimeProperties)[] = { 
- 	{0} 
+
+
+JSPropertySpec(MFTimeProperties)[] = {
+	{0}
 };
 
-JSFunctionSpec (MFTimeFunctions)[] = {
+JSFunctionSpec(MFTimeFunctions)[] = {
 	{"toString", MFTimeToString, 0},
 	{"assign", MFTimeAssign, 0},
 	{0}
 };
 
+JSPropertySpec(MFDoubleProperties)[] = {
+	{0}
+};
 
+JSFunctionSpec(MFDoubleFunctions)[] = {
+	{"toString", MFDoubleToString, 0},
+	{"assign", MFDoubleAssign, 0},
+	{0}
+};
+
+
+JSClass MFDoubleClass = {
+	"MFDouble",
+	JSCLASS_HAS_PRIVATE,
+	MFDoubleAddProperty,
+	JS_DeletePropertyStub,
+	MFTimeGetProperty,
+	MFTimeSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
 
 JSClass MFVec2fClass = {
 	"MFVec2f",
@@ -937,38 +961,42 @@ struct JSLoadPropElement {
 
 struct JSLoadPropElement JSLoadProps [] = {
 #ifdef NEWCLASSES
-        { &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, &MFVec2dProperties, "MFVec2dClass"},
-        { &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, &MFVec3dProperties, "MFVec3dClass"},
-        { &SFVec2dClass, SFVec2dConstr, &SFVec2dFunctions, &SFVec2dProperties, "SFVec2dClass"},
-        { &MFBoolClass, MFBoolConstr, &MFBoolFunctions, &MFBoolProperties, "MFBoolClass"},
-        { &MFDoubleClass, MFDoubleConstr, &MFDoubleFunctions, &MFDoubleProperties, "MFDoubleClass"},
         { &MFImageClass, MFImageConstr, &MFImageFunctions, &MFImageProperties, "MFImageClass"},
         { &X3DMatrix3Class, X3DMatrix3Constr, &X3DMatrix3Functions, &X3DMatrix3Properties, "X3DMatrix3Class"},
         { &X4DMatrix4Class, X4DMatrix4Constr, &X4DMatrix4Functions, &X4DMatrix4Properties, "X4DMatrix4Class"},
 #endif /* NEWCLASSES */
 
+		//SF float, time, double, bool may not be needed, as they are translated to/from javascript native equivalents
         { &SFColorClass, &SFColorConstr, &SFColorFunctions, &SFColorProperties, "SFColorClass"},
-        { &SFVec2fClass, &SFVec2fConstr, &SFVec2fFunctions, &SFVec2fProperties, "SFVec2fClass"},
         { &SFColorRGBAClass, &SFColorRGBAConstr, &SFColorRGBAFunctions, &SFColorRGBAProperties, "SFColorRGBAClass"},
-        { &SFVec3fClass, &SFVec3fConstr, &SFVec3fFunctions, &SFVec3fProperties, "SFVec3fClass"},
+		{ &SFVec2fClass, &SFVec2fConstr, &SFVec2fFunctions, &SFVec2fProperties, "SFVec2fClass"},
+		{ &SFVec3fClass, &SFVec3fConstr, &SFVec3fFunctions, &SFVec3fProperties, "SFVec3fClass"},
+		{ &SFVec4fClass, &SFVec4fConstr, &SFVec4fFunctions, &SFVec4fProperties, "SFVec4fClass"},
+	// { &SFVec2dClass, SFVec2dConstr, &SFVec2dFunctions, &SFVec2dProperties, "SFVec2dClass"},
         { &SFVec3dClass, &SFVec3dConstr, &SFVec3dFunctions, &SFVec3dProperties, "SFVec3dClass"},
-        { &SFRotationClass, &SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},
+		{ &SFVec4dClass, &SFVec4dConstr, &SFVec4dFunctions, &SFVec4dProperties, "SFVec4dClass"},
+		{ &SFRotationClass, &SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},
         { &SFNodeClass, &SFNodeConstr, &SFNodeFunctions, &SFNodeProperties, "SFNodeClass"},
+		{ &SFImageClass, &SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
+
         { &MFFloatClass, &MFFloatConstr, &MFFloatFunctions, NULL, "MFFloatClass"},
-        { &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
+		{ &MFDoubleClass, MFDoubleConstr, &MFDoubleFunctions, &MFDoubleProperties, "MFDoubleClass"},
+		{ &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
         { &MFInt32Class, &MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
+	//	{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, &MFBoolProperties, "MFBoolClass"},
+
         { &MFColorClass, &MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
+	//	{ &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, &MFColorRGBAProperties, "MFColorRGBAClass"},
+
         { &MFVec2fClass, &MFVec2fConstr, &MFVec2fFunctions, NULL, "MFVec2fClass"},
-
         { &MFVec3fClass, &MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
-
-        { &SFVec4fClass, &SFVec4fConstr, &SFVec4fFunctions, &SFVec4fProperties, "SFVec4fClass"},
-        { &SFVec4dClass, &SFVec4dConstr, &SFVec4dFunctions, &SFVec4dProperties, "SFVec4dClass"},
+	//	{ &MFVec4fClass, &MFVec4fConstr, &MFVec4fFunctions, NULL, "MFVec4fClass"},
+	//	{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, &MFVec2dProperties, "MFVec2dClass"},
+	//	{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, &MFVec3dProperties, "MFVec3dClass"},
+	//	{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, &MFVec4dProperties, "MFVec4dClass"},
 
         { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
         { &MFNodeClass, &MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
-        { &SFImageClass, &SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
-/*        { &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, &MFColorRGBAProperties, "MFColorRGBAClass"},*/
         { &MFStringClass, &MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
         { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
         { NULL, NULL, NULL, NULL, NULL }
@@ -2420,18 +2448,28 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 				X3D_ECMA_TO_JS(cx, value,sfsize,type,vp);
 				break;
 			case FIELDTYPE_SFColor:
+			case FIELDTYPE_SFColorRGBA:
 			case FIELDTYPE_SFNode:
 			case FIELDTYPE_SFVec2f:
 			case FIELDTYPE_SFVec3f:
+			case FIELDTYPE_SFVec4f:
+			case FIELDTYPE_SFVec2d:
 			case FIELDTYPE_SFVec3d:
+			case FIELDTYPE_SFVec4d:
 			case FIELDTYPE_SFRotation:
 			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
 				X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 				break;
 			case FIELDTYPE_MFColor:
-			case FIELDTYPE_MFVec3f:
+			case FIELDTYPE_MFColorRGBA:
 			case FIELDTYPE_MFVec2f:
+			case FIELDTYPE_MFVec3f:
+			case FIELDTYPE_MFVec4f:
+			case FIELDTYPE_MFVec2d:
+			case FIELDTYPE_MFVec3d:
+			case FIELDTYPE_MFVec4d:
 			case FIELDTYPE_MFFloat:
+			case FIELDTYPE_MFDouble:
 			case FIELDTYPE_MFTime:
 			case FIELDTYPE_MFInt32:
 			case FIELDTYPE_MFString:
