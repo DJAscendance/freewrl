@@ -892,7 +892,7 @@ JSFunctionSpec(MFVec4fFunctions)[] = {
 JSClass MFVec2dClass = {
 	"MFVec2d",
 	JSCLASS_HAS_PRIVATE,
-	MFVec4fAddProperty,
+	MFVec2dAddProperty,
 	JS_DeletePropertyStub,
 	MFVec2dGetProperty,
 	MFVec2dSetProperty,
@@ -912,7 +912,7 @@ JSFunctionSpec(MFVec2dFunctions)[] = {
 JSClass MFVec3dClass = {
 	"MFVec3d",
 	JSCLASS_HAS_PRIVATE,
-	MFVec4fAddProperty,
+	MFVec3dAddProperty,
 	JS_DeletePropertyStub,
 	MFVec3dGetProperty,
 	MFVec3dSetProperty,
@@ -925,6 +925,26 @@ JSClass MFVec3dClass = {
 JSFunctionSpec(MFVec3dFunctions)[] = {
 	{"toString", MFVec3dToString, 0},
 	{"assign", MFVec3dAssign, 0},
+	{0}
+};
+
+
+JSClass MFVec4dClass = {
+	"MFVec4d",
+	JSCLASS_HAS_PRIVATE,
+	MFVec4dAddProperty,
+	JS_DeletePropertyStub,
+	MFVec4dGetProperty,
+	MFVec4dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFVec4dFunctions)[] = {
+	{"toString", MFVec4dToString, 0},
+	{"assign", MFVec4dAssign, 0},
 	{0}
 };
 
@@ -1044,7 +1064,6 @@ struct JSLoadPropElement {
 
 struct JSLoadPropElement JSLoadProps [] = {
 #ifdef NEWCLASSES
-        { &MFImageClass, MFImageConstr, &MFImageFunctions, &MFImageProperties, "MFImageClass"},
         { &X3DMatrix3Class, X3DMatrix3Constr, &X3DMatrix3Functions, &X3DMatrix3Properties, "X3DMatrix3Class"},
         { &X4DMatrix4Class, X4DMatrix4Constr, &X4DMatrix4Functions, &X4DMatrix4Properties, "X4DMatrix4Class"},
 #endif /* NEWCLASSES */
@@ -1076,7 +1095,7 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFVec4fClass, &MFVec4fConstr, &MFVec4fFunctions, NULL, "MFVec4fClass"},
 		{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, NULL, "MFVec2dClass"},
 		{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, NULL, "MFVec3dClass"},
-	//	{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, &MFVec4dProperties, "MFVec4dClass"},
+		{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, NULL, "MFVec4dClass"},
 
         { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
         { &MFNodeClass, &MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
@@ -1338,6 +1357,7 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFVec4f:
 				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
+				case FIELDTYPE_SFVec4d:
 				case FIELDTYPE_SFRotation:
 					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
 					break;
@@ -1960,6 +1980,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFVec4f:
 				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
+				case FIELDTYPE_SFVec4d:
 				case FIELDTYPE_SFRotation:
 					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
 					//JS_SF_TO_X3D(cx, any, sfsize, sftype, ptr->valueChanged, vp);

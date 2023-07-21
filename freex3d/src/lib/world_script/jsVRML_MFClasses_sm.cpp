@@ -2277,6 +2277,169 @@ MFVec3dAssign(JSContext* cx, uintN argc, jsval* vp) {
 }
 
 
+
+// MFVec4d
+JSBool
+MFVec4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec4dAddProperty");
+}
+
+JSBool
+MFVec4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec4d()", FIELDTYPE_MFVec4d);
+}
+
+JSBool
+MFVec4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec4d);
+}
+
+JSBool
+MFVec4dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec4dToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec4d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec4dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec4dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec4dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec4d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec4d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec4d.p = MALLOC(struct SFVec4d*, newsize);
+			memset(anyv->mfvec4d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec4dClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec4d ) {
+						shallow_copy_field(FIELDTYPE_SFVec4d, any2->v, (union anyVrml*)&anyv->mfvec4d.p[i]);
+						anyv->mfvec4d.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec4dConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec4dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec4dClass, FIELDTYPE_SFVec4d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
 // VrmlMatrix 
 
 static void _setmatrix (JSContext *cx, JSObject *obj, double *matrix) {
