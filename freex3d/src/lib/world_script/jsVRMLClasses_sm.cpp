@@ -888,6 +888,26 @@ JSFunctionSpec(MFVec4fFunctions)[] = {
 	{0}
 };
 
+
+JSClass MFVec2dClass = {
+	"MFVec2d",
+	JSCLASS_HAS_PRIVATE,
+	MFVec4fAddProperty,
+	JS_DeletePropertyStub,
+	MFVec2dGetProperty,
+	MFVec2dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFVec2dFunctions)[] = {
+	{"toString", MFVec2dToString, 0},
+	{"assign", MFVec2dAssign, 0},
+	{0}
+};
+
 JSObject *proto_VrmlMatrix;
 
 JSClass VrmlMatrixClass = {
@@ -1034,7 +1054,7 @@ struct JSLoadPropElement JSLoadProps [] = {
         { &MFVec2fClass, &MFVec2fConstr, &MFVec2fFunctions, NULL, "MFVec2fClass"},
         { &MFVec3fClass, &MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
 		{ &MFVec4fClass, &MFVec4fConstr, &MFVec4fFunctions, NULL, "MFVec4fClass"},
-	//	{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, &MFVec2dProperties, "MFVec2dClass"},
+		{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, NULL, "MFVec2dClass"},
 	//	{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, &MFVec3dProperties, "MFVec3dClass"},
 	//	{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, &MFVec4dProperties, "MFVec4dClass"},
 
@@ -1296,6 +1316,7 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec4f:
+				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
 					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
@@ -1917,6 +1938,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec4f:
+				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFRotation:
 					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
