@@ -2084,7 +2084,7 @@ JSBool MFVec2dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* a
 				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
 					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
 					// but in future internal types might change
-					if (any2->type == FIELDTYPE_SFVec2d || any2->type == FIELDTYPE_SFColorRGBA) {
+					if (any2->type == FIELDTYPE_SFVec2d || any2->type == FIELDTYPE_SFVec3d || any2->type == FIELDTYPE_SFVec4d) {
 						shallow_copy_field(FIELDTYPE_SFVec2d, any2->v, (union anyVrml*)&anyv->mfvec2d.p[i]);
 						anyv->mfvec2d.n = i + 1;
 					}
@@ -2109,6 +2109,169 @@ MFVec2dAssign(JSContext* cx, uintN argc, jsval* vp) {
 	jsval* argv = JS_ARGV(cx, vp);
 	jsval rval;
 	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec2dClass, FIELDTYPE_SFVec2d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+// MFVec3d
+JSBool
+MFVec3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec3dAddProperty");
+}
+
+JSBool
+MFVec3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec3d()", FIELDTYPE_MFVec3d);
+}
+
+JSBool
+MFVec3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec3d);
+}
+
+JSBool
+MFVec3dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec3dToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec3d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec3dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec3dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec3dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec3d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec3d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec3d.p = MALLOC(struct SFVec3d*, newsize);
+			memset(anyv->mfvec3d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec3dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec3dClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec3d || any2->type == FIELDTYPE_SFVec4d) {
+						shallow_copy_field(FIELDTYPE_SFVec3d, any2->v, (union anyVrml*)&anyv->mfvec3d.p[i]);
+						anyv->mfvec3d.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec3dConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec3dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec3dClass, FIELDTYPE_SFVec3d)) { return JS_FALSE; }
 	JS_SET_RVAL(cx, vp, rval);
 	return JS_TRUE;
 }

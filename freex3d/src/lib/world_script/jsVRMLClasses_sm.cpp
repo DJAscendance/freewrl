@@ -908,6 +908,26 @@ JSFunctionSpec(MFVec2dFunctions)[] = {
 	{0}
 };
 
+
+JSClass MFVec3dClass = {
+	"MFVec3d",
+	JSCLASS_HAS_PRIVATE,
+	MFVec4fAddProperty,
+	JS_DeletePropertyStub,
+	MFVec3dGetProperty,
+	MFVec3dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFVec3dFunctions)[] = {
+	{"toString", MFVec3dToString, 0},
+	{"assign", MFVec3dAssign, 0},
+	{0}
+};
+
 JSObject *proto_VrmlMatrix;
 
 JSClass VrmlMatrixClass = {
@@ -1055,7 +1075,7 @@ struct JSLoadPropElement JSLoadProps [] = {
         { &MFVec3fClass, &MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
 		{ &MFVec4fClass, &MFVec4fConstr, &MFVec4fFunctions, NULL, "MFVec4fClass"},
 		{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, NULL, "MFVec2dClass"},
-	//	{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, &MFVec3dProperties, "MFVec3dClass"},
+		{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, NULL, "MFVec3dClass"},
 	//	{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, &MFVec4dProperties, "MFVec4dClass"},
 
         { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
