@@ -1025,8 +1025,8 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 				newobj = JS_NewObject(cx,&SFImageClass,NULL,NULL); break;
 			case FIELDTYPE_MFColor:
 				newobj = JS_NewObject(cx, &MFColorClass, NULL, NULL); break;
-			//case FIELDTYPE_MFColorRGBA:
-			//	newobj = JS_NewObject(cx, &MFColorRGBAClass, NULL, NULL); break;
+			case FIELDTYPE_MFColorRGBA:
+				newobj = JS_NewObject(cx, &MFColorRGBAClass, NULL, NULL); break;
 			case FIELDTYPE_MFNode:
 				newobj = JS_NewObject(cx,&MFNodeClass,NULL,NULL); break;
 			case FIELDTYPE_MFVec2f: 

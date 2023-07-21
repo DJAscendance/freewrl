@@ -524,6 +524,7 @@ JSFunctionSpec (SFVec3dFunctions)[] = {
 	{0}
 };
 
+// MFColor
 JSClass MFColorClass = {
 	"MFColor",
 	JSCLASS_HAS_PRIVATE,
@@ -543,7 +544,29 @@ JSFunctionSpec (MFColorFunctions)[] = {
 	{0}
 };
 
+// MFColorRGBA
+JSClass MFColorRGBAClass = {
+	"MFColorRGBA",
+	JSCLASS_HAS_PRIVATE,
+	MFColorRGBAAddProperty,
+	JS_DeletePropertyStub,
+	MFColorRGBAGetProperty,
+	MFColorRGBASetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
 
+JSFunctionSpec(MFColorRGBAFunctions)[] = {
+	{"toString", MFColorRGBAToString, 0},
+	{"assign", MFColorRGBAAssign, 0},
+	{0}
+};
+
+
+
+// MFFloat
 
 JSClass MFFloatClass = {
 	"MFFloat",
@@ -986,7 +1009,7 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, NULL, "MFBoolClass"},
 
         { &MFColorClass, &MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
-	//	{ &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, &MFColorRGBAProperties, "MFColorRGBAClass"},
+		{ &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, NULL, "MFColorRGBAClass"},
 
         { &MFVec2fClass, &MFVec2fConstr, &MFVec2fFunctions, NULL, "MFVec2fClass"},
         { &MFVec3fClass, &MFVec3fConstr, &MFVec3fFunctions, NULL, "MFVec3fClass"},
@@ -1249,6 +1272,7 @@ _standardMFGetProperty(JSContext *cx,
 					X3D_ECMA_TO_JS(cx, any,sfsize,sftype,vp);
 					break;
 				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFColorRGBA:
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:
@@ -1868,6 +1892,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 
 					break;
 				case FIELDTYPE_SFColor:
+				case FIELDTYPE_SFColorRGBA:
 				case FIELDTYPE_SFVec2f:
 				case FIELDTYPE_SFVec3f:
 				case FIELDTYPE_SFVec3d:

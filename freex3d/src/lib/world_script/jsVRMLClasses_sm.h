@@ -384,6 +384,15 @@ JSBool MFColorAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool MFColorGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFColorSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool MFColorRGBAToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+
+JSBool MFColorRGBAAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFColorRGBAGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFColorRGBASetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
 
 JSBool MFFloatToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFFloatAssign(JSContext *cx, uintN argc, jsval *vp);
@@ -561,6 +570,9 @@ extern JSFunctionSpec (SFVec4dFunctions)[];
 
 extern JSClass MFColorClass;
 extern JSFunctionSpec (MFColorFunctions)[];
+extern JSClass MFColorRGBAClass;
+extern JSFunctionSpec(MFColorRGBAFunctions)[];
+
 extern JSClass MFFloatClass;
 extern JSFunctionSpec (MFFloatFunctions)[];
 extern JSClass MFBoolClass;
