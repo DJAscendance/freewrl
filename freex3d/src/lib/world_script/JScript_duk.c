@@ -47,7 +47,7 @@ To do list Jan 2017
 
 #include "JScript.h"
 #include "FWTYPE.h"
-#define FIELDTYPE_MFImage	43 
+
 //typedef int indexT;
 
 #ifdef DEBUG_MALLOC

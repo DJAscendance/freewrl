@@ -732,7 +732,7 @@ void getField_ToShader(struct X3D_Node *node, int toOffset, union anyVrml *toAny
 							case FIELDTYPE_MFTime:
 							case FIELDTYPE_SFString:
 							case FIELDTYPE_MFString:
-							case FIELDTYPE_SFImage:
+							case FIELDTYPE_MFImage:
 							case FIELDTYPE_FreeWRLPTR:
 							case FIELDTYPE_MFVec3d:
 							case FIELDTYPE_MFDouble:

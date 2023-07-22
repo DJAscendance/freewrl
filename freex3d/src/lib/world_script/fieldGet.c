@@ -109,6 +109,7 @@ void getField_ToJavascript (int num, int fromoffset) {
 	case FIELDTYPE_MFString:
 	case FIELDTYPE_MFNode:
 	case FIELDTYPE_MFRotation:
+	case FIELDTYPE_MFImage:
 	case FIELDTYPE_SFImage:
 		ignored = setMFElementtype(num);
 		break;

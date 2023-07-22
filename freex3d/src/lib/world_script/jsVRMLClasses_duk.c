@@ -2377,7 +2377,7 @@ struct FWTYPE SFImageType = {
 	SFImage_Functions, //functions
 };
 
-#define FIELDTYPE_MFImage	43 
+
 struct FWTYPE MFImageType = {
 	FIELDTYPE_MFImage,
 	'W',

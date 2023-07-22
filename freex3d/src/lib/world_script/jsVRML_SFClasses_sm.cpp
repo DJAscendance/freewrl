@@ -1137,6 +1137,102 @@ SFImageAssign(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 }
 
+
+JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
+
+	JSObject *_arrayObj;
+	int isArray;
+	int32 _i;
+	unsigned int i;
+	union anyVrml *anyv;
+	#ifdef JSVRMLCLASSESVERBOSE
+	printf ("start of MFInt32Constr\n");
+	#endif
+
+	ADD_ROOT(cx,obj)
+	isArray = FALSE;
+	if(argc == 1 && argv){
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if(JS_IsArrayObject(cx, _arrayObj)){
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx,_arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+	if(SM_method() == 2){
+		AnyNative *any;
+		int newsize;
+		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFInt32,NULL,NULL)) == NULL){
+			printf( "AnyfNativeNew failed in MFInt32Constr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf( "JS_SetPrivate failed in MFInt32Constr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(int) * upper_power_of_two(argc); //newsize in bytes
+		if(argc > 0){
+			anyv->mfint32.p = MALLOC(int*,newsize);
+			memset(anyv->mfint32.p,0,newsize);
+		}
+
+	}else{
+		DEFINE_LENGTH(cx,obj,argc)
+        DEFINE_MF_ECMA_HAS_CHANGED
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+	#ifdef JSVRMLCLASSESVERBOSE
+		printf("MFInt32Constr: obj = %p, %u args\n", obj, argc);
+	#endif
+
+	/* any values here that we should add in? */
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if(isArray){
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}else{
+			vp = argv[i];
+		}
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		if(!vp.isInt32()){
+			printf( "JS_ValueToInt32 failed in MFInt32Constr.\n");
+			return JS_FALSE;
+		}
+		_i = vp.toInt32();
+		#ifdef JSVRMLCLASSESVERBOSE
+		printf ("value at %d is %d\n",i,_i);
+		#endif
+		if(SM_method()==2){
+			anyv->mfint32.p[i] = _i;
+			anyv->mfint32.n = i+1;
+		}else{
+			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf( "JS_DefineElement failed for arg %u in MFInt32Constr.\n", i);
+				return JS_FALSE;
+			}
+		}
+	}
+
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
 JSBool
 #if JS_VERSION < 185
 SFImageConstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {

@@ -534,6 +534,14 @@ JSBool MFVec4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool MFVec4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFVec4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool MFImageToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFImageAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFImageGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFImageSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
 
 JSBool VrmlMatrixToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool VrmlMatrixAssign(JSContext *cx, uintN argc, jsval *vp);
@@ -631,6 +639,8 @@ extern JSClass MFVec3dClass;
 extern JSFunctionSpec(MFVec3dFunctions)[];
 extern JSClass MFVec4dClass;
 extern JSFunctionSpec(MFVec4dFunctions)[];
+extern JSClass MFImageClass;
+extern JSFunctionSpec(MFImageFunctions)[];
 
 
 extern JSClass VrmlMatrixClass;

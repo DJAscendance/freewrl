@@ -948,6 +948,26 @@ JSFunctionSpec(MFVec4dFunctions)[] = {
 	{0}
 };
 
+
+
+JSClass MFImageClass = {
+	"MFImage",
+	JSCLASS_HAS_PRIVATE,
+	MFImageAddProperty,
+	JS_DeletePropertyStub,
+	MFImageGetProperty,
+	MFImageSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFImageFunctions)[] = {
+	{"toString", MFImageToString, 0},
+	{"assign", MFImageAssign, 0},
+	{0}
+};
 JSObject *proto_VrmlMatrix;
 
 JSClass VrmlMatrixClass = {
@@ -1082,10 +1102,11 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &SFImageClass, &SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
 
         { &MFFloatClass, &MFFloatConstr, &MFFloatFunctions, NULL, "MFFloatClass"},
-		{ &MFDoubleClass, MFDoubleConstr, &MFDoubleFunctions, &MFDoubleProperties, "MFDoubleClass"},
-		{ &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
-        { &MFInt32Class, &MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
 		{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, NULL, "MFBoolClass"},
+		{ &MFInt32Class, &MFInt32Constr, &MFInt32Functions, NULL, "MFInt32Class"},
+		{ &MFTimeClass, &MFTimeConstr, &MFTimeFunctions, &MFTimeProperties, "MFTimeClass"},
+		{ &MFDoubleClass, MFDoubleConstr, &MFDoubleFunctions, &MFDoubleProperties, "MFDoubleClass"},
+		{ &MFNodeClass, &MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
 
         { &MFColorClass, &MFColorConstr, &MFColorFunctions, NULL, "MFColorClass"},
 		{ &MFColorRGBAClass, MFColorRGBAConstr, &MFColorRGBAFunctions, NULL, "MFColorRGBAClass"},
@@ -1098,8 +1119,9 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, NULL, "MFVec4dClass"},
 
         { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
-        { &MFNodeClass, &MFNodeConstr, &MFNodeFunctions, NULL, "MFNodeClass"},
         { &MFStringClass, &MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
+		{ &MFImageClass, &MFImageConstr, &MFImageFunctions, NULL, "MFImageClass"},
+
         { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
         { NULL, NULL, NULL, NULL, NULL }
 };
@@ -1359,6 +1381,7 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4d:
 				case FIELDTYPE_SFRotation:
+				case FIELDTYPE_SFImage:
 					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
 					break;
 				case FIELDTYPE_SFNode:
@@ -1982,6 +2005,7 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4d:
 				case FIELDTYPE_SFRotation:
+				case FIELDTYPE_SFImage:
 					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
 					//JS_SF_TO_X3D(cx, any, sfsize, sftype, ptr->valueChanged, vp);
 					break;
@@ -2567,6 +2591,7 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			case FIELDTYPE_SFVec3d:
 			case FIELDTYPE_SFVec4d:
 			case FIELDTYPE_SFRotation:
+			case FIELDTYPE_SFImage:
 			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
 				X3D_SF_TO_JS_B(cx, value,sfsize, type, valueChanged, vp);
 				break;
@@ -2586,7 +2611,7 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			case FIELDTYPE_MFVec3d:
 			case FIELDTYPE_MFVec4d:
 			case FIELDTYPE_MFRotation:
-			case FIELDTYPE_SFImage:
+			case FIELDTYPE_MFImage:
 			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {
 				X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 				break;

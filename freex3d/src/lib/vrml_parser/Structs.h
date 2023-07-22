@@ -3057,90 +3057,92 @@ extern const char *FIELDTYPES[];
 extern const int FIELDTYPES_COUNT;
 #define FIELDTYPE_SFFloat	0
 #define FIELDTYPE_MFFloat	1
-#define FIELDTYPE_SFRotation	2
-#define FIELDTYPE_MFRotation	3
-#define FIELDTYPE_SFVec3f	4
-#define FIELDTYPE_MFVec3f	5
-#define FIELDTYPE_SFBool	6
-#define FIELDTYPE_MFBool	7
-#define FIELDTYPE_SFInt32	8
-#define FIELDTYPE_MFInt32	9
+#define FIELDTYPE_SFBool	2
+#define FIELDTYPE_MFBool	3
+#define FIELDTYPE_SFInt32	4
+#define FIELDTYPE_MFInt32	5
+#define FIELDTYPE_SFTime	6
+#define FIELDTYPE_MFTime	7
+#define FIELDTYPE_SFDouble	8
+#define FIELDTYPE_MFDouble	9
 #define FIELDTYPE_SFNode	10
 #define FIELDTYPE_MFNode	11
 #define FIELDTYPE_SFColor	12
 #define FIELDTYPE_MFColor	13
 #define FIELDTYPE_SFColorRGBA	14
 #define FIELDTYPE_MFColorRGBA	15
-#define FIELDTYPE_SFTime	16
-#define FIELDTYPE_MFTime	17
-#define FIELDTYPE_SFString	18
-#define FIELDTYPE_MFString	19
-#define FIELDTYPE_SFVec2f	20
-#define FIELDTYPE_MFVec2f	21
-#define FIELDTYPE_FreeWRLPTR	22
-#define FIELDTYPE_SFImage	23
-#define FIELDTYPE_SFVec3d	24
-#define FIELDTYPE_MFVec3d	25
-#define FIELDTYPE_SFDouble	26
-#define FIELDTYPE_MFDouble	27
-#define FIELDTYPE_SFMatrix3f	28
-#define FIELDTYPE_MFMatrix3f	29
-#define FIELDTYPE_SFMatrix3d	30
-#define FIELDTYPE_MFMatrix3d	31
-#define FIELDTYPE_SFMatrix4f	32
-#define FIELDTYPE_MFMatrix4f	33
-#define FIELDTYPE_SFMatrix4d	34
-#define FIELDTYPE_MFMatrix4d	35
-#define FIELDTYPE_SFVec2d	36
-#define FIELDTYPE_MFVec2d	37
-#define FIELDTYPE_SFVec4f	38
-#define FIELDTYPE_MFVec4f	39
-#define FIELDTYPE_SFVec4d	40
-#define FIELDTYPE_MFVec4d	41
-#define FIELDTYPE_FreeWRLThread	42
+#define FIELDTYPE_SFRotation	16
+#define FIELDTYPE_MFRotation	17
+#define FIELDTYPE_SFVec2f	18
+#define FIELDTYPE_MFVec2f	19
+#define FIELDTYPE_SFVec3f	20
+#define FIELDTYPE_MFVec3f	21
+#define FIELDTYPE_SFVec4f	22
+#define FIELDTYPE_MFVec4f	23
+#define FIELDTYPE_SFVec2d	24
+#define FIELDTYPE_MFVec2d	25
+#define FIELDTYPE_SFVec3d	26
+#define FIELDTYPE_MFVec3d	27
+#define FIELDTYPE_SFVec4d	28
+#define FIELDTYPE_MFVec4d	29
+#define FIELDTYPE_SFString	30
+#define FIELDTYPE_MFString	31
+#define FIELDTYPE_SFImage	32
+#define FIELDTYPE_MFImage	33
+#define FIELDTYPE_SFMatrix3f	34
+#define FIELDTYPE_MFMatrix3f	35
+#define FIELDTYPE_SFMatrix4f	36
+#define FIELDTYPE_MFMatrix4f	37
+#define FIELDTYPE_SFMatrix3d	38
+#define FIELDTYPE_MFMatrix3d	39
+#define FIELDTYPE_SFMatrix4d	40
+#define FIELDTYPE_MFMatrix4d	41
+#define FIELDTYPE_FreeWRLPTR	42
+#define FIELDTYPE_FreeWRLThread	43
 
 /*cstruct*/
 struct Multi_Float { int n; float  *p; };
-struct SFRotation { float c[4]; };
-struct Multi_Rotation { int n; struct SFRotation  *p; };
-struct SFVec3f { float c[3]; };
-struct Multi_Vec3f { int n; struct SFVec3f  *p; };
 /*cstruct*/
 struct Multi_Bool { int n; int  *p; };
 /*cstruct*/
 struct Multi_Int32 { int n; int  *p; };
+/*cstruct*/
+struct Multi_Time { int n; double  *p; };
+/*cstruct*/
+struct Multi_Double { int n; double  *p; };
 
 struct Multi_Node { int n; struct X3D_Node * *p; };
 struct SFColor { float c[3]; };
 struct Multi_Color { int n; struct SFColor  *p; };
 struct SFColorRGBA { float c[4]; };
 struct Multi_ColorRGBA { int n; struct SFColorRGBA  *p; };
-/*cstruct*/
-struct Multi_Time { int n; double  *p; };
-/*cstruct*/
-struct Multi_String { int n; struct Uni_String * *p; };
+struct SFRotation { float c[4]; };
+struct Multi_Rotation { int n; struct SFRotation  *p; };
 struct SFVec2f { float c[2]; };
 struct Multi_Vec2f { int n; struct SFVec2f  *p; };
-/*cstruct*/
-/*cstruct*/
-struct SFVec3d { double c[3]; };
-struct Multi_Vec3d { int n; struct SFVec3d  *p; };
-/*cstruct*/
-struct Multi_Double { int n; double  *p; };
-struct SFMatrix3f { float c[9]; };
-struct Multi_Matrix3f { int n; struct SFMatrix3f  *p; };
-struct SFMatrix3d { double c[9]; };
-struct Multi_Matrix3d { int n; struct SFMatrix3d  *p; };
-struct SFMatrix4f { float c[16]; };
-struct Multi_Matrix4f { int n; struct SFMatrix4f  *p; };
-struct SFMatrix4d { double c[16]; };
-struct Multi_Matrix4d { int n; struct SFMatrix4d  *p; };
-struct SFVec2d { double c[2]; };
-struct Multi_Vec2d { int n; struct SFVec2d  *p; };
+struct SFVec3f { float c[3]; };
+struct Multi_Vec3f { int n; struct SFVec3f  *p; };
 struct SFVec4f { float c[4]; };
 struct Multi_Vec4f { int n; struct SFVec4f  *p; };
+struct SFVec2d { double c[2]; };
+struct Multi_Vec2d { int n; struct SFVec2d  *p; };
+struct SFVec3d { double c[3]; };
+struct Multi_Vec3d { int n; struct SFVec3d  *p; };
 struct SFVec4d { double c[4]; };
 struct Multi_Vec4d { int n; struct SFVec4d  *p; };
+/*cstruct*/
+struct Multi_String { int n; struct Uni_String * *p; };
+struct SFImage { int n; int *p; };
+struct Multi_Image { int n; struct SFImage  *p; };
+struct SFMatrix3f { float c[9]; };
+struct Multi_Matrix3f { int n; struct SFMatrix3f  *p; };
+struct SFMatrix4f { float c[16]; };
+struct Multi_Matrix4f { int n; struct SFMatrix4f  *p; };
+struct SFMatrix3d { double c[9]; };
+struct Multi_Matrix3d { int n; struct SFMatrix3d  *p; };
+struct SFMatrix4d { double c[16]; };
+struct Multi_Matrix4d { int n; struct SFMatrix4d  *p; };
+/*cstruct*/
 /*cstruct*/
 const char *stringFieldtypeType(int st);
 
@@ -4030,7 +4032,7 @@ struct X3D_BufferTexture {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Multi_Int32 image;
+	struct SFImage image;
 	struct X3D_Node *metadata;
 	int repeatS;
 	int repeatT;
@@ -4188,7 +4190,7 @@ struct X3D_CalibratedCameraSensor {
 	int isActive;
 	struct X3D_Node *metadata;
 	struct Uni_String *description;
-	struct Multi_Int32 image;
+	struct SFImage image;
 	struct SFVec2f focalPoint;
 	float fieldOfView;
 	struct Uni_String *fovMode;
@@ -7577,7 +7579,7 @@ struct X3D_ImageBackdropBackground {
 	struct X3D_Node *metadata;
 	int __texture;
 	int __VBO;
-	struct Multi_Int32 image;
+	struct SFImage image;
 };
 extern struct X3D_Virt virt_ImageBackdropBackground;
 /***********************/
@@ -9639,9 +9641,9 @@ struct X3D_MetadataSFImage {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Multi_Int32 value;
-	struct Multi_Int32 valueChanged;
-	struct Multi_Int32 setValue;
+	struct SFImage value;
+	struct SFImage valueChanged;
+	struct SFImage setValue;
 	double tickTime;
 };
 extern struct X3D_Virt virt_MetadataSFImage;
@@ -11188,7 +11190,7 @@ struct X3D_PixelTexture {
        void* _gc; /* ptr to vector of ptrs to free */
        struct X3D_Node* _executionContext; /* scene or protoInstance */
  	/*** node specific data: *****/
-	struct Multi_Int32 image;
+	struct SFImage image;
 	struct X3D_Node *metadata;
 	int repeatS;
 	int repeatT;

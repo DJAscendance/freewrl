@@ -161,45 +161,53 @@ static BOOL parser_field(struct VRMLParser*, struct X3D_Node*);
 
 
 static BOOL parser_sffloatValue_ (struct VRMLParser *, void *);
+static BOOL parser_sfboolValue(struct VRMLParser*, void*);
 static BOOL parser_sfint32Value_ (struct VRMLParser *, void *);
 static BOOL parser_sftimeValue (struct VRMLParser *, void *);
-static BOOL parser_sfboolValue (struct VRMLParser *, void *);
+static BOOL parser_sfdoubleValue(struct VRMLParser*, void*);
 static BOOL parser_sfnodeValue (struct VRMLParser *, void *);
+static BOOL parser_sfcolorValue(struct VRMLParser*, void*);
+static BOOL parser_sfcolorrgbaValue(struct VRMLParser*, void*);
 static BOOL parser_sfrotationValue (struct VRMLParser *, void *);
-static BOOL parser_sfcolorValue (struct VRMLParser *, void *);
-static BOOL parser_sfcolorrgbaValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix3fValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix4fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec2fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec4fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec2dValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec3dValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec4dValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix3dValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix4dValue (struct VRMLParser *, void *);
-static BOOL parser_mfboolValue(struct VRMLParser*, void*);
-static BOOL parser_mfcolorValue(struct VRMLParser*, void*);
-static BOOL parser_mfcolorrgbaValue(struct VRMLParser*, void*);
-static BOOL parser_mffloatValue(struct VRMLParser*, void*);
-static BOOL parser_mfint32Value(struct VRMLParser*, void*);
-static BOOL parser_mfnodeValue(struct VRMLParser*, void*);
-static BOOL parser_mfrotationValue(struct VRMLParser*, void*);
-static BOOL parser_mfstringValue(struct VRMLParser*, void*);
-static BOOL parser_mftimeValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec2fValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec3fValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec3dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec2fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec3fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec4fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec3dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec4dValue(struct VRMLParser*, void*);
 static BOOL parser_sfstringValue_(struct VRMLParser*, void*);
 static BOOL parser_sfimageValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_sfmatrix3fValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix4fValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix3dValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix4dValue (struct VRMLParser *, void *);
+
+static BOOL parser_mffloatValue(struct VRMLParser*, void*);
+static BOOL parser_mfboolValue(struct VRMLParser*, void*);
+static BOOL parser_mfint32Value(struct VRMLParser*, void*);
+static BOOL parser_mftimeValue(struct VRMLParser*, void*);
+static BOOL parser_mfdoubleValue(struct VRMLParser*, void*);
+static BOOL parser_mfnodeValue(struct VRMLParser*, void*);
+static BOOL parser_mfcolorValue(struct VRMLParser*, void*);
+static BOOL parser_mfcolorrgbaValue(struct VRMLParser*, void*);
+static BOOL parser_mfrotationValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec2fValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec3fValue(struct VRMLParser*, void*);
 static BOOL parser_mfvec4fValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec3dValue(struct VRMLParser*, void*);
 static BOOL parser_mfvec4dValue(struct VRMLParser*, void*);
+static BOOL parser_mfstringValue(struct VRMLParser*, void*);
+static BOOL parser_mfimageValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix3fValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix4fValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix3dValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix4dValue(struct VRMLParser*, void*);
 
 
 
-
-#define parser_sfvec3fValue(me, ret) \
- parser_sfcolorValue(me, ret)
+//#define parser_sfvec3fValue(me, ret) \
+// parser_sfcolorValue(me, ret)
 
 
 /* for those types not parsed yet, call this to print an error message */
@@ -208,28 +216,28 @@ static BOOL parser_fieldTypeNotParsedYet(struct VRMLParser* me, void* ret);
 /*PARSE_TYPE[] entries must be sychnronized with the FIELDTYPES values in Structs.h */
 BOOL (*PARSE_TYPE[])(struct VRMLParser*, void*)={
     &parser_sffloatValue_, &parser_mffloatValue,			// 0,1 float
-    &parser_sfrotationValue, &parser_mfrotationValue,		// 2,3 rotation
-    &parser_sfcolorValue, &parser_mfvec3fValue,				// 4,5 Vec3f
-    &parser_sfboolValue, &parser_mfboolValue,				// 6,7 Bool
-    &parser_sfint32Value_, &parser_mfint32Value,			// 8,9 Int32
-    &parser_sfnodeValue, &parser_mfnodeValue,				// 10,11 Node
-    &parser_sfcolorValue, &parser_mfcolorValue,				// 12,13 Color
-    &parser_sfcolorrgbaValue, &parser_mfcolorrgbaValue,		// 14,15 ColorRGBA
-    &parser_sftimeValue, &parser_mftimeValue,				// 16,17 Time
-    &parser_sfstringValue_, &parser_mfstringValue,			// 18,19 String
-    &parser_sfvec2fValue, &parser_mfvec2fValue,				// 20,21 Vec2f
-    &parser_fieldTypeNotParsedYet, /* FreeWRLPTR 23 */		// 22,   FREEWRL_PTR
-    &parser_sfimageValue,  /* SFImage */					//    23 SFImage
-    &parser_sfvec3dValue, &parser_mfvec3dValue,				// 24,25 Vec3d
-    &parser_sftimeValue, &parser_mftimeValue,				// 26,27 Double
+	&parser_sfboolValue,&parser_mfboolValue,				// 6,7 Bool
+	&parser_sfint32Value_,&parser_mfint32Value,			    // 8,9 Int32
+	&parser_sftimeValue,&parser_mftimeValue,				// 16,17 Time
+	&parser_sfdoubleValue,&parser_mfdoubleValue,				// 26,27 Double
+	&parser_sfnodeValue,&parser_mfnodeValue,				// 10,11 Node
+	&parser_sfcolorValue,&parser_mfcolorValue,				// 12,13 Color
+	&parser_sfcolorrgbaValue,&parser_mfcolorrgbaValue,		// 14,15 ColorRGBA
+	&parser_sfrotationValue, &parser_mfrotationValue,		// 2,3 rotation
+	&parser_sfvec2fValue,& parser_mfvec2fValue,				// 20,21 Vec2f
+	&parser_sfvec3fValue, &parser_mfvec3fValue,				// 4,5 Vec3f
+	&parser_sfvec4fValue,& parser_mfvec4fValue,			// 38,39 Vec4f
+	&parser_sfvec2dValue,& parser_mfvec2dValue,				// 36,37 Vec2d  //&parser_fieldTypeNotParsedYet,
+	&parser_sfvec3dValue,& parser_mfvec3dValue,				// 24,25 Vec3d
+	&parser_sfvec4dValue,& parser_mfvec4dValue,				// 40,41 Vec4d  //&parser_fieldTypeNotParsedYet,
+	&parser_sfstringValue_, &parser_mfstringValue,			// 18,19 String
+    &parser_sfimageValue,  &parser_mfimageValue,			// Image 			
     &parser_sfmatrix3fValue, &parser_fieldTypeNotParsedYet, // 28,29 Matrix3f 
-    &parser_sfmatrix3dValue, &parser_fieldTypeNotParsedYet, // 30,31 Matrix3d 
-    &parser_sfmatrix4fValue, &parser_fieldTypeNotParsedYet, // 32,33 Matrix4f
+	&parser_sfmatrix4fValue,& parser_fieldTypeNotParsedYet, // 32,33 Matrix4f
+	&parser_sfmatrix3dValue, &parser_fieldTypeNotParsedYet, // 30,31 Matrix3d 
     &parser_sfmatrix4dValue, &parser_fieldTypeNotParsedYet, // 34,35 Matrix4d
-    &parser_sfvec2dValue, &parser_mfvec2dValue,				// 36,37 Vec2d  //&parser_fieldTypeNotParsedYet,
-    &parser_sfvec4fValue, &parser_mfvec4fValue,				// 38,39 Vec4f  //&parser_fieldTypeNotParsedYet,
-    &parser_sfvec4dValue, &parser_mfvec4dValue,				// 40,41 Vec4d  //&parser_fieldTypeNotParsedYet,
-    &parser_fieldTypeNotParsedYet,							// 42    FreeWRLThread
+	&parser_fieldTypeNotParsedYet,& parser_fieldTypeNotParsedYet,	// 22,   FREEWRL_PTR, 42    FreeWRLThread
+								
 };
 
 
@@ -2333,6 +2341,7 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 #define FTIND_mfint32   FIELDTYPE_MFInt32
 #define FTIND_mfrotation        FIELDTYPE_MFRotation
 #define FTIND_mfstring  FIELDTYPE_MFString
+#define FTIND_mfimage   FIELDTYPE_MFImage
 #define FTIND_mftime    FIELDTYPE_MFTime
 #define FTIND_mfvec2f   FIELDTYPE_MFVec2f
 #define FTIND_mfvec2d   FIELDTYPE_MFVec2d
@@ -2695,12 +2704,14 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
     PARSER_MFFIELD(rotation, Rotation)
     PARSER_MFFIELD(string, String)
     PARSER_MFFIELD(time, Time)
-    PARSER_MFFIELD(vec2f, Vec2f)
+	PARSER_MFFIELD(double, Double)
+	PARSER_MFFIELD(vec2f, Vec2f)
     PARSER_MFFIELD(vec3f, Vec3f)
     PARSER_MFFIELD(vec3d, Vec3d)
     PARSER_MFFIELD(vec2d, Vec2d)
     PARSER_MFFIELD(vec4f, Vec4f)
     PARSER_MFFIELD(vec4d, Vec4d)
+	PARSER_MFFIELD(image, Image)
 
 /* ************************************************************************** */
 /* SF* field values */
@@ -2855,15 +2866,16 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
 
     PARSER_FIXED_VEC(color, Color, 3)
     PARSER_FIXED_VEC(colorrgba, ColorRGBA, 4)
-    PARSER_FIXED_VEC(matrix3f, Matrix3f, 9)
-    PARSER_FIXED_VEC(matrix4f, Matrix4f, 16)
+	PARSER_FIXED_VEC(rotation, Rotation, 4)
     PARSER_FIXED_VEC(vec2f, Vec2f, 2)
-    PARSER_FIXED_VEC(vec4f, Vec4f, 4)
-    PARSER_FIXED_VEC(rotation, Rotation, 4)
+	PARSER_FIXED_VEC(vec3f, Vec3f, 3)
+	PARSER_FIXED_VEC(vec4f, Vec4f, 4)
     PARSER_FIXED_DOUBLE_VEC(vec2d, Vec2d, 2)
     PARSER_FIXED_DOUBLE_VEC(vec3d, Vec3d, 3)
     PARSER_FIXED_DOUBLE_VEC(vec4d, Vec4d, 4)
-    PARSER_FIXED_DOUBLE_VEC(matrix3d, Matrix3d, 9)
+	PARSER_FIXED_VEC(matrix3f, Matrix3f, 9)
+	PARSER_FIXED_VEC(matrix4f, Matrix4f, 16)
+	PARSER_FIXED_DOUBLE_VEC(matrix3d, Matrix3d, 9)
     PARSER_FIXED_DOUBLE_VEC(matrix4d, Matrix4d, 16)
 
 /* JAS this code assumes that the ret points to a SFInt_32 type, and just
@@ -2939,6 +2951,13 @@ static BOOL parser_sftimeValue(struct VRMLParser* me, void* ret)
 	rv = (vrmlTimeT*)ret;
         return lexer_double(me->lexer, rv);
     }
+
+static BOOL parser_sfdoubleValue(struct VRMLParser* me, void* ret)
+{
+	vrmlDoubleT* rv;
+	rv = (vrmlDoubleT*)ret;
+	return lexer_double(me->lexer, rv);
+}
 
 
 static BOOL parser_fieldTypeNotParsedYet(struct VRMLParser* me, void* ret) {

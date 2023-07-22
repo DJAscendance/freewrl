@@ -562,7 +562,8 @@ void X3D_SF_TO_JS(JSContext *cx, JSObject *obj, void *Data, unsigned datalen, in
 			case FIELDTYPE_SFColorRGBA: script = "new SFColorRGBA()"; break;
 			case FIELDTYPE_SFNode: script = "new SFNode()"; break;
 			case FIELDTYPE_SFRotation: script = "new SFRotation()"; break;
-			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
+			default: 
+				printf ("invalid type in X3D_SF_TO_JS\n"); return;
 		}
 
 		/* create the object */
@@ -666,7 +667,10 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 				newobj = JS_NewObject(cx,&SFNodeClass,NULL,NULL); break;
 			case FIELDTYPE_SFRotation:
 				newobj = JS_NewObject(cx,&SFRotationClass,NULL,NULL); break;
-			default: printf ("invalid type in X3D_SF_TO_JS\n"); return;
+			case FIELDTYPE_SFImage:
+				newobj = JS_NewObject(cx, &SFImageClass, NULL, NULL); break;
+			default:
+				printf ("invalid type in X3D_SF_TO_JS\n"); return;
 		}
 
 		/* create the object */
@@ -757,7 +761,7 @@ void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval 
 			case FIELDTYPE_MFFloat: script = "new MFFloat()"; break;
 			case FIELDTYPE_MFTime: script = "new MFTime()"; break;
 			case FIELDTYPE_MFInt32: script = "new MFInt32()"; break;
-			case FIELDTYPE_SFImage: script = "new SFImage()"; break;
+			case FIELDTYPE_MFImage: script = "new MFImage()"; break;
 			case FIELDTYPE_MFVec3f: script = "new MFVec3f()"; break;
 			case FIELDTYPE_MFColor: script = "new MFColor()"; break;
 			case FIELDTYPE_MFNode: script = "new MFNode()"; break;
@@ -1021,8 +1025,8 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 				newobj = JS_NewObject(cx, &MFDoubleClass, NULL, NULL); break;
 			case FIELDTYPE_MFString:
 				newobj = JS_NewObject(cx,&MFStringClass,NULL,NULL); break;
-			case FIELDTYPE_SFImage: 
-				newobj = JS_NewObject(cx,&SFImageClass,NULL,NULL); break;
+			case FIELDTYPE_MFImage: 
+				newobj = JS_NewObject(cx,&MFImageClass,NULL,NULL); break;
 			case FIELDTYPE_MFColor:
 				newobj = JS_NewObject(cx, &MFColorClass, NULL, NULL); break;
 			case FIELDTYPE_MFColorRGBA:
@@ -1364,6 +1368,7 @@ static JSBool getSFNodeField(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Hand
 		case FIELDTYPE_MFVec3d:
 		case FIELDTYPE_MFVec4d:
 		case FIELDTYPE_MFRotation:
+		case FIELDTYPE_MFImage:
 		case FIELDTYPE_SFImage:
 			X3D_MF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
 				(char *)FIELDNAMES[*(fieldOffsetsPtr+0)]);

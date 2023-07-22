@@ -314,8 +314,8 @@ int returnElementRowSize (int type) {
 int mf2sf(int itype){
 	//luckily the fieldtype defines are consistently mf = sf+1
 	//return convertToSFType(itype); //this is more reliable -converts and sf to itself- but bulky
-	if(itype == FIELDTYPE_SFImage)
-		return FIELDTYPE_SFInt32;
+	//if(itype == FIELDTYPE_SFImage)
+	//	return FIELDTYPE_SFInt32;
 	return itype -1;
 }
 int sf2mf(int itype){
@@ -346,7 +346,7 @@ int isSForMFType(int itype){
 		case FIELDTYPE_SFTime:	
 		case FIELDTYPE_SFString: 
 		case FIELDTYPE_SFVec2f:	
-		//case FIELDTYPE_SFImage:
+		case FIELDTYPE_SFImage:
 		case FIELDTYPE_SFVec3d:	
 		case FIELDTYPE_SFDouble: 
 		case FIELDTYPE_SFMatrix3f: 
@@ -370,7 +370,7 @@ int isSForMFType(int itype){
 		case FIELDTYPE_MFTime:	
 		case FIELDTYPE_MFString: 
 		case FIELDTYPE_MFVec2f:	
-		case FIELDTYPE_SFImage: //
+		case FIELDTYPE_MFImage:
 		case FIELDTYPE_MFVec3d:	
 		case FIELDTYPE_MFDouble: 
 		case FIELDTYPE_MFMatrix3f: 
@@ -397,7 +397,7 @@ int type2SF(int itype){
 int isSFType(int itype){
 	return (isSForMFType(itype) == 0) ? 1 : 0;
 }
-#define FIELDTYPE_MFImage	43 
+
 int sizeofSForMF(int itype){
 	//goal get the offset for MF.p[i] in bytes
 	//or also this is the 'shallow size' for field copying
@@ -414,7 +414,7 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_SFTime:	iz = sizeof(double); break;
 	case FIELDTYPE_SFString: iz = sizeof(struct Uni_String *); break;  //sizeof(void *) because nodes that have a string field declare it struct Uni_String *, so when copying to a node, you copy sizeof(void*). H: if the char *string is const, then uni_string is const (they may hang out as pals for life, or char *string may outlive its uni_string pal
 	case FIELDTYPE_SFVec2f:	iz = sizeof(struct SFVec2f); break;
-	//case FIELDTYPE_SFImage:	iz = sizeof(void*); break;
+	case FIELDTYPE_SFImage:	iz = sizeof(struct Multi_Node); break;
 	case FIELDTYPE_SFVec3d:	iz = sizeof(struct SFVec3d); break;
 	case FIELDTYPE_SFDouble: iz = sizeof(double); break;
 	case FIELDTYPE_SFMatrix3f: iz = sizeof(struct SFMatrix3f); break;
@@ -425,7 +425,7 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_SFVec4f:	iz = sizeof(struct SFVec4f); break;
 	case FIELDTYPE_SFVec4d:	iz = sizeof(struct SFVec4d); break;
 
-	case FIELDTYPE_SFImage: //same as MFInt32
+	case FIELDTYPE_MFImage: 
 	case FIELDTYPE_MFFloat: 
 	case FIELDTYPE_MFRotation:	
 	case FIELDTYPE_MFVec3f:	
@@ -437,7 +437,6 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_MFTime:	
 	case FIELDTYPE_MFString: 
 	case FIELDTYPE_MFVec2f:	
-	case FIELDTYPE_MFImage:
 	case FIELDTYPE_MFVec3d:	
 	case FIELDTYPE_MFDouble: 
 	case FIELDTYPE_MFMatrix3f: 
@@ -857,6 +856,7 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_MF_STRUCT_ELEMENT(Matrix4f,matrix4f)
 			PST_MF_STRUCT_ELEMENT(Matrix4d,matrix4d)
 			PST_MF_STRUCT_ELEMENT(String,string)
+			PST_MF_STRUCT_ELEMENT(Image, image)
 
 			PST_SF_SIMPLE_ELEMENT(Float,float,sizeof(float))
 			PST_SF_SIMPLE_ELEMENT(Time,time,sizeof(double))

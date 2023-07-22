@@ -66,6 +66,7 @@ our @Fields = qw/
 	MFMatrix4d
 	FreeWRLPTR
 	FreeWRLThread
+
 /;
 
 
@@ -113,7 +114,6 @@ sub cInitialize {
 	}
 	return $retstr;
 }
-
 
 
 ###########################################################
@@ -391,6 +391,7 @@ sub cInitialize {
 	return $retstr;
 }
 
+
 ###########################################################
 package VRML::Field::SFRotation;
 our @ISA="VRML::Field";
@@ -440,7 +441,6 @@ sub cInitialize {
 	}
 	return $retstr;
 }
-
 
 ###########################################################
 package VRML::Field::SFVec2f;
@@ -558,7 +558,6 @@ sub cInitialize {
 	return $retstr;
 }
 
-
 ###########################################################
 package VRML::Field::SFVec4f;
 our @ISA="VRML::Field";
@@ -645,6 +644,7 @@ sub cInitialize {
 	}
 	return $retstr;
 }
+
 
 
 ###########################################################
@@ -778,116 +778,27 @@ sub cInitialize {
 
 
 
-
 ###########################################################
 package VRML::Field::SFImage;
 our @ISA="VRML::Field";
 
-sub cstruct {return "struct SFImage { int n; int *p; };"}
-sub ctype {return "struct SFImage " . ($_[1] || "")}
+
+sub ctype {return "struct Multi_Int32 " . ($_[1] || "")}
 
 sub cInitialize {
 	my ($this,$field,$val) = @_;
 	if (!defined $val) {print "undefined in SFImage\n"} # inputOnlys, set it to any value
 	my $count = ref $val eq "ARRAY" ? @{$val} : 0;
-	my $retstr = "";
-	my $tmp;
-	if ($count > 0) {
-		$retstr = $retstr . "$field.p = MALLOC (int *, sizeof(int)*$count);";
-		for ($tmp=0; $tmp<$count; $tmp++) {
-			$retstr = $retstr .  "$field.p[$tmp] = @{$val}[$tmp];";
-		}
-		$retstr = $retstr . "$field.n=$count; ";
-
-        } else {
-          #SFImage defaults to 0,0,0\n";
-	  $retstr = "$field.n=3; $field.p=MALLOC (int *, sizeof(int)*3); $field.p[0] = 0; $field.p[1] = 0; $field.p[2] = 0;";
-        }
-	return $retstr;
+	#SFImage defaults to 0,0,0\n";
+	return "$field.n=3; $field.p=MALLOC (int *, sizeof(int)*3); $field.p[0] = 0; $field.p[1] = 0; $field.p[2] = 0;";
 }
 
-
-#package VRML::Field::MFImage;
-#our @ISA="VRML::Field::Multi";
-
-#sub cInitialize {
-#	print "MFImage not coded yet\n";
-#}
 
 package VRML::Field::MFImage;
 our @ISA="VRML::Field::Multi";
 
 sub cInitialize {
-	my ($this,$field,$val) = @_;
-	my $count = @{$val};
-	my $retstr = "";
-	my $tmp;
-
-	if (!defined $val) {$count=0} # inputOnlys, set it to any value
-	#print "MFIMAGE field $field val @{$val} has $count INIT\n";
-	if ($count > 0) {
-		#print "MALLOC MFIMAGE field $field val @{$val} has $count INIT\n";
-		$retstr = $retstr . "$field.p = MALLOC (struct SFImage *, sizeof(struct SFImage)*$count);";
-		for ($tmp=0; $tmp<$count; $tmp++) {
-			$retstr = $retstr .  "$field.p[$tmp] = @{$val}[$tmp];";
-		}
-		$retstr = $retstr . "$field.n=$count; ";
-
-	} else {
-		$retstr = "$field.n=3; $field.p=0";
-	}
-	return $retstr;
-}
-
-
-
-###########################################################
-package VRML::Field::SFMatrix3d;
-our @ISA="VRML::Field";
-
-sub cstruct {return "struct SFMatrix3d { double c[9]; };"}
-sub ctype {return "struct SFMatrix3d " . ($_[1] || "")}
-sub cInitialize {
-	my ($this,$field,$val) = @_;
-	if (!defined $val) {print "undefined in SFColor\n"} # inputOnlys, set it to any value
-	return 	"$field.c[0] = @{$val}[0];".
-		"$field.c[1] = @{$val}[1];".
-		"$field.c[2] = @{$val}[2];".
-		"$field.c[3] = @{$val}[3];".
-		"$field.c[4] = @{$val}[4];".
-		"$field.c[5] = @{$val}[5];".
-		"$field.c[6] = @{$val}[6];".
-		"$field.c[7] = @{$val}[7];".
-		"$field.c[8] = @{$val}[8];";
-}
-
-package VRML::Field::MFMatrix3d;
-our @ISA="VRML::Field::Multi";
-
-sub cInitialize {
-	my ($this,$field,$val) = @_;
-	my $count = @{$val};
-	my $retstr;
-	my $tmp;
-	my $whichVal;
-
-	if (!defined $val) {$count = 0;} # inputOnlys, set it to any value
-	#print "MFVEC3F field $field val @{$val} has $count INIT\n";
-	if ($count > 0) {
-		#print "MALLOC MFVEC3F field $field val @{$val} has $count INIT\n";
-
-		$retstr = "$field.p = MALLOC (struct SFMatrix3f *, sizeof(struct SFMatrix3f)*$count);\n";
-		for ($tmp=0; $tmp<$count; $tmp++) {
-			my $arline = @{$val}[$tmp];
-			for ($whichVal = 0; $whichVal < 9; $whichVal++) {
-				$retstr = $retstr. "\n\t\t\t$field.p[$tmp].c[$whichVal] = ".@{$arline}[$whichVal]."; ";
-			}
-		}
-		$retstr = $retstr."\n\t\t\t$field.n=$count;";
-	} else {
-		$retstr = "$field.n=0; $field.p=0";
-	}
-	return $retstr;
+	print "MFImage not coded yet\n";
 }
 
 
@@ -1006,6 +917,119 @@ sub cInitialize {
 	return $retstr;
 }
 
+###########################################################
+package VRML::Field::SFMatrix4f;
+our @ISA="VRML::Field";
+
+sub cstruct {return "struct SFMatrix4f { float c[16]; };"}
+sub ctype {return "struct SFMatrix4f " . ($_[1] || "")}
+sub cInitialize {
+	my ($this,$field,$val) = @_;
+	if (!defined $val) {print "undefined in SFColor\n"} # inputOnlys, set it to any value
+	return 	"$field.c[0] = @{$val}[0];".
+		"$field.c[1] = @{$val}[1];".
+		"$field.c[2] = @{$val}[2];".
+		"$field.c[3] = @{$val}[3];".
+		"$field.c[4] = @{$val}[4];".
+		"$field.c[5] = @{$val}[5];".
+		"$field.c[6] = @{$val}[6];".
+		"$field.c[7] = @{$val}[7];".
+		"$field.c[8] = @{$val}[8];".
+		"$field.c[9] = @{$val}[9];".
+		"$field.c[10] = @{$val}[10];".
+		"$field.c[11] = @{$val}[11];".
+		"$field.c[12] = @{$val}[12];".
+		"$field.c[13] = @{$val}[13];".
+		"$field.c[14] = @{$val}[14];".
+		"$field.c[15] = @{$val}[15];";
+}
+
+
+package VRML::Field::MFMatrix4f;
+our @ISA="VRML::Field::Multi";
+
+sub cInitialize {
+	my ($this,$field,$val) = @_;
+	my $count = @{$val};
+	my $retstr;
+	my $tmp;
+	my $whichVal;
+
+	if (!defined $val) {$count = 0;} # inputOnlys, set it to any value
+	#print "MFVEC3F field $field val @{$val} has $count INIT\n";
+	if ($count > 0) {
+		#print "MALLOC MFVEC3F field $field val @{$val} has $count INIT\n";
+
+		$retstr = "$field.p = MALLOC (struct SFMatrix4f *, sizeof(struct SFMatrix4f)*$count);\n";
+		for ($tmp=0; $tmp<$count; $tmp++) {
+			my $arline = @{$val}[$tmp];
+			for ($whichVal = 0; $whichVal < 16; $whichVal++) {
+                                # get the actual value and ensure that it is a float
+                                my $av = "@{$arline}[$whichVal]";
+                                my $pv = index $av, ".";
+                                if ($pv < 0) { $av = $av.".0f"; } else { $av = $av."f"; }
+                                $retstr = $retstr. "\n\t\t\t$field.p[$tmp].c[$whichVal] = $av; ";
+			}
+		}
+		$retstr = $retstr."\n\t\t\t$field.n=$count;";
+	} else {
+		$retstr = "$field.n=0; $field.p=0";
+	}
+	return $retstr;
+}
+
+
+
+###########################################################
+package VRML::Field::SFMatrix3d;
+our @ISA="VRML::Field";
+
+sub cstruct {return "struct SFMatrix3d { double c[9]; };"}
+sub ctype {return "struct SFMatrix3d " . ($_[1] || "")}
+sub cInitialize {
+	my ($this,$field,$val) = @_;
+	if (!defined $val) {print "undefined in SFColor\n"} # inputOnlys, set it to any value
+	return 	"$field.c[0] = @{$val}[0];".
+		"$field.c[1] = @{$val}[1];".
+		"$field.c[2] = @{$val}[2];".
+		"$field.c[3] = @{$val}[3];".
+		"$field.c[4] = @{$val}[4];".
+		"$field.c[5] = @{$val}[5];".
+		"$field.c[6] = @{$val}[6];".
+		"$field.c[7] = @{$val}[7];".
+		"$field.c[8] = @{$val}[8];";
+}
+
+package VRML::Field::MFMatrix3d;
+our @ISA="VRML::Field::Multi";
+
+sub cInitialize {
+	my ($this,$field,$val) = @_;
+	my $count = @{$val};
+	my $retstr;
+	my $tmp;
+	my $whichVal;
+
+	if (!defined $val) {$count = 0;} # inputOnlys, set it to any value
+	#print "MFVEC3F field $field val @{$val} has $count INIT\n";
+	if ($count > 0) {
+		#print "MALLOC MFVEC3F field $field val @{$val} has $count INIT\n";
+
+		$retstr = "$field.p = MALLOC (struct SFMatrix3d *, sizeof(struct SFMatrix3d)*$count);\n";
+		for ($tmp=0; $tmp<$count; $tmp++) {
+			my $arline = @{$val}[$tmp];
+			for ($whichVal = 0; $whichVal < 9; $whichVal++) {
+				$retstr = $retstr. "\n\t\t\t$field.p[$tmp].c[$whichVal] = ".@{$arline}[$whichVal]."; ";
+			}
+		}
+		$retstr = $retstr."\n\t\t\t$field.n=$count;";
+	} else {
+		$retstr = "$field.n=0; $field.p=0";
+	}
+	return $retstr;
+}
+
+
 
 ###########################################################
 package VRML::Field::SFMatrix4d;
@@ -1062,6 +1086,11 @@ sub cInitialize {
 	}
 	return $retstr;
 }
+
+
+
+
+
 
 
 
