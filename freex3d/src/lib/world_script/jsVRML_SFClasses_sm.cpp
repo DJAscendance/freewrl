@@ -1091,11 +1091,13 @@ JSBool
 SFImageToString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 #else
 SFImageToString(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
+    JSObject *obj = JS_THIS_OBJECT(cx,vp);
+    jsval *argv = JS_ARGV(cx,vp);
 	jsval rval;
 	JSBool retval;
 #endif
+	char buff[STRING];
+	JSString* _str;
 
 	#ifdef JSVRMLCLASSESVERBOSE
 		printf("SFImageToString: obj = %p, %u args\n", obj, argc);
@@ -1107,8 +1109,32 @@ SFImageToString(JSContext *cx, uintN argc, jsval *vp) {
 #if JS_VERSION < 185
 	return doMFToString(cx, obj, "SFImage", rval);
 #else
-	retval = doMFToString(cx, obj, "SFImage", &rval);
-	JS_SET_RVAL(cx,vp,rval);
+	if (SM_method() == 2) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf("JS_GetPrivate failed in SFVec3fToString.\n");
+			return JS_FALSE;
+		}
+		int *cc = ptr->v->sfimage.p;
+		int nn = ptr->v->sfimage.n;
+
+		memset(buff, 0, STRING);
+		sprintf(buff, "%d %d %d",
+			cc[0], cc[1], cc[2]);
+		char sbuf[10];
+		for (int i = 3; i < nn; i++) {
+			sprintf(sbuf, "%x ", cc[i]);
+			strcat(buff, sbuf);
+		}
+		_str = JS_NewStringCopyZ(cx, buff);
+
+		JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(_str));
+		retval = JS_TRUE;
+	}
+	else {
+		retval = doMFToString(cx, obj, "SFImage", &rval);
+		JS_SET_RVAL(cx, vp, rval);
+	}
 	return retval;
 #endif
 }
@@ -1137,7 +1163,7 @@ SFImageAssign(JSContext *cx, uintN argc, jsval *vp) {
 #endif
 }
 
-
+/*
 JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
 
 	JSObject *_arrayObj;
@@ -1199,7 +1225,7 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 		printf("MFInt32Constr: obj = %p, %u args\n", obj, argc);
 	#endif
 
-	/* any values here that we should add in? */
+	// any values here that we should add in? 
 	for (i = 0; i < argc; i++) {
 		jsval vp;
 		if(isArray){
@@ -1232,6 +1258,7 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
 }
+*/
 
 JSBool
 #if JS_VERSION < 185
@@ -1245,6 +1272,7 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	jsval mv;
 	int param[3];
 	int expectedSize;
+	union anyVrml* anyv;
 
 
 
@@ -1268,6 +1296,8 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
         }
 		//if(ptr->valueChanged)
 		//	(*ptr->valueChanged) = 1;
+		anyv = ptr->v;
+
 
 	}else{
         SFImageNative *ptr;
@@ -1292,29 +1322,35 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	/* null image. Make this [0, 0, 0] NOTE - there are only 3 elements now! */
 	if (!argc) { 
 		/* expect arguments to be number, number, number, mfint32 */
-		mv = INT_TO_JSVAL(0);
-		for (i=0; i<4; i++) {
-			if (i==3) {
+		if (SM_method() == 2) {
+			anyv->sfimage.n = 3;
+			anyv->sfimage.p = (int*)malloc(upper_power_of_two(3) * sizeof(int));
+			anyv->sfimage.p[0] = anyv->sfimage.p[1] = anyv->sfimage.p[2] = 0;
+		}else {
+			mv = INT_TO_JSVAL(0);
+			for (i = 0; i < 4; i++) {
+				if (i == 3) {
 #if JS_VERSION < 185
-				MFInt32Constr(cx, obj, 0, NULL, &mv);
+					MFInt32Constr(cx, obj, 0, NULL, &mv);
 #else
-				/* note - old default constructor call allocates a new obj and assigns to mv,
-				 * but calling fn directly may not actually do that. It seems illegal to call
-				 * the constructor of another object directly on this object, and then feed it
-				 * as a proprety of itself, but since that's what the old code did (and it seems
-				 * to work), am keeping it as-is. 
-				 *
-				 * I would -expect- that 'JS_NewObject(cx,&MFInt32Class,NULL,NULL)' should be
-				 * used instead of 'obj' below.... */
-				MFInt32ConstrInternals(cx, obj, 0, NULL, &mv);
+					/* note - old default constructor call allocates a new obj and assigns to mv,
+					 * but calling fn directly may not actually do that. It seems illegal to call
+					 * the constructor of another object directly on this object, and then feed it
+					 * as a proprety of itself, but since that's what the old code did (and it seems
+					 * to work), am keeping it as-is.
+					 *
+					 * I would -expect- that 'JS_NewObject(cx,&MFInt32Class,NULL,NULL)' should be
+					 * used instead of 'obj' below.... */
+					MFInt32ConstrInternals(cx, obj, 0, NULL, &mv);
 #endif
+				}
+				if (!JS_DefineElement(cx, obj, (jsuint)i, mv, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB6, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in SFImageConstr.\n", i);
+					return JS_FALSE;
+				}
 			}
-			if (!JS_DefineElement(cx, obj, (jsuint) i, mv, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB6, JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed for arg %d in SFImageConstr.\n", i);
-				return JS_FALSE;
-			}
+			DEFINE_LENGTH(cx, obj, 4)
 		}
-		DEFINE_LENGTH(cx,obj,4)
 #if JS_VERSION >= 185
 		/* returning with success here, so must set rval to return the object we just finished creating */
 		JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(obj));
@@ -1329,7 +1365,7 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	}
 
 
-	DEFINE_LENGTH(cx,obj,argc)
+	//DEFINE_LENGTH(cx,obj,argc)
 
 	/* expect arguments to be number, number, number, mfint32 */
 	for (i=0; i<3; i++) {
@@ -1364,7 +1400,13 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 		printf ("SFImageConstr: with x and y not zero, comp must be non-zero\n");
 		return JS_FALSE;
 	}
-
+	if (expectedSize == 0) {
+		if (SM_method() == 2) {
+			anyv->sfimage.n = 3;
+			anyv->sfimage.p = (int*)malloc(upper_power_of_two(3) * sizeof(int));
+			anyv->sfimage.p[0] = anyv->sfimage.p[1] = anyv->sfimage.p[2] = 0;
+		}
+	}
 	/* worry about the MFInt32 array. Note that we copy the object pointer here. Should
 	   we copy ALL of the elements, or just the object itself?? */
 
@@ -1385,10 +1427,35 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	}
 
 	/* parameters are ok - just save them now in the new object. */
-	for (i=0; i<argc; i++) {
-		if (!JS_DefineElement(cx, obj, (jsint) i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB6, JSPROP_ENUMERATE)) {
-			printf( "JS_DefineElement failed for arg %d in SFImageConstr.\n", i);
+	if (SM_method() == 2) {
+		//JS_GetPrivate
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(argv[3]))) == NULL) {
+			printf("JS_GetPrivate failed in SFImageConstr get MFInt32.\n");
 			return JS_FALSE;
+		}
+		int *cc = ptr->v->mfint32.p;
+		int nn = ptr->v->mfint32.n;
+
+		int newsize;
+		newsize = sizeof(int) * upper_power_of_two(expectedSize + 3); //newsize in bytes
+		anyv->sfimage.p = MALLOC(int*, newsize);
+		memset(anyv->sfimage.p, 0, newsize);
+		anyv->mfint32.n = 3;
+		anyv->mfint32.p[0] = param[0]; 
+		anyv->mfint32.p[0] = param[2];
+		anyv->mfint32.p[0] = param[3];
+		for (i = 0; i < expectedSize; i++) {
+			anyv->mfint32.p[i+3] = cc[i];
+			anyv->mfint32.n ++;
+		}
+
+	} else {
+		for (i = 0; i < argc; i++) {
+			if (!JS_DefineElement(cx, obj, (jsint)i, argv[i], JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_STUB6, JSPROP_ENUMERATE)) {
+				printf("JS_DefineElement failed for arg %d in SFImageConstr.\n", i);
+				return JS_FALSE;
+			}
 		}
 	}
 	
