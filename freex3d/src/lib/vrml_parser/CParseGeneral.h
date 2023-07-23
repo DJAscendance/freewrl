@@ -45,7 +45,7 @@ typedef struct SFVec2d	vrmlVec2dT;
 typedef struct SFVec3d  vrmlVec3dT;
 typedef struct SFVec4d	vrmlVec4dT;
 typedef struct Uni_String* vrmlStringT;
-typedef struct Multi_Int32	vrmlImageT;
+typedef struct SFImage	vrmlImageT;
 typedef struct SFMatrix3f	vrmlMatrix3fT;
 typedef struct SFMatrix4f	vrmlMatrix4fT;
 typedef struct SFMatrix3d vrmlMatrix3dT;

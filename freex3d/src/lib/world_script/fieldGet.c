@@ -153,6 +153,7 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 	case FIELDTYPE_SFVec3d:
 	case FIELDTYPE_SFVec4d:
 	case FIELDTYPE_SFRotation:
+	case FIELDTYPE_SFImage:
 		set_one_MultiElementType(shader_num, fieldOffset, any, len);
 		break;
 	case FIELDTYPE_MFColor:
@@ -169,7 +170,7 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 	case FIELDTYPE_MFString:
 	case FIELDTYPE_MFNode:
 	case FIELDTYPE_MFRotation:
-	case FIELDTYPE_SFImage:
+	case FIELDTYPE_MFImage:
 
 		set_one_MFElementType(shader_num, fieldOffset, type, (void *)any,len);
 

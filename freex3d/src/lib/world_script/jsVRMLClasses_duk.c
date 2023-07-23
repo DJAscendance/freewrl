@@ -2241,10 +2241,38 @@ String toString() Returns a String containing the  value of x, y, comp and array
 */
 
 int SFImage_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
-	char *str;
-	FWType mfint32type = getFWTYPE(FIELDTYPE_MFInt32);
-	str = mfToString(mfint32type, fwn);
-	fwretval->_string = str;
+	//char *str;
+	//FWType mfint32type = getFWTYPE(FIELDTYPE_MFInt32);
+	//str = mfToString(mfint32type, fwn);
+	{
+		int i, len;
+		char* str;
+		struct SFImage* sfimage = (struct SFImage*)fwn;
+		int width, height, comp;
+		width = sfimage->p[0];
+		height = sfimage->p[1];
+		comp = sfimage->p[2];
+		len = 5 + 5 + 5 + (width * height * (comp*2 + 3)); //0xFF one comp, 0xFFFF 2 channel 0xFFFFFF 3 chanel 0xFFFFFFFF 4 channel
+		str = malloc(len + 1);
+		sprintf(str, "%d %d %d ", width, height, comp);
+		char buff[20];
+		char* format = NULL;
+		switch (comp) {
+		case 1: format = "%#4x "; break;
+		case 2: format = "%#6x "; break;
+		case 3: format = "%#8x "; break;
+		case 4: format = "%#10x "; break;
+		default: break;
+		}
+		for (i = 3; i < width*height + 3; i++)
+		{
+			sprintf(buff, format, sfimage->p[i]);
+			str = strcat(str, buff);
+		}
+		fwretval->_string = str;
+
+	}
+	//fwretval->_string = strdup("sfimage");// str;
 	fwretval->itype = 'S';
 	return 1;
 }
@@ -2320,28 +2348,33 @@ void * SFImage_Constructor(FWType fwtype, int ic, FWval fwpars){
 	//around freewrl, SFImage is stored as a MFIn32, with n = 3 x width x height, 
 	//and the first (int,int,int) pixel sacrificed to hold (width,height,comp)
 	int width, height, comp;
-	struct Multi_Int32 *ptr = malloc(fwtype->size_of); //garbage collector please
+	struct SFImage* ptr = malloc(fwtype->size_of); //garbage collector please
 
 	if(ic > 2){
 		width = fwpars[0]._integer;
 		height = fwpars[1]._integer;
 		comp = fwpars[2]._integer;
-	}else{
-		width = 1;
-		height = 1;
+	}else {
+		width = 0;
+		height = 0;
 		comp = 3;
 	}
-	ptr->n = comp * width * height;
+	//https://www.web3d.org/documents/specifications/19775-1/V4.0/Part01/fieldTypes.html#SFImageAndMFImage  
+	//"Each pixel is read as a single unsigned number." that means one 4 byte int number per pixel
+	ptr->n = width * height + 3; // comp* width* height;
 	ptr->p = malloc(ptr->n * sizeof(int)); //garbage collector please
-	if(fwpars[3].itype == 'W' && fwpars[3]._web3dval.fieldType == FIELDTYPE_MFInt32){
-		//the incoming MFInt32 pixel values are one pixel per Int32, so we need to expand to 3 ints
-		int i, ncopy;
-		struct Multi_Int32 *im = fwpars[3]._web3dval.native;
-		ncopy = min(ptr->n,im->n);
-		for(i=0;i<ncopy;i++)
-			ptr->p[i] = im->p[i];
+	memset(ptr->p, 0, ptr->n * sizeof(int));
+	if (width * height) {
+		if (fwpars[3].itype == 'W' && fwpars[3]._web3dval.fieldType == FIELDTYPE_MFInt32) {
+			//the incoming MFInt32 pixel values are one pixel per Int32
+			int i, j, ncopy, nfill;
+			struct Multi_Int32* im = fwpars[3]._web3dval.native;
+			ncopy = min(ptr->n, im->n);
+			for (i = 0; i < ncopy; i++)
+				ptr->p[i+3] = im->p[i];
+		}
 	}
-	//first 3 ints are sacrificed
+	
 	ptr->p[0] = width;
 	ptr->p[1] = height;
 	ptr->p[2] = comp;
@@ -3884,6 +3917,7 @@ void initVRMLFields(FWType* typeArray, int *n){
 	typeArray[*n] = &MFVec4dType; (*n)++;
 
 	typeArray[*n] = &SFImageType; (*n)++;
+	typeArray[*n] = &MFImageType; (*n)++;
 	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
 	//typeArray[*n] = &FreeWRLThreadType; (*n)++;
 	//typeArray[*n] = &SFMatrix3fType; (*n)++;

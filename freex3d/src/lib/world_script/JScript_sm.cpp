@@ -3746,13 +3746,13 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 			}
 			/* copy over the data from the VRML side into the script variable. */
 			iflag = 0;
-			pp = getInternalDataPointerForJavascriptObject(cx,obj,tnfield,&iflag);
-			if(pp == NULL){
+			pp = getInternalDataPointerForJavascriptObject(cx, obj, tnfield, &iflag);
+			if (pp == NULL) {
 				//no script function with this name - you might be routing to an inputOutput field
 				printf("function not found\n");
 				return;
 			}
-			memcpy (pp,Data, dataLen);
+			memcpy(pp, Data, dataLen);
 			/* printf ("set_one_MultiElementType, dataLen %d, sizeof(double) %d\n",dataLen, sizeof(double));
 			printf ("and, sending the data to pointer %p\n",pp); */
 
@@ -3760,9 +3760,10 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 			/* set the time for this script */
 			SET_JS_TICKTIME
 			/* is the function compiled yet? */
-			COMPILE_FUNCTION_IF_NEEDED_SET(tnfield,kind)
+			COMPILE_FUNCTION_IF_NEEDED_SET(tnfield, kind)
 
-			RUN_FUNCTION (tnfield)
+			RUN_FUNCTION(tnfield)
+
 		} // Scope B
 	} // Scope A
 

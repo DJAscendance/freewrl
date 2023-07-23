@@ -337,13 +337,15 @@ void JS_ECMA_TO_X3D(JSContext *cx, void *Data, unsigned datalen, int dataType, j
 			break;
 		}
 		case FIELDTYPE_SFBool: {
-			il = JSVAL_TO_BOOLEAN (*newval);
+			//il = JSVAL_TO_BOOLEAN (*newval);
+			JS_ValueToBoolean(cx, *newval, &il);
 			memcpy (Data, (void *) &il, datalen);
 			break;
 		}
 
 		case FIELDTYPE_SFInt32: 	{ 
-			il = JSVAL_TO_INT (*newval);
+			//il = JSVAL_TO_INT (*newval);
+			JS_ValueToInt32(cx, *newval, &il);
 			memcpy (Data, (void *) &il, datalen);
 			break;
 		}
