@@ -5185,9 +5185,9 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 			case FIELDTYPE_SFImage:
 				{
 					struct SFImage* si, * di;
-					si = (struct SFImage *)source;
-					di = (struct SFImage *)dest;
-
+					si = &source->sfimage;
+					di = &dest->sfimage;
+					if (di == si) return; //don't copy to self
 					//we need to malloc and do more copying
 					//deleteMallocedFieldValue(typeIndex, dest);
 					FREE_IF_NZ(di->p);
@@ -5203,6 +5203,9 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 						bzero(di->p, jsize * nele);
 						di->n = si->n;
 						memcpy(di->p, si->p, jsize * si->n);
+						//printf("in shallow_copy_field SFImage: \n");
+						//for (int k = 0; k < di->n; k++) printf("%d ", di->p[k]);
+						//printf("\n");
 					}
 				}
 				break;

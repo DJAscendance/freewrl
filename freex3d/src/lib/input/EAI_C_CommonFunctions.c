@@ -414,7 +414,7 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_SFTime:	iz = sizeof(double); break;
 	case FIELDTYPE_SFString: iz = sizeof(struct Uni_String *); break;  //sizeof(void *) because nodes that have a string field declare it struct Uni_String *, so when copying to a node, you copy sizeof(void*). H: if the char *string is const, then uni_string is const (they may hang out as pals for life, or char *string may outlive its uni_string pal
 	case FIELDTYPE_SFVec2f:	iz = sizeof(struct SFVec2f); break;
-	case FIELDTYPE_SFImage:	iz = sizeof(struct Multi_Node); break;
+	case FIELDTYPE_SFImage:	iz = sizeof(struct SFImage); break;
 	case FIELDTYPE_SFVec3d:	iz = sizeof(struct SFVec3d); break;
 	case FIELDTYPE_SFDouble: iz = sizeof(double); break;
 	case FIELDTYPE_SFMatrix3f: iz = sizeof(struct SFMatrix3f); break;

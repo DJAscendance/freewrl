@@ -3705,7 +3705,7 @@ void sm_set_one_MultiElementType (int tonode, int tnfield, void *Data, int dataL
 							sprintf(scriptline, "set_%s(%s,__eventInTickTime)", JSparamnames[tnfield].name, JSparamnames[tnfield].name);
 						else /* PKW_inputOnly */
 							sprintf(scriptline, "%s(%s%s,__eventInTickTime)", JSparamnames[tnfield].name, "__eventIn_Value_", JSparamnames[tnfield].name);
-						/* printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); */
+						 //printf ("compiling function %s for type %d\n",scriptline,JSparamnames[tnfield].type); 
 						hscript = JS_CompileScript(
 							cx, obj, scriptline, strlen(scriptline), "compile eventIn", 1);
 						JSparamnames[tnfield].eventInFunction = (void*)hscript;

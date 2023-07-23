@@ -221,8 +221,8 @@ JSClass SFImageClass = {
 };
 
 JSPropertySpec (SFImageProperties)[] = {
-	{"x", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
-	{"y", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"width", 0, JSPROP_SHARED | JSPROP_ENUMERATE},
+	{"height", 1, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{"comp", 2, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{"array", 3, JSPROP_SHARED | JSPROP_ENUMERATE},
 	{0}

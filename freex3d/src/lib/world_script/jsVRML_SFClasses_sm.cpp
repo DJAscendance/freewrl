@@ -1117,14 +1117,18 @@ SFImageToString(JSContext *cx, uintN argc, jsval *vp) {
 		}
 		int *cc = ptr->v->sfimage.p;
 		int nn = ptr->v->sfimage.n;
-
-		memset(buff, 0, STRING);
-		sprintf(buff, "%d %d %d",
-			cc[0], cc[1], cc[2]);
-		char sbuf[10];
-		for (int i = 3; i < nn; i++) {
-			sprintf(sbuf, "%x ", cc[i]);
-			strcat(buff, sbuf);
+		if (nn) {
+			memset(buff, 0, STRING);
+			sprintf(buff, "%d %d %d ",
+				cc[0], cc[1], cc[2]);
+			char sbuf[10];
+			for (int i = 3; i < nn; i++) {
+				sprintf(sbuf, "%#x ", cc[i]);
+				strcat(buff, sbuf);
+			}
+		}
+		else {
+			sprintf(buff, "0 0 0 ");
 		}
 		_str = JS_NewStringCopyZ(cx, buff);
 
@@ -1162,103 +1166,6 @@ SFImageAssign(JSContext *cx, uintN argc, jsval *vp) {
 	return retval;
 #endif
 }
-
-/*
-JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-
-	JSObject *_arrayObj;
-	int isArray;
-	int32 _i;
-	unsigned int i;
-	union anyVrml *anyv;
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("start of MFInt32Constr\n");
-	#endif
-
-	ADD_ROOT(cx,obj)
-	isArray = FALSE;
-	if(argc == 1 && argv){
-		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
-		// tests/JohnCarlson/Arc1A.x3d
-		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
-			return JS_FALSE;
-		}
-
-		if(JS_IsArrayObject(cx, _arrayObj)){
-			jsuint lengthp;
-			jsval vp;
-			//printf("its an array\n");
-			isArray = TRUE;
-			JS_GetArrayLength(cx,_arrayObj, &lengthp);
-			argc = lengthp;
-		}
-	}
-
-	if(SM_method() == 2){
-		AnyNative *any;
-		int newsize;
-		if((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFInt32,NULL,NULL)) == NULL){
-			printf( "AnyfNativeNew failed in MFInt32Constr.\n");
-			return JS_FALSE;
-		}
-		if (!JS_SetPrivateFw(cx, obj, any)) {
-			printf( "JS_SetPrivate failed in MFInt32Constr.\n");
-			return JS_FALSE;
-		}
-		anyv = any->v;
-		newsize = sizeof(int) * upper_power_of_two(argc); //newsize in bytes
-		if(argc > 0){
-			anyv->mfint32.p = MALLOC(int*,newsize);
-			memset(anyv->mfint32.p,0,newsize);
-		}
-
-	}else{
-		DEFINE_LENGTH(cx,obj,argc)
-        DEFINE_MF_ECMA_HAS_CHANGED
-	}
-	if (!argv) {
-		return JS_TRUE;
-	}
-
-	#ifdef JSVRMLCLASSESVERBOSE
-		printf("MFInt32Constr: obj = %p, %u args\n", obj, argc);
-	#endif
-
-	// any values here that we should add in? 
-	for (i = 0; i < argc; i++) {
-		jsval vp;
-		if(isArray){
-			JS_GetElement(cx, _arrayObj, i, &vp);
-
-		}else{
-			vp = argv[i];
-		}
-		//if (!JS::ToInt32(cx, vp, &_i)) {
-		//if (!JS::ToInt32(cx, vp, &_i)) {
-		if(!vp.isInt32()){
-			printf( "JS_ValueToInt32 failed in MFInt32Constr.\n");
-			return JS_FALSE;
-		}
-		_i = vp.toInt32();
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("value at %d is %d\n",i,_i);
-		#endif
-		if(SM_method()==2){
-			anyv->mfint32.p[i] = _i;
-			anyv->mfint32.n = i+1;
-		}else{
-			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed for arg %u in MFInt32Constr.\n", i);
-				return JS_FALSE;
-			}
-		}
-	}
-
-	*rval = OBJECT_TO_JSVAL(obj);
-	return JS_TRUE;
-}
-*/
 
 JSBool
 #if JS_VERSION < 185
@@ -1372,7 +1279,8 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 		/* printf ("looking at parameter %d\n",i); */
         	if (JSVAL_IS_INT(argv[i])) { 
 			/* printf ("parameter is a number\n"); */
-                	param[i] =  JSVAL_TO_INT(argv[i]);
+                	//param[i] =  JSVAL_TO_INT(argv[i]);
+					JS_ValueToInt32(cx, argv[i], &param[i]);
 			/* printf ("param is %d\n",param[i]); */
         	} else {        
                 	printf ("SFImageConstr: parameter %d is not a number\n",i);
@@ -1400,54 +1308,49 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 		printf ("SFImageConstr: with x and y not zero, comp must be non-zero\n");
 		return JS_FALSE;
 	}
-	if (expectedSize == 0) {
-		if (SM_method() == 2) {
-			anyv->sfimage.n = 3;
-			anyv->sfimage.p = (int*)malloc(upper_power_of_two(3) * sizeof(int));
-			anyv->sfimage.p[0] = anyv->sfimage.p[1] = anyv->sfimage.p[2] = 0;
-		}
-	}
 	/* worry about the MFInt32 array. Note that we copy the object pointer here. Should
 	   we copy ALL of the elements, or just the object itself?? */
 
-	if (argc == 4) {
+	if (argc == 4 && SM_method() != 2) {
 		#ifdef JSVRMLCLASSESVERBOSE
 		printJSNodeType(cx,JSVAL_TO_OBJECT(argv[3]));
 		#endif
- 
-		CHECK_CLASS(cx,JSVAL_TO_OBJECT(argv[3]),NULL,__FUNCTION__,MFInt32Class)
-		if (!JS_GetProperty(cx, JSVAL_TO_OBJECT(argv[3]),  MF_LENGTH_FIELD, &mv)) {
-			printf( "JS_GetProperty failed for MFInt32 length in SFImageConstr\n");
-	        	return JS_FALSE;
-		}
-	        if (expectedSize != JSVAL_TO_INT(mv)) {
-			printf ("SFImageConstr: expected %d elements in image data, got %d\n",expectedSize, JSVAL_TO_INT(mv));
-			return JS_FALSE;
+		CHECK_CLASS(cx, JSVAL_TO_OBJECT(argv[3]), NULL, __FUNCTION__, MFInt32Class)
+			if (!JS_GetProperty(cx, JSVAL_TO_OBJECT(argv[3]), MF_LENGTH_FIELD, &mv)) {
+				printf("JS_GetProperty failed for MFInt32 length in SFImageConstr\n");
+				return JS_FALSE;
+			}
+		if (expectedSize != JSVAL_TO_INT(mv)) {
+			printf("SFImageConstr: warning expected %d elements in image data, got %d\n", expectedSize, JSVAL_TO_INT(mv));
+			//return JS_FALSE;
 		}
 	}
 
 	/* parameters are ok - just save them now in the new object. */
 	if (SM_method() == 2) {
-		//JS_GetPrivate
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(argv[3]))) == NULL) {
-			printf("JS_GetPrivate failed in SFImageConstr get MFInt32.\n");
-			return JS_FALSE;
+		int* cc = NULL;
+		int nn = 0;
+		if (argc == 4) {
+			//JS_GetPrivate
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, JSVAL_TO_OBJECT(argv[3]))) == NULL) {
+				printf("JS_GetPrivate failed in SFImageConstr get MFInt32.\n");
+				return JS_FALSE;
+			}
+			cc = ptr->v->mfint32.p;
+			nn = ptr->v->mfint32.n;
 		}
-		int *cc = ptr->v->mfint32.p;
-		int nn = ptr->v->mfint32.n;
-
 		int newsize;
 		newsize = sizeof(int) * upper_power_of_two(expectedSize + 3); //newsize in bytes
 		anyv->sfimage.p = MALLOC(int*, newsize);
 		memset(anyv->sfimage.p, 0, newsize);
-		anyv->mfint32.n = 3;
-		anyv->mfint32.p[0] = param[0]; 
-		anyv->mfint32.p[0] = param[2];
-		anyv->mfint32.p[0] = param[3];
-		for (i = 0; i < expectedSize; i++) {
-			anyv->mfint32.p[i+3] = cc[i];
-			anyv->mfint32.n ++;
+		anyv->sfimage.n = expectedSize + 3;
+		anyv->sfimage.p[0] = param[0]; 
+		anyv->sfimage.p[1] = param[1];
+		anyv->sfimage.p[2] = param[2];
+		int ncopy = expectedSize > nn ? nn : expectedSize; //assume balance are memset 0
+		for (i = 0; i < ncopy; i++) {
+			anyv->sfimage.p[i+3] = cc[i];
 		}
 
 	} else {
@@ -1478,10 +1381,67 @@ JSBool SFImageGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp) {
 #else
 JSBool SFImageGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
-	jsid id = *hiid.address();
+	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
 #endif
-	return _standardMFGetProperty(cx, obj, id, vp, "_FreeWRL_Internal = 0", FIELDTYPE_SFImage); //FIXME: is this ok ???  "SFImage");
+	int nn, * cc;
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in SFVec3fGetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		if ((any = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf("JS_GetPrivate failed in SFImageGetProperty.\n");
+			return JS_FALSE;
+		}
+		cc = any->v->sfimage.p;
+		nn = any->v->sfimage.n;
+	}
+	//else {
+	//	SFVec3fNative* ptr;
+	//	if ((ptr = (SFVec3fNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+	//		printf("JS_GetPrivate failed in SFVec3fGetProperty.\n");
+	//		return JS_FALSE;
+	//	}
+	//	cc = ptr->v.c;
+	//}
+	if (JSVAL_IS_INT(id)) {
+		int d;
+		switch (JSVAL_TO_INT(id)) {
+		case 0: //width
+			d = cc[0];
+			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
+				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n", d);
+				return JS_FALSE;
+			}
+			break;
+		case 1: //height
+			d = cc[1];
+			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
+				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n", d);
+				return JS_FALSE;
+			}
+			break;
+		case 2: //comp
+			d = cc[2];
+			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
+				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n",d);
+				return JS_FALSE;
+			}
+			break;
+		}
+		return JS_TRUE;
+	}
+	else {
+#ifdef JSVRMLCLASSESVERBOSE
+		printf("SFVec3fGetProperty, id is NOT an int...\n");
+#endif
+	}
+	return JS_TRUE;
+	//return _standardMFGetProperty(cx, obj, id, vp, "_FreeWRL_Internal = 0", FIELDTYPE_SFImage); //FIXME: is this ok ???  "SFImage");
 }
 
 
