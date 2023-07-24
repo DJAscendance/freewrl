@@ -2249,9 +2249,9 @@ int SFImage_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars,
 		char* str;
 		struct SFImage* sfimage = (struct SFImage*)fwn;
 		int width, height, comp;
-		width = sfimage->p[0];
-		height = sfimage->p[1];
-		comp = sfimage->p[2];
+		width = sfimage->whc[0];
+		height = sfimage->whc[1];
+		comp = sfimage->whc[2];
 		len = 5 + 5 + 5 + (width * height * (comp*2 + 3)); //0xFF one comp, 0xFFFF 2 channel 0xFFFFFF 3 chanel 0xFFFFFFFF 4 channel
 		str = malloc(len + 1);
 		sprintf(str, "%d %d %d ", width, height, comp);
@@ -2264,9 +2264,10 @@ int SFImage_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars,
 		case 4: format = "%#10x "; break;
 		default: break;
 		}
-		for (i = 3; i < width*height + 3; i++)
+		int count = width * height < sfimage->arr.n ? width * height : sfimage->arr.n;
+		for (i = 0; i < count; i++)
 		{
-			sprintf(buff, format, sfimage->p[i]);
+			sprintf(buff, format, sfimage->arr.p[i]);
 			str = strcat(str, buff);
 		}
 		fwretval->_string = str;
@@ -2283,7 +2284,7 @@ FWFunctionSpec (SFImage_Functions)[] = {
 };
 
 int SFImage_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
-	struct Multi_Int32 *ptr = (struct Multi_Int32 *)fwn;
+	struct SFImage* ptr = (struct SFImage*)fwn;
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index > -1 && index < 4){
@@ -2292,12 +2293,12 @@ int SFImage_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		case 0: //width
 		case 1: //height
 		case 2: //comp
-		fwretval->_integer =  ptr->p[index];
+		fwretval->_integer =  ptr->whc[index];
 		fwretval->itype = 'I';
 		break;
 
 		case 3: //array
-		fwretval->_web3dval.native = ptr; //hope they don't go image.array[0] = infinity; which will overwrite width. same for height, comp
+		fwretval->_web3dval.native = &ptr->arr; //hope they don't go image.array[0] = infinity; which will overwrite width. same for height, comp
 		fwretval->_web3dval.fieldType = FIELDTYPE_MFInt32;
 		fwretval->_web3dval.gc = 0;
 		fwretval->itype = 'W';
@@ -2309,7 +2310,7 @@ int SFImage_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	return nr;
 }
 int SFImage_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
-	struct Multi_Int32 *ptr = (struct Multi_Int32*)fwn;
+	struct SFImage *ptr = (struct SFImage*)fwn;
 	int *p;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index > -1 && index < 4){
@@ -2317,12 +2318,13 @@ int SFImage_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 			case 0: //width
 			case 1: //height
 			case 2: //comp
-			ptr->p[index] = fwval->_integer;
-			p = ptr->p;
-			if(ptr->n < (p[0] * p[1] * p[2]) ){
+			ptr->whc[index] = fwval->_integer;
+			int* whc = ptr->whc;
+			p = ptr->arr.p;
+			if(ptr->arr.n < (whc[0] * whc[1]) ){
 				//resize
-				ptr->n = (p[0] * p[1] * p[2]);
-				ptr->p = realloc(ptr->p,ptr->n);
+				ptr->arr.n = (whc[0] * whc[1]);
+				ptr->arr.p = realloc(ptr->arr.p,ptr->arr.n);
 			}
 			break;
 
@@ -2331,9 +2333,8 @@ int SFImage_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 				//int width,height,comp;
 				int  ncopy; //i,j,
 				struct Multi_Int32 *im = fwval->_web3dval.native;
-				ncopy = min(ptr->n,im->n);
-				//don't write over width,height,comp
-				memcpy(&ptr->p[3],&im->p[3],(ncopy-3)*sizeof(int));
+				ncopy = ptr->arr.n < im->n ? ptr->arr.n : im->n;
+				memcpy(ptr->arr.p,im->p,(ncopy)*sizeof(int));
 			}
 			break;
 			default:
@@ -2361,23 +2362,23 @@ void * SFImage_Constructor(FWType fwtype, int ic, FWval fwpars){
 	}
 	//https://www.web3d.org/documents/specifications/19775-1/V4.0/Part01/fieldTypes.html#SFImageAndMFImage  
 	//"Each pixel is read as a single unsigned number." that means one 4 byte int number per pixel
-	ptr->n = width * height + 3; // comp* width* height;
-	ptr->p = malloc(ptr->n * sizeof(int)); //garbage collector please
-	memset(ptr->p, 0, ptr->n * sizeof(int));
+	ptr->arr.n = width * height; // comp* width* height;
+	ptr->arr.p = malloc(ptr->arr.n * sizeof(int)); //garbage collector please
+	memset(ptr->arr.p, 0, ptr->arr.n * sizeof(int));
 	if (width * height) {
 		if (fwpars[3].itype == 'W' && fwpars[3]._web3dval.fieldType == FIELDTYPE_MFInt32) {
 			//the incoming MFInt32 pixel values are one pixel per Int32
 			int i, j, ncopy, nfill;
 			struct Multi_Int32* im = fwpars[3]._web3dval.native;
-			ncopy = min(ptr->n, im->n);
+			ncopy = ptr->arr.n < im->n ? ptr->arr.n : im->n;
 			for (i = 0; i < ncopy; i++)
-				ptr->p[i+3] = im->p[i];
+				ptr->arr.p[i] = im->p[i];
 		}
 	}
 	
-	ptr->p[0] = width;
-	ptr->p[1] = height;
-	ptr->p[2] = comp;
+	ptr->whc[0] = width;
+	ptr->whc[1] = height;
+	ptr->whc[2] = comp;
 	return (void *)ptr;
 }
 
@@ -2399,7 +2400,7 @@ struct FWTYPE SFImageType = {
 	FIELDTYPE_SFImage,
 	'W',
 	"SFImage",
-	sizeof(struct Multi_Int32), 
+	sizeof(struct SFImage), 
 	SFImage_Constructor, //constructor
 	SFImage_ConstructorArgs, //constructor args
 	SFImage_Properties, //Properties,

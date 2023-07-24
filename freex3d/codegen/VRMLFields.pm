@@ -783,7 +783,9 @@ sub cInitialize {
 package VRML::Field::SFImage;
 our @ISA="VRML::Field";
 
-sub cstruct {return "struct SFImage { int n; int *p; };"}
+#sub cstruct {return "struct SFImage { int n; int *p; };"}
+sub cstruct {return "struct SFImage { int whc[3]; struct Multi_Int32 arr; };"}
+
 sub ctype {return "struct SFImage " . ($_[1] || "")}
 
 sub cInitialize {
@@ -793,15 +795,18 @@ sub cInitialize {
 	my $retstr = "";
 	my $tmp;
 	if ($count > 0) {
-		$retstr = $retstr . "$field.p = MALLOC (int *, sizeof(int)*$count);";
-		for ($tmp=0; $tmp<$count; $tmp++) {
-			$retstr = $retstr .  "$field.p[$tmp] = @{$val}[$tmp];";
+		$retstr = $retstr . "$field.arr.p = MALLOC (int *, sizeof(int)*$count-3);";
+		for ($tmp=0; $tmp<3; $tmp++) {
+			$retstr = $retstr .  "$field.whc[$tmp] = @{$val}[$tmp];";
 		}
-		$retstr = $retstr . "$field.n=$count; ";
+		for ($tmp=3; $tmp<$count; $tmp++) {
+			$retstr = $retstr .  "$field.arr[$tmp-3] = @{$val}[$tmp];";
+		}
+		$retstr = $retstr . "$field.arr.n=$count -3; ";
 
         } else {
           #SFImage defaults to 0,0,0\n";
-	  $retstr = "$field.n=3; $field.p=MALLOC (int *, sizeof(int)*3); $field.p[0] = 0; $field.p[1] = 0; $field.p[2] = 0;";
+	  $retstr = "$field.arr.n=0; $field.arr.p=NULL; $field.whc[0] = 0; $field.whc[1] = 0; $field.whc[2] = 0;";
         }
 	return $retstr;
 }

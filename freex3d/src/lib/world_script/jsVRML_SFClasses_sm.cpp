@@ -1115,20 +1115,16 @@ SFImageToString(JSContext *cx, uintN argc, jsval *vp) {
 			printf("JS_GetPrivate failed in SFVec3fToString.\n");
 			return JS_FALSE;
 		}
-		int *cc = ptr->v->sfimage.p;
-		int nn = ptr->v->sfimage.n;
-		if (nn) {
-			memset(buff, 0, STRING);
-			sprintf(buff, "%d %d %d ",
-				cc[0], cc[1], cc[2]);
-			char sbuf[10];
-			for (int i = 3; i < nn; i++) {
-				sprintf(sbuf, "%#x ", cc[i]);
-				strcat(buff, sbuf);
-			}
-		}
-		else {
-			sprintf(buff, "0 0 0 ");
+		int *cc = ptr->v->sfimage.arr.p;
+		int nn = ptr->v->sfimage.arr.n;
+		int* whc = ptr->v->sfimage.whc;
+		memset(buff, 0, STRING);
+		sprintf(buff, "%d %d %d ",
+			whc[0], whc[1], whc[2]);
+		char sbuf[10];
+		for (int i = 0; i < nn; i++) {
+			sprintf(sbuf, "%#x ", cc[i]);
+			strcat(buff, sbuf);
 		}
 		_str = JS_NewStringCopyZ(cx, buff);
 
@@ -1230,9 +1226,9 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 	if (!argc) { 
 		/* expect arguments to be number, number, number, mfint32 */
 		if (SM_method() == 2) {
-			anyv->sfimage.n = 3;
-			anyv->sfimage.p = (int*)malloc(upper_power_of_two(3) * sizeof(int));
-			anyv->sfimage.p[0] = anyv->sfimage.p[1] = anyv->sfimage.p[2] = 0;
+			anyv->sfimage.arr.n = 0;
+			anyv->sfimage.arr.p = NULL;
+			anyv->sfimage.whc[0] = anyv->sfimage.whc[1] = anyv->sfimage.whc[2] = 0;
 		}else {
 			mv = INT_TO_JSVAL(0);
 			for (i = 0; i < 4; i++) {
@@ -1341,16 +1337,16 @@ SFImageConstr(JSContext *cx, uintN argc, jsval *vp) {
 			nn = ptr->v->mfint32.n;
 		}
 		int newsize;
-		newsize = sizeof(int) * upper_power_of_two(expectedSize + 3); //newsize in bytes
-		anyv->sfimage.p = MALLOC(int*, newsize);
-		memset(anyv->sfimage.p, 0, newsize);
-		anyv->sfimage.n = expectedSize + 3;
-		anyv->sfimage.p[0] = param[0]; 
-		anyv->sfimage.p[1] = param[1];
-		anyv->sfimage.p[2] = param[2];
+		newsize = sizeof(int) * upper_power_of_two(expectedSize); //newsize in bytes
+		anyv->sfimage.arr.p = MALLOC(int*, newsize);
+		memset(anyv->sfimage.arr.p, 0, newsize);
+		anyv->sfimage.arr.n = expectedSize;
+		anyv->sfimage.whc[0] = param[0]; 
+		anyv->sfimage.whc[1] = param[1];
+		anyv->sfimage.whc[2] = param[2];
 		int ncopy = expectedSize > nn ? nn : expectedSize; //assume balance are memset 0
 		for (i = 0; i < ncopy; i++) {
-			anyv->sfimage.p[i+3] = cc[i];
+			anyv->sfimage.arr.p[i] = cc[i];
 		}
 
 	} else {
@@ -1384,7 +1380,7 @@ JSBool SFImageGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 	jsid iid = *hiid.address();
 	jsval *vp = hvp.address();
 #endif
-	int nn, * cc;
+	int nn, * cc, *whc;
 	jsval id;
 	if (!JS_IdToValue(cx, iid, &id)) {
 		printf("JS_IdToValue failed in SFVec3fGetProperty.\n");
@@ -1397,8 +1393,9 @@ JSBool SFImageGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 			printf("JS_GetPrivate failed in SFImageGetProperty.\n");
 			return JS_FALSE;
 		}
-		cc = any->v->sfimage.p;
-		nn = any->v->sfimage.n;
+		cc = any->v->sfimage.arr.p;
+		nn = any->v->sfimage.arr.n;
+		whc = any->v->sfimage.whc;
 	}
 	//else {
 	//	SFVec3fNative* ptr;
@@ -1412,26 +1409,44 @@ JSBool SFImageGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 		int d;
 		switch (JSVAL_TO_INT(id)) {
 		case 0: //width
-			d = cc[0];
+			d = whc[0];
 			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
 				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n", d);
 				return JS_FALSE;
 			}
 			break;
 		case 1: //height
-			d = cc[1];
+			d = whc[1];
 			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
 				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n", d);
 				return JS_FALSE;
 			}
 			break;
 		case 2: //comp
-			d = cc[2];
+			d = whc[2];
 			if (JS_NewNumberValue(cx, d, vp) == JS_FALSE) {
 				printf("JS_NewNumberValue failed for %d in SFImageGetProperty.\n",d);
 				return JS_FALSE;
 			}
 			break;
+		case 3: //arr
+			JSObject * obj2 = JS_NewObject(cx, &MFInt32Class, NULL, NULL);
+			ADD_ROOT(cx, obj2)
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)AnyNativeNew(FIELDTYPE_MFInt32, NULL, NULL)) == NULL) {
+				printf("MFInt32NativeNew failed in SFImageGetter.\n");
+				return JS_FALSE;
+			}
+			if (!JS_SetPrivateFw(cx, obj2, ptr)) {
+				printf("JS_SetPrivate failed in SFImageGetter.\n");
+				return JS_FALSE;
+			}
+			ptr->v->mfint32.n = nn;
+			ptr->v->mfint32.p = cc;
+			ptr->gc = 0;
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj2));
+			break;
+
 		}
 		return JS_TRUE;
 	}

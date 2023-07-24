@@ -329,23 +329,27 @@ static void texture_load_from_pixelTexture (textureTableIndexStruct_s* this_tex,
 	int *iptr;
 	int tctr;
 
-	iptr = node->image.p;
+	iptr = node->image.arr.p;
 
 	ok = TRUE;
 
 	DEBUG_TEX ("start of texture_load_from_pixelTexture...\n");
 
 	/* are there enough numbers for the texture? */
-	if (node->image.n < 3) {
-		printf ("PixelTexture, need at least 3 elements, have %d\n",node->image.n);
-		ok = FALSE;
-	} else {
+	//if (node->image.arr.n < 3) {
+	//	printf ("PixelTexture, need at least 3 elements, have %d\n",node->image.n);
+	//	ok = FALSE;
+	//} else 
+	{
 		//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/fieldsDef.html#SFImageAndMFImage
 		//SFImage fields contain three integers representing the width, height and number of components in the image
 		//Pixels are specified from left to right, bottom to top (ie like a texture, not an image)
-		wid = *iptr; iptr++;
-		hei = *iptr; iptr++;
-		depth = *iptr; iptr++;
+		//wid = *iptr; iptr++;
+		//hei = *iptr; iptr++;
+		//depth = *iptr; iptr++;
+		wid = node->image.whc[0];
+		hei = node->image.whc[1];
+		depth = node->image.whc[2];
 
 		DEBUG_TEX ("wid %d hei %d depth %d\n",wid,hei,depth);
 
@@ -354,9 +358,9 @@ static void texture_load_from_pixelTexture (textureTableIndexStruct_s* this_tex,
 			depth = 1;
 		}
 	
-		if ((wid*hei-3) > node->image.n) {
+		if ((wid*hei) > node->image.arr.n) {
 			printf ("PixelTexture, not enough data for wid %d hei %d, have %d\n",
-					wid, hei, (wid*hei)-2);
+					wid, hei, node->image.arr.n);
 			ok = FALSE;
 		}
 	}

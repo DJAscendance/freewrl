@@ -11741,7 +11741,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_BufferTexture : {
 			struct X3D_BufferTexture * tmp2;
 			tmp2 = (struct X3D_BufferTexture *) tmp;
-			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
+			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->metadata = NULL;
 			tmp2->repeatS = TRUE;
 			tmp2->repeatT = TRUE;
@@ -11834,7 +11834,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->isActive = FALSE;
 			tmp2->metadata = NULL;
 			tmp2->description = newASCIIString("");
-			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
+			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->focalPoint.c[0] = 0.0f;tmp2->focalPoint.c[1] = 0.0f;;
 			tmp2->fieldOfView = 0.0f;
 			tmp2->fovMode = newASCIIString("");
@@ -13931,7 +13931,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->metadata = NULL;
 			tmp2->__texture = 0;
 			tmp2->__VBO = 0;
-			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
+			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -15041,9 +15041,9 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MetadataSFImage : {
 			struct X3D_MetadataSFImage * tmp2;
 			tmp2 = (struct X3D_MetadataSFImage *) tmp;
-			tmp2->value.p = MALLOC (int *, sizeof(int)*3);tmp2->value.p[0] = 0;tmp2->value.p[1] = 0;tmp2->value.p[2] = 0;tmp2->value.n=3; ;
-			tmp2->valueChanged.p = MALLOC (int *, sizeof(int)*3);tmp2->valueChanged.p[0] = 0;tmp2->valueChanged.p[1] = 0;tmp2->valueChanged.p[2] = 0;tmp2->valueChanged.n=3; ;
-			tmp2->setValue.p = MALLOC (int *, sizeof(int)*3);tmp2->setValue.p[0] = 0;tmp2->setValue.p[1] = 0;tmp2->setValue.p[2] = 0;tmp2->setValue.n=3; ;
+			tmp2->value.arr.p = MALLOC (int *, sizeof(int)*3-3);tmp2->value.whc[0] = 0;tmp2->value.whc[1] = 0;tmp2->value.whc[2] = 0;tmp2->value.arr.n=3 -3; ;
+			tmp2->valueChanged.arr.p = MALLOC (int *, sizeof(int)*3-3);tmp2->valueChanged.whc[0] = 0;tmp2->valueChanged.whc[1] = 0;tmp2->valueChanged.whc[2] = 0;tmp2->valueChanged.arr.n=3 -3; ;
+			tmp2->setValue.arr.p = MALLOC (int *, sizeof(int)*3-3);tmp2->setValue.whc[0] = 0;tmp2->setValue.whc[1] = 0;tmp2->setValue.whc[2] = 0;tmp2->setValue.arr.n=3 -3; ;
 			tmp2->tickTime = 0;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -15923,7 +15923,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PixelTexture : {
 			struct X3D_PixelTexture * tmp2;
 			tmp2 = (struct X3D_PixelTexture *) tmp;
-			tmp2->image.n=3; tmp2->image.p=MALLOC (int *, sizeof(int)*3); tmp2->image.p[0] = 0; tmp2->image.p[1] = 0; tmp2->image.p[2] = 0;;
+			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->metadata = NULL;
 			tmp2->repeatS = TRUE;
 			tmp2->repeatT = TRUE;

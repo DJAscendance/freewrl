@@ -2897,17 +2897,17 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
             return FALSE;
 
 
-        rv->n=3+width*height;
-        rv->p=MALLOC(int *, sizeof(int) * rv->n);
-        rv->p[0]=width;
-        rv->p[1]=height;
-        rv->p[2]=depth;
+        rv->arr.n=width*height;
+        rv->arr.p=MALLOC(int *, sizeof(int) * rv->arr.n);
+        rv->whc[0]=width;
+        rv->whc[1]=height;
+        rv->whc[2]=depth;
 
-        for(ptr=rv->p+3; ptr!=rv->p+rv->n; ++ptr)
+        for(ptr=rv->arr.p; ptr!=rv->arr.p+rv->arr.n; ++ptr)
             if(!lexer_int32(me->lexer, ptr))
             {
-                FREE_IF_NZ(rv->p);
-                rv->n=0;
+                FREE_IF_NZ(rv->arr.p);
+                rv->arr.n=0;
                 return FALSE;
             }
 
@@ -5190,19 +5190,21 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 					if (di == si) return; //don't copy to self
 					//we need to malloc and do more copying
 					//deleteMallocedFieldValue(typeIndex, dest);
-					FREE_IF_NZ(di->p);
-					int nele = si->n;
+					FREE_IF_NZ(di->arr.p);
+					int nele = si->arr.n;
 					nele = (int)upper_power_of_two(nele);
 					if (!nele) {
-						di->p = NULL;
-						di->n = 0; //should be in here, always 3+
+						di->arr.p = NULL;
+						di->arr.n = 0; //should be in here, always 3+
+						di->whc[0] = di->whc[1] = di->whc[2] = 0;
 					}
 					else {
 						int jsize = sizeof(int);
-						di->p = MALLOC(int *, jsize * nele);
-						bzero(di->p, jsize * nele);
-						di->n = si->n;
-						memcpy(di->p, si->p, jsize * si->n);
+						di->arr.p = MALLOC(int *, jsize * nele);
+						bzero(di->arr.p, jsize * nele);
+						di->arr.n = si->arr.n;
+						memcpy(di->arr.p, si->arr.p, jsize * si->arr.n);
+						memcpy(di->whc, si->whc, 3 * sizeof(int));
 						//printf("in shallow_copy_field SFImage: \n");
 						//for (int k = 0; k < di->n; k++) printf("%d ", di->p[k]);
 						//printf("\n");

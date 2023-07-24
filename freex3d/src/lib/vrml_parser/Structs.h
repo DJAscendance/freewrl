@@ -3132,7 +3132,7 @@ struct SFVec4d { double c[4]; };
 struct Multi_Vec4d { int n; struct SFVec4d  *p; };
 /*cstruct*/
 struct Multi_String { int n; struct Uni_String * *p; };
-struct SFImage { int n; int *p; };
+struct SFImage { int whc[3]; struct Multi_Int32 arr; };
 struct Multi_Image { int n; struct SFImage  *p; };
 struct SFMatrix3f { float c[9]; };
 struct Multi_Matrix3f { int n; struct SFMatrix3f  *p; };

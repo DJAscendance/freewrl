@@ -1056,13 +1056,13 @@ void unpackImageCubeMap (textureTableIndexStruct_s* me) {
 		ySubIndex=offsets[count*2]*size; xSubIndex=offsets[count*2+1]*size;
 
 		/* create the MFInt32 array for this face in the PixelTexture */
-		FREE_IF_NZ(pt->image.p);
-		pt->image.n = size*size+3;
-		pt->image.p = MALLOC(int *, pt->image.n * sizeof (int));
-		pt->image.p[0] = size;
-		pt->image.p[1] = size;
-		pt->image.p[2] = 4; /* this last one is for RGBA nchannels/components = 4 */
-		index = 3;
+		FREE_IF_NZ(pt->image.arr.p);
+		pt->image.arr.n = size*size;
+		pt->image.arr.p = MALLOC(int *, pt->image.arr.n * sizeof (int));
+		pt->image.whc[0] = size;
+		pt->image.whc[1] = size;
+		pt->image.whc[2] = 4; /* this last one is for RGBA nchannels/components = 4 */
+		index = 0;
 
 		for (y=ySubIndex; y<ySubIndex+size; y++) {
 			for (x=xSubIndex; x<xSubIndex+size; x++) {
@@ -1072,11 +1072,11 @@ void unpackImageCubeMap (textureTableIndexStruct_s* me) {
 				if(0){
 					/* remember, this will be in ARGB format, make into RGBA */
 					val = tex[ipix];
-					pt->image.p[index] = ((val & 0xffffff) << 8) | ((val & 0xff000000) >> 24); 
+					pt->image.arr.p[index] = ((val & 0xffffff) << 8) | ((val & 0xff000000) >> 24); 
 				}else{
 					rgba = (unsigned char *)&tex[ipix];
 					//convert to host-endian red-high int
-					pt->image.p[index] = (rgba[0] << 24) + (rgba[1] << 16) + (rgba[2] << 8) + (rgba[3] << 0);
+					pt->image.arr.p[index] = (rgba[0] << 24) + (rgba[1] << 16) + (rgba[2] << 8) + (rgba[3] << 0);
 				}
 				/* printf ("was %x, now %x\n",tex[x*me->x+y], pt->image.p[index]); */
 				index ++;
@@ -1129,12 +1129,12 @@ void unpackImageCubeMap6 (textureTableIndexStruct_s* me) {
 			struct X3D_PixelTexture *pt = X3D_PIXELTEXTURE(node->__subTextures.p[count]);
 
 			/* create the MFInt32 array for this face in the PixelTexture */
-			FREE_IF_NZ(pt->image.p);
-			pt->image.n = me->x*me->y+3;
-			pt->image.p = MALLOC(int *, pt->image.n * sizeof (uint32));
-			pt->image.p[0] = me->x;
-			pt->image.p[1] = me->y;
-			pt->image.p[2] = 4; /* this last one is for RGBA */
+			FREE_IF_NZ(pt->image.arr.p);
+			pt->image.arr.n = me->x*me->y;
+			pt->image.arr.p = MALLOC(int *, pt->image.arr.n * sizeof (uint32));
+			pt->image.whc[0] = me->x;
+			pt->image.whc[1] = me->y;
+			pt->image.whc[2] = 4; /* this last one is for RGBA */
 			ioff = imlookup[count] * me->x * me->y;
 			//we are in char rgba order, but we need to convert to endian-specific uint32
 			// which is what texture_load_from_pixelTexture() will be expecting
@@ -1152,7 +1152,7 @@ void unpackImageCubeMap6 (textureTableIndexStruct_s* me) {
 					//jpix = (me->y-1 -j)*me->x + i;  //flip image vertically - no, pixeltexture is bottom-up like incoming
 					rgba = (unsigned char*)&tex[ipix];
 					pixint = (rgba[0] << 24) + (rgba[1] << 16) + (rgba[2] << 8) + rgba[3];
-					pt->image.p[ipix+3] = pixint;
+					pt->image.arr.p[ipix] = pixint;
 				}
 			}
 		}
