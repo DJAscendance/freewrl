@@ -55,7 +55,7 @@ our @Fields = qw/
 	SFString
 	MFString
 	SFImage
-        MFImage
+	MFImage
 	SFMatrix3f
 	MFMatrix3f
 	SFMatrix4f

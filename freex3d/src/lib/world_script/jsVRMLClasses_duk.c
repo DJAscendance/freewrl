@@ -3919,8 +3919,6 @@ void initVRMLFields(FWType* typeArray, int *n){
 
 	typeArray[*n] = &SFImageType; (*n)++;
 	typeArray[*n] = &MFImageType; (*n)++;
-	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
-	//typeArray[*n] = &FreeWRLThreadType; (*n)++;
 	//typeArray[*n] = &SFMatrix3fType; (*n)++;
 	//typeArray[*n] = &MFMatrix3fType; (*n)++;
 	//typeArray[*n] = &SFMatrix3dType; (*n)++;
@@ -3931,6 +3929,8 @@ void initVRMLFields(FWType* typeArray, int *n){
 	//typeArray[*n] = &MFMatrix4dType; (*n)++;
 	typeArray[*n] = &X3DMatrix3Type; (*n)++;
 	typeArray[*n] = &X3DMatrix4Type; (*n)++;
+	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
+	//typeArray[*n] = &FreeWRLThreadType; (*n)++;
 }
 
 #endif /* ifdef JAVASCRIPT_DUK */

@@ -100,48 +100,50 @@ int parsedSuccessfully(void) {
    as the FIELDTYPE names, created from the @VRML::Fields = qw/ in
    VRMLFields.pm (which writes the FIELDTYPE* defines in 
    CFuncs/Structs.h. Currently (September, 2008) this is the list:
-   SFFloat
-   MFFloat
-   SFRotation
-   MFRotation
-   SFVec3f
-   MFVec3f
-   SFBool
-   MFBool
-   SFInt32
-   MFInt32
-   SFNode
-   MFNode
-   SFColor
-   MFColor
-   SFColorRGBA
-   MFColorRGBA
-   SFTime
-   MFTime
-   SFString
-   MFString
-   SFVec2f
-   MFVec2f
-   SFImage
-   FreeWRLPTR
-   SFVec3d
-   MFVec3d
-   SFDouble
-   MFDouble
-   SFMatrix3f
-   MFMatrix3f
-   SFMatrix3d
-   MFMatrix3d
-   SFMatrix4f
-   MFMatrix4f
-   SFMatrix4d
-   MFMatrix4d
-   SFVec2d
-   MFVec2d
-   SFVec4f
-   MFVec4f
-   SFVec4d
-   MFVec4d
+	SFFloat
+	MFFloat
+	SFBool
+	MFBool
+	SFInt32
+	MFInt32
+	SFTime
+	MFTime
+	SFDouble
+	MFDouble
+	SFNode
+	MFNode
+	SFColor
+	MFColor
+	SFColorRGBA
+	MFColorRGBA
+	SFRotation
+	MFRotation
+	SFVec2f
+	MFVec2f
+	SFVec3f
+	MFVec3f
+	SFVec4f
+	MFVec4f
+	SFVec2d
+	MFVec2d
+	SFVec3d
+	MFVec3d
+	SFVec4d
+	MFVec4d
+	SFString
+	MFString
+	SFImage
+	MFImage
+	SFMatrix3f
+	MFMatrix3f
+	SFMatrix4f
+	MFMatrix4f
+	SFMatrix3d
+	MFMatrix3d
+	SFMatrix4d
+	MFMatrix4d
+	FreeWRLPTR
+	FreeWRLThread
 */
 
 /* Parses nodes, fields and other statements. */
@@ -232,10 +234,10 @@ BOOL (*PARSE_TYPE[])(struct VRMLParser*, void*)={
 	&parser_sfvec4dValue,& parser_mfvec4dValue,				// 40,41 Vec4d  //&parser_fieldTypeNotParsedYet,
 	&parser_sfstringValue_, &parser_mfstringValue,			// 18,19 String
     &parser_sfimageValue,  &parser_mfimageValue,			// Image 			
-    &parser_sfmatrix3fValue, &parser_fieldTypeNotParsedYet, // 28,29 Matrix3f 
-	&parser_sfmatrix4fValue,& parser_fieldTypeNotParsedYet, // 32,33 Matrix4f
-	&parser_sfmatrix3dValue, &parser_fieldTypeNotParsedYet, // 30,31 Matrix3d 
-    &parser_sfmatrix4dValue, &parser_fieldTypeNotParsedYet, // 34,35 Matrix4d
+    &parser_sfmatrix3fValue, &parser_mfmatrix3fValue, // 28,29 Matrix3f 
+	&parser_sfmatrix4fValue, &parser_mfmatrix4fValue, // 32,33 Matrix4f
+	&parser_sfmatrix3dValue, &parser_mfmatrix3dValue, // 30,31 Matrix3d 
+    &parser_sfmatrix4dValue, &parser_mfmatrix4dValue, // 34,35 Matrix4d
 	&parser_fieldTypeNotParsedYet,& parser_fieldTypeNotParsedYet,	// 22,   FREEWRL_PTR, 42    FreeWRLThread
 								
 };
@@ -2525,16 +2527,25 @@ static void stuffDEFUSE(struct Multi_Node *outMF, vrmlNodeT in, int type) {
         break;
 
     case FIELDTYPE_MFFloat:
-    case FIELDTYPE_MFRotation:
-    case FIELDTYPE_MFVec3f:
-    case FIELDTYPE_MFBool:
-    case FIELDTYPE_MFInt32:
-    case FIELDTYPE_MFColor:
-    case FIELDTYPE_MFColorRGBA:
-    case FIELDTYPE_MFTime:
-    case FIELDTYPE_MFDouble:
+	case FIELDTYPE_MFBool:
+	case FIELDTYPE_MFInt32:
+	case FIELDTYPE_MFTime:
+	case FIELDTYPE_MFDouble:
+	case FIELDTYPE_MFColor:
+	case FIELDTYPE_MFColorRGBA:
+	case FIELDTYPE_MFRotation:
+	case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFVec3f:
+	case FIELDTYPE_MFVec4f:
+	case FIELDTYPE_MFVec2d:
+	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFVec4d:
     case FIELDTYPE_MFString:
-    case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFImage:
+	case FIELDTYPE_MFMatrix3f:
+	case FIELDTYPE_MFMatrix4f:
+	case FIELDTYPE_MFMatrix3d:
+	case FIELDTYPE_MFMatrix4d:
     { size_t localSize;
     localSize =  returnRoutingElementLength(convertToSFType(type)); /* converts MF to equiv SF type */
     /* struct Multi_Float { int n; float  *p; }; */
@@ -2712,6 +2723,10 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
     PARSER_MFFIELD(vec4f, Vec4f)
     PARSER_MFFIELD(vec4d, Vec4d)
 	PARSER_MFFIELD(image, Image)
+	PARSER_MFFIELD(matrix3f, Matrix3f)
+	PARSER_MFFIELD(matrix4f, Matrix4f)
+	PARSER_MFFIELD(matrix3d, Matrix3d)
+	PARSER_MFFIELD(matrix4d, Matrix4d)
 
 /* ************************************************************************** */
 /* SF* field values */

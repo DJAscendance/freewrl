@@ -213,51 +213,49 @@ int  returnElementLength(int type) {
 
 int returnRoutingElementLength(int type) {
 	  switch (type) {
-		case FIELDTYPE_SFTime:	return (int) sizeof(double); break;
+		case FIELDTYPE_SFFloat:	return (int)sizeof(float); break;
 		case FIELDTYPE_SFBool:
 		case FIELDTYPE_SFInt32:	return (int) sizeof(int); break;
-		case FIELDTYPE_SFFloat:	return (int) sizeof (float); break;
+		case FIELDTYPE_SFTime:	return (int)sizeof(double); break;
+		case FIELDTYPE_SFDouble: return (int)sizeof(double); break;
+		case FIELDTYPE_SFNode:	return (int)ROUTING_SFNODE; break;
+		case FIELDTYPE_SFColor: 	return (int)sizeof(struct SFColor); break;
+		case FIELDTYPE_SFColorRGBA: return (int)sizeof(struct SFColorRGBA); break;
+		case FIELDTYPE_SFRotation:return (int)sizeof(struct SFRotation); break;
 		case FIELDTYPE_SFVec2f:	return (int) sizeof (struct SFVec2f); break;
-		case FIELDTYPE_SFVec3f:
-		case FIELDTYPE_SFColor: 	return (int) sizeof (struct SFColor); break;
+		case FIELDTYPE_SFVec3f: return (int)sizeof(struct SFVec3f); break;
+		case FIELDTYPE_SFVec4f: return (int)sizeof(struct SFVec4f); break;
+		case FIELDTYPE_SFVec2d: return (int)sizeof(struct SFVec2d); break;
 		case FIELDTYPE_SFVec3d: return (int) sizeof (struct SFVec3d); break;
-		case FIELDTYPE_SFColorRGBA:
-		case FIELDTYPE_SFRotation:return (int) sizeof (struct SFRotation); break;
-		case FIELDTYPE_SFNode:	return (int) ROUTING_SFNODE; break;
+		case FIELDTYPE_SFVec4d: return (int)sizeof(struct SFVec4d); break;
+		case FIELDTYPE_SFString: return (int)ROUTING_SFSTRING; break;
+		case FIELDTYPE_SFImage:	return (int)ROUTING_SFIMAGE; break;
+
 		case FIELDTYPE_SFMatrix3f: return (int) sizeof (struct SFMatrix3f); break;
+		case FIELDTYPE_SFMatrix4f: return (int)sizeof(struct SFMatrix4f); break;
 		case FIELDTYPE_SFMatrix3d: return (int) sizeof (struct SFMatrix3d); break;
-/* FIXME FIND DEF FOR SFVEC4F */
-// JAS - OLDCODE #ifndef REWIRE
-		case FIELDTYPE_SFVec4f: return (int) sizeof (struct SFVec4f) ; break;
-// JAS - OLDCODE #endif
-		case FIELDTYPE_SFMatrix4f: return (int) sizeof (struct SFMatrix4f); break;
-		case FIELDTYPE_SFVec2d: return (int) sizeof (struct SFVec2d); break;
-		case FIELDTYPE_SFDouble: return (int) sizeof (double); break;
-		case FIELDTYPE_SFVec4d: return (int) sizeof (struct SFVec4d); break;
+		case FIELDTYPE_SFMatrix4d: return (int)sizeof(struct SFMatrix4d); break;
 
-		case FIELDTYPE_SFString: return (int) ROUTING_SFSTRING; break;
-		case FIELDTYPE_SFImage:	return (int) ROUTING_SFIMAGE; break;
-
-		case FIELDTYPE_MFNode:	return (int) ROUTING_MFNODE; break;
-		case FIELDTYPE_MFString: 	return (int) ROUTING_MFSTRING; break;
-		case FIELDTYPE_MFFloat:	return (int) ROUTING_MFFLOAT; break;
-		case FIELDTYPE_MFColorRGBA:
-		case FIELDTYPE_MFRotation: return (int) ROUTING_MFROTATION; break;
+		case FIELDTYPE_MFFloat:	return (int)ROUTING_MFFLOAT; break;
 		case FIELDTYPE_MFBool:
-		case FIELDTYPE_MFInt32:	return (int) ROUTING_MFINT32; break;
-		case FIELDTYPE_MFColor:	return (int) ROUTING_MFCOLOR; break;
+		case FIELDTYPE_MFInt32:	return (int)ROUTING_MFINT32; break;
+		case FIELDTYPE_MFTime: return (int)ROUTING_MFDOUBLE; break;
+		case FIELDTYPE_MFDouble: return (int)ROUTING_MFDOUBLE; break;
+		case FIELDTYPE_MFNode:	return (int) ROUTING_MFNODE; break;
+		case FIELDTYPE_MFColor:	return (int)ROUTING_MFCOLOR; break;
+		case FIELDTYPE_MFColorRGBA: return (int)ROUTING_MFROTATION; break;
+		case FIELDTYPE_MFRotation: return (int)ROUTING_MFROTATION; break;
 		case FIELDTYPE_MFVec2f:	return (int) ROUTING_MFVEC2F; break;
 		case FIELDTYPE_MFVec3f:	return (int) ROUTING_MFVEC3F; break;
-		case FIELDTYPE_MFVec3d: return (int) ROUTING_MFVEC3D; break;
-		case FIELDTYPE_MFDouble: return (int) ROUTING_MFDOUBLE; break;
-		case FIELDTYPE_MFTime: return (int) ROUTING_MFDOUBLE; break;
-		case FIELDTYPE_MFMatrix4f: return (int) ROUTING_MFMATRIX4F; break;
-		case FIELDTYPE_MFMatrix4d: return (int) ROUTING_MFMATRIX4D; break;
-		case FIELDTYPE_MFVec2d: return (int) ROUTING_MFVEC2D; break;
 		case FIELDTYPE_MFVec4f: return (int) ROUTING_MFVEC4F; break;
+		case FIELDTYPE_MFVec2d: return (int)ROUTING_MFVEC2D; break;
+		case FIELDTYPE_MFVec3d: return (int)ROUTING_MFVEC3D; break;
 		case FIELDTYPE_MFVec4d: return (int) ROUTING_MFVEC4D; break;
+		case FIELDTYPE_MFString: 	return (int)ROUTING_MFSTRING; break;
 		case FIELDTYPE_MFMatrix3f: return (int) ROUTING_MFMATRIX3F; break;
 		case FIELDTYPE_MFMatrix3d: return (int) ROUTING_MFMATRIX3D; break;
+		case FIELDTYPE_MFMatrix4f: return (int)ROUTING_MFMATRIX4F; break;
+		case FIELDTYPE_MFMatrix4d: return (int)ROUTING_MFMATRIX4D; break;
 
                 default:{
 			printf ("warning - returnRoutingElementLength not a handled type, %d\n",type);

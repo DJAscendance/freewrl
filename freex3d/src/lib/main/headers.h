@@ -151,13 +151,13 @@ extern double geoHeightinZAxis;
 #define ROUTING_MFVEC3D         -20
 #define ROUTING_MFDOUBLE        -21
 #define ROUTING_SFSTRING        -22
-#define ROUTING_MFMATRIX4F      -30
-#define ROUTING_MFMATRIX4D      -31
 #define ROUTING_MFVEC2D         -32
 #define ROUTING_MFVEC4F         -33
 #define ROUTING_MFVEC4D         -34
 #define ROUTING_MFMATRIX3F      -35
 #define ROUTING_MFMATRIX3D      -36
+#define ROUTING_MFMATRIX4F      -30
+#define ROUTING_MFMATRIX4D      -31
 
 
 
