@@ -249,18 +249,32 @@ struct string_int lookup_X3DConstants[] = {
 	{"MFVec2f",FIELDTYPE_MFVec2f},
 	{"SFVec3f",FIELDTYPE_SFVec3f},
 	{"MFVec3f",FIELDTYPE_MFVec3f},
+	{"SFVec4f",FIELDTYPE_SFVec4f},
+	{"MFVec4f",FIELDTYPE_MFVec3f},
+	{"SFVec2d",FIELDTYPE_SFVec2d},
+	{"MFVec2d",FIELDTYPE_MFVec2d},
 	{"SFVec3d",FIELDTYPE_SFVec3d},
 	{"MFVec3d",FIELDTYPE_MFVec3d},
+	{"SFVec4d",FIELDTYPE_SFVec4d},
+	{"MFVec4d",FIELDTYPE_MFVec4d},
 	{"SFRotation",FIELDTYPE_SFRotation},
 	{"MFRotation",FIELDTYPE_MFRotation},
 	{"SFColor",FIELDTYPE_SFColor},
 	{"MFColor",FIELDTYPE_MFColor},
 	{"SFImage",FIELDTYPE_SFImage},
-//	{"MFImage",FIELDTYPE_MFImage},
+	{"MFImage",FIELDTYPE_MFImage},
 	{"SFColorRGBA",FIELDTYPE_SFColorRGBA},
 	{"MFColorRGBA",FIELDTYPE_MFColorRGBA},
 	{"SFString",FIELDTYPE_SFString},
 	{"MFString",FIELDTYPE_MFString},
+	{"SFMatrix3f",FIELDTYPE_SFMatrix3f},
+	{"MFMatrix3f",FIELDTYPE_MFMatrix3f},
+	{"SFMatrix4f",FIELDTYPE_SFMatrix4f},
+	{"MFMatrix4f",FIELDTYPE_MFMatrix4f},
+	{"SFMatrix3d",FIELDTYPE_SFMatrix3d},
+	{"MFMatrix3d",FIELDTYPE_MFMatrix3d},
+	{"SFMatrix4d",FIELDTYPE_SFMatrix4d},
+	{"MFMatrix4d",FIELDTYPE_MFMatrix4d},
 /*
 	{"X3DBoundedObject",},
 	{"X3DMetadataObject",},
@@ -2269,7 +2283,8 @@ struct FWTYPE X3DFieldDefinitionType = {
 
 
 
-
+extern struct FWTYPE X3DMatrix3Type;
+extern struct FWTYPE X3DMatrix4Type;
 
 void initVRMLBrowser(FWType* typeArray, int *n){
 	typeArray[*n] = &X3DRouteType; (*n)++;

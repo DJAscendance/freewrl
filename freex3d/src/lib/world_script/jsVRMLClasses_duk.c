@@ -3015,7 +3015,8 @@ int X3DMatrix3_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 	int i;
 	FWType sfvec3ftype = getFWTYPE(FIELDTYPE_SFVec3f);
 
-	str = NULL;
+	str = malloc(1);
+	str[0] = 0;
 	for(i=0;i<3;i++){
 		r = sfToString(sfvec3ftype,&ptr->c[i*3]);
 		str = realloc(str,strlen(str)+strlen(r)+2);
@@ -3064,8 +3065,8 @@ int X3DMatrix3_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 //typedef int (* FWConstructor)(FWType fwtype, int argc, FWval fwpars);
 void * X3DMatrix3_Constructor(FWType fwtype, int ic, FWval fwpars){
 	int i;
-	struct SFVec3d *ptr = malloc(fwtype->size_of); //garbage collector please
-	for(i=0;i<3;i++)
+	struct SFMatrix3f *ptr = malloc(fwtype->size_of); //garbage collector please
+	for(i=0;i<9;i++)
 		ptr->c[i] =  fwpars[i]._numeric; //fwpars[i]._web3dval.anyvrml->sffloat; //
 	return (void *)ptr;
 }
@@ -3437,7 +3438,6 @@ struct FWTYPE X3DMatrix4Type = {
 	'F',0, //index prop type,readonly
 	X3DMatrix4_Functions, //functions
 };
-
 
 // http://www.web3d.org/files/specifications/19777-1/V3.0/Part1/functions.html#SFVec2d
 /* SFVec2d

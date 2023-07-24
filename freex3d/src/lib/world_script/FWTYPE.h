@@ -108,8 +108,8 @@ struct WEB3DNATIVE {
 #define AUXTYPE_X3DExternProtoArray 1021
 #define AUXTYPE_X3DFieldDefinition 1022
 #define AUXTYPE_X3DFieldDefinitionArray 1023
-#define AUXTYPE_X3DMatrix3 1023
-#define AUXTYPE_X3DMatrix4 1024
+#define AUXTYPE_X3DMatrix3 1024
+#define AUXTYPE_X3DMatrix4 1025
 
 //our version of a variant, except in C types and our union anyVrml
 struct FWVAL{

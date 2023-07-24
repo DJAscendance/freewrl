@@ -64,12 +64,14 @@ void initVRMLFields(FWType* typeArray, int *n);
 void initFWTYPEs(){
 	initVRMLBrowser(fwtypesArray, &FWTYPES_COUNT);
 	initVRMLFields(fwtypesArray, &FWTYPES_COUNT);
+	//printf("FWTYPE_COUNT %d\n", FWTYPES_COUNT);
 }
 FWType getFWTYPE(int itype){
 	int i;
 	for(i=0;i<FWTYPES_COUNT;i++){
-		if(itype == fwtypesArray[i]->itype)
+		if (itype == fwtypesArray[i]->itype) {
 			return fwtypesArray[i];
+		}
 	}
 	return NULL;
 }
@@ -243,26 +245,26 @@ struct string_int{
 
 struct string_int lookup_fieldType[] = {
 	{"Float", FIELDTYPE_SFFloat},
-	{"Rotation", FIELDTYPE_SFRotation},
-	{"Vec3f", FIELDTYPE_SFVec3f},
 	{"Bool", FIELDTYPE_SFBool},
 	{"Int32", FIELDTYPE_SFInt32},
+	{"Time", FIELDTYPE_SFTime},
+	{"Double", FIELDTYPE_SFDouble},
 	{"Node", FIELDTYPE_SFNode},
 	{"Color", FIELDTYPE_SFColor},
 	{"ColorRGBA", FIELDTYPE_SFColorRGBA},
-	{"Time", FIELDTYPE_SFTime},
-	{"String", FIELDTYPE_SFString},
+	{"Rotation", FIELDTYPE_SFRotation},
 	{"Vec2f", FIELDTYPE_SFVec2f},
-	{"Image", FIELDTYPE_SFImage},
-	{"Vec3d", FIELDTYPE_SFVec3d},
-	{"Double", FIELDTYPE_SFDouble},
-	{"Matrix3f", FIELDTYPE_SFMatrix3f},
-	{"Matrix3d", FIELDTYPE_SFMatrix3d},
-	{"Matrix4f", FIELDTYPE_SFMatrix4f},
-	{"Matrix4d", FIELDTYPE_SFMatrix4d},
-	{"Vec2d", FIELDTYPE_SFVec2d},
+	{"Vec3f", FIELDTYPE_SFVec3f},
 	{"Vec4f", FIELDTYPE_SFVec4f},
+	{"Vec2d", FIELDTYPE_SFVec2d},
+	{"Vec3d", FIELDTYPE_SFVec3d},
 	{"Vec4d", FIELDTYPE_SFVec4d},
+	{"String", FIELDTYPE_SFString},
+	{"Image", FIELDTYPE_SFImage},
+	{"Matrix3f", FIELDTYPE_SFMatrix3f},
+	{"Matrix4f", FIELDTYPE_SFMatrix4f},
+	{"Matrix3d", FIELDTYPE_SFMatrix3d},
+	{"Matrix4d", FIELDTYPE_SFMatrix4d},
 	{NULL,0}
 };
 char * itype2string(int itype){
@@ -345,6 +347,9 @@ int fwType2itype(const char *fwType){
 		//browser and scene/executionContext shouldn't be going through fwconstructor
 		if(!strcasecmp(fwType,"Browser")) ifield = AUXTYPE_X3DBrowser;
 		if(!strcasecmp(fwType,"X3DConstants")) ifield = AUXTYPE_X3DConstants;
+		if(!strcasecmp(fwType, "X3DMatrix3")) ifield = AUXTYPE_X3DMatrix3;
+		if(!strcasecmp(fwType, "X3DMatrix4")) ifield = AUXTYPE_X3DMatrix4;
+
 	}
 	return ifield;
 }
