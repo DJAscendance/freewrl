@@ -194,6 +194,7 @@ double *vecnegated(double *b, double *a);
 double *vecswizzle2d(double *inout );
 double * vecadd2d(double *c, double *a, double *b);
 double *vecdif2d(double *c, double* a, double *b);
+double* veccopy2d(double* c, double* a);
 double veclength2d( double *p );
 double vecdot2d(double *a, double *b);
 double* vecscale2d(double* r, double* v, double s);
@@ -204,6 +205,7 @@ double *veccopy4d(double *c, double *a);
 double veclength4d( double *p );
 double *vecdif4d(double *c, double* a, double *b);
 double det3d(double *a, double *b, double *c);
+double* vecmult2d(double* c, double* a, double* b);
 
 int vecsame2f(float *a, float *b);
 float *vecset2f(float *b, float x, float y);
@@ -263,6 +265,7 @@ float* matmultvec4f(float* r4, float *mat4, float* a4 );
 
 float* mat423f(float *out3x3, float *in4x4);
 float* matinverse3f(float *out3x3, float *in3x3);
+
 float* transform3x3f(float *out3, float *in3, float *mat3x3);
 
 struct point_XYZ* transformAFFINE(struct point_XYZ* r, const struct point_XYZ* a, const double* b);
@@ -296,20 +299,29 @@ void make_orthogonal_vector_space(struct point_XYZ* i, struct point_XYZ* j, stru
 double* matinverse(double* res, double* m);
 double* matinverseFULL(double* res, double* m);
 double* matinverseAFFINE(double* res, double* m);
+double* mattranspose(double* res, double* m);
+
 double *matidentity4d(double *b);
 double *mattranslate4d(double *mat, double* xyz);
 double* matscale4d(double* mat, double* sxyz);
 
 float* matinverse4f(float* res, float* mm);
-double* mattranspose(double* res, double* m);
 float* mattranspose4f(float* res, float* mm);
+float* matmultiply4f(float* r, float* mm, float* nn);
+float* axisangle2matrix4f(float* b, float* axisangle);
+float* matidentity4f(float* b);
+
+double* matidentity3d(double* b);
+double* matmultiply3d(double* r, double* mm, double* nn);
+double* matinverse3d(double* out3x3, double* in3x3);
+double* mattranspose3d(double* res, double* mm);
+double* matmultvec3d(double* r3, double* mat3, double* a3);
+double* vecmultmat3d(double* r3, double* a3, double* mat3);
+
+
 float *matidentity3f(float *b);
 float* matmultiply3f(float* r, float* mm , float* nn);
 float* mattranspose3f(float* res, float* mm);
-
-struct point_XYZ* polynormal(struct point_XYZ* r, struct point_XYZ* p1, struct point_XYZ* p2, struct point_XYZ* p3);
-/*simple wrapper for now. optimize later */
-struct point_XYZ* polynormalf(struct point_XYZ* r, float* p1, float* p2, float* p3);
 
 double* matrotate(double* Result, double Theta, double x, double y, double z);
 
@@ -323,9 +335,6 @@ double* matscale(double* r, double sx, double sy, double sz);
 double* matmultiply(double* r, double* m , double* n);
 double* matmultiplyFULL(double* r, double* m , double* n);
 double* matmultiplyAFFINE(double* r, double* m , double* n);
-float* matmultiply4f(float* r, float* mm , float* nn);
-float *axisangle2matrix4f(float *b, float *axisangle);
-float *matidentity4f(float *b);
 void matrixFromAxisAngle4d(double *mat, double rangle, double x, double y, double z);
 void scale_to_matrix (double *mat, struct point_XYZ *scale);
 void loadIdentityMatrix (double *mat);
@@ -333,10 +342,17 @@ double *matcopy(double *r, double*mat);
 float *matdouble2float4(float *rmat4, double *dmat4);
 void printmatrix2(double* mat,char* description );
 void printmatrix3(double *mat, char *description, int row_major);
+
 void general_slerp(double *ret, double *p1, double *p2, int size, const double t);
 void point_XYZ_slerp(struct point_XYZ *ret, struct point_XYZ *p1, struct point_XYZ *p2, const double t);
 
 float *veclerp3f(float *T, float *A, float *B, float alpha);
 float *veclerp2f(float *T, float *A, float *B, float alpha);
 double *veclerpd(double *T, double *A, double *B, double alpha);
+
+struct point_XYZ* polynormal(struct point_XYZ* r, struct point_XYZ* p1, struct point_XYZ* p2, struct point_XYZ* p3);
+/*simple wrapper for now. optimize later */
+struct point_XYZ* polynormalf(struct point_XYZ* r, float* p1, float* p2, float* p3);
+
+
 #endif /* __FREEWRL_LINEAR_ALGEBRA_H__ */

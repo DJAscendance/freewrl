@@ -150,6 +150,12 @@ double *vecdif2d(double *c, double* a, double *b){
 	c[1] = a[1] - b[1];
 	return c;
 }
+double* veccopy2d(double* c, double* a) {
+	c[0] = a[0];
+	c[1] = a[1];
+	return c;
+}
+
 double veclength2d( double *p ){
 	return sqrt(p[0]*p[0] + p[1]*p[1]);
 }
@@ -517,6 +523,12 @@ float *vecmult2f(float *c, float *a, float *b){
 	for(;i<2;i++) c[i] = a[i]*b[i];
 	return c;
 }
+double* vecmult2d(double* c, double* a, double* b) {
+	/* c[i] = a[i]*b[i] */
+	int i = 0;
+	for (; i < 2; i++) c[i] = a[i] * b[i];
+	return c;
+}
 
 float *vecnormalize3f(float *b, float *a)
 {
@@ -828,6 +840,34 @@ float* vecmultmat3f(float* r3, float* a3, float *mat3 )
     return r3;
 }
 
+double* matmultvec3d(double* r3, double* mat3, double* a3)
+{
+	int i, j;
+	double t3[3], * b[3];
+	memcpy(t3, a3, 3 * sizeof(double));
+	for (i = 0; i < 3; i++) {
+		r3[i] = 0.0f;
+		b[i] = &mat3[i * 3];
+		for (j = 0; j < 3; j++)
+			r3[i] += b[i][j] * t3[j];
+	}
+	return r3;
+}
+double* vecmultmat3d(double* r3, double* a3, double* mat3)
+{
+	int i, j;
+	double t3[3], * b[3];
+	memcpy(t3, a3, 3 * sizeof(double));
+	for (i = 0; i < 3; i++) {
+		r3[i] = 0.0f;
+		b[i] = &mat3[i * 4];
+		for (j = 0; j < 3; j++)
+			r3[i] += t3[j] * b[j][i];
+	}
+
+	return r3;
+}
+
 /*transform point, but ignores translation.*/
 struct point_XYZ* transform3x3(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b)
 {
@@ -1115,6 +1155,25 @@ float* mattranspose3f(float* res, float* mm)
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j < 3; j++) {
 			res[i*3+j] = m[j*3+i];
+		}
+	}
+	return res;
+}
+double* mattranspose3d(double* res, double* mm)
+{
+	double mcpy[9];
+	int i, j;
+	double* m;
+
+	m = mm;
+	if (res == m) {
+		memcpy(mcpy, m, sizeof(double) * 9);
+		m = mcpy;
+	}
+
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			res[i * 3 + j] = m[j * 3 + i];
 		}
 	}
 	return res;
@@ -1459,6 +1518,35 @@ float* matmultiply3f(float* r, float* mm , float* nn)
 		}
 	return r;
 }
+double* matmultiply3d(double* r, double* mm, double* nn)
+{
+	/* FLOPs 27 float: N^3 = 3x3x3
+	r = mm x nn
+	*/
+	double tm[9], tn[9];
+	double* m, * n;
+	int i, j, k;
+	/* prevent self-multiplication problems.*/
+	m = mm;
+	n = nn;
+	if (r == m) {
+		memcpy(tm, m, sizeof(double) * 9);
+		m = tm;
+	}
+	if (r == n) {
+		memcpy(tn, n, sizeof(double) * 9);
+		n = tn;
+	}
+	/* assume 4x4 homgenous transform */
+	for (i = 0; i < 3; i++)
+		for (j = 0; j < 3; j++)
+		{
+			r[i * 3 + j] = 0.0;
+			for (k = 0; k < 3; k++)
+				r[i * 3 + j] += m[i * 3 + k] * n[k * 3 + j];
+		}
+	return r;
+}
 float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 {
 	/*	http://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation
@@ -1572,10 +1660,17 @@ float *matidentity4f(float *b){
 	return b;
 }
 float *matidentity3f(float *b){
-	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
+	// zeros a 3x3 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i;
 	for(i=0;i<9;i++) b[i] = 0.0f;
 	for(i=0;i<3;i++) b[i*3 +i] = 1.0f;
+	return b;
+}
+double* matidentity3d(double* b) {
+	// zeros a 3x3 and puts 1's down the diagonal to make a 4x4 identity matrix
+	int i;
+	for (i = 0; i < 9; i++) b[i] = 0.0;
+	for (i = 0; i < 3; i++) b[i * 3 + i] = 1.0;
 	return b;
 }
 float *axisangle2matrix4f(float *b, float *axisangle){
@@ -1783,6 +1878,78 @@ BOOL matrix3x3_inverse_float(float *inn, float *outt)
         return TRUE;
     }
 }
+BOOL matrix3x3_inverse_double(double* inn, double* outt)
+{
+	/*FLOPs 40 float: det3 12, 1/det 1, adj3x3 9x3=27 */
+
+	double    det_1;
+	double    pos, /* neg, */ temp;
+	double* in[3], * out[3];
+
+	/*#define ACCUMULATE    \
+	//    if (temp >= 0.0)  \
+	//        pos += temp;  \
+	//    else              \
+			neg += temp;
+	*/
+
+#define ACCUMULATE pos += temp;
+
+	//#define PRECISION_LIMIT 1.0e-7 //(1.0e-15)
+	in[0] = &inn[0];
+	in[1] = &inn[3];
+	in[2] = &inn[6];
+	out[0] = &outt[0];
+	out[1] = &outt[3];
+	out[2] = &outt[6];
+
+	/*
+	 * Calculate the determinant of submatrix A and determine if the
+	 * the matrix is singular as limited by the double precision
+	 * floating-point data representation.
+	 */
+	pos = 0.0f; //neg = 0.0;
+	temp = in[0][0] * in[1][1] * in[2][2];
+	ACCUMULATE
+		temp = in[0][1] * in[1][2] * in[2][0];
+	ACCUMULATE
+		temp = in[0][2] * in[1][0] * in[2][1];
+	ACCUMULATE
+		temp = -in[0][2] * in[1][1] * in[2][0];
+	ACCUMULATE
+		temp = -in[0][1] * in[1][0] * in[2][2];
+	ACCUMULATE
+		temp = -in[0][0] * in[1][2] * in[2][1];
+	ACCUMULATE
+		det_1 = pos; // + neg;
+
+	/* Is the submatrix A singular? */
+	//if ((det_1 == 0.0) || (abs(det_1 / (pos - neg)) < PRECISION_LIMIT)) {
+	if (APPROX(det_1, 0.0)) {
+
+		/* Matrix M has no inverse */
+
+		if (SHOW_NONSINGULARS) printf("affine_matrix4_inverse: singular matrix\n");
+		return FALSE;
+	}
+
+	else {
+
+		/* Calculate inverse(A) = adj(A) / det(A) */
+		det_1 = 1.0f / det_1;
+		out[0][0] = (in[1][1] * in[2][2] - in[1][2] * in[2][1]) * det_1;
+		out[1][0] = -(in[1][0] * in[2][2] - in[1][2] * in[2][0]) * det_1;
+		out[2][0] = (in[1][0] * in[2][1] - in[1][1] * in[2][0]) * det_1;
+		out[0][1] = -(in[0][1] * in[2][2] - in[0][2] * in[2][1]) * det_1;
+		out[1][1] = (in[0][0] * in[2][2] - in[0][2] * in[2][0]) * det_1;
+		out[2][1] = -(in[0][0] * in[2][1] - in[0][1] * in[2][0]) * det_1;
+		out[0][2] = (in[0][1] * in[1][2] - in[0][2] * in[1][1]) * det_1;
+		out[1][2] = -(in[0][0] * in[1][2] - in[0][2] * in[1][0]) * det_1;
+		out[2][2] = (in[0][0] * in[1][1] - in[0][1] * in[1][0]) * det_1;
+
+		return TRUE;
+	}
+}
 float * mat423f(float *out3x3, float *in4x4)
 {
 	int i,j;
@@ -1795,6 +1962,11 @@ float * mat423f(float *out3x3, float *in4x4)
 float * matinverse3f(float *out3x3, float *in3x3)
 {
 	matrix3x3_inverse_float(in3x3,out3x3);
+	return out3x3;
+}
+double* matinverse3d(double* out3x3, double* in3x3)
+{
+	matrix3x3_inverse_double(in3x3, out3x3);
 	return out3x3;
 }
 
