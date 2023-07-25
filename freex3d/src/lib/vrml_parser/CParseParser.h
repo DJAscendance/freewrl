@@ -224,6 +224,10 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node);
 BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto);
 void registerParentIfManagedField(int type, int mode, int isPublic, union anyVrml* any, struct X3D_Node* parent);
 void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest);
+void shallow_copy_field_precision(int sourcetypeIndex, int desttypeIndex, union anyVrml* source, union anyVrml* dest);
+int type_dimension(int itype);
+int type_precision(int itype);
+
 BOOL usingBrotos();
 int X3DMODE(int val);
 void load_externProtoInstance (struct X3D_Proto *node);
