@@ -3711,7 +3711,7 @@ FWFunctionSpec (X3DMatrix4_Functions)[] = {
 };
 
 int X3DMatrix4_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
-	struct SFMatrix3f *ptr = (struct SFMatrix3f *)fwn;
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index > -1 && index < 16){
@@ -3722,7 +3722,7 @@ int X3DMatrix4_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	return nr;
 }
 int X3DMatrix4_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
-	struct SFMatrix3f *ptr = (struct SFMatrix3f *)fwn;
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index > -1 && index < 16){
 		if(fwval->itype == 'F'){

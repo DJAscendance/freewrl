@@ -661,6 +661,14 @@ void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, i
 				newobj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL); break;
 			case FIELDTYPE_SFVec4d:
 				newobj = JS_NewObject(cx,&SFVec4dClass,NULL,NULL); break;
+			case FIELDTYPE_SFMatrix3f:
+				newobj = JS_NewObject(cx, &SFMatrix3fClass, NULL, NULL); break;
+			case FIELDTYPE_SFMatrix4f:
+				newobj = JS_NewObject(cx, &SFMatrix4fClass, NULL, NULL); break;
+			case FIELDTYPE_SFMatrix3d:
+				newobj = JS_NewObject(cx, &SFMatrix3dClass, NULL, NULL); break;
+			case FIELDTYPE_SFMatrix4d:
+				newobj = JS_NewObject(cx, &SFMatrix4dClass, NULL, NULL); break;
 			case FIELDTYPE_SFColor:
 				newobj = JS_NewObject(cx,&SFColorClass,NULL,NULL); break;
 			case FIELDTYPE_SFColorRGBA:
@@ -1047,6 +1055,14 @@ void X3D_MF_TO_JS_B(JSContext *cx, union anyVrml* Data, int dataType, int *value
 				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
 			case FIELDTYPE_MFVec4d:
 				newobj = JS_NewObject(cx, &MFVec3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFMatrix3f:
+				newobj = JS_NewObject(cx, &MFMatrix3fClass, NULL, NULL); break;
+			case FIELDTYPE_MFMatrix4f:
+				newobj = JS_NewObject(cx, &MFMatrix4fClass, NULL, NULL); break;
+			case FIELDTYPE_MFMatrix3d:
+				newobj = JS_NewObject(cx, &MFMatrix3dClass, NULL, NULL); break;
+			case FIELDTYPE_MFMatrix4d:
+				newobj = JS_NewObject(cx, &MFMatrix4dClass, NULL, NULL); break;
 			case FIELDTYPE_MFRotation:
 				newobj = JS_NewObject(cx,&MFRotationClass,NULL,NULL); break;
 			default: 

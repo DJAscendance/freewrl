@@ -524,6 +524,107 @@ JSFunctionSpec (SFVec3dFunctions)[] = {
 	{0}
 };
 
+//SFMatrix3f
+
+JSClass SFMatrix3fClass = {
+	"SFMatrix3f",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	SFMatrix3fGetProperty,
+	SFMatrix3fSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSPropertySpec(SFMatrix3fProperties)[] = {
+	{0}
+};
+
+JSFunctionSpec(SFMatrix3fFunctions)[] = {
+	/* do not know what functions to use here */
+	{"toString", SFMatrix3fToString, 0},
+	{"assign", SFMatrix3fAssign, 0},
+	{0}
+};
+
+// SFMatrix3d
+JSClass SFMatrix3dClass = {
+	"SFMatrix3d",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	SFMatrix3dGetProperty,
+	SFMatrix3dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSPropertySpec(SFMatrix3dProperties)[] = {
+	{0}
+};
+
+JSFunctionSpec(SFMatrix3dFunctions)[] = {
+	/* do not know what functions to use here */
+	{"toString", SFMatrix3dToString, 0},
+	{"assign", SFMatrix3dAssign, 0},
+	{0}
+};
+
+//SFMatrix4f
+JSClass SFMatrix4fClass = {
+	"SFMatrix4f",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	SFMatrix4fGetProperty,
+	SFMatrix4fSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSPropertySpec(SFMatrix4fProperties)[] = {
+	{0}
+};
+
+JSFunctionSpec(SFMatrix4fFunctions)[] = {
+	/* do not know what functions to use here */
+	{"toString", SFMatrix4fToString, 0},
+	{"assign", SFMatrix4fAssign, 0},
+	{0}
+};
+
+//SFMatrix4d
+JSClass SFMatrix4dClass = {
+	"SFMatrix4d",
+	JSCLASS_HAS_PRIVATE,
+	JS_PropertyStub,
+	JS_DeletePropertyStub,
+	SFMatrix4dGetProperty,
+	SFMatrix4dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSPropertySpec(SFMatrix4dProperties)[] = {
+	{0}
+};
+
+JSFunctionSpec(SFMatrix4dFunctions)[] = {
+	/* do not know what functions to use here */
+	{"toString", SFMatrix4dToString, 0},
+	{"assign", SFMatrix4dAssign, 0},
+	{0}
+};
+
 // MFColor
 JSClass MFColorClass = {
 	"MFColor",
@@ -949,6 +1050,86 @@ JSFunctionSpec(MFVec4dFunctions)[] = {
 };
 
 
+JSClass MFMatrix3fClass = {
+	"MFMatrix3f",
+	JSCLASS_HAS_PRIVATE,
+	MFMatrix3fAddProperty,
+	JS_DeletePropertyStub,
+	MFMatrix3fGetProperty,
+	MFMatrix3fSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFMatrix3fFunctions)[] = {
+	{"toString", MFMatrix3fToString, 0},
+	{"assign", MFMatrix3fAssign, 0},
+	{0}
+};
+
+
+JSClass MFMatrix4fClass = {
+	"MFMatrix4f",
+	JSCLASS_HAS_PRIVATE,
+	MFMatrix4fAddProperty,
+	JS_DeletePropertyStub,
+	MFMatrix4fGetProperty,
+	MFMatrix4fSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFMatrix4fFunctions)[] = {
+	{"toString", MFMatrix4fToString, 0},
+	{"assign", MFMatrix4fAssign, 0},
+	{0}
+};
+
+
+JSClass MFMatrix3dClass = {
+	"MFMatrix3d",
+	JSCLASS_HAS_PRIVATE,
+	MFMatrix3dAddProperty,
+	JS_DeletePropertyStub,
+	MFMatrix3dGetProperty,
+	MFMatrix3dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFMatrix3dFunctions)[] = {
+	{"toString", MFMatrix3dToString, 0},
+	{"assign", MFMatrix3dAssign, 0},
+	{0}
+};
+
+
+JSClass MFMatrix4dClass = {
+	"MFMatrix4d",
+	JSCLASS_HAS_PRIVATE,
+	MFMatrix4dAddProperty,
+	JS_DeletePropertyStub,
+	MFMatrix4dGetProperty,
+	MFMatrix4dSetProperty,
+	JS_EnumerateStub,
+	JS_ResolveStub,
+	JS_ConvertStub,
+	JS_MY_Finalize
+};
+
+JSFunctionSpec(MFMatrix4dFunctions)[] = {
+	{"toString", MFMatrix4dToString, 0},
+	{"assign", MFMatrix4dAssign, 0},
+	{0}
+};
+
+
 
 JSClass MFImageClass = {
 	"MFImage",
@@ -1100,6 +1281,10 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &SFRotationClass, &SFRotationConstr, &SFRotationFunctions, &SFRotationProperties, "SFRotationClass"},
         { &SFNodeClass, &SFNodeConstr, &SFNodeFunctions, &SFNodeProperties, "SFNodeClass"},
 		{ &SFImageClass, &SFImageConstr, &SFImageFunctions, &SFImageProperties, "SFImageClass"},
+		{ &SFMatrix3fClass, &SFMatrix3fConstr, &SFMatrix3fFunctions, &SFMatrix3fProperties, "SFMatrix3fClass"},
+		{ &SFMatrix4fClass, &SFMatrix4fConstr, &SFMatrix4fFunctions, &SFMatrix4fProperties, "SFMatrix4fClass"},
+		{ &SFMatrix3dClass, &SFMatrix3dConstr, &SFMatrix3dFunctions, &SFMatrix3dProperties, "SFMatrix3dClass"},
+		{ &SFMatrix4dClass, &SFMatrix4dConstr, &SFMatrix4dFunctions, &SFMatrix4dProperties, "SFMatrix4dClass"},
 
         { &MFFloatClass, &MFFloatConstr, &MFFloatFunctions, NULL, "MFFloatClass"},
 		{ &MFBoolClass, MFBoolConstr, &MFBoolFunctions, NULL, "MFBoolClass"},
@@ -1117,6 +1302,12 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFVec2dClass, MFVec2dConstr, &MFVec2dFunctions, NULL, "MFVec2dClass"},
 		{ &MFVec3dClass, MFVec3dConstr, &MFVec3dFunctions, NULL, "MFVec3dClass"},
 		{ &MFVec4dClass, MFVec4dConstr, &MFVec4dFunctions, NULL, "MFVec4dClass"},
+
+		{ &MFMatrix3fClass, MFMatrix3fConstr, &MFMatrix3fFunctions, NULL, "MFMatrix3fClass"},
+		{ &MFMatrix4fClass, MFMatrix4fConstr, &MFMatrix4fFunctions, NULL, "MFMatrix4fClass"},
+		{ &MFMatrix3dClass, MFMatrix3dConstr, &MFMatrix3dFunctions, NULL, "MFMatrix3dClass"},
+		{ &MFMatrix4dClass, MFMatrix4dConstr, &MFMatrix4dFunctions, NULL, "MFMatrix4dClass"},
+
 
         { &MFRotationClass, &MFRotationConstr, &MFRotationFunctions, NULL, "MFRotationClass"},
         { &MFStringClass, &MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
@@ -1380,6 +1571,10 @@ _standardMFGetProperty(JSContext *cx,
 				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4d:
+				case FIELDTYPE_SFMatrix3f:
+				case FIELDTYPE_SFMatrix4f:
+				case FIELDTYPE_SFMatrix3d:
+				case FIELDTYPE_SFMatrix4d:
 				case FIELDTYPE_SFRotation:
 				case FIELDTYPE_SFImage:
 					X3D_SF_TO_JS_B(cx, any,sfsize, sftype, ptr->valueChanged, vp);
@@ -2004,6 +2199,10 @@ doMFSetProperty(JSContext *cx, JSObject *obj, jsid iid, jsval *vp, int type) {
 				case FIELDTYPE_SFVec2d:
 				case FIELDTYPE_SFVec3d:
 				case FIELDTYPE_SFVec4d:
+				case FIELDTYPE_SFMatrix3f:
+				case FIELDTYPE_SFMatrix4f:
+				case FIELDTYPE_SFMatrix3d:
+				case FIELDTYPE_SFMatrix4d:
 				case FIELDTYPE_SFRotation:
 				case FIELDTYPE_SFImage:
 					JS_SF_TO_X3D_B(cx, any, sftype, valueChanged, vp); 
@@ -2590,6 +2789,10 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			case FIELDTYPE_SFVec2d:
 			case FIELDTYPE_SFVec3d:
 			case FIELDTYPE_SFVec4d:
+			case FIELDTYPE_SFMatrix3f:
+			case FIELDTYPE_SFMatrix4f:
+			case FIELDTYPE_SFMatrix3d:
+			case FIELDTYPE_SFMatrix4d:
 			case FIELDTYPE_SFRotation:
 			case FIELDTYPE_SFImage:
 			//void X3D_SF_TO_JS_B(JSContext *cx, void *Data, unsigned datalen, int dataType, int *valueChanged, jsval *newval) 
@@ -2610,6 +2813,10 @@ getECMANative(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, 
 			case FIELDTYPE_MFVec2d:
 			case FIELDTYPE_MFVec3d:
 			case FIELDTYPE_MFVec4d:
+			case FIELDTYPE_MFMatrix3f:
+			case FIELDTYPE_MFMatrix4f:
+			case FIELDTYPE_MFMatrix3d:
+			case FIELDTYPE_MFMatrix4d:
 			case FIELDTYPE_MFRotation:
 			case FIELDTYPE_MFImage:
 			//static void X3D_MF_TO_JS(JSContext *cx, void *Data, int dataType, jsval *newval, char *fieldName) {

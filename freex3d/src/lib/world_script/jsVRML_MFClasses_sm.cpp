@@ -3908,6 +3908,649 @@ JSBool MFStringConvertProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JSType
 	return JS_TRUE;
 }
 
+// MFMatrix3f
+
+JSBool
+MFMatrix3fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix3fAddProperty");
+}
+
+JSBool
+MFMatrix3fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix3f()", FIELDTYPE_MFMatrix3f);
+}
+
+JSBool
+MFMatrix3fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix3f);
+}
+
+JSBool
+MFMatrix3fToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix3fToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix3f", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix3fConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix3fClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix3fConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix3fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+	isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix3f, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix3f) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix3f.p = MALLOC(struct SFMatrix3f*, newsize);
+			memset(anyv->mfmatrix3f.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix3fClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix3f) {
+					shallow_copy_field(FIELDTYPE_SFMatrix3f, any2->v, (union anyVrml*)&anyv->mfmatrix3f.p[i]);
+					anyv->mfmatrix3f.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix3f, any2->v, (union anyVrml*)&anyv->mfmatrix3f.p[i]);
+					anyv->mfmatrix3f.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix3fAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix3fClass, FIELDTYPE_SFMatrix3f)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix4f 
+
+
+JSBool
+MFMatrix4fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix4fAddProperty");
+}
+
+JSBool
+MFMatrix4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix4f()", FIELDTYPE_MFMatrix4f);
+}
+
+JSBool
+MFMatrix4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix4f);
+}
+
+JSBool
+MFMatrix4fToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix4fToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix4f", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix4fConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix4fClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix4fConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix4fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix4f, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix4f) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix4f.p = MALLOC(struct SFMatrix4f*, newsize);
+			memset(anyv->mfmatrix4f.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix4fClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix4f) {
+					shallow_copy_field(FIELDTYPE_SFMatrix4f, any2->v, (union anyVrml*)&anyv->mfmatrix4f.p[i]);
+					anyv->mfmatrix4f.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix4f, any2->v, (union anyVrml*)&anyv->mfmatrix4f.p[i]);
+					anyv->mfmatrix4f.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix4fAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix4fClass, FIELDTYPE_SFMatrix4f)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix3d 
+
+JSBool
+MFMatrix3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix3dAddProperty");
+}
+
+JSBool
+MFMatrix3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix3d()", FIELDTYPE_MFMatrix3d);
+}
+
+JSBool
+MFMatrix3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix3d);
+}
+
+JSBool
+MFMatrix3dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix3dToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix3d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix3dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix3dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix3dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix3d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix3d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix3d.p = MALLOC(struct SFMatrix3d*, newsize);
+			memset(anyv->mfmatrix3d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix3dClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix3d) {
+					shallow_copy_field(FIELDTYPE_SFMatrix3d, any2->v, (union anyVrml*)&anyv->mfmatrix3d.p[i]);
+					anyv->mfmatrix3d.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix3d, any2->v, (union anyVrml*)&anyv->mfmatrix3d.p[i]);
+					anyv->mfmatrix3d.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix3dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix3dClass, FIELDTYPE_SFMatrix3d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix4d
+
+
+JSBool
+MFMatrix4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix4dAddProperty");
+}
+
+JSBool
+MFMatrix4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix4d()", FIELDTYPE_MFMatrix4d);
+}
+
+JSBool
+MFMatrix4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix4d);
+}
+
+JSBool
+MFMatrix4dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix4dToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix4d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix4dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix4dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix4dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix4d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix4d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix4d.p = MALLOC(struct SFMatrix4d*, newsize);
+			memset(anyv->mfmatrix4d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix4dClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix4d) {
+					shallow_copy_field(FIELDTYPE_SFMatrix4d, any2->v, (union anyVrml*)&anyv->mfmatrix4d.p[i]);
+					anyv->mfmatrix4d.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix4d, any2->v, (union anyVrml*)&anyv->mfmatrix4d.p[i]);
+					anyv->mfmatrix4d.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix4dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix4dClass, FIELDTYPE_SFMatrix4d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
 #endif //defined(JS_SMCPP)
 
 #endif //JAVASCRIPT_SM

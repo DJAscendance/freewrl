@@ -745,12 +745,15 @@ void AnyNativeAssign(void *top, void *fromp)
 	if(top != fromp){
 		AnyNative *to = (AnyNative *)top;
 		AnyNative *from = (AnyNative *)fromp;
-		if(to->type == from->type){
-			if(to->valueChanged)
-				(*to->valueChanged) ++;
-			//shallow assumes the top has already been malloced (just base part of MF needed)
-			//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
+		if(to->valueChanged)
+			(*to->valueChanged) ++;
+		//shallow assumes the top has already been malloced (just base part of MF needed)
+		//use this if you need to malloc anyvrml: int sizeofSForMF(int itype)
+		if (to->type == from->type) {
 			shallow_copy_field(from->type,from->v,to->v);
+		}
+		else {
+			shallow_copy_field_precision(from->type, to->type, from->v, to->v);
 		}
 	}
 }
@@ -1210,7 +1213,7 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					case FIELDTYPE_MFBool:
 						IntPtr = value.mfbool.p; elements = value.mfbool.n;
 						break;
-					case FIELDTYPE_SFImage:
+					case FIELDTYPE_SFImage: //Q. should SFImage change here and if so to what, since July 2023 struct change { int whc[3], Multi_Int32 arr;}
 					case FIELDTYPE_MFInt32:
 						IntPtr = value.mfint32.p; elements = value.mfint32.n;
 						break;
@@ -1280,10 +1283,10 @@ void InitScriptField(int num, indexT kind, indexT type, const char* field, union
 					/* Double types */
 					case FIELDTYPE_SFVec2d:
 					case FIELDTYPE_SFVec3d:
+					case FIELDTYPE_SFVec4d:
 					case FIELDTYPE_MFTime:
 					case FIELDTYPE_SFTime:
 					case FIELDTYPE_SFDouble:
-					case FIELDTYPE_SFVec4d:
 						DoublePtr = defaultDouble;
 						break;
 

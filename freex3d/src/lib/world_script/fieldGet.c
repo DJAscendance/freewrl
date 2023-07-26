@@ -152,6 +152,10 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 	case FIELDTYPE_SFVec2d:
 	case FIELDTYPE_SFVec3d:
 	case FIELDTYPE_SFVec4d:
+	case FIELDTYPE_SFMatrix3f:
+	case FIELDTYPE_SFMatrix4f:
+	case FIELDTYPE_SFMatrix3d:
+	case FIELDTYPE_SFMatrix4d:
 	case FIELDTYPE_SFRotation:
 	case FIELDTYPE_SFImage:
 		set_one_MultiElementType(shader_num, fieldOffset, any, len);
