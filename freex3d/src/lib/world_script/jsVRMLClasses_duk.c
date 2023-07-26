@@ -3147,7 +3147,7 @@ int X3DMatrix3_getTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 			if(ff != 0.0f) ff = 1/ff;
 				vecscaled(&m2[i*3],matrix[i],ff);
 		}
-		angle = atan2f(m2[1],m2[2]);
+		angle = atan2(m2[1],m2[2]); //right indexes? should be 0 and 1?
 		/* now copy the values over */
 		//if(rotation) 
 		memset(&rotation, 0, sizeof(struct SFVec3d));
@@ -3326,6 +3326,7 @@ int X3DMatrix3_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 void * X3DMatrix3_Constructor(FWType fwtype, int ic, FWval fwpars){
 	int i;
 	struct SFMatrix3d *ptr = malloc(fwtype->size_of); //garbage collector please
+	matidentity3d(ptr->c);
 	if (fwpars[0].itype == 'W') {
 		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix3d, fwpars[0]._web3dval.native, (union anyVrml*)ptr);
 	}
@@ -3736,6 +3737,7 @@ int X3DMatrix4_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 void * X3DMatrix4_Constructor(FWType fwtype, int ic, FWval fwpars){
 	int i;
 	struct SFMatrix4d *ptr = malloc(fwtype->size_of); //garbage collector please
+	matidentity4d(ptr->c);
 
 	if (ic > 0 && fwpars[0].itype == 'W') {
 		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix4d, fwpars[0]._web3dval.native, (union anyVrml*)ptr);
@@ -4262,7 +4264,8 @@ int SFMatrix3f_Setter(FWType fwt, int index, void* ec, void* fwn, FWval fwval) {
 void* SFMatrix3f_Constructor(FWType fwtype, int ic, FWval fwpars) {
 	int i;
 	struct SFMatrix3f* ptr = malloc(fwtype->size_of); //garbage collector please
-	memset(ptr, 0, fwtype->size_of);
+	matidentity3f(ptr->c);
+
 	if (ic == 9) {
 		for (i = 0; i < 9; i++)
 			ptr->c[i] = fwpars[i]._numeric;
@@ -4278,7 +4281,7 @@ FWPropertySpec(SFMatrix3f_Properties)[] = {
 	{NULL,0,0,0},
 };
 ArgListType(SFMatrix3f_ConstructorArgs)[] = {
-		{3,0,'T',"FFFFFFFFF"},
+		{9,0,'T',"FFFFFFFFF"},
 		{1,-1,'F',"W"},  //new SFxxx(myMF[i]);
 		{-1,0,0,NULL},
 };
@@ -4363,7 +4366,8 @@ int SFMatrix3d_Setter(FWType fwt, int index, void* ec, void* fwn, FWval fwval) {
 void* SFMatrix3d_Constructor(FWType fwtype, int ic, FWval fwpars) {
 	int i;
 	struct SFMatrix3d* ptr = malloc(fwtype->size_of); //garbage collector please
-	memset(ptr, 0, fwtype->size_of);
+	matidentity3d(ptr->c);
+
 	if (ic == 9) {
 		for (i = 0; i < 9; i++)
 			ptr->c[i] = fwpars[i]._numeric;
@@ -4379,7 +4383,7 @@ FWPropertySpec(SFMatrix3d_Properties)[] = {
 	{NULL,0,0,0},
 };
 ArgListType(SFMatrix3d_ConstructorArgs)[] = {
-		{3,0,'T',"FFFFFFFFF"},
+		{9,0,'T',"FFFFFFFFF"},
 		{1,-1,'F',"W"},  //new SFxxx(myMF[i]);
 		{-1,0,0,NULL},
 };
@@ -4463,7 +4467,8 @@ int SFMatrix4f_Setter(FWType fwt, int index, void* ec, void* fwn, FWval fwval) {
 void* SFMatrix4f_Constructor(FWType fwtype, int ic, FWval fwpars) {
 	int i;
 	struct SFMatrix4f* ptr = malloc(fwtype->size_of); //garbage collector please
-	memset(ptr, 0, fwtype->size_of);
+	matidentity4f(ptr->c);
+
 	if (ic == 9) {
 		for (i = 0; i < 9; i++)
 			ptr->c[i] = fwpars[i]._numeric;
@@ -4479,7 +4484,7 @@ FWPropertySpec(SFMatrix4f_Properties)[] = {
 	{NULL,0,0,0},
 };
 ArgListType(SFMatrix4f_ConstructorArgs)[] = {
-		{3,0,'T',"FFFFFFFFFFFFFFFF"},
+		{16,0,'T',"FFFFFFFFFFFFFFFF"},
 		{1,-1,'F',"W"},  //new SFxxx(myMF[i]);
 		{-1,0,0,NULL},
 };
@@ -4563,9 +4568,10 @@ int SFMatrix4d_Setter(FWType fwt, int index, void* ec, void* fwn, FWval fwval) {
 void* SFMatrix4d_Constructor(FWType fwtype, int ic, FWval fwpars) {
 	int i;
 	struct SFMatrix4d* ptr = malloc(fwtype->size_of); //garbage collector please
-	memset(ptr, 0, fwtype->size_of);
-	if (ic == 9) {
-		for (i = 0; i < 9; i++)
+	matidentity4d(ptr->c);
+
+	if (ic == 16) {
+		for (i = 0; i < 16; i++)
 			ptr->c[i] = fwpars[i]._numeric;
 	}
 	else if (fwpars[0].itype == 'W') {
@@ -4579,7 +4585,7 @@ FWPropertySpec(SFMatrix4d_Properties)[] = {
 	{NULL,0,0,0},
 };
 ArgListType(SFMatrix4d_ConstructorArgs)[] = {
-		{3,0,'T',"FFFFFFFFFFFFFFFF"},
+		{16,0,'T',"FFFFFFFFFFFFFFFF"},
 		{1,-1,'F',"W"},  //new SFxxx(myMF[i]);
 		{-1,0,0,NULL},
 };

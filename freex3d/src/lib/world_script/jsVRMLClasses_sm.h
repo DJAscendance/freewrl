@@ -614,6 +614,38 @@ JSBool VrmlMatrixAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Hand
 JSBool VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool X3DMatrix3ToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3Assign(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3setTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3getTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3inverse(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3transpose(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multLeft(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multRight(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multVecMatrix(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multMatrixVec(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3Constr(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3ConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool X3DMatrix3AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix3GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix3SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool X3DMatrix4ToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4Assign(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4inverse(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4transpose(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multLeft(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multRight(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multVecMatrix(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multMatrixVec(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4Constr(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4ConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool X3DMatrix4AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix4GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix4SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
 
 JSBool _standardMFAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval, JSClass *myClass, int type);
 JSBool _standardMFGetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp, const char *makeNewElement, int type);
@@ -723,7 +755,10 @@ extern JSFunctionSpec(MFMatrix4dFunctions)[];
 
 extern JSClass VrmlMatrixClass;
 extern JSFunctionSpec (VrmlMatrixFunctions)[];
-
+extern JSClass X3DMatrix3Class;
+extern JSFunctionSpec(X3DMatrix3Functions)[];
+extern JSClass X3DMatrix4Class;
+extern JSFunctionSpec(X3DMatrix4Functions)[];
 
 JSBool js_SetPropertyCheck(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 JSBool js_SetPropertyDebug5(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);

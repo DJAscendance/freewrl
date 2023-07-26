@@ -1149,7 +1149,8 @@ JSFunctionSpec(MFImageFunctions)[] = {
 	{"assign", MFImageAssign, 0},
 	{0}
 };
-JSObject *proto_VrmlMatrix;
+
+//JSObject *proto_VrmlMatrix;
 
 JSClass VrmlMatrixClass = {
 	"VrmlMatrix",
@@ -1179,15 +1180,13 @@ JSFunctionSpec (VrmlMatrixFunctions)[] = {
 };
 
 
-#ifdef NEWCLASSES
-
-JSObject *proto_X3DMatrix3;
+//JSObject *proto_X3DMatrix3;
 
 JSClass X3DMatrix3Class = {
 	"X3DMatrix3",
 	JSCLASS_HAS_PRIVATE,
 	X3DMatrix3AddProperty,
-	JS_PropertyStub,
+	JS_DeletePropertyStub,
 	X3DMatrix3GetProperty,
 	X3DMatrix3SetProperty,
 	JS_EnumerateStub,
@@ -1211,13 +1210,13 @@ JSFunctionSpec (X3DMatrix3Functions)[] = {
 };
 
 
-JSObject *proto_X3DMatrix4;
+//JSObject *proto_X3DMatrix4;
 
 JSClass X3DMatrix4Class = {
 	"X3DMatrix4",
 	JSCLASS_HAS_PRIVATE,
 	X3DMatrix4AddProperty,
-	JS_PropertyStub,
+	JS_DeletePropertyStub,
 	X3DMatrix4GetProperty,
 	X3DMatrix4SetProperty,
 	JS_EnumerateStub,
@@ -1240,7 +1239,6 @@ JSFunctionSpec (X3DMatrix4Functions)[] = {
 	{0}
 };
 
-#endif /* NEWCLASSES */
 
 //#define MFFloatProperties NULL
 //#define MFInt32Properties NULL
@@ -1314,6 +1312,9 @@ struct JSLoadPropElement JSLoadProps [] = {
 		{ &MFImageClass, &MFImageConstr, &MFImageFunctions, NULL, "MFImageClass"},
 
         { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
+		{ &X3DMatrix3Class, &X3DMatrix3Constr, &X3DMatrix3Functions, NULL, "X3DMatrix3Class"},
+		{ &X3DMatrix4Class, &X3DMatrix4Constr, &X3DMatrix4Functions, NULL, "X3DMatrix4Class"},
+
         { NULL, NULL, NULL, NULL, NULL }
 };
 

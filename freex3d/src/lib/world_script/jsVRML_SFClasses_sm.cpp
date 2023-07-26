@@ -6899,7 +6899,7 @@ SFMatrix3fConstr(JSContext* cx, uintN argc, jsval* vp) {
 		int isArray;
 
 		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf("JS_ValueToObject failed in VrmlMatrixConstr.\n");
+			printf("JS_ValueToObject failed in SFMatrix3fConstr.\n");
 			return JS_FALSE;
 		}
 
@@ -7124,7 +7124,7 @@ SFMatrix4fConstr(JSContext* cx, uintN argc, jsval* vp) {
 		int isArray;
 
 		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf("JS_ValueToObject failed in VrmlMatrixConstr.\n");
+			printf("JS_ValueToObject failed in SFMatrix4fConstr.\n");
 			return JS_FALSE;
 		}
 
@@ -7349,7 +7349,7 @@ SFMatrix3dConstr(JSContext* cx, uintN argc, jsval* vp) {
 		int isArray;
 
 		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf("JS_ValueToObject failed in VrmlMatrixConstr.\n");
+			printf("JS_ValueToObject failed in SFMatrix3dConstr.\n");
 			return JS_FALSE;
 		}
 
@@ -7574,7 +7574,7 @@ SFMatrix4dConstr(JSContext* cx, uintN argc, jsval* vp) {
 		int isArray;
 
 		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf("JS_ValueToObject failed in VrmlMatrixConstr.\n");
+			printf("JS_ValueToObject failed in SFMatrix4dConstr.\n");
 			return JS_FALSE;
 		}
 
