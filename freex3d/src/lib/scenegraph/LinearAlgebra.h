@@ -231,11 +231,13 @@ float vecdot3f(float *a, float *b);
 float *veccross3f(float *c, float *a, float *b);
 float *vecscale3f(float *b, float *a, float scale);
 float *vecmult3f(float *c, float *a, float *b);
+double* vecmult3d(double* c, double* a, double* b);
 float veclength3f(float *a);
 float *vecnormalize3f(float *b, float *a);
 float *vecnegate3f(float *b, float *a);
 float det3f(float *a, float *b, float *c);
 float *axisangle_rotate3f(float* b, float *a, float *axisangle);
+double* axisangle_rotate3d(double* b, double* a, float* axisangle);
 float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB);
 int line_intersect_line_3f(float *p1, float *v1, float *p2, float *v2, float *t, float *s, float *x1, float *x2);
 int line_intersect_planed_3f(float *p, float *v, float *N, float d, float *pi, float *t);
@@ -246,7 +248,9 @@ int line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi);
 
 void vecprint4fb(char *name, float *p, char *eol);
 float vecdot4f( float *a, float *b );
+double vecdot4d(double* a, double* b);
 float *vecscale4f(float *b, float *a, float scale);
+double* vecscale4d(double* b, double* a, double scale);
 float *veccopy4f(float *b, float *a);
 int vecsame4f(float *a, float *b);
 float *vecset4f(float *b, float x, float y, float z, float a);
@@ -260,7 +264,9 @@ float* matmultvec3f(float* r3, float *mat3, float* a3 );
 float* vecmultmat3f(float* r3, float* a3, float *mat3 );
 int matrix3x3_inverse_float(float *inn, float *outt);
 float* vecmultmat4f(float* r4, float *a4, float *mat4);
+double* vecmultmat4d(double* r4, double* a4, double* mat4);
 float* matmultvec4f(float* r4, float *mat4, float* a4 );
+double* matmultvec4d(double* r4, double* mat4, double* a4);
 
 
 float* mat423f(float *out3x3, float *in4x4);

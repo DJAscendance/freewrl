@@ -374,6 +374,11 @@ float vecdot4f( float *a, float *b )
 {
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + + a[3]*b[3];
 }
+double vecdot4d(double* a, double* b)
+{
+	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + +a[3] * b[3];
+}
+
 float *vecset3f(float *b, float x, float y, float z)
 {
 	b[0] = x; b[1] = y; b[2] = z;
@@ -511,12 +516,26 @@ float *vecscale4f(float *b, float *a, float scale){
 	b[3] = a[3] * scale;
 	return b;
 }
+double* vecscale4d(double* b, double* a, double scale) {
+	b[0] = a[0] * scale;
+	b[1] = a[1] * scale;
+	b[2] = a[2] * scale;
+	b[3] = a[3] * scale;
+	return b;
+}
 float *vecmult3f(float *c, float *a, float *b){
 	/* c[i] = a[i]*b[i] */
 	int i=0;
 	for(;i<3;i++) c[i] = a[i]*b[i];
 	return c;
 }
+double* vecmult3d(double* c, double* a, double* b) {
+	/* c[i] = a[i]*b[i] */
+	int i = 0;
+	for (; i < 3; i++) c[i] = a[i] * b[i];
+	return c;
+}
+
 float *vecmult2f(float *c, float *a, float *b){
 	/* c[i] = a[i]*b[i] */
 	int i=0;
@@ -786,6 +805,19 @@ float* matmultvec4f(float* r4, float *mat4, float* a4 )
 	}
     return r4;
 }
+double* matmultvec4d(double* r4, double* mat4, double* a4)
+{
+	int i, j;
+	double t4[4], * b[4];
+	memcpy(t4, a4, 4 * sizeof(double));
+	for (i = 0; i < 4; i++) {
+		r4[i] = 0.0f;
+		b[i] = &mat4[i * 4];
+		for (j = 0; j < 4; j++)
+			r4[i] += b[i][j] * t4[j];
+	}
+	return r4;
+}
 float* vecmultmat4f_broken(float* r4, float* a4, float *mat4 )
 {
 	int i,j;
@@ -812,6 +844,20 @@ float* vecmultmat4f(float* r4, float* a4, float *mat4 )
 	}
     return r4;
 }
+double* vecmultmat4d(double* r4, double* a4, double* mat4)
+{
+	int i, j;
+	double t4[4], * b;
+	memcpy(t4, a4, 4 * sizeof(double));
+	for (i = 0; i < 4; i++) {
+		r4[i] = 0.0f;
+		b = &mat4[i * 4];
+		for (j = 0; j < 4; j++)
+			r4[i] += t4[j] * b[j];
+	}
+	return r4;
+}
+
 float* matmultvec3f(float* r3, float *mat3, float* a3 )
 {
 	int i,j;
@@ -1565,6 +1611,25 @@ float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 	vecadd3f(b,vecscale3f(t1, a, cosine), vecadd3f(t2, vecscale3f(t3, cross, sine), vecscale3f(t4, axis, dot*(1.0f - cosine))));
 	return b;
 }
+double* axisangle_rotate3d(double* b, double* a, float* axisangle)
+{
+	/*	http://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation
+	uses Rodrigues formula axisangle (axis,angle)
+	somewhat expensive, so if tranforming many points with the same rotation,
+		it might be more efficient to use another method (like axisangle -> matrix, then matrix transforms)
+	b = a*cos(angle) + (axis cross a)*sin(theta) + axis*(axis dot a)*(1 - cos(theta))
+	*/
+	double cosine, sine, cross[3], dot, theta, axis[3], t1[3], t2[3], t3[3], t4[3];
+	theta = axisangle[3];
+	float2double(axis,axisangle,3);
+	cosine = cos(theta);
+	sine = (float)sin(theta);
+	veccrossd(cross, axis, a);
+	dot = vecdotd(axis, a);
+	vecaddd(b, vecscaled(t1, a, cosine), vecaddd(t2, vecscaled(t3, cross, sine), vecscaled(t4, axis, dot * (1.0 - cosine))));
+	return b;
+}
+
 struct SFRotation *sfrotation_multiply(struct SFRotation* T, struct SFRotation *A, struct SFRotation *B);
 float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB)
 {

@@ -3330,7 +3330,9 @@ void * X3DMatrix3_Constructor(FWType fwtype, int ic, FWval fwpars){
 		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix3d, fwpars[0]._web3dval.native, (union anyVrml*)ptr);
 	}
 	else if (fwpars[0].itype == 'F') {
-		for (i = 0; i < 9; i++)
+		memset(ptr->c, 0, sizeof(struct SFMatrix3d));
+		int ncopy = ic < 9 ? ic : 9;
+		for (i = 0; i < ncopy; i++)
 			ptr->c[i] = fwpars[i]._numeric; //fwpars[i]._web3dval.anyvrml->sffloat; //
 	}
 	return (void *)ptr;
@@ -3398,70 +3400,95 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 	// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform
 	// P' = T * C * R * SR * S * -SR * -C * P
 	int i;// , j;
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFVec3f *translation = fwpars[0]._web3dval.native;
-	struct SFRotation *rotation = fwpars[1]._web3dval.native;
-	struct SFVec3f *scale = fwpars[2]._web3dval.native;
-	struct SFRotation *scaleOrientation = fwpars[3]._web3dval.native;
-	struct SFVec3f *center = fwpars[4]._web3dval.native;
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFVec3d translation; // = fwpars[0]._web3dval.native;
+	struct SFRotation rotation; // = fwpars[1]._web3dval.native;
+	struct SFVec3d scale; // = fwpars[2]._web3dval.native;
+	struct SFRotation scaleOrientation; // = fwpars[3]._web3dval.native;
+	struct SFVec3d center; // = fwpars[4]._web3dval.native;
 	//set up some [][] helpers for clarity
-	float *matrix[4], *mat[4], m2[16];
+	double *matrix[4], *mat[4], m2[16];
+
+	memset(&translation, 0, sizeof(struct SFVec3d));
+	memset(&rotation, 0, sizeof(struct SFRotation));
+	memset(&scale, 0, sizeof(struct SFVec3d));
+	memset(&scaleOrientation, 0, sizeof(struct SFRotation));
+	memset(&center, 0, sizeof(struct SFVec3d));
+	scale.c[0] = scale.c[1] = scale.c[2] = 1.0;
+
+	if (argc > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[0]._web3dval.native, (union anyVrml*)&translation);
+	}
+	if (argc > 1 && fwpars[1].itype == 'W') {
+		shallow_copy_field_precision(fwpars[1]._web3dval.fieldType, FIELDTYPE_SFRotation, fwpars[1]._web3dval.native, (union anyVrml*)&rotation);
+	}
+	if (argc > 2 && fwpars[2].itype == 'W') {
+		shallow_copy_field_precision(fwpars[2]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[2]._web3dval.native, (union anyVrml*)&scale);
+	}
+	if (argc > 3 && fwpars[3].itype == 'W') {
+		shallow_copy_field_precision(fwpars[3]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[3]._web3dval.native, (union anyVrml*)&center);
+	}
+	if (argc > 4 && fwpars[4].itype == 'W') {
+		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFRotation, fwpars[3]._web3dval.native, (union anyVrml*)&scaleOrientation);
+	}
+
 	for(i=0;i<4;i++){
 		matrix[i] = &ptr->c[i*4]; //our current matrix3
 		mat[i] = &m2[i*4]; //scratch matrix
 	}
 	//initialize to Identity
-	matidentity4f(matrix[0]);
-	//-C
-	if(center){
-		matidentity4f(mat[0]);
-		veccopy3f(mat[3],center->c);
-		vecscale3f(mat[3],mat[3],-1.0f);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-	}
-	//-SR
-	if(scaleOrientation){
-		scaleOrientation->c[3] = -scaleOrientation->c[3];
-		matidentity4f(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3f(mat[i], mat[i], scaleOrientation->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-		scaleOrientation->c[3] = -scaleOrientation->c[3];
-	}
-	//S
-	if(scale){
-		matidentity4f(mat[0]);
-		for(i=0;i<4;i++)
-			vecmult3f(mat[i],mat[i],scale->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-	}
-	//SR
-	if(scaleOrientation){
-		matidentity4f(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3f(mat[i], mat[i], scaleOrientation->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-	}
-	//R
-	if(rotation){
-		matidentity4f(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3f(mat[i], mat[i], rotation->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
+	matidentity4d(matrix[0]);
 
-	}
+	//-C
+	//if(center){
+		matidentity4d(mat[0]);
+		veccopyd(mat[3],center.c);
+		vecscaled(mat[3],mat[3],-1.0f);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	//}
+	//-SR
+	//if(scaleOrientation){
+		scaleOrientation.c[3] = -scaleOrientation.c[3];
+		matidentity4d(mat[0]);
+		for(i=0;i<3;i++)
+			axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+		scaleOrientation.c[3] = -scaleOrientation.c[3];
+	//}
+	//S
+	//if(scale){
+		matidentity4d(mat[0]);
+		for(i=0;i<4;i++)
+			vecmult3d(mat[i],mat[i],scale.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	//}
+	//SR
+	//if(scaleOrientation){
+		matidentity4d(mat[0]);
+		for(i=0;i<3;i++)
+			axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	//}
+	//R
+	//if(rotation){
+		matidentity4d(mat[0]);
+		for(i=0;i<3;i++)
+			axisangle_rotate3d(mat[i], mat[i], rotation.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+
+	//}
 	//C
-	if(center){
-		matidentity4f(mat[0]);
-		veccopy3f(mat[3],center->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-	}
+	//if(center){
+		matidentity4d(mat[0]);
+		veccopyd(mat[3],center.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	//}
 	//T
-	if(translation){
-		matidentity4f(mat[0]);
-		veccopy3f(mat[3],translation->c);
-		matmultiply4f(matrix[0],mat[0],matrix[0]);
-	}
+	//if(translation){
+		matidentity4d(mat[0]);
+		veccopyd(mat[3],translation.c);
+		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	//}
 
 	return 0;
 }
@@ -3469,38 +3496,38 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 int X3DMatrix4_getTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//void getTransform(SFVec3f translation, SFRotation rotation, SFVec3f scale) 
 	int i;
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFVec3f *translation = fwpars[0]._web3dval.native;
-	struct SFRotation *rotation = fwpars[1]._web3dval.native;
-	struct SFVec3f *scale = fwpars[2]._web3dval.native;
-    float *matrix[4], retscale[3];
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFVec3d translation; // = fwpars[0]._web3dval.native;
+	struct SFRotation rotation; // = fwpars[1]._web3dval.native;
+	struct SFVec3d scale; // = fwpars[2]._web3dval.native;
+    double *matrix[4], retscale[3];
 	double matrixd[16];
-    	Quaternion quat;
-    	double qu[4];
+    Quaternion quat;
+    double qu[4];
 	//double r0[4], r1[4], r2[4];
 	for(i=0;i<4;i++)
 		matrix[i] = &ptr->c[i*4];
 
 	//get row scales
 	for(i=0;i<3;i++)
-		retscale[i] = (float)sqrt(vecdot4f(matrix[i],matrix[i]));
+		retscale[i] = sqrt(vecdot4d(matrix[i],matrix[i]));
 
-	if (translation) {
-		veccopy3f(translation->c,matrix[3]);
-	}
+	//if (translation) {
+		veccopyd(translation.c,matrix[3]);
+	//}
 
 	/* rotation */
-	if (rotation) {
+	//if (rotation) {
 		/* apply length to each row to normalize upperleft 3x3 to rotations and shears*/
-		float m2[16], ff;
+		double m2[16], ff;
 		for(i=0;i<3;i++){
 			ff = retscale[i];
-			if(ff != 0.0f) ff = 1/ff;
-				vecscale4f(&m2[i*4],matrix[i],ff);
+			if(ff != 0.0) ff = 1.0/ff;
+				vecscale4d(&m2[i*4],matrix[i],ff);
 		}
 		/* convert the matrix to a quaternion */
-		for(i=0;i<16;i++) matrixd[i] = (double) m2[i];
-		matrix_to_quaternion (&quat, matrixd);
+		//for(i=0;i<16;i++) matrixd[i] = (double) m2[i];
+		matrix_to_quaternion(&quat, m2); // matrixd);
 		#ifdef JSVRMLCLASSESVERBOSE
 		printf ("quaternion %f %f %f %f\n",quat.x,quat.y,quat.z,quat.w);
 		#endif
@@ -3510,12 +3537,24 @@ int X3DMatrix4_getTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 
 		/* now copy the values over */
 		for (i=0; i<4; i++) 
-			rotation->c[i] = (float) qu[i];
-	}
+			rotation.c[i] = (float) qu[i];
+	//}
 
 	/* scale */
-	if (scale) {
-		veccopy3f(scale->c,retscale);
+	//if (scale) {
+		veccopyd(scale.c,retscale);
+	//}
+	//translation
+	if (argc > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, fwpars[0]._web3dval.fieldType, (union anyVrml*)&translation, fwpars[0]._web3dval.native );
+	}
+	//rotation
+	if (argc > 1 && fwpars[1].itype == 'W') {
+		shallow_copy_field_precision(FIELDTYPE_SFRotation, fwpars[1]._web3dval.fieldType, (union anyVrml*)&rotation, fwpars[1]._web3dval.native);
+	}
+	//scale
+	if (argc > 2 && fwpars[2].itype == 'W') {
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, fwpars[2]._web3dval.fieldType, (union anyVrml*)&scale, fwpars[2]._web3dval.native);
 	}
 
 	return 0;
@@ -3523,10 +3562,10 @@ int X3DMatrix4_getTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 
 int X3DMatrix4_inverse(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//Matrix4 inverse()
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFMatrix4f *ret = malloc(sizeof(struct SFMatrix4f));
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
 
-	matinverse4f(ret->c,ptr->c);
+	matinverseFULL(ret->c,ptr->c);
 
 	fwretval->_pointer.native = ret;
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
@@ -3536,10 +3575,10 @@ int X3DMatrix4_inverse(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpar
 }
 int X3DMatrix4_transpose(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//Matrix4 transpose()    Returns a Matrix whose value is the transpose of this object. 
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFMatrix4f *ret = malloc(sizeof(struct SFMatrix4f));
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
 
-	mattranspose4f(ret->c, ptr->c);
+	mattranspose(ret->c, ptr->c);
 
 	fwretval->_pointer.native = ret;
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
@@ -3551,11 +3590,11 @@ int X3DMatrix4_transpose(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 int X3DMatrix4_multLeft(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//Matrix4 multLeft(Matrix4 matrix)   Returns a Matrix whose value is the object multiplied by the passed matrix on the left. 
 
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFMatrix4f *rhs = (struct SFMatrix4f *)fwpars[0]._web3dval.native;
-	struct SFMatrix4f *ret = malloc(sizeof(struct SFMatrix4f));
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFMatrix4d rhs; //= (struct SFMatrix4d*)fwpars[0]._web3dval.native;
+	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
 
-	matmultiply4f(ptr->c,rhs->c,ptr->c);
+	matmultiplyFULL(ptr->c,rhs.c,ptr->c);
 
 	fwretval->_pointer.native = ret;
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
@@ -3565,12 +3604,16 @@ int X3DMatrix4_multLeft(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 }
 int X3DMatrix4_multRight(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//Matrix4 multRight(Matrix4 matrix)    Returns a Matrix whose value is the object multiplied by the passed matrix on the right. 
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFMatrix4f *rhs = (struct SFMatrix4f *)fwpars[0]._web3dval.native;
-	struct SFMatrix4f *ret = malloc(sizeof(struct SFMatrix4f));
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFMatrix4d rhs; //= (struct SFMatrix4d*)fwpars[0]._web3dval.native;
+	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
 	fwretval->_pointer.native = ret;
+	matidentity4d(rhs.c);
+	if (argc > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix4d, fwpars[0]._web3dval.native, (union anyVrml*)&rhs);
+	}
 
-	matmultiply4f(ptr->c,ptr->c,rhs->c);
+	matmultiplyFULL(ptr->c,ptr->c,rhs.c);
 
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
 	fwretval->_pointer.gc = 'T';
@@ -3579,61 +3622,74 @@ int X3DMatrix4_multRight(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 }
 int X3DMatrix4_multVecMatrix(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//SFVec3f multVecMatrix(SFVec3f vec)    Returns an SFVec3f whose value is the object multiplied by the passed row vector. 
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFVec3f *rhs = (struct SFVec3f *)fwpars[0]._web3dval.native;
-	struct SFVec3f *ret = malloc(sizeof(struct SFVec3f));
-	float a4[4], r4[4];
-	veccopy3f(a4,rhs->c);
-	a4[3] = 1.0f;
-	vecmultmat4f(r4, a4, ptr->c);
-	if(r4[3] != 0.0f){
-		float wi = 1.0f/r4[3];
-		vecscale3f(ret->c,r4,wi);
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFVec3d rhs; // = (struct SFVec3f*)fwpars[0]._web3dval.native;
+	struct SFVec3d *ret = malloc(sizeof(struct SFVec3d));
+	memset(rhs.c,0,sizeof(struct SFVec3d));
+	if (argc > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[0]._web3dval.native, (union anyVrml*)&rhs);
+	}
+
+	double a4[4], r4[4];
+	veccopyd(a4,rhs.c);
+	a4[3] = 1.0;
+	vecmultmat4d(r4, a4, ptr->c);
+	if(r4[3] != 0.0){
+		double wi = 1.0/r4[3];
+		vecscaled(ret->c,r4,wi);
 	}else{
-		veccopy3f(ret->c,r4);
+		veccopyd(ret->c,r4);
 	}
 
 	fwretval->_web3dval.native = ret;
-	fwretval->_web3dval.fieldType = FIELDTYPE_SFVec3f;
+	fwretval->_web3dval.fieldType = FIELDTYPE_SFVec3d;
 	fwretval->_web3dval.gc = 'T';
 	fwretval->itype = 'W';
 	return 1;
 }
 int X3DMatrix4_multMatrixVec(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	//SFVec3f multMatrixVec(SFVec3f vec)    Returns an SFVec3f whose value is the object multiplied by the passed column vector. 
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
-	struct SFVec3f *rhs = (struct SFVec3f *)fwpars[0]._web3dval.native;
-	struct SFVec3f *ret = malloc(sizeof(struct SFVec3f));
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
+	struct SFVec3d rhs; // = (struct SFVec3f*)fwpars[0]._web3dval.native;
+	struct SFVec3d *ret = malloc(sizeof(struct SFVec3d));
 //float* matmultvec4f(float* r4, float *mat4, float* a4 );
-	float a4[4], r4[4];
-	veccopy3f(a4,rhs->c);
-	a4[3] = 1.0f;
-	matmultvec4f(r4, ptr->c, a4 );
-	if(r4[3] != 0.0f){
-		float wi = 1.0f/r4[3];
-		vecscale3f(ret->c,r4,wi);
+	double a4[4], r4[4];
+
+	memset(rhs.c, 0, sizeof(struct SFVec3d));
+	if (argc > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[0]._web3dval.native, (union anyVrml*)&rhs);
+	}
+
+	veccopyd(a4,rhs.c);
+	a4[3] = 1.0;
+	matmultvec4d(r4, ptr->c, a4 );
+	if(r4[3] != 0.0){
+		double wi = 1.0/r4[3];
+		vecscaled(ret->c,r4,wi);
 	}else{
-		veccopy3f(ret->c,r4);
+		veccopyd(ret->c,r4);
 	}
 
 	fwretval->_web3dval.native = ret;
-	fwretval->_web3dval.fieldType = FIELDTYPE_SFVec3f;
+	fwretval->_web3dval.fieldType = FIELDTYPE_SFVec3d;
 	fwretval->_web3dval.gc = 'T';
 	fwretval->itype = 'W';
 	return 1;
 }
 
 int X3DMatrix4_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
-	struct SFMatrix4f *ptr = (struct SFMatrix4f *)fwn;
+	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	char *str, *r;
 	int i;
-	FWType sfvec4ftype = getFWTYPE(FIELDTYPE_SFVec4f);
+	FWType sfvec4dtype = getFWTYPE(FIELDTYPE_SFVec4d);
 
-	str = NULL;
+	str = malloc(1);
+	str[0] = 0;
 	for(i=0;i<4;i++){
-		r = sfToString(sfvec4ftype,&ptr->c[i*4]);
-		str = realloc(str,strlen(str)+strlen(r)+2);
+		r = sfToString(sfvec4dtype,&ptr->c[i*4]);
+		str = realloc(str,strlen(str)+strlen(r)+3);
 		str = strcat(str,r);
+		str = strcat(str, ", ");
 	}
 	fwretval->_string = str;
 	fwretval->itype = 'S';
@@ -3658,7 +3714,7 @@ int X3DMatrix4_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	struct SFMatrix3f *ptr = (struct SFMatrix3f *)fwn;
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
-	if(index > -1 && index < 9){
+	if(index > -1 && index < 16){
 		nr = 1;
 		fwretval->_numeric =  ptr->c[index];
 	}
@@ -3668,9 +3724,9 @@ int X3DMatrix4_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 int X3DMatrix4_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 	struct SFMatrix3f *ptr = (struct SFMatrix3f *)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
-	if(index > -1 && index < 9){
+	if(index > -1 && index < 16){
 		if(fwval->itype == 'F'){
-			ptr->c[index] = (float)fwval->_numeric; //fwval->_web3dval.anyvrml->sffloat; 
+			ptr->c[index] = fwval->_numeric; //fwval->_web3dval.anyvrml->sffloat; 
 			return TRUE;
 		}
 	}
@@ -3679,14 +3735,23 @@ int X3DMatrix4_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 //typedef int (* FWConstructor)(FWType fwtype, int argc, FWval fwpars);
 void * X3DMatrix4_Constructor(FWType fwtype, int ic, FWval fwpars){
 	int i;
-	struct SFVec3d *ptr = malloc(fwtype->size_of); //garbage collector please
-	for(i=0;i<3;i++)
-		ptr->c[i] =  fwpars[i]._numeric; //fwpars[i]._web3dval.anyvrml->sffloat; //
+	struct SFMatrix4d *ptr = malloc(fwtype->size_of); //garbage collector please
+
+	if (ic > 0 && fwpars[0].itype == 'W') {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix4d, fwpars[0]._web3dval.native, (union anyVrml*)ptr);
+	}
+	else if (ic > 0 && fwpars[0].itype == 'F') {
+		memset(ptr->c, 0, sizeof(struct SFMatrix4d));
+		int ncopy = ic < 16 ? ic : 16;
+		for (i = 0; i < ncopy; i++)
+			ptr->c[i] = fwpars[i]._numeric;
+	}
 	return (void *)ptr;
 }
 
 ArgListType (X3DMatrix4_ConstructorArgs)[] = {
-		{9,0,'T',"FFFFFFFFF"},
+		{16,0,'T',"FFFFFFFFFFFFFFFF"},
+		{1,0,'T',"W"},
 		{-1,0,0,NULL},
 };
 
@@ -3694,7 +3759,7 @@ struct FWTYPE X3DMatrix4Type = {
 	AUXTYPE_X3DMatrix4,
 	'P',
 	"X3DMatrix4",
-	sizeof(struct SFMatrix3f), //sizeof(struct ), 
+	sizeof(struct SFMatrix4d), //sizeof(struct ), 
 	X3DMatrix4_Constructor, //constructor
 	X3DMatrix4_ConstructorArgs, //constructor args
 	NULL, //Properties,
@@ -4455,12 +4520,12 @@ int SFMatrix4d_toString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpa
 	struct SFMatrix4d* ptr = (struct SFMatrix4d*)fwn;
 	char* str, * r;
 	int i;
-	FWType sfvec4ftype = getFWTYPE(FIELDTYPE_SFVec4f);
+	FWType sfvec4dtype = getFWTYPE(FIELDTYPE_SFVec4d);
 
 	str = malloc(1);
 	str[0] = 0;
 	for (i = 0; i < 4; i++) {
-		r = sfToString(sfvec4ftype, &ptr->c[i * 4]);
+		r = sfToString(sfvec4dtype, &ptr->c[i * 4]);
 		str = realloc(str, strlen(str) + strlen(r) + 3);
 		str = strcat(str, r);
 		str = strcat(str, ", ");
@@ -4595,8 +4660,8 @@ void initVRMLFields(FWType* typeArray, int *n){
 	typeArray[*n] = &MFMatrix3dType; (*n)++;
 	typeArray[*n] = &SFMatrix4fType; (*n)++;
 	typeArray[*n] = &MFMatrix4fType; (*n)++;
-	//typeArray[*n] = &SFMatrix4dType; (*n)++;
-	//typeArray[*n] = &MFMatrix4dType; (*n)++;
+	typeArray[*n] = &SFMatrix4dType; (*n)++;
+	typeArray[*n] = &MFMatrix4dType; (*n)++;
 	typeArray[*n] = &X3DMatrix3Type; (*n)++;
 	typeArray[*n] = &X3DMatrix4Type; (*n)++;
 	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
