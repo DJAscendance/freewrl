@@ -844,16 +844,16 @@ float* vecmultmat4f(float* r4, float* a4, float *mat4 )
 	}
     return r4;
 }
+
 double* vecmultmat4d(double* r4, double* a4, double* mat4)
 {
 	int i, j;
-	double t4[4], * b;
+	double t4[4];
 	memcpy(t4, a4, 4 * sizeof(double));
 	for (i = 0; i < 4; i++) {
 		r4[i] = 0.0f;
-		b = &mat4[i * 4];
 		for (j = 0; j < 4; j++)
-			r4[i] += t4[j] * b[j];
+			r4[i] += t4[j] * mat4[j * 4 + i];
 	}
 	return r4;
 }
