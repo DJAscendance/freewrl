@@ -138,7 +138,7 @@ typedef struct MidiNode {
     //std::list<MidiNode> inputs;
     std::list<MidiNode*> outputs;
     void (*takemessage)(MidiNode*, const struct libremidi::message *);
-    void (*takepacket)(MidiNode*, double packet);
+    void (*takepacket)(MidiNode*, timedpacket packet);
     libremidi::reader* reader;
     int run;
     int loop;
@@ -376,6 +376,7 @@ int ump2msg(double packet, ubyte **msg, int *nbytes, ubyte* bytearray) {
     int nmsg = 0;
     bytes = bytearray;
     midiump_packet2values(packet, &channel, &command, &note, &velocity);
+    channel--;
     mt = ump.bytes[0] >> 4;
     group = ump.bytes[0] & (0xF >> 4);
     //code to convert ump to bytes
@@ -523,7 +524,8 @@ void midifilesourcefunction(MidiNode* mnode) {
                     libremidi::message msg = event.m;
                     double packets[10];
                     int npackets;
-                    npackets = msg2ump(msg.bytes.size(), msg.bytes.data(), packets);
+                    if(MIDITransport() == 2)
+                        npackets = msg2ump(msg.bytes.size(), msg.bytes.data(), packets);
 
                     std::wcout << "outputs.count" << mnode->outputs.size() << std::endl;
                     for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
@@ -532,8 +534,12 @@ void midifilesourcefunction(MidiNode* mnode) {
                         //std::cout << "mout->takemessage=" << mout->takemessage << std::endl;
                         if (MIDITransport() == MIDI_UMP) {
                             //MIDI 2.0 UMP
-                            for(int j=0;j<npackets;j++)
-                                if (mout->takepacket) mout->takepacket(mout, packets[j]);
+                            for (int j = 0; j < npackets; j++) {
+                                timedpacket tpacket;
+                                tpacket.packet = packets[j];
+                                tpacket.timestamp = msg.timestamp;
+                                if (mout->takepacket) mout->takepacket(mout, tpacket);
+                            }
                         }
                         else {
                             //MIDI 1.0 MIDI_MSG
@@ -611,12 +617,12 @@ void midiPortDestination_takemessage(MidiNode* midiNode, const struct libremidi:
     midiout.send_message(mout);
 
 }
-void midiPortDestination_takepacket(MidiNode* midiNode, double packet) {
+void midiPortDestination_takepacket(MidiNode* midiNode, timedpacket tpacket) {
     //convert from UMP MIDI 2.0 to MIDI 1 message and send to output port
     ubyte bytearray[200];
     ubyte *msgs[50];
     int nbytes[50];
-
+    double packet = tpacket.packet;
     int nmsg = ump2msg(packet, msgs, nbytes, bytearray); 
     for(int j=0;j<nmsg;j++) {
         ubyte* bytes = msgs[j];
@@ -624,7 +630,7 @@ void midiPortDestination_takepacket(MidiNode* midiNode, double packet) {
         std::vector<unsigned char> messout(nbyte);
         for (int i = 0; i < nbyte; i++)
             messout[i] = bytes[i];
-        libremidi::message mout = libremidi::message(messout, TickTime());
+        libremidi::message mout = libremidi::message(messout, tpacket.timestamp);
         midiout.send_message(mout);
     }
 }
@@ -680,10 +686,11 @@ void midiPrintDestination_takemessage(MidiNode* midiNode, const struct libremidi
     std::cout << " PrintDest\n";
 
 }
-void midiPrintDestination_takepacket(MidiNode* midiNode, double packet) {
+void midiPrintDestination_takepacket(MidiNode* midiNode, timedpacket tpacket) {
     ubyte bytearray[200];
     ubyte* msgs[50];
     int nbytes[50];
+    double packet = tpacket.packet;
     printf("in midiPrintDestination_takepacket\n");
     int nmsg = ump2msg(packet, msgs, nbytes, bytearray);
     for(int j=0;j<nmsg;j++) {
@@ -692,7 +699,7 @@ void midiPrintDestination_takepacket(MidiNode* midiNode, double packet) {
         std::vector<unsigned char> messout(nbyte);
         for (int i = 0; i < nbyte; i++)
             messout[i] = bytes[i];
-        libremidi::message mout = libremidi::message(messout, TickTime());
+        libremidi::message mout = libremidi::message(messout, tpacket.timestamp);
         midiPrintDestination_takemessage(midiNode, &mout);
     }
 }
@@ -729,12 +736,12 @@ void midiOut_takemessage(MidiNode* midiNode, const struct libremidi::message* ms
     }
     */
 }
-void midiOut_takepacket(MidiNode* midiNode, double packet) {
+void midiOut_takepacket(MidiNode* midiNode, timedpacket tpacket) {
     if (!midiNode->queue)
-        midiNode->queue = (void*) new SafeQueue<double>();
-    SafeQueue<double>* que = (SafeQueue<double>*)midiNode->queue;
+        midiNode->queue = (void*) new SafeQueue<timedpacket>();
+    SafeQueue<timedpacket>* que = (SafeQueue<timedpacket>*)midiNode->queue;
     std::cout << "enqueuing one" << std::endl;
-    que->enqueue(packet);
+    que->enqueue(tpacket);
     std::cout << "enqueued one" << std::endl;
 }
 
@@ -819,16 +826,18 @@ void midiOut_packet2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
     // dequeues direct midi messages and converts to MFInt32 outputOnly midiMsg field entries
     struct X3D_Node* anode = X3D_NODE(node);
     if (!midiNode->queue)
-        midiNode->queue = (void*) new SafeQueue<double>();
-    SafeQueue<double>* que = (SafeQueue<double>*)midiNode->queue;
+        midiNode->queue = (void*) new SafeQueue<timedpacket>();
+    SafeQueue<timedpacket>* que = (SafeQueue<timedpacket>*)midiNode->queue;
     Multi_Double* last = &node->midiUmp;
     double cur[1000];
     int n = 0;
     int mark = FALSE;
     //std::cout << "starting dequeue loop" << std::endl;
     UMP ump;
+    timedpacket tpacket;
     while (!que->empty()) {
-        ump.packet = que->dequeue();
+        tpacket = que->dequeue();
+        ump.packet = tpacket.packet;
         std::cout << "dequed one" << std::endl;
         cur[n] = ump.packet;
         n = n >= 999 ? 999 : n + 1; //we'll drop packets if we get flooded.
@@ -894,10 +903,13 @@ void midiin_midinote2packets(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
         double now = TickTime();
         double timestamp = now - lasttime;
         lasttime = now;
+        timedpacket tpacket;
+        tpacket.packet = packet;
+        tpacket.timestamp = timestamp;
         for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
         {
             MidiNode* mout = *it;
-            if (mout->takepacket) mout->takepacket(mout, packet);
+            if (mout->takepacket) mout->takepacket(mout, tpacket);
         }
     }
     pnode->midiMsg.n = 0;
@@ -936,7 +948,7 @@ void print_ports() {
 MidiNode* midiin_node = NULL;
 
 void midiin_C_callback(const libremidi::message* msg){
-//void midiportsourcefunction(const libremidi::message * messin) {
+    //called by libremidi when there's port input event
     const struct libremidi::message& messin = *msg;
 
     MidiNode* mnode = midiin_node;
@@ -951,8 +963,12 @@ void midiin_C_callback(const libremidi::message* msg){
             {
                 MidiNode* mout = *it;
                 if (mout->takepacket)
-                    for (int i = 0; i < npacket; i++)
-                        mout->takepacket(mout, packets[i]);
+                    for (int i = 0; i < npacket; i++) {
+                        timedpacket tpacket;
+                        tpacket.packet = packets[i];
+                        tpacket.timestamp = messin.timestamp;
+                        mout->takepacket(mout, tpacket);
+                    }
             }
         }
     }

@@ -21,6 +21,10 @@ typedef union {
 	unsigned short u16[4];
 	unsigned char bytes[8];
 } UMP;
+typedef struct timedpacket {
+	double packet;
+	double timestamp;
+} timedpacket;
 int MIDITransport();
 #define MIDI_UMP 2
 #define MIDI_MSG 1
