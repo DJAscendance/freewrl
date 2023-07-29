@@ -199,8 +199,6 @@ int fwg_get_unread_message_count(void);
 char *fwg_get_last_message();
 void fwl_set_logfile(char *);
 void fwl_set_nameTest(char *);
-void fwl_set_testPath(char *);
-void fwl_set_jsengine(char *);
 
 #if defined(_ANDROID)
 int DROIDDEBUG( const char*pFmtStr, ...);
@@ -260,8 +258,8 @@ void fwl_doQuitAndWait();
 void fwl_set_viewer_type(const int type);
 
 void fwl_set_modeRecord();
-//void fwl_set_modeFixture();
 void fwl_set_modePlayback();
+void set_MIDITransport(int method);
 
 #define CHANNEL_EAI 0
 //OLDCODE #define CHANNEL_MIDI 1

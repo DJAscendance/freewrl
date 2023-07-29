@@ -2325,6 +2325,7 @@ EVENT_IN(MIDIConverterIn,key88,mfint32,key88,FIELDTYPE_MFInt32)
 EVENT_IN(MIDIConverterIn,keyPiano,mfint32,keyPiano,FIELDTYPE_MFInt32)
 EVENT_IN(MIDIConverterIn,pedal,sfbool,pedal,FIELDTYPE_SFBool)
 EVENT_OUT(MIDIConverterIn,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIConverterIn,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 END_NODE(MIDIConverterIn)
 
 /* MIDIConverterOut node */
@@ -2337,6 +2338,7 @@ EVENT_OUT(MIDIConverterOut,key88,mfint32,key88,FIELDTYPE_MFInt32)
 EVENT_OUT(MIDIConverterOut,keyPiano,mfint32,keyPiano,FIELDTYPE_MFInt32)
 EVENT_OUT(MIDIConverterOut,pedal,sfbool,pedal,FIELDTYPE_SFBool)
 EVENT_IN(MIDIConverterOut,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIConverterOut,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 END_NODE(MIDIConverterOut)
 
 /* MIDIFileDestination node */
@@ -2359,6 +2361,7 @@ BEGIN_NODE(MIDIIn)
 EXPOSED_FIELD(MIDIIn,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(MIDIIn,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EVENT_IN(MIDIIn,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIIn,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 END_NODE(MIDIIn)
 
 /* MIDIOut node */
@@ -2366,6 +2369,7 @@ BEGIN_NODE(MIDIOut)
 EXPOSED_FIELD(MIDIOut,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
 EXPOSED_FIELD(MIDIOut,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
 EVENT_OUT(MIDIOut,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIOut,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 EXPOSED_FIELD(MIDIOut,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(MIDIOut)
 
@@ -2398,6 +2402,7 @@ EXPOSED_FIELD(MIDIToneMerger,description,sfstring,description,FIELDTYPE_SFString
 EXPOSED_FIELD(MIDIToneMerger,octave,sfint32,octave,FIELDTYPE_SFInt32,0)
 EXPOSED_FIELD(MIDIToneMerger,channel,sfint32,channel,FIELDTYPE_SFInt32,0)
 EVENT_OUT(MIDIToneMerger,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_OUT(MIDIToneMerger,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 EVENT_IN(MIDIToneMerger,C,sfbool,C,FIELDTYPE_SFBool)
 EVENT_IN(MIDIToneMerger,Cs,sfbool,Cs,FIELDTYPE_SFBool)
 EVENT_IN(MIDIToneMerger,D,sfbool,D,FIELDTYPE_SFBool)
@@ -2420,6 +2425,7 @@ EXPOSED_FIELD(MIDIToneSplitter,description,sfstring,description,FIELDTYPE_SFStri
 EXPOSED_FIELD(MIDIToneSplitter,octaveFilter,sfint32,octaveFilter,FIELDTYPE_SFInt32,0)
 EXPOSED_FIELD(MIDIToneSplitter,channelFilter,sfint32,channelFilter,FIELDTYPE_SFInt32,0)
 EVENT_IN(MIDIToneSplitter,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
+EVENT_IN(MIDIToneSplitter,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 EVENT_OUT(MIDIToneSplitter,C,sfbool,C,FIELDTYPE_SFBool)
 EVENT_OUT(MIDIToneSplitter,Cs,sfbool,Cs,FIELDTYPE_SFBool)
 EVENT_OUT(MIDIToneSplitter,D,sfbool,D,FIELDTYPE_SFBool)

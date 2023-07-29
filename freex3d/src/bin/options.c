@@ -94,18 +94,10 @@ void fv_usage()
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
 		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
-#ifdef USE_SNAPSHOT_TESTING
-		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
-		"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
-		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
-		"  -N|--nametest <string>  Set name of .fwplay test file\n"
-		"  -Y|--testpath <string>  Set path to recording directory\n"
-#endif
 		"  -I|--pin TF             Pin statusbar(T/F) menubar(T/F)\n"	
 		"  -w|--want TF            Want statusbar(T/F) menubar(T/F)\n"	
 		"  -E|--FPS <int>          Target Maximum Frames Per Second\n"	
 		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
-		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
 		"     --DISaddress <string>  DIS default ipv4 address or localhost \n"
 		"     --DISport <int>        DIS default port 1000 - 99999\n"
@@ -115,6 +107,7 @@ void fv_usage()
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
 		"  -X|--viewpoints         Show viewpointss\n"
+		"  -M|--midi <int>         choose MIDI transport 1=msg 2=ump\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
 	    "  -j|--fd <number>        Pipe to command the program.\n"
@@ -182,13 +175,6 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"display", required_argument, 0, 'd'}, /* Roberto Gerson */
 	{"record", no_argument, 0, 'R'},
 	{"playback", no_argument, 0, 'P'},
-#ifdef USE_SNAPSHOT_TESTING
-	{"record", no_argument, 0, 'R'},
-	{"fixture", no_argument, 0, 'F'},
-	{"playback", no_argument, 0, 'P'},
-	{"nametest", required_argument, 0, 'N'},
-	{"testpath", required_argument, 0, 'Y'},
-#endif
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
@@ -196,6 +182,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"javascript",required_argument,0,'J'},
 	{"boxes",no_argument,0,'x'},
 	{"viewpoints",no_argument,0,'X'},
+	{"midi",required_argument,0,'M'},
 	{"DIS",no_argument,0,'D'},
 	{"DISaddress",required_argument,0,128},
 	{"DISport",required_argument,0,129},
@@ -551,25 +538,15 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'P': /* --playback, no arg */
 		fwl_set_modePlayback();
 		break;
+	case 'M': /* --midi, int 1 or 2 for midi transport */
+		{
+		int ival = 2;
+		sscanf(optarg, "%d", &ival);
+		set_MIDITransport(ival);
+		}
+		break;
 
-#ifdef USE_SNAPSHOT_TESTING  
-	// link to lib/main/SnapshotTesting.c
-	case 'R': /* --record, no arg */
-		fwl_set_modeRecord();
-		break;
-	case 'F': /* --fixture, no arg */
-		fwl_set_modeFixture();
-		break;
-	case 'P': /* --playback, no arg */
-		fwl_set_modePlayback();
-		break;
-	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
-		fwl_set_nameTest(optarg);
-		break;
-	case 'Y': /* --testPath directory where to put recording, playback */
-		fwl_set_testPath(optarg);
-		break;
-#endif
+
 
 #ifdef HAVE_LIBCURL
 	case 'C': /* --curl, no argument */

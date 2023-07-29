@@ -3594,8 +3594,12 @@ int X3DMatrix4_multLeft(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	struct SFMatrix4d rhs; //= (struct SFMatrix4d*)fwpars[0]._web3dval.native;
 	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
+	matidentity4d(ret->c);
+	if (argc > 0 && (fwpars[0].itype == 'P' || fwpars[0].itype == 'W')) {
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix4d, fwpars[0]._web3dval.native, (union anyVrml*)&rhs);
+		matmultiplyFULL(ret->c, rhs.c, ptr->c);
+	}
 
-	matmultiplyFULL(ptr->c,rhs.c,ptr->c);
 
 	fwretval->_pointer.native = ret;
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
@@ -3610,11 +3614,11 @@ int X3DMatrix4_multRight(FWType fwtype, void *ec, void *fwn, int argc, FWval fwp
 	struct SFMatrix4d *ret = malloc(sizeof(struct SFMatrix4d));
 	fwretval->_pointer.native = ret;
 	matidentity4d(rhs.c);
-	if (argc > 0 && fwpars[0].itype == 'W') {
+	if (argc > 0 && (fwpars[0].itype == 'W' || fwpars[0].itype == 'P')) {
 		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFMatrix4d, fwpars[0]._web3dval.native, (union anyVrml*)&rhs);
 	}
 
-	matmultiplyFULL(ptr->c,ptr->c,rhs.c);
+	matmultiplyFULL(ret->c,ptr->c,rhs.c);
 
 	fwretval->_pointer.fieldType = AUXTYPE_X3DMatrix4;
 	fwretval->_pointer.gc = 'T';
@@ -3715,20 +3719,43 @@ int X3DMatrix4_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
-	if(index > -1 && index < 16){
-		nr = 1;
-		fwretval->_numeric =  ptr->c[index];
+	if (1) {
+		//double indexing [4][4], like Instant, Octaga do with VrmlMatrix
+		double *ret; // = malloc(sizeof(struct SFVec3d));
+
+		if (index > -1 && index < 4) {
+			nr = 1;
+			//fwretval->_numeric = ptr->c[index];
+			ret = &ptr->c[index * 4]; //return a row pointer so can do [3][2] double indexing
+			fwretval->_web3dval.native = ret;
+			fwretval->_web3dval.fieldType = FIELDTYPE_SFVec4d;
+			fwretval->_web3dval.gc = 0; // 'F';
+			fwretval->itype = 'W';
+		}
 	}
-	fwretval->itype = 'F';
+	else {
+		//single indexing
+		if (index > -1 && index < 16) {
+			nr = 1;
+			fwretval->_numeric = ptr->c[index];
+		}
+		fwretval->itype = 'F';
+	}
 	return nr;
 }
 int X3DMatrix4_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
 	struct SFMatrix4d *ptr = (struct SFMatrix4d *)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
-	if(index > -1 && index < 16){
-		if(fwval->itype == 'F'){
-			ptr->c[index] = fwval->_numeric; //fwval->_web3dval.anyvrml->sffloat; 
-			return TRUE;
+	if (1) {
+		//double indexing
+		printf("Matrix4 setter itype == %d\n ",fwval->itype);
+	}
+	else {
+		if (index > -1 && index < 16) {
+			if (fwval->itype == 'F') {
+				ptr->c[index] = fwval->_numeric; //fwval->_web3dval.anyvrml->sffloat; 
+				return TRUE;
+			}
 		}
 	}
 	return FALSE;
@@ -3752,7 +3779,7 @@ void * X3DMatrix4_Constructor(FWType fwtype, int ic, FWval fwpars){
 }
 
 ArgListType (X3DMatrix4_ConstructorArgs)[] = {
-		{16,0,'T',"FFFFFFFFFFFFFFFF"},
+		{0,0,'F',"FFFFFFFFFFFFFFFF"},
 		{1,0,'T',"W"},
 		{-1,0,0,NULL},
 };

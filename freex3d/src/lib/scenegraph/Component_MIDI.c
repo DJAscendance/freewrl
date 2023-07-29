@@ -437,7 +437,7 @@ void render_MIDIIn(struct X3D_MIDIIn* node) {
 	iparent.s = 0;
 	update_midi_connections(srep, iparent);
 }
-
+/*
 enum message_type 
 {
 	INVALID = 0x0,
@@ -470,8 +470,10 @@ enum message_type
 	ACTIVE_SENSING = 0xFE,
 	SYSTEM_RESET = 0xFF
 };
-typedef unsigned char ubyte;
-void midimsg_uint2ubytes(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity) {
+*/
+//typedef unsigned char ubyte;
+// MIDI 1 MESSAGES (packed in SFInt32)
+void midimsg_uint2values(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity) {
 	//we don't care about big endian etc just unpack opposite of packing
 	//we are assuming the msg is a 3 byte note on/off, may need if/else on command for others
 	ubyte* bytes = (ubyte*)&msg;
@@ -481,7 +483,7 @@ void midimsg_uint2ubytes(unsigned int msg, ubyte* channel, ubyte* command, ubyte
 	*velocity = bytes[2];
 
 }
-unsigned int midimsg_ubytes2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity) {
+unsigned int midimsg_values2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity) {
 	unsigned int msg;
 	ubyte* bytes = (ubyte*)&msg;
 	bytes[0] = (channel - 1) | command;
@@ -489,6 +491,25 @@ unsigned int midimsg_ubytes2uint(ubyte channel, ubyte command, ubyte note, ubyte
 	bytes[2] = velocity;
 	return msg;
 }
+
+// MIDI 2.0 UMP PACKETS (packed in SFDouble)
+void midiump_packet2values(double packet, ubyte* channel, ubyte* command, ubyte* note, ushort* velocity) {
+	//we don't care about big endian etc just unpack opposite of packing
+	UMP ump;
+	ump.packet = packet;
+	*channel = (ump.bytes[1] & 0xF) + 1;
+	*command = ump.bytes[1] - (*channel - 1);
+	*note    = ump.bytes[3];
+	*velocity= ump.u16[2];
+}
+double midiump_values2packet(ubyte channel, ubyte command, ubyte note, ushort velocity) {
+	UMP ump;
+	ump.bytes[1] = (channel - 1) | command;
+	ump.bytes[2] = note;
+	ump.u16[2] = velocity;
+	return ump.packet;
+}
+
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut* node) {}
 void render_MIDIConverterIn(struct MIDIConverterIn* node) {}
 void offset_notefields_MidiToneSplitter(size_t* cfield) {
@@ -513,29 +534,60 @@ void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
 
 	struct X3D_Node* anode = X3D_NODE(node);
 	if (node->_ichange != node->_change) {
-		for (int i = 0; i < node->midiMsg.n; i++)
-		{
-			ubyte note, channel, command, velocity;
-			unsigned int msg = (unsigned int)node->midiMsg.p[i];
-			midimsg_uint2ubytes(msg, &channel, &command, &note, &velocity);
-			int status = command == NOTE_ON && velocity > 0 ? TRUE : FALSE;
-			int octave = note / 12;
-			int inote = note % 12;
-			if (channel == node->channelFilter || node->channelFilter == -1) {
-				if (command == NOTE_ON || command == NOTE_OFF) {
-					if (octave == node->octaveFilter || node->octaveFilter == -1)
-					{
-						//printf("inote = %d cfields %zu\n", inote,cfields[inote]);
-						int* field = (int*)(cfields[inote] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
-						*field = status;
-						MARK_EVENT(anode, cfields[inote]);
+		if (MIDITransport() == MIDI_MSG) {
+			for (int i = 0; i < node->midiMsg.n; i++)
+			{
+				ubyte note, channel, command, velocity;
+				unsigned int msg = (unsigned int)node->midiMsg.p[i];
+				midimsg_uint2values(msg, &channel, &command, &note, &velocity);
+				int status = command == NOTE_ON && velocity > 0 ? TRUE : FALSE;
+				int octave = note / 12;
+				int inote = note % 12;
+				if (channel == node->channelFilter || node->channelFilter == -1) {
+					if (command == NOTE_ON || command == NOTE_OFF) {
+						if (octave == node->octaveFilter || node->octaveFilter == -1)
+						{
+							//printf("inote = %d cfields %zu\n", inote,cfields[inote]);
+							int* field = (int*)(cfields[inote] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
+							*field = status;
+							MARK_EVENT(anode, cfields[inote]);
+						}
+					}
+					else if (command == CONTROL_CHANGE && note == 64) {
+						node->pedal = velocity == 0 ? FALSE : TRUE;
+						MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, pedal));
 					}
 				}
-				else if (command == CONTROL_CHANGE && note == 64) {
-					node->pedal = velocity == 0 ? FALSE : TRUE;
-					MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, pedal));
+			}
+		}
+		else if (MIDITransport() == MIDI_UMP) {
+			for (int i = 0; i < node->midiUmp.n; i++)
+			{
+				ubyte note, channel, command;
+				ushort velocity;
+				UMP ump;
+				ump.packet = node->midiUmp.p[i];
+				midiump_packet2values(ump.packet, &channel, &command, &note, &velocity);
+				int status = command == NOTE_ON && velocity > 0 ? TRUE : FALSE;
+				int octave = note / 12;
+				int inote = note % 12;
+				if (channel == node->channelFilter || node->channelFilter == -1) {
+					if (command == NOTE_ON || command == NOTE_OFF) {
+						if (octave == node->octaveFilter || node->octaveFilter == -1)
+						{
+							//printf("inote = %d cfields %zu\n", inote,cfields[inote]);
+							int* field = (int*)(cfields[inote] + (unsigned char*)node); //fancy offsetof to eliminate switch-case
+							*field = status;
+							MARK_EVENT(anode, cfields[inote]);
+						}
+					}
+					else if (command == CONTROL_CHANGE && note == 64) {
+						node->pedal = velocity == 0 ? FALSE : TRUE;
+						MARK_EVENT(anode, offsetof(struct X3D_MIDIToneSplitter, pedal));
+					}
 				}
 			}
+		}
 
 				/*
 				switch (inote) {
@@ -554,7 +606,6 @@ void render_MIDIToneSplitter(struct X3D_MIDIToneSplitter* node) {
 				default: break;
 				}
 				*/
-		}
 		MARK_NODE_COMPILED
 
 	}
@@ -588,6 +639,7 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 	}
 	if (node->_ichange != node->_change) {
 		int n, mark, mnote[12]; //max polyphony 12,assume fixed octave and max 12 changed notes in octave per frame
+		double dnote[12];
 		n = 0;
 		mark = FALSE;
 		for(int i=0;i<node->_lastnote.n;i++)
@@ -608,8 +660,14 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 					command = CONTROL_CHANGE;
 					note = 64; //pedal?
 				}
-				ubyte velocity = curval ? 127 : 0;
-				mnote[n] = midimsg_ubytes2uint(channel, command, note, velocity);
+				if (MIDITransport() == MIDI_MSG){
+					ubyte velocity = curval ? 127 : 0;
+					mnote[n] = midimsg_values2uint(channel, command, note, velocity);
+				}
+				if (MIDITransport() == MIDI_UMP) {
+					ushort velocity = curval ? 65536 : 0;
+					dnote[n] = midiump_values2packet(channel, command, note, velocity);
+				}
 				n++;
 				//mnote[n] = curval ? note : -note; n++; 
 				mark = TRUE;
@@ -637,10 +695,20 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 			*/
 		}
 		if (mark) {
-			node->midiMsg.p = realloc(node->midiMsg.p, n * sizeof(int));
-			memcpy(node->midiMsg.p, mnote, n * sizeof(int));
-			node->midiMsg.n = n;
-			MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiMsg));
+			if (MIDITransport() == MIDI_MSG) {
+				// MIDI 1 messages packed into MFInt32
+				node->midiMsg.p = realloc(node->midiMsg.p, n * sizeof(int));
+				memcpy(node->midiMsg.p, mnote, n * sizeof(int));
+				node->midiMsg.n = n;
+				MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiMsg));
+			}
+			if (MIDITransport() == MIDI_UMP) {
+				// MIDI 2 packets packed into MFDouble
+				node->midiUmp.p = realloc(node->midiUmp.p, n * sizeof(double));
+				memcpy(node->midiUmp.p, dnote, n * sizeof(double));
+				node->midiUmp.n = n;
+				MARK_EVENT(anode, offsetof(struct X3D_MIDIToneMerger, midiUmp));
+			}
 		}
 		MARK_NODE_COMPILED
 
@@ -649,6 +717,14 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 }
 void render_MIDIAudioSynth(struct MIDIAudioSynth* node) {}
 
+static midi_transport_method = MIDI_UMP;
+void set_MIDITransport(int method) {
+	midi_transport_method = method == 1 || method == 2 ? method : midi_transport_method;
+}
+int MIDITransport() {
+	return midi_transport_method; // MIDI_UMP;
+	//return MIDI_MSG;
+}
 #else //HAVE_LIBREMIDI
 //stubs
 void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {}
