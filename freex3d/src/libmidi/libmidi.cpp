@@ -302,7 +302,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets) {
     if (command == PROGRAM_CHANGE) {
         ump.bytes[1] = bytes[0];
         ump.bytes[4] = bytes[1];
-        static ubyte bankselect_msb, bankselect_lsb;
+        static ubyte bankselect_msb = 0, bankselect_lsb = 0;
         if (bankselect_msb && bankselect_lsb) {
             ump.bytes[6] = bankselect_msb;
             ump.bytes[7] = bankselect_lsb;
@@ -442,7 +442,7 @@ int ump2msg(double packet, ubyte **msg, int *nbytes, ubyte* bytearray) {
         //D.2.4 Program Change and Bank Select
         case PROGRAM_CHANGE:
         {
-            if (ump.bytes[2] & 1) {
+            if (ump.bytes[3] & 1) {
                 //bank select MSB
                 memset(bytes, 0, 3);
                 bytes[0] = command | channel | 1 << 7; //is the top bit still set?
@@ -463,8 +463,8 @@ int ump2msg(double packet, ubyte **msg, int *nbytes, ubyte* bytearray) {
             }
             //unconditional program change
             memset(bytes, 0, 2);
-            bytes[0] = command | channel | 1 << 7; //is the top bit still set?
-            bytes[1] = ump.bytes[4] & (0xF >> 1); //make sure top bit clear
+            bytes[0] = ump.bytes[1]; // command | channel | 1 << 7; //is the top bit still set?
+            bytes[1] = ump.bytes[4]; // &(0xF >> 1); //make sure top bit clear
             msg[nmsg] = bytes;
             nbytes[nmsg] = 2;
             bytes += 2;
