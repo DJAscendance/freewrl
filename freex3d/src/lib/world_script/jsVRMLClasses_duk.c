@@ -3416,6 +3416,7 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 	memset(&scaleOrientation, 0, sizeof(struct SFRotation));
 	memset(&center, 0, sizeof(struct SFVec3d));
 	scale.c[0] = scale.c[1] = scale.c[2] = 1.0;
+	rotation.c[0] = 1.0f;
 
 	if (argc > 0 && fwpars[0].itype == 'W') {
 		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[0]._web3dval.native, (union anyVrml*)&translation);
@@ -3427,10 +3428,10 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		shallow_copy_field_precision(fwpars[2]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[2]._web3dval.native, (union anyVrml*)&scale);
 	}
 	if (argc > 3 && fwpars[3].itype == 'W') {
-		shallow_copy_field_precision(fwpars[3]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[3]._web3dval.native, (union anyVrml*)&center);
+		shallow_copy_field_precision(fwpars[3]._web3dval.fieldType, FIELDTYPE_SFRotation, fwpars[3]._web3dval.native, (union anyVrml*)&scaleOrientation);
 	}
 	if (argc > 4 && fwpars[4].itype == 'W') {
-		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFRotation, fwpars[3]._web3dval.native, (union anyVrml*)&scaleOrientation);
+		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[4]._web3dval.native, (union anyVrml*)&center);
 	}
 
 	for(i=0;i<4;i++){
@@ -3440,55 +3441,61 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 	//initialize to Identity
 	matidentity4d(matrix[0]);
 
-	//-C
-	//if(center){
-		matidentity4d(mat[0]);
-		veccopyd(mat[3],center.c);
-		vecscaled(mat[3],mat[3],-1.0f);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
-	//}
-	//-SR
-	//if(scaleOrientation){
-		scaleOrientation.c[3] = -scaleOrientation.c[3];
-		matidentity4d(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
-		scaleOrientation.c[3] = -scaleOrientation.c[3];
-	//}
-	//S
-	//if(scale){
-		matidentity4d(mat[0]);
-		for(i=0;i<4;i++)
-			vecmult3d(mat[i],mat[i],scale.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
-	//}
-	//SR
-	//if(scaleOrientation){
-		matidentity4d(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
-	//}
-	//R
-	//if(rotation){
-		matidentity4d(mat[0]);
-		for(i=0;i<3;i++)
-			axisangle_rotate3d(mat[i], mat[i], rotation.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
 
+
+	//T
+	//if(translation){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], translation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
 	//}
 	//C
 	//if(center){
-		matidentity4d(mat[0]);
-		veccopyd(mat[3],center.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
 	//}
-	//T
-	//if(translation){
-		matidentity4d(mat[0]);
-		veccopyd(mat[3],translation.c);
-		matmultiplyFULL(matrix[0],mat[0],matrix[0]);
+
+	//R
+	//if(rotation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], rotation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//SR
+	//if(scaleOrientation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//S
+	//if(scale){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 4; i++)
+		vecmult3d(mat[i], mat[i], scale.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//-SR
+	//if(scaleOrientation){
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	//}
+
+	//-C
+	//if(center){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	vecscaled(mat[3], mat[3], -1.0f);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
 	//}
 
 	return 0;
