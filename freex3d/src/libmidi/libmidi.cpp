@@ -242,7 +242,7 @@ uint16_t scaleUp7to16(uint8_t value7) {
 //    unsigned short u16[4];
 //    unsigned char bytes[8];
 //} UMP;
-int msg2ump(int nbytes, const unsigned char* bytes, double* packets) {
+int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelocity) {
     //a long message can produce multiple packets
     //nbytes - number of msg bytes
     //bytes - msg bytes
@@ -262,12 +262,14 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets) {
     if (command == NOTE_ON || command == NOTE_OFF){
         ump.bytes[1] = bytes[0]; //command, channel
         ump.bytes[2] = bytes[1]; //note
-        ump.u16[2] = 0;         //velocity
+        ump.u16[3] = 0;         //velocity
         if (command == NOTE_ON) {
             if(velocity7 == 0)
                 ump.bytes[1] = channel | NOTE_OFF;
-            else
+            else {
+                if (fixvelocity && velocity7 < 64) velocity7 = 63;
                 ump.u16[2] = scaleUp7to16(bytes[2]);
+            }
         }
         packets[npacket] = ump.packet;
         npacket++;
@@ -377,6 +379,7 @@ int ump2msg(double packet, ubyte **msg, int *nbytes, ubyte* bytearray) {
     bytes = bytearray;
     midiump_packet2values(packet, &channel, &command, &note, &velocity);
     channel--;
+    printf("ump2msg chan %d com %d note %d vel %d\n", channel, command, note, velocity);
     mt = ump.bytes[0] >> 4;
     group = ump.bytes[0] & (0xF >> 4);
     //code to convert ump to bytes
@@ -418,7 +421,7 @@ int ump2msg(double packet, ubyte **msg, int *nbytes, ubyte* bytearray) {
             memset(bytes, 0, 3);
             bytes[0] = command | channel | 1 << 7; //is the top bit still set?
             bytes[1] = ump.bytes[2];
-            bytes[2] = (ubyte)scaleDown(ump.bytes[4], 8, 7);
+            bytes[2] = (ubyte)scaleDown(ump.u16[2], 16, 7);
             if (command == NOTE_ON && bytes[2] == 0) bytes[2] = 0x01; //minimum note on velocity
             msg[nmsg] = bytes;
             nbytes[nmsg] = 3;
@@ -525,7 +528,7 @@ void midifilesourcefunction(MidiNode* mnode) {
                     double packets[10];
                     int npackets;
                     if(MIDITransport() == 2)
-                        npackets = msg2ump(msg.bytes.size(), msg.bytes.data(), packets);
+                        npackets = msg2ump(msg.bytes.size(), msg.bytes.data(), packets,FALSE);
 
                     std::wcout << "outputs.count" << mnode->outputs.size() << std::endl;
                     for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
@@ -885,13 +888,6 @@ void midiin_midinote2messages(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
         messout[2] = velocity;
         msg = libremidi::message(messout, timestamp);
         printf("MI %d %d %d %lf", messout[0], messout[1], messout[2], timestamp);
- /*       if (command == (ubyte)libremidi::message_type::NOTE_ON || command == (ubyte)libremidi::message_type::NOTE_OFF)
-        {
-            if (velocity)
-                msg = libremidi::message::note_on(1, note, velocity);
-            else
-                msg = libremidi::message::note_off(1, note, velocity);
-        }*/
         for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
         {
             MidiNode* mout = *it;
@@ -912,6 +908,12 @@ void midiin_midinote2packets(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
         lasttime = now;
         timedpacket tpacket;
         tpacket.packet = packet;
+        if (1) {
+            ubyte channel, command, note;
+            ushort velocity;
+            midiump_packet2values(packet, &channel, &command, &note, &velocity);
+            printf("midiin_midinote2packets chan %d comm %d not %d vel %d\n", channel, command, note, velocity);
+        }
         tpacket.timestamp = timestamp;
         for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
         {
@@ -964,7 +966,7 @@ void midiin_C_callback(const libremidi::message* msg){
         // MIDI 2.0 64 bit UMP packet transport
         double packets[100];
         const libremidi::midi_bytes bytes[200];
-        double npacket = msg2ump(nBytes, messin.bytes.data(), packets); // messin.timestamp);
+        double npacket = msg2ump(nBytes, messin.bytes.data(), packets, TRUE); // messin.timestamp);
         if (npacket) {
             for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
             {
