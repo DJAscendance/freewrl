@@ -1230,7 +1230,8 @@ int type_dimension(int itype) {
 	case AUXTYPE_X3DMatrix3: ndim = 9; break;
 	case FIELDTYPE_SFMatrix4f:
 	case FIELDTYPE_SFMatrix4d:
-	case AUXTYPE_X3DMatrix4:ndim = 16; break;
+	case AUXTYPE_X3DMatrix4:
+	case AUXTYPE_VrmlMatrix:ndim = 16; break;
 	}
 	return ndim;
 }
@@ -1257,6 +1258,7 @@ int type_precision(int itype) {
 	case FIELDTYPE_SFMatrix4d:
 	case AUXTYPE_X3DMatrix3:
 	case AUXTYPE_X3DMatrix4:
+	case AUXTYPE_VrmlMatrix:
 		ipre = 2; break;
 	}
 	return ipre;
@@ -1267,6 +1269,7 @@ int sizeofSForMFduk(int itype) {
 	switch(itype){
 	case AUXTYPE_X3DMatrix3: iz = sizeof(struct SFMatrix3d); break;
 	case AUXTYPE_X3DMatrix4: iz = sizeof(struct SFMatrix4d); break;
+	case AUXTYPE_VrmlMatrix: iz = sizeof(struct SFMatrix4d); break;
 	default:
 		iz = sizeofSForMF(itype);
 	}
@@ -3480,6 +3483,7 @@ int X3DMatrix4_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
 	//}
 
+	// 
 	//-SR
 	//if(scaleOrientation){
 	scaleOrientation.c[3] = -scaleOrientation.c[3];
@@ -3805,6 +3809,104 @@ struct FWTYPE X3DMatrix4Type = {
 	'F',0, //index prop type,readonly
 	X3DMatrix4_Functions, //functions
 };
+
+// VrmlMatrix (same as Matrix4, can delegate)
+
+int VrmlMatrix_setTransform(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_setTransform(fwtype, ec, fwn, argc, fwpars, fwretval);
+	return iret;
+}
+
+int VrmlMatrix_getTransform(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_getTransform(fwtype, ec, fwn, argc,fwpars, fwretval);
+	return iret;
+}
+
+int VrmlMatrix_inverse(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_inverse(fwtype, ec, fwn, argc, fwpars, fwretval);
+	fwretval->_pointer.fieldType = AUXTYPE_VrmlMatrix;
+	return iret;
+}
+int VrmlMatrix_transpose(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_transpose(fwtype, ec, fwn, argc, fwpars, fwretval);
+	fwretval->_pointer.fieldType = AUXTYPE_VrmlMatrix;
+	return iret;
+}
+int VrmlMatrix_multLeft(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_multLeft(fwtype, ec, fwn, argc, fwpars, fwretval);
+	fwretval->_pointer.fieldType = AUXTYPE_VrmlMatrix;
+	return iret;
+}
+int VrmlMatrix_multRight(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_multRight(fwtype, ec, fwn, argc, fwpars, fwretval);
+	fwretval->_pointer.fieldType = AUXTYPE_VrmlMatrix;
+	return iret;
+}
+int VrmlMatrix_multVecMatrix(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_multVecMatrix(fwtype, ec, fwn, argc, fwpars, fwretval);
+	return iret;
+}
+int VrmlMatrix_multMatrixVec(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_multMatrixVec(fwtype, ec, fwn, argc, fwpars, fwretval);
+	return iret;
+}
+
+int VrmlMatrix_toString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int iret = X3DMatrix4_toString(fwtype, ec, fwn, argc, fwpars, fwretval);
+	return iret;
+}
+
+
+FWFunctionSpec(VrmlMatrix_Functions)[] = {
+	{"setTransform", VrmlMatrix_setTransform, 0,{5,-1,0,"WWWWW"}},
+	{"getTransform", VrmlMatrix_getTransform, 'P',{1,-1,0,"W"}},
+	{"inverse", VrmlMatrix_inverse, 'P',{0,-1,0,NULL}},
+	{"transpose", VrmlMatrix_transpose, 'P',{0,-1,0,NULL}},
+	{"multLeft", VrmlMatrix_multLeft, 'P',{1,-1,0,"P"}},
+	{"multRight", VrmlMatrix_multRight, 'P',{1,-1,0,"P"}},
+	{"multVecMatrix", VrmlMatrix_multVecMatrix, 'W',{1,-1,0,"W"}},
+	{"multMatrixVec", VrmlMatrix_multMatrixVec, 'W',{1,-1,0,"W"}},
+	{"toString", VrmlMatrix_toString, 'S',{0,-1,0,NULL}},
+	{0}
+};
+
+int VrmlMatrix_Getter(FWType fwt, int index, void* ec, void* fwn, FWval fwretval) {
+	int iret = X3DMatrix4_Getter(fwt, index, ec, fwn, fwretval);
+	return iret;
+}
+int VrmlMatrix_Setter(FWType fwt, int index, void* ec, void* fwn, FWval fwval) {
+	int iret = X3DMatrix4_Setter(fwt, index, ec, fwn, fwval);
+	return iret;
+}
+//typedef int (* FWConstructor)(FWType fwtype, int argc, FWval fwpars);
+void* VrmlMatrix_Constructor(FWType fwtype, int ic, FWval fwpars) {
+	void* ret = X3DMatrix4_Constructor(fwtype, ic, fwpars);
+	return ret;
+}
+
+ArgListType(VrmlMatrix_ConstructorArgs)[] = {
+		{0,0,'F',"FFFFFFFFFFFFFFFF"},
+		{1,0,'T',"W"},
+		{-1,0,0,NULL},
+};
+
+struct FWTYPE VrmlMatrixType = {
+	AUXTYPE_VrmlMatrix,
+	'P',
+	"VrmlMatrix",
+	sizeof(struct SFMatrix4d), //sizeof(struct ), 
+	VrmlMatrix_Constructor, //constructor
+	VrmlMatrix_ConstructorArgs, //constructor args
+	NULL, //Properties,
+	NULL, //special iterator
+	VrmlMatrix_Getter, //Getter,
+	VrmlMatrix_Setter, //Setter,
+	'F',0, //index prop type,readonly
+	VrmlMatrix_Functions, //functions
+};
+
+
+
 
 // http://www.web3d.org/files/specifications/19777-1/V3.0/Part1/functions.html#SFVec2d
 /* SFVec2d
@@ -4704,6 +4806,7 @@ void initVRMLFields(FWType* typeArray, int *n){
 	typeArray[*n] = &MFMatrix4dType; (*n)++;
 	typeArray[*n] = &X3DMatrix3Type; (*n)++;
 	typeArray[*n] = &X3DMatrix4Type; (*n)++;
+	typeArray[*n] = &VrmlMatrixType; (*n)++;
 	//typeArray[*n] = &FreeWRLPTRType; (*n)++;
 	//typeArray[*n] = &FreeWRLThreadType; (*n)++;
 }

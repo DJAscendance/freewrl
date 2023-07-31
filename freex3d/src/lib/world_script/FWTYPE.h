@@ -110,7 +110,7 @@ struct WEB3DNATIVE {
 #define AUXTYPE_X3DFieldDefinitionArray 1023
 #define AUXTYPE_X3DMatrix3 1024 //has to be even number so shallow_copy thinks its an SF
 #define AUXTYPE_X3DMatrix4 1026 //ditto
-
+#define AUXTYPE_VrmlMatrix 1028 //ditto
 //our version of a variant, except in C types and our union anyVrml
 struct FWVAL{
 	char itype; //0 = null, F=Float D=Double I=Integer B=Boolean S=String, Z=flexiString (MF or S) W=Object-web3d O-js Object P=ptr
