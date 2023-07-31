@@ -253,8 +253,8 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets) {
     ump.packet = 0.0;
     int npacket = 0;
     ubyte channel, note, command, velocity7;
-    channel = (bytes[0] & 0xF) + 1;
-    command = bytes[0] - (channel - 1);
+    channel = (bytes[0] & 0xF);
+    command = bytes[0] - channel;
     note = bytes[1];
     velocity7 = bytes[2];
     //code to convert bytes to packets
@@ -838,7 +838,14 @@ void midiOut_packet2fields(MidiNode* midiNode, struct X3D_MIDIOut* node) {
     while (!que->empty()) {
         tpacket = que->dequeue();
         ump.packet = tpacket.packet;
-        std::cout << "dequed one" << std::endl;
+        if (1) {
+            ubyte channel, command, note;
+            ushort velocity;
+            midiump_packet2values(ump.packet, &channel, &command, &note, &velocity);
+            printf("chan %d comm %d note %d vel %d", channel, command, note, velocity);
+            //std::cout << "chan " << channel << " comm " << command << " note " << note << " vel " << velocity << std::endl;
+            std::cout << "dequed one in midiOut_packet2fields" << std::endl;
+        }
         cur[n] = ump.packet;
         n = n >= 999 ? 999 : n + 1; //we'll drop packets if we get flooded.
     }
@@ -1167,7 +1174,10 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         //update x3d node fields
         input = ac->nodes[srepn->inode];
         //read input queue and convert to MFInt32 midiNote and SFInt32 pedal
-        midiOut_message2fields(input, pnode);
+        if(MIDITransport() == MIDI_MSG)
+            midiOut_message2fields(input, pnode);
+        if (MIDITransport() == MIDI_UMP)
+            midiOut_packet2fields(input, pnode);
     }
     break;
     case NODE_MIDIIn:
@@ -1190,7 +1200,10 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         }
         input = ac->nodes[srepn->inode];
         //convert MFInt32 midiNote to string of messages with this timestamp
-        midiin_midinote2messages(input, pnode);
+        if(MIDITransport() == MIDI_MSG)
+            midiin_midinote2messages(input, pnode);
+        if (MIDITransport() == MIDI_UMP)
+            midiin_midinote2packets(input, pnode);
 
     }
     break;

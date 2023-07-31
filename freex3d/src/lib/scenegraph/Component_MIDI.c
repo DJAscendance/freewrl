@@ -499,7 +499,7 @@ void midiump_packet2values(double packet, ubyte* channel, ubyte* command, ubyte*
 	ump.packet = packet;
 	*channel = (ump.bytes[1] & 0xF) + 1;
 	*command = ump.bytes[1] - (*channel - 1);
-	*note    = ump.bytes[3];
+	*note    = ump.bytes[2];
 	*velocity= ump.u16[2];
 }
 double midiump_values2packet(ubyte channel, ubyte command, ubyte note, ushort velocity) {

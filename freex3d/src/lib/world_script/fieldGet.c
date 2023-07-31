@@ -93,8 +93,18 @@ void getField_ToJavascript (int num, int fromoffset) {
 	case FIELDTYPE_SFVec3d:
 	case FIELDTYPE_SFVec4d:
 	case FIELDTYPE_SFRotation:
+	case FIELDTYPE_SFImage:
+	case FIELDTYPE_SFMatrix3f:
+	case FIELDTYPE_SFMatrix4f:
+	case FIELDTYPE_SFMatrix3d:
+	case FIELDTYPE_SFMatrix4d:
 		setScriptMultiElementtype(num);
 		break;
+	case FIELDTYPE_MFFloat:
+	case FIELDTYPE_MFBool:
+	case FIELDTYPE_MFInt32:
+	case FIELDTYPE_MFTime:
+	case FIELDTYPE_MFDouble:
 	case FIELDTYPE_MFColor:
 	case FIELDTYPE_MFColorRGBA:
 	case FIELDTYPE_MFVec2f:
@@ -103,14 +113,14 @@ void getField_ToJavascript (int num, int fromoffset) {
 	case FIELDTYPE_MFVec2d:
 	case FIELDTYPE_MFVec3d:
 	case FIELDTYPE_MFVec4d:
-	case FIELDTYPE_MFFloat:
-	case FIELDTYPE_MFTime:
-	case FIELDTYPE_MFInt32:
 	case FIELDTYPE_MFString:
 	case FIELDTYPE_MFNode:
 	case FIELDTYPE_MFRotation:
 	case FIELDTYPE_MFImage:
-	case FIELDTYPE_SFImage:
+	case FIELDTYPE_MFMatrix3f:
+	case FIELDTYPE_MFMatrix4f:
+	case FIELDTYPE_MFMatrix3d:
+	case FIELDTYPE_MFMatrix4d:
 		ignored = setMFElementtype(num);
 		break;
 	default : {
@@ -160,6 +170,11 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 	case FIELDTYPE_SFImage:
 		set_one_MultiElementType(shader_num, fieldOffset, any, len);
 		break;
+	case FIELDTYPE_MFFloat:
+	case FIELDTYPE_MFInt32:
+	case FIELDTYPE_MFBool:
+	case FIELDTYPE_MFTime:
+	case FIELDTYPE_MFDouble:
 	case FIELDTYPE_MFColor:
 	case FIELDTYPE_MFColorRGBA:
 	case FIELDTYPE_MFVec2f:
@@ -168,13 +183,14 @@ void getField_ToJavascript_B(int shader_num, int fieldOffset, int type, union an
 	case FIELDTYPE_MFVec2d:
 	case FIELDTYPE_MFVec3d:
 	case FIELDTYPE_MFVec4d:
-	case FIELDTYPE_MFFloat:
-	case FIELDTYPE_MFTime:
-	case FIELDTYPE_MFInt32:
 	case FIELDTYPE_MFString:
 	case FIELDTYPE_MFNode:
 	case FIELDTYPE_MFRotation:
 	case FIELDTYPE_MFImage:
+	case FIELDTYPE_MFMatrix3f:
+	case FIELDTYPE_MFMatrix4f:
+	case FIELDTYPE_MFMatrix3d:
+	case FIELDTYPE_MFMatrix4d:
 
 		set_one_MFElementType(shader_num, fieldOffset, type, (void *)any,len);
 
