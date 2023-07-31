@@ -906,7 +906,7 @@ void midiin_midinote2packets(MidiNode* mnode, struct X3D_MIDIIn* pnode) {
     static double lasttime = 0.0;
     if (lasttime == 0.0) lasttime = TickTime();
     for (int i = 0; i < pnode->midiUmp.n; i++) {
-        double packet = pnode->midiMsg.p[i];
+        double packet = pnode->midiUmp.p[i];
         double now = TickTime();
         double timestamp = now - lasttime;
         lasttime = now;
