@@ -3715,7 +3715,7 @@ int X3DMatrix4_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 
 FWFunctionSpec (X3DMatrix4_Functions)[] = {
 	{"setTransform", X3DMatrix4_setTransform, 0,{5,-1,0,"WWWWW"}},
-	{"getTransform", X3DMatrix4_getTransform, 'P',{1,-1,0,"W"}},
+	{"getTransform", X3DMatrix4_getTransform, 'P',{3,-1,0,"WWW"}},
 	{"inverse", X3DMatrix4_inverse, 'P',{0,-1,0,NULL}},
 	{"transpose", X3DMatrix4_transpose, 'P',{0,-1,0,NULL}},
 	{"multLeft", X3DMatrix4_multLeft, 'P',{1,-1,0,"P"}},
@@ -3859,7 +3859,7 @@ int VrmlMatrix_toString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpa
 
 FWFunctionSpec(VrmlMatrix_Functions)[] = {
 	{"setTransform", VrmlMatrix_setTransform, 0,{5,-1,0,"WWWWW"}},
-	{"getTransform", VrmlMatrix_getTransform, 'P',{1,-1,0,"W"}},
+	{"getTransform", VrmlMatrix_getTransform, 'P',{3,-1,0,"WWW"}},
 	{"inverse", VrmlMatrix_inverse, 'P',{0,-1,0,NULL}},
 	{"transpose", VrmlMatrix_transpose, 'P',{0,-1,0,NULL}},
 	{"multLeft", VrmlMatrix_multLeft, 'P',{1,-1,0,"P"}},

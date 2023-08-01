@@ -349,6 +349,7 @@ int fwType2itype(const char *fwType){
 		if(!strcasecmp(fwType,"X3DConstants")) ifield = AUXTYPE_X3DConstants;
 		if(!strcasecmp(fwType, "X3DMatrix3")) ifield = AUXTYPE_X3DMatrix3;
 		if(!strcasecmp(fwType, "X3DMatrix4")) ifield = AUXTYPE_X3DMatrix4;
+		if(!strcasecmp(fwType, "VrmlMatrix")) ifield = AUXTYPE_VrmlMatrix;
 
 	}
 	return ifield;
