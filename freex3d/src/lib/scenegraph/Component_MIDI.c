@@ -665,7 +665,7 @@ void render_MIDIToneMerger(struct X3D_MIDIToneMerger* node) {
 					mnote[n] = midimsg_values2uint(channel, command, note, velocity);
 				}
 				if (MIDITransport() == MIDI_UMP) {
-					ushort velocity = curval ? 65536 : 0;
+					ushort velocity = curval ? 65535 : 0;
 					dnote[n] = midiump_values2packet(channel, command, note, velocity);
 				}
 				n++;
