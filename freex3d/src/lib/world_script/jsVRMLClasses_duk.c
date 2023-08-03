@@ -3050,19 +3050,23 @@ int X3DMatrix3_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[1]._web3dval.native, (union anyVrml*)&center);
 	}
 	for(i=0;i<3;i++){
-		matrix[0] = &ptr->c[i*3];
+		matrix[i] = &ptr->c[i*3];
 		mat[i] = &m2[i*3];
 	}
 	//initialize to Identity
+
+
 	matidentity3d(matrix[0]);
 
 	//-C
 	//if(center){
 		matidentity3d(mat[0]);
 		veccopy2d(mat[2],center.c);
-		vecscale2d(mat[2], mat[3], -1.0);
+		vecscale2d(mat[2], mat[2], -1.0);
 		matmultiply3d(matrix[0],mat[0],matrix[0]);
 	//}
+
+
 	//-SR
 	if(scaleangle != 0.0){
 		matidentity3d(mat[0]);
@@ -3071,6 +3075,7 @@ int X3DMatrix3_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		mat[0][1] = -mat[0][1];
 		matmultiply3d(matrix[0],mat[0],matrix[0]);
 	}
+
 	//S
 	//if(scale){
 		matidentity3d(mat[0]);
@@ -3106,7 +3111,7 @@ int X3DMatrix3_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		veccopy2d(mat[2],translation.c);
 		matmultiply3d(matrix[0],mat[0],matrix[0]);
 	//}
-
+	
 	return 0;
 }
 
@@ -3292,7 +3297,7 @@ int X3DMatrix3_toString(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpa
 
 FWFunctionSpec (X3DMatrix3_Functions)[] = {
 	{"setTransform", X3DMatrix3_setTransform, 0,{5,-1,0,"WWWWW"}},
-	{"getTransform", X3DMatrix3_getTransform, 'P',{1,-1,0,"W"}},
+	{"getTransform", X3DMatrix3_getTransform, 'P',{3,-1,0,"WWW"}},
 	{"inverse", X3DMatrix3_inverse, 'P',{0,-1,0,NULL}},
 	{"transpose", X3DMatrix3_transpose, 'P',{0,-1,0,NULL}},
 	{"multLeft", X3DMatrix3_multLeft, 'P',{1,-1,0,"P"}},

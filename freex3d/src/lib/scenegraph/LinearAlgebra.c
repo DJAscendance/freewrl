@@ -904,9 +904,10 @@ double* vecmultmat3d(double* r3, double* a3, double* mat3)
 	int i, j;
 	double t3[3], * b[3];
 	memcpy(t3, a3, 3 * sizeof(double));
+	for (i = 0; i < 3; i++) b[i] = &mat3[i * 3];
 	for (i = 0; i < 3; i++) {
 		r3[i] = 0.0f;
-		b[i] = &mat3[i * 4];
+		//b[i] = &mat3[i * 3];
 		for (j = 0; j < 3; j++)
 			r3[i] += t3[j] * b[j][i];
 	}
