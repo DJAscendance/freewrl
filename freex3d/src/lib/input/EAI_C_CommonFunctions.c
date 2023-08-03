@@ -875,8 +875,11 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_SF_SIMPLE_ELEMENT(Matrix4f,matrix4f,sizeof(struct SFMatrix4f))
 			PST_SF_SIMPLE_ELEMENT(Matrix3d,matrix3d,sizeof(struct SFMatrix3d))
 			PST_SF_SIMPLE_ELEMENT(Matrix4d,matrix4d,sizeof(struct SFMatrix4d))
-			PST_SF_SIMPLE_ELEMENT(Image,image,sizeof(struct Multi_Int32))
-
+			case FIELDTYPE_SFImage:
+				printf("in case FIELDTYPE_SFImage\n");
+				//PST_SF_SIMPLE_ELEMENT(Image, image, sizeof(struct Multi_Int32))
+				memcpy(nst, &myVal.sfimage, sizeof(struct SFImage));
+				break;
 			case FIELDTYPE_SFString: {
 					//struct Uni_String *mptr;
 					memcpy(nst, &myVal.sfstring, sizeof(struct Uni_String*));
