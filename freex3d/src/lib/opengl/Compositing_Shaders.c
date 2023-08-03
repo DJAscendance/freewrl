@@ -1272,6 +1272,13 @@ precision mediump float; \n\
 //#else \n\
 //precision highp float; \n\
 #endif //MOBILE \n\
+#define varying in \n\
+#define texture2D texture \n\
+#define texture3D texture \n\
+#define textureCube texture \n\
+#define texture2DProj textureProj \n\
+#define texture3DProj textureProj \n\
+out vec4 FragColor; \n\
 /* Generic GLSL fragment shader, used on OpenGL ES. */ \n\
  \n\
 varying vec4 castle_Color; \n\
@@ -2166,9 +2173,9 @@ void main(void) \n\
 	/* PLUG: fog_apply (fragment_color, N) */ \n\
 	\n\
 	fragment_color.rgb = LINEARtoSRGB(fragment_color.rgb); \n\
-	gl_FragColor = fragment_color; \n\
+	FragColor = fragment_color; \n\
 	\n\
-	/* PLUG: fragment_end (gl_FragColor) */ \n\
+	/* PLUG: fragment_end (FragColor) */ \n\
 } \n";
 
 
@@ -4161,6 +4168,8 @@ void PLUG_add_light_contribution2 (inout vec3 vertexcolor, inout vec3 specularco
 
 /* Generic GLSL vertex shader, used on OpenGL ES. */
 static const GLchar *volumeVertexGLES2 = " \n\
+#define varying out \n\
+#define atribute in \n\
 uniform mat4 fw_ModelViewMatrix; \n\
 uniform mat4 fw_ProjectionMatrix; \n\
 attribute vec4 fw_Vertex; \n\
@@ -4197,6 +4206,11 @@ static const GLchar *volumeFragmentGLES2 = " \n\
 precision mediump float; \n\
 #endif //MOBILE \n\
 #define varying in \n\
+#define texture2D texture \n\
+#define texture3D texture \n\
+#define textureCube texture \n\
+#define texture2DProj textureProj \n\
+#define texture3DProj textureProj \n\
 out vec4 FragColor; \n\
  \n\
  vec4 HeatMapColor(float value, float minValue, float maxValue) \n\
@@ -4948,6 +4962,11 @@ static const GLchar *volumeBlendedFragmentGLES2 = " \n\
 precision mediump float; \n\
 #endif //MOBILE \n\
 #define varying in \n\
+#define texture2D texture \n\
+#define texture3D texture \n\
+#define textureCube texture \n\
+#define texture2DProj textureProj \n\
+#define texture3DProj textureProj \n\
 out vec4 FragColor; \n\
  vec4 HeatMapColor(float value, float minValue, float maxValue) \n\
 { \n\
