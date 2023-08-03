@@ -3224,7 +3224,7 @@ int samplr = mat.samplr[mat.tstart[iuse] ]; \n\
 
 static const GLchar* plug_fragment_texture3D_apply_volume = "\n\
 vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
-  vec4 sample = vec4(0.0); \n\
+  vec4 sampled = vec4(0.0); \n\
   #ifdef TEX3D \n\
   //TILED method (vs Y strip method) \n\
   vec3 texcoord = texcoord3; \n\
@@ -3273,22 +3273,22 @@ vec4 texture3Demu0( sampler2D sampler, in vec3 texcoord3, in int magfilter){ \n\
 	texel = mix(ctexel,ftexel,1.0-fraction); //lerp GL_LINEAR \n\
   else \n\
 	texel = ftexel; //fraction > .5 ? ctexel : ftexel; //GL_NEAREST \n\
-  sample = texel; \n\
+  sampled = texel; \n\
   #endif //TEX3D \n\
-  return sample; \n\
+  return sampled; \n\
 } \n\
 vec4 texture3Demu( sampler2D sampler, in vec3 texcoord3){ \n\
 	//use uniform magfilter \n\
 	return texture3Demu0( sampler, texcoord3, magFilter); \n\
 } \n\
-void PLUG_texture3D( inout vec4 sample, in vec3 texcoord3 ){ \n\
-	sample = texture3Demu(fw_Texture_unit0,texcoord3); \n\
+void PLUG_texture3D( inout vec4 sampled, in vec3 texcoord3 ){ \n\
+	sampled = texture3Demu(fw_Texture_unit0,texcoord3); \n\
 } \n\
 void PLUG_texture_apply (inout vec4 finalFrag, in int iuse ){ \n\
 \n\
-	vec4 sample; \n\
-	sample = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
-	finalFrag *= sample; \n\
+	vec4 sampled; \n\
+	sampled = texture3Demu(fw_Texture_unit0,fw_TexCoord[0]); \n\
+	finalFrag *= sampled; \n\
   \n\
 }\n";
 
@@ -4196,6 +4196,8 @@ static const GLchar *volumeFragmentGLES2 = " \n\
 //precision highp float; \n\
 precision mediump float; \n\
 #endif //MOBILE \n\
+#define varying in \n\
+out vec4 FragColor; \n\
  \n\
  vec4 HeatMapColor(float value, float minValue, float maxValue) \n\
 { \n\
@@ -4555,8 +4557,8 @@ void main(void) \n\
     }  \n\
 	//void PLUG_ray_apply (inout vec4 raysum) \n\
 	/* PLUG: ray_apply (raysum) */ \n\
-	if(true) gl_FragColor = raysum; \n\
-	else gl_FragColor = debug_color; \n\
+	if(true) FragColor = raysum; \n\
+	else FragColor = debug_color; \n\
 } \n\
 ";
 
@@ -4945,6 +4947,8 @@ static const GLchar *volumeBlendedFragmentGLES2 = " \n\
 //precision highp float; \n\
 precision mediump float; \n\
 #endif //MOBILE \n\
+#define varying in \n\
+out vec4 FragColor; \n\
  vec4 HeatMapColor(float value, float minValue, float maxValue) \n\
 { \n\
 	//used for debugging. If min=0,max=1 then magenta is 0, blue,green,yellow, red is 1 \n\
@@ -5028,7 +5032,7 @@ void main(void) \n\
 	vec3 cg = clamp( cvw + cbw, 0.0, 1.0); \n\
 	float og = clamp(ovw + obw, 0.0, 1.0); \n\
 	\n\
-	gl_FragColor = vec4(cg,og); \n\
+	FragColor = vec4(cg,og); \n\
 } \n\
 ";
 
@@ -5099,7 +5103,8 @@ int getSpecificShaderSourceVolume (const GLchar **vertexSource, const GLchar **f
 			//https://en.wikipedia.org/wiki/OpenGL_Shading_Language#Versions 
 			// 110 120 130 140 150  330  400 410 420 430 440 450 460
 			// May 1, 2022 volume rendering did not render with iver latest, but rendered with 130
-			//iver = GLSL_max_version; //for maximizing capabilities
+			iver = GLSL_max_version; //for maximizing capabilities
+			//iver = 400;
 			AddVersion(SHADERPART_VERTEX, iver, CompleteCode); //lower precision floats
 			AddVersion(SHADERPART_FRAGMENT, iver, CompleteCode); //lower precision floats
 			AddDefine(SHADERPART_VERTEX, "FULL", CompleteCode); //lower precision floats
