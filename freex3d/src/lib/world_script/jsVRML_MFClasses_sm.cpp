@@ -4902,7 +4902,7 @@ X3DMatrix3setTransform(JSContext* cx, uintN argc, jsval* vp) {
 	struct SFVec3d scaleOrientation; // = fwpars[3]._web3dval.native;
 	struct SFVec2d center; // = fwpars[4]._web3dval.native;
 	//set up some [][] helpers for clarity
-	double* matrix[3], * mat[3], m2[9], angle, scaleangle;
+	double* matrix[3], * mat[3], m2[9], angle, scaleangle, dval;
 
 	memset(&translation, 0, sizeof(struct SFVec2d));
 	memset(&rotation, 0, sizeof(struct SFVec3d));
@@ -4929,70 +4929,125 @@ X3DMatrix3setTransform(JSContext* cx, uintN argc, jsval* vp) {
 
 
 
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
+	if (argc >= 1) {
+		//Translation, either SFVecXX or js [] array
+		error = !JS_ValueToObject(cx, argv[0], &transObj);
+		if (JS_IsArrayObject(cx, transObj)) {
+			jsuint lengthp;
+			jsval vp;
+			JS_GetArrayLength(cx, transObj, &lengthp);
+			int ncopy = lengthp > 2 ? 2 : lengthp;
+			for (i = 0; i < 2; i++) {
+				JS_GetElement(cx, transObj, i, &vp);
+				if (JS_ValueToNumber(cx, vp, &dval))
+					translation.c[i] = dval;
+			}
+		}
+		else {
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&translation);
+		}
 	}
-	if (argc == 2) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o o", &transObj, &rotObj);
+	if (argc >= 2) {
+		// rotation either scalar or SFVec3X
+		if (argv[1].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[1], &val);
+			printf("got val = %lf", val);
+			angle = val;
+		}
+		else {
+			error = !JS_ValueToObject(cx, argv[1], &rotObj);
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&rotation);
+			angle = rotation.c[2];
+		}
 	}
-	if (argc == 3) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o o o", &transObj, &rotObj, &scaleObj);
+	if (argc >= 3) {
+		//scale - either a scalar or js array [] or SFVec2X
+		if (argv[2].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[2], &val);
+			scale.c[0] = scale.c[1] = val;
+		}
+		else if (argv[2].isObject()) {
+			error = !JS_ValueToObject(cx, argv[2], &scaleObj);
+			if (JS_IsArrayObject(cx, scaleObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, scaleObj, &lengthp);
+				int ncopy = lengthp > 2 ? 2 : lengthp;
+				for (i = 0; i < 2; i++) {
+					JS_GetElement(cx, scaleObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						scale.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&scale);
+			}
+		}
 	}
-	if (argc == 4) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o o o o", &transObj, &rotObj, &scaleObj, &scaleOObj);
+	if (argc >= 4) {
+		//scaleOrientation either a scalar or SFVec3X
+		if (argv[3].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[3], &val);
+			scaleangle = val;
+		}
+		else {
+			error = !JS_ValueToObject(cx, argv[3], &scaleOObj);
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&rotation);
+			scaleangle = rotation.c[2];
+		}
 	}
-	if (argc == 5) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o o o o o", &transObj, &rotObj, &scaleObj, &scaleOObj, &centerObj);
+	if (argc >= 5) {
+		//center either an SFVec2X or js array[]
+		if (argv[4].isObject()) {
+			error = !JS_ValueToObject(cx, argv[4], &centerObj);
+			if (JS_IsArrayObject(cx, centerObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, centerObj, &lengthp);
+				int ncopy = lengthp > 2 ? 2 : lengthp;
+				for (i = 0; i < 2; i++) {
+					JS_GetElement(cx, centerObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						center.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&center);
+			}
+		}
 	}
 
 	if (error) {
 		ConsoleMessage("setTransform: error in parameters");
 		return JS_FALSE;
-	}
-
-
-	// apply Transform, if requested
-	if (transObj) {
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
-			printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
-			return JS_FALSE;
-		}
-		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&translation);
-	}
-	if (rotObj) {
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
-			printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
-			return JS_FALSE;
-		}
-		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&rotation);
-		angle = rotation.c[2];
-	}
-	if (scaleObj) {
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
-			printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
-			return JS_FALSE;
-		}
-		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&scale);
-	}
-	if (scaleOObj) {
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
-			printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
-			return JS_FALSE;
-		}
-		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&scaleOrientation);
-		scaleangle = scaleOrientation.c[2];
-	}
-	if (centerObj) {
-		AnyNative* ptr;
-		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
-			printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
-			return JS_FALSE;
-		}
-		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&center);
 	}
 
 	for (i = 0; i < 3; i++) {
