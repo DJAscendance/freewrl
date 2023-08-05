@@ -125,6 +125,11 @@ double * vecsetd(double *b, double x, double y, double z){
 	b[0] = x, b[1] = y; b[2] = z;
 	return b;
 }
+double* vecset2d(double* b, double x, double y) {
+	b[0] = x, b[1] = y; 
+	return b;
+}
+
 double * vecset4d(double *b, double x, double y, double z, double a){
 	b[0] = x, b[1] = y; b[2] = z; b[3] = a;
 	return b;
