@@ -4550,95 +4550,39 @@ MFMatrix4dAssign(JSContext* cx, uintN argc, jsval* vp) {
 	return JS_TRUE;
 }
 
-// X3DMatrix4 (copy of VrmlMatrix)
-
-//static void _setmatrix(JSContext* cx, JSObject* obj, double* matrix) {
-//	jsval val;
-//	int i;
-//	for (i = 0; i < 16; i++) {
-//
-//		if (JS_NewNumberValue(cx, matrix[i], &val) == JS_FALSE) {
-//			printf("problem creating id matrix\n");
-//			return;
-//		}
-//
-//		if (!JS_SetElement(cx, obj, (jsint)i, &val)) {
-//			printf("JS_DefineElement failed for arg %u in X3DMatrix4SetTransform.\n", i);
-//			return;
-//		}
-//	}
-//}
-//
-///* get the matrix values into a double array */
-//static void _getmatrix(JSContext* cx, JSObject* obj, double* fl) {
-//	int32 _length;
-//	jsval _length_val;
-//	jsval val;
-//	int i;
-//	double d;
-//
-//	if (!JS_GetProperty(cx, obj, MF_LENGTH_FIELD, &_length_val)) {
-//		printf("JS_GetProperty failed for \"%s\" in _getmatrix.\n", MF_LENGTH_FIELD);
-//		_length = 0;
-//	}
-//	else {
-//		_length = JSVAL_TO_INT(_length_val);
-//	}
-//
-//#ifdef JSVRMLCLASSESVERBOSE
-//	printf("_getmatrix, length %d\n", _length);
-//#endif
-//
-//
-//	if (_length > 16) _length = 16;
-//
-//	for (i = 0; i < _length; i++) {
-//		if (!JS_GetElement(cx, obj, (jsint)i, &val)) {
-//			printf("failed in get of copyElements index %d.\n", i);
-//			fl[i] = 0.0;
-//		}
-//		else {
-//			if (!JS_ValueToNumber(cx, val, &d)) {
-//				printf("this is not a mumber!\n");
-//				fl[i] = 0.0;
-//			}
-//			else fl[i] = d;
-//		}
-//	}
-//
-//	/* in case our matrix was short for some reason */
-//	for (i = _length; i < 16; i++) {
-//		fl[i] = 0.0;
-//	}
-//}
-
+// X3DMatrix4 (same as VrmlMatrix)
 
 JSBool
 X3DMatrix4ToString(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-	jsval rval;
+
+	JSString* _str;
+	double* cc;
+	char buff[STRING];
+
 	UNUSED(argc);
 	UNUSED(argv);
+	if (SM_method() == 2) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf("JS_GetPrivate failed in SFMatrix4dToString.\n");
+			return JS_FALSE;
+		}
+		cc = ptr->v->sfmatrix4d.c;
+	}
+	memset(buff, 0, STRING);
+	sprintf(buff, "%.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g",
+		cc[0], cc[1], cc[2], cc[3],
+		cc[4], cc[5], cc[6], cc[7],
+		cc[8], cc[9], cc[10], cc[11],
+		cc[12], cc[13], cc[14], cc[15]
+	);
+	_str = JS_NewStringCopyZ(cx, buff);
 
-	if (!doMFToString(cx, obj, "MFFloat", &rval)) { return JS_FALSE; }
-	JS_SET_RVAL(cx, vp, rval);
+	JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(_str));
 	return JS_TRUE;
 }
-
-///* get rows; used for scale and rot in getTransform */
-//void _get4f(double* ret, double* mat, int row) {
-//	if (row == 0) { ret[0] = MAT00; ret[1] = MAT01; ret[2] = MAT02; ret[3] = MAT03; }
-//	if (row == 1) { ret[0] = MAT10; ret[1] = MAT11; ret[2] = MAT12; ret[3] = MAT13; }
-//	if (row == 2) { ret[0] = MAT20; ret[1] = MAT21; ret[2] = MAT22; ret[3] = MAT23; }
-//}
-//
-///* set rows; used for scale and rot in getTransform */
-//void _set4f(double len, double* mat, int row) {
-//	if (row == 0) { MAT00 = MAT00 / len; MAT01 = MAT01 / len; MAT02 = MAT02 / len; MAT03 = MAT03 / len; }
-//	if (row == 1) { MAT10 = MAT10 / len; MAT11 = MAT11 / len; MAT12 = MAT12 / len; MAT13 = MAT13 / len; }
-//	if (row == 2) { MAT20 = MAT20 / len; MAT21 = MAT21 / len; MAT22 = MAT22 / len; MAT23 = MAT23 / len; }
-//}
 
 JSBool
 X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp) {
@@ -4648,25 +4592,59 @@ X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* transObj = NULL;
 	JSObject* rotObj = NULL;
 	JSObject* scaleObj = NULL;
-	SFRotationNative* Rptr;
-	SFVec3fNative* Vptr;
 
+	struct SFMatrix4d* cptr; 
+	struct SFVec3d translation; 
+	struct SFRotation rotation; 
+	struct SFVec3d scale; 
+	double* matrix[4], retscale[3];
+	double matrixd[16];
 	Quaternion quat;
-	double matrix[16];
 	double qu[4];
-	double r0[4], r1[4], r2[4];
-	double l0, l1, l2;
 
-	/* some intermediate calculations */
-	_getmatrix(cx, obj, matrix);
-	/* get each row */
-	_get4f(r0, matrix, 0);
-	_get4f(r1, matrix, 1);
-	_get4f(r2, matrix, 2);
-	/* get the length of each row */
-	l0 = sqrt(r0[0] * r0[0] + r0[1] * r0[1] + r0[2] * r0[2] + r0[3] * r0[3]);
-	l1 = sqrt(r1[0] * r1[0] + r1[1] * r1[1] + r1[2] * r1[2] + r1[3] * r1[3]);
-	l2 = sqrt(r2[0] * r2[0] + r2[1] * r2[1] + r2[2] * r2[2] + r2[3] * r2[3]);
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+
+	for (i = 0; i < 4; i++)
+		matrix[i] = &cptr->c[i * 4];
+
+	//get row scales
+	for (i = 0; i < 3; i++)
+		retscale[i] = sqrt(vecdot4d(matrix[i], matrix[i]));
+
+	//if (translation) {
+	veccopyd(translation.c, matrix[3]);
+	//}
+
+	// rotation 
+	//if (rotation) {
+	double m2[16], ff;
+	for (i = 0; i < 3; i++) {
+		ff = retscale[i];
+		if (ff != 0.0) ff = 1.0 / ff;
+		vecscale4d(&m2[i * 4], matrix[i], ff);
+	}
+	// convert the matrix to a quaternion
+	//for(i=0;i<16;i++) matrixd[i] = (double) m2[i];
+	matrix_to_quaternion(&quat, m2); // matrixd);
+
+	// convert the quaternion to a VRML rotation 
+	quaternion_to_vrmlrot(&quat, &qu[0], &qu[1], &qu[2], &qu[3]);
+
+	// now copy the values over 
+	for (i = 0; i < 4; i++)
+		rotation.c[i] = (float)qu[i];
+	//}
+
+	// scale
+	//if (scale) {
+	veccopyd(scale.c, retscale);
+	//}
 
 	if (argc == 1) {
 		if (!JS_ConvertArguments(cx, argc, argv, "o", &transObj)) {
@@ -4688,61 +4666,29 @@ X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp) {
 		}
 	}
 
-	/* translation */
-	if (transObj != NULL) {
-		CHECK_CLASS(cx, transObj, NULL, __FUNCTION__, SFVec3fClass)
-
-			if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
-				printf("JS_GetPrivate failed.\n");
-				return JS_FALSE;
-			}
-		(Vptr->v).c[0] = (float)matrix[12];
-		(Vptr->v).c[1] = (float)matrix[13];
-		(Vptr->v).c[2] = (float)matrix[14];
-		Vptr->valueChanged++;
+	if (transObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, ptr->type, (union anyVrml*)&translation, ptr->v);
 	}
-
-	/* rotation */
-	if (rotObj != NULL) {
-
-		CHECK_CLASS(cx, rotObj, NULL, __FUNCTION__, SFRotationClass)
-
-			if ((Rptr = (SFRotationNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
-				printf("JS_GetPrivate failed.\n");
-				return JS_FALSE;
-			}
-
-		/* apply length to each row */
-		_set4f(l0, matrix, 0);
-		_set4f(l1, matrix, 1);
-		_set4f(l2, matrix, 2);
-
-		/* convert the matrix to a quaternion */
-		matrix_to_quaternion(&quat, matrix);
-#ifdef JSVRMLCLASSESVERBOSE
-		printf("quaternion %f %f %f %f\n", quat.x, quat.y, quat.z, quat.w);
-#endif
-
-		/* convert the quaternion to a VRML rotation */
-		quaternion_to_vrmlrot(&quat, &qu[0], &qu[1], &qu[2], &qu[3]);
-
-		/* now copy the values over */
-		for (i = 0; i < 4; i++) (Rptr->v).c[i] = (float)qu[i];
-		Rptr->valueChanged = 1;
+	if (rotObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFRotation, ptr->type, (union anyVrml*)&rotation, ptr->v);
 	}
-
-	/* scale */
-	if (scaleObj != NULL) {
-		CHECK_CLASS(cx, scaleObj, NULL, __FUNCTION__, SFVec3fClass)
-
-			if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
-				printf("JS_GetPrivate failed.\n");
-				return JS_FALSE;
-			}
-		(Vptr->v).c[0] = (float)l0;
-		(Vptr->v).c[1] = (float)l1;
-		(Vptr->v).c[2] = (float)l2;
-		Vptr->valueChanged = 1;
+	if (scaleObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, ptr->type, (union anyVrml*)&scale, ptr->v);
 	}
 
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
@@ -4755,8 +4701,11 @@ X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp) {
    The method has 0 to 5 parameters. For example, specifying 0 parameters results in an
    identity matrix while specifying 1 parameter results in a translation and specifying 2
    parameters results in a translation and a rotation. Any unspecified parameter is set to
-   its default as specified for the Transform node. */
-
+   its default as specified for the Transform node. 
+	//void setTransform(SFVec3f translation, SFRotation rotation, SFVec3f scale, SFRotation scaleOrientation, SFVec3f center)
+	// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform
+	// P' = T * C * R * SR * S * -SR * -C * P
+*/
 JSBool
 X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
@@ -4766,48 +4715,55 @@ X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* scaleObj = NULL;
 	JSObject* scaleOObj = NULL;
 	JSObject* centerObj = NULL;
+	int i;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d translation; // = fwpars[0]._web3dval.native;
+	struct SFRotation rotation; // = fwpars[1]._web3dval.native;
+	struct SFVec3d scale; // = fwpars[2]._web3dval.native;
+	struct SFRotation scaleOrientation; // = fwpars[3]._web3dval.native;
+	struct SFVec3d center; // = fwpars[4]._web3dval.native;
+	//set up some [][] helpers for clarity
+	double* matrix[4], * mat[4], m2[16];
 
-	double matrix[16];
+	memset(&translation, 0, sizeof(struct SFVec3d));
+	memset(&rotation, 0, sizeof(struct SFRotation));
+	memset(&scale, 0, sizeof(struct SFVec3d));
+	memset(&scaleOrientation, 0, sizeof(struct SFRotation));
+	memset(&center, 0, sizeof(struct SFVec3d));
+	scale.c[0] = scale.c[1] = scale.c[2] = 1.0;
+	rotation.c[0] = 1.0f;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
 
 	int error = FALSE;
 
-#undef TESTING
-#ifdef TESTING
-	GLDOUBLE xxmat[16];
-	FW_GL_MATRIX_MODE(GL_MODELVIEW);
-	FW_GL_PUSH_MATRIX();
-	FW_GL_LOAD_IDENTITY();
-#endif
 
 
-	/* set the identity for this matrix. We work on this matrix, then assign it to the variable */
-	loadIdentityMatrix(matrix);
-
-	/* first, is this a X3DMatrix4 object? The chances of this failing are slim to none... */
-	if (!JS_InstanceOf(cx, obj, &X3DMatrix4Class, NULL)) {
-		error = TRUE;
+	if (argc == 1) {
+		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
 	}
-	else {
-		if (argc == 1) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-		}
-		if (argc == 2) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o", &transObj,
-				&rotObj);
-		}
-		if (argc == 3) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o",
-				&transObj, &rotObj, &scaleObj);
-		}
-		if (argc == 4) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o o",
-				&transObj, &rotObj, &scaleObj, &scaleOObj);
-		}
-		if (argc == 5) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o o o",
-				&transObj, &rotObj, &scaleObj, &scaleOObj, &centerObj);
-		}
-		if (argc > 5) { error = TRUE; }
+	if (argc == 2) {
+		error = !JS_ConvertArguments(cx, argc, argv, "o o", &transObj, &rotObj);
+	}
+	if (argc == 3) {
+		error = !JS_ConvertArguments(cx, argc, argv, "o o o", &transObj, &rotObj, &scaleObj);
+	}
+	if (argc == 4) {
+		error = !JS_ConvertArguments(cx, argc, argv, "o o o o", &transObj, &rotObj, &scaleObj, &scaleOObj);
+	}
+	if (argc == 5) {
+		error = !JS_ConvertArguments(cx, argc, argv, "o o o o o", &transObj, &rotObj, &scaleObj, &scaleOObj, &centerObj);
 	}
 
 	if (error) {
@@ -4815,83 +4771,112 @@ X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp) {
 		return JS_FALSE;
 	}
 
-	/* verify that we have the correct objects here */
-	if (transObj != NULL)
-		error = !JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL);
-	if (!error && (rotObj != NULL))
-		error = !JS_InstanceOf(cx, rotObj, &SFRotationClass, NULL);
-	if (!error && (scaleObj != NULL))
-		error = !JS_InstanceOf(cx, scaleObj, &SFVec3fClass, NULL);
-	if (!error && (scaleOObj != NULL))
-		error = !JS_InstanceOf(cx, scaleOObj, &SFRotationClass, NULL);
-	if (!error && centerObj != NULL)
-		error = !JS_InstanceOf(cx, centerObj, &SFVec3fClass, NULL);
-
-	if (error) {
-		ConsoleMessage("setTransform: at least one parameter incorrect type");
-		return JS_FALSE;
-	}
 
 	/* apply Transform, if requested */
 	if (transObj) {
-		SFVec3fNative* Vptr;
-		Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, transObj);
-		error = (Vptr == NULL);
-
-		if (!error) {
-			matrix[12] = Vptr->v.c[0];
-			matrix[13] = Vptr->v.c[1];
-			matrix[14] = Vptr->v.c[2];
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+			return JS_FALSE;
 		}
+		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&translation);
+	}
+	if (rotObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&rotation);
+	}
+	if (scaleObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&scale);
+	}
+	if (scaleOObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&scaleOrientation);
+	}
+	if (centerObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&center);
 	}
 
-	if (!error && (rotObj != NULL)) {
-		SFRotationNative* Rptr;
-		Rptr = (SFRotationNative*)JS_GetPrivateFw(cx, rotObj);
-		error = (Rptr == NULL);
-
-		if (!error) {
-			Quaternion quat;
-			vrmlrot_to_quaternion(&quat, Rptr->v.c[0], Rptr->v.c[1], Rptr->v.c[2], Rptr->v.c[3]);
-			/* printf ("from rotation %f %f %f %f\n",Rptr->v.c[0], Rptr->v.c[1], Rptr->v.c[2], Rptr->v.c[3]);
-			printf ("quaternion is %f %f %f %f\n",quat.x,quat.y,quat.x, quat.w); */
-			quaternion_to_matrix(matrix, &quat);
-		}
+	for (i = 0; i < 4; i++) {
+		matrix[i] = &cptr->c[i * 4]; //our current matrix3
+		mat[i] = &m2[i * 4]; //scratch matrix
 	}
+	//initialize to Identity
+	matidentity4d(matrix[0]);
 
-	if (!error && (scaleObj != NULL)) {
-		SFVec3fNative* Vptr;
-		Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, scaleObj);
-		error = (Vptr == NULL);
+	//T
+	//if(translation){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], translation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+	//C
+	//if(center){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
 
-		if (!error) {
-			struct point_XYZ myScale;
+	//R
+	//if(rotation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], rotation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
 
-			COPY_SFVEC3F_TO_POINT_XYZ(myScale, Vptr->v.c);
-			scale_to_matrix(matrix, &myScale);
-		}
+	//SR
+	//if(scaleOrientation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
 
-	}
+	//S
+	//if(scale){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 4; i++)
+		vecmult3d(mat[i], mat[i], scale.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
 
-	/* place the new values into the vrmlMatrix array */
-	_setmatrix(cx, obj, matrix);
+	// 
+	//-SR
+	//if(scaleOrientation){
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	//}
 
-#ifdef TESTING
-	printf("calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-		matrix[0], matrix[4], matrix[8], matrix[12],
-		matrix[1], matrix[5], matrix[9], matrix[13],
-		matrix[2], matrix[6], matrix[10], matrix[14],
-		matrix[3], matrix[7], matrix[11], matrix[15]);
-	glGetDoublev(GL_MODELVIEW, xxmat);
-	printf("modelview Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-		xxmat[0], xxmat[4], xxmat[8], xxmat[12],
-		xxmat[1], xxmat[5], xxmat[9], xxmat[13],
-		xxmat[2], xxmat[6], xxmat[10], xxmat[14],
-		xxmat[3], xxmat[7], xxmat[11], xxmat[15]);
-	FW_GL_POP_MATRIX();
-#endif
+	//-C
+	//if(center){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	vecscaled(mat[3], mat[3], -1.0f);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
 
-	/* JS 185+ -requires- rval to be set on true return; assume we will return the 'this' object */
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
 
 	return JS_TRUE;
@@ -4902,21 +4887,32 @@ JSBool
 X3DMatrix4inverse(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-	double src[16];
-	double dest[16];
-	JSObject* retObj;
-	UNUSED(argv);
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* retObj = NULL;
 
-	if (argc != 0) {
-		printf("X3DMatrix4, expect 0 parameters\n");
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
 		return JS_FALSE;
 	}
-	_getmatrix(cx, obj, src);
-	matinverseFULL(dest, src);
 
-	retObj = JS_ConstructObjectFw(cx, &X3DMatrix4Class, NULL, NULL);
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
 
-	_setmatrix(cx, retObj, dest);
+	matinverseFULL(ret->c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4.inverse.\n");
+		return JS_FALSE;
+	}
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
 	return JS_TRUE;
 }
@@ -4926,21 +4922,30 @@ JSBool
 X3DMatrix4transpose(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-	double src[16];
-	double dest[16];
-	JSObject* retObj;
-	UNUSED(argv);
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* retObj = NULL;
 
-	if (argc != 0) {
-		printf("X3DMatrix4, expect 0 parameters\n");
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
 		return JS_FALSE;
 	}
-	_getmatrix(cx, obj, src);
-	mattranspose(dest, src);
 
-	retObj = JS_ConstructObjectFw(cx, &X3DMatrix4Class, NULL, NULL);
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.transpose.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	mattranspose(ret->c, cptr->c);
 
-	_setmatrix(cx, retObj, dest);
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4.inverse.\n");
+		return JS_FALSE;
+	}
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
 	return JS_TRUE;
 }
@@ -4951,43 +4956,48 @@ JSBool
 X3DMatrix4multLeft(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-
-	JSObject* transObj = NULL;
+	struct SFMatrix4d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* rhsObj = NULL;
 	JSObject* retObj = NULL;
 
-	double matrix1[16];
-	double matrix2[16];
-	int error = FALSE;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	}
-	else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &X3DMatrix4Class, NULL)) { error = TRUE; }
-
-	if (error) {
-		ConsoleMessage("X3DMatrix4MultLeft, error in params");
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
 		return JS_FALSE;
 	}
+	
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret =  &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
+	matidentity4d(rhs.c);
 
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx, obj, matrix1);
-	_getmatrix(cx, transObj, matrix2);
-	matmultiplyFULL(matrix1, matrix1, matrix2);
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix4d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiplyFULL(ret->c, rhs.c, cptr->c);
 
-	retObj = JS_ConstructObjectFw(cx, &X3DMatrix4Class, NULL, NULL);
-
-	/*
-	   printf ("multLeft calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-				matrix1[0],  matrix1[4],  matrix1[ 8],  matrix1[12],
-				matrix1[1],  matrix1[5],  matrix1[ 9],  matrix1[13],
-				matrix1[2],  matrix1[6],  matrix1[10],  matrix1[14],
-				matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
-	*/
-	_setmatrix(cx, retObj, matrix1);
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL); 
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+		return JS_FALSE;
+	}
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
-
 	return JS_TRUE;
 }
 
@@ -4995,42 +5005,48 @@ JSBool
 X3DMatrix4multRight(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-	JSObject* transObj = NULL;
+	struct SFMatrix4d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* rhsObj = NULL;
 	JSObject* retObj = NULL;
 
-	double matrix1[16];
-	double matrix2[16];
-	int error = FALSE;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	}
-	else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &X3DMatrix4Class, NULL)) { error = TRUE; }
-
-	if (error) {
-		ConsoleMessage("X3DMatrix4MultRight, error in params");
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
 		return JS_FALSE;
 	}
 
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx, obj, matrix1);
-	_getmatrix(cx, transObj, matrix2);
-	matmultiplyFULL(matrix1, matrix2, matrix1);
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
+	matidentity4d(rhs.c);
 
-	retObj = JS_ConstructObjectFw(cx, &X3DMatrix4Class, NULL, NULL);
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix4d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiplyFULL(ret->c, cptr->c, rhs.c);
 
-	/*
-	   printf ("multRight calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-				matrix1[0],  matrix1[4],  matrix1[ 8],  matrix1[12],
-				matrix1[1],  matrix1[5],  matrix1[ 9],  matrix1[13],
-				matrix1[2],  matrix1[6],  matrix1[10],  matrix1[14],
-				matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
-	*/
-	_setmatrix(cx, retObj, matrix1);
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
-
 	return JS_TRUE;
 }
 
@@ -5039,50 +5055,58 @@ JSBool
 X3DMatrix4multVecMatrix(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-	JSObject* transObj = NULL;
+	struct SFVec3d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d* ret;
+	JSObject* rhsObj = NULL;
 	JSObject* retObj = NULL;
-	SFVec3fNative* Vptr;
 
-	double matrix1[16];
-	int error = FALSE;
-	struct point_XYZ inp, outp;
-	outp.x = outp.y = outp.z = 0.0;
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec3d, NULL, NULL)) == NULL) {
+		printf("SFVec3dNativeNew failed in X3DMatrix4.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfvec3d;
+	vecsetd(ret->c,0.0,0.0,0.0);
+	vecsetd(rhs.c, 0.0, 0.0, 0.0);
 
 	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec3d, rhsptr->v, (union anyVrml*)&rhs);
 	}
-	else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE; }
-
-	if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
-		error = TRUE;
+	double a4[4], r4[4];
+	veccopyd(a4, rhs.c);
+	a4[3] = 1.0;
+	vecmultmat4d(r4, a4, cptr->c);
+	if (r4[3] != 0.0) {
+		double wi = 1.0 / r4[3];
+		vecscaled(ret->c, r4, wi);
+	}
+	else {
+		veccopyd(ret->c, r4);
 	}
 
-	if (error) {
-		ConsoleMessage("X3DMatrix4MultVec, error in params");
+	retObj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
 		return JS_FALSE;
 	}
-
-	COPY_SFVEC3F_TO_POINT_XYZ(inp, Vptr->v.c);
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx, obj, matrix1);
-
-	/* is this the one we have to transpose? */
-	/* mattranspose (matrix1, matrix1); */
-
-	matrotate2v(matrix1, inp, outp);
-
-	retObj = JS_ConstructObjectFw(cx, &SFVec3fClass, NULL, NULL);
-	if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, retObj)) == NULL) {
-		printf("error in new X3DMatrix4\n");
-		return JS_FALSE;
-	}
-
-	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c, outp);
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
-
 	return JS_TRUE;
 }
 
@@ -5091,51 +5115,58 @@ JSBool
 X3DMatrix4multMatrixVec(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_THIS_OBJECT(cx, vp);
 	jsval* argv = JS_ARGV(cx, vp);
-
-	JSObject* transObj = NULL;
+	struct SFVec3d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d* ret;
+	JSObject* rhsObj = NULL;
 	JSObject* retObj = NULL;
-	SFVec3fNative* Vptr;
 
-	double matrix1[16];
-	int error = FALSE;
-	struct point_XYZ inp, outp;
-	outp.x = outp.y = outp.z = 0.0;
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec3d, NULL, NULL)) == NULL) {
+		printf("SFVec3dNativeNew failed in X3DMatrix4.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfvec3d;
+	vecsetd(ret->c, 0.0, 0.0, 0.0);
+	vecsetd(rhs.c, 0.0, 0.0, 0.0);
 
 	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec3d, rhsptr->v, (union anyVrml*)&rhs);
 	}
-	else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE; }
-
-	if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
-		error = TRUE;
+	double a4[4], r4[4];
+	veccopyd(a4, rhs.c);
+	a4[3] = 1.0;
+	matmultvec4d(r4, cptr->c, a4);
+	if (r4[3] != 0.0) {
+		double wi = 1.0 / r4[3];
+		vecscaled(ret->c, r4, wi);
+	}
+	else {
+		veccopyd(ret->c, r4);
 	}
 
-	if (error) {
-		ConsoleMessage("X3DMatrix4MultVec, error in params");
+	retObj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
 		return JS_FALSE;
 	}
-
-	COPY_SFVEC3F_TO_POINT_XYZ(inp, Vptr->v.c);
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx, obj, matrix1);
-
-	/* is this the one we have to transpose? */
-	mattranspose(matrix1, matrix1);
-
-	matrotate2v(matrix1, inp, outp);
-
-	retObj = JS_ConstructObjectFw(cx, &SFVec3fClass, NULL, NULL);
-	if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, retObj)) == NULL) {
-		printf("error in new X3DMatrix4\n");
-		return JS_FALSE;
-	}
-
-	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c, outp);
 	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
-
 	return JS_TRUE;
 }
 
@@ -5150,79 +5181,78 @@ X3DMatrix4Assign(JSContext* cx, uintN argc, jsval* vp) {
 	return JS_TRUE;
 }
 
+
 JSBool
 X3DMatrix4Constr(JSContext* cx, uintN argc, jsval* vp) {
 	JSObject* obj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
 	jsval* argv = JS_ARGV(cx, vp);
-	jsval rval = OBJECT_TO_JSVAL(obj);
-	if (!X3DMatrix4ConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
-	JS_SET_RVAL(cx, vp, rval);
-	return JS_TRUE;
-}
-JSBool X3DMatrix4ConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
-
-	JSObject* _arrayObj;
-	int isArray;
-	jsdouble _d;
-	unsigned int i;
+	jsdouble pars[16];
+	double* cc;
 
 	ADD_ROOT(cx, obj)
-
-		isArray = FALSE;
-	if (argc == 1 && argv) {
-		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
-		// tests/JohnCarlson/Arc1A.x3d
-		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf("JS_ValueToObject failed in X3DMatrix4Constr.\n");
-			return JS_FALSE;
-		}
-
-		if (JS_IsArrayObject(cx, _arrayObj)) {
-			jsuint lengthp;
-			jsval vp;
-			//printf("its an array\n");
-			isArray = TRUE;
-			JS_GetArrayLength(cx, _arrayObj, &lengthp);
-			argc = lengthp;
-		}
-	}
-
-	if ((argc != 16) && (argc != 0)) {
-		printf("X3DMatrix4Constr - require either 16 or no values\n");
+	AnyNative* any;
+	if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4Constr.\n");
 		return JS_FALSE;
 	}
 
-	DEFINE_LENGTH(cx, obj, 16)
+	if (!JS_SetPrivateFw(cx, obj, any)) {
+		printf("JS_SetPrivate failed in SFMatrix4dConstr.\n");
+		return JS_FALSE;
+	}
+	cc = any->v->sfmatrix4d.c;
 
-		if (argc == 16) {
-			for (i = 0; i < 16; i++) {
-				jsval vp;
-				if (isArray) {
-					JS_GetElement(cx, _arrayObj, i, &vp);
+	matidentity4d(cc);
 
-				}
-				else {
-					vp = argv[i];
-				}
-				if (!JS_ValueToNumber(cx, vp, &_d)) {
-					printf(
-						"JS_ValueToNumber failed in X3DMatrix4Constr.\n");
-					return JS_FALSE;
-				}
+	int ncopy = 0;
+	if (argc == 1) {
+		JSObject* paramObj;
+		int isArray;
 
-				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-					printf("JS_DefineElement failed for arg %u in X3DMatrix4Constr.\n", i);
-					return JS_FALSE;
-				}
+		if (!JS_ValueToObject(cx, argv[0], &paramObj)) {
+			printf("JS_ValueToObject failed in SFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, paramObj)) {
+			jsuint lengthp;
+			jsval vp;
+			double _d;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, paramObj, &lengthp);
+			ncopy = lengthp > 16 ? 16 : lengthp;
+			for (int i = 0; i < ncopy; i++) {
+				JS_GetElement(cx, paramObj, i, &vp);
+				if (JS_ValueToNumber(cx, vp, &_d))
+					cc[i] = _d;
 			}
 		}
 		else {
-			/* make the identity matrix */
-			double matrix[16];
-			loadIdentityMatrix(matrix);
-			_setmatrix(cx, obj, matrix);
+
+			AnyNative* pptr;
+			if ((pptr = (AnyNative*)JS_GetPrivateFw(cx, paramObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4Constr.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(pptr->type, FIELDTYPE_SFMatrix4d, pptr->v, (union anyVrml*)cc);
 		}
-	*rval = OBJECT_TO_JSVAL(obj);
+	}
+	else if (argc == 16) {
+		if (!JS_ConvertArguments(cx, argc, argv, "d d d d d d d d d d d d d d d d",
+			&(pars[0]), &(pars[1]), &(pars[2]), &(pars[3]),
+			&(pars[4]), &(pars[5]), &(pars[6]), &(pars[7]),
+			&(pars[8]), &(pars[9]), &(pars[10]), &(pars[11]),
+			&(pars[12]), &(pars[13]), &(pars[14]), &(pars[15])
+		))
+		{
+			printf("JS_ConvertArguments failed in X3DMatrix4Constr.\n");
+			return JS_FALSE;
+		}
+		for (int i = 0; i < 16; i++)
+			cc[i] = (double)pars[i];
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
 	return JS_TRUE;
 }
 
@@ -5239,63 +5269,43 @@ X3DMatrix4GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 	JSObject* obj = *hobj.address();
 	jsid iid = *hiid.address();
 	jsval* vp = hvp.address();
-
-	int32 _length, _index;
-	jsval _length_val;
-
+	int index;
 
 	jsval id;
 	if (!JS_IdToValue(cx, iid, &id)) {
-		printf("JS_IdToValue failed in X3DMatrix4Getproperty.\n");
+		printf("JS_IdToValue failed in X3DMatrix4.GetProperty.\n");
 		return JS_FALSE;
 	}
-
-
-	if (!JS_GetProperty(cx, obj, MF_LENGTH_FIELD, &_length_val)) {
-		printf("JS_GetProperty failed for \"%s\" in X3DMatrix4GetProperty.\n", MF_LENGTH_FIELD);
-		return JS_FALSE;
-	}
-	_length = JSVAL_TO_INT(_length_val);
-
-	/* -- note, code in here is not compliant to xulrunner-2
-					if (JSVAL_IS_STRING(id)==TRUE) {
-					printf("        is a common string :%s:\n",
-							JS_GetStringBytes(JS_ValueToString(cx, id)));
-					}
-					if (JSVAL_IS_OBJECT(id)==TRUE) {
-							printf ("       parameter is an object\n");
-					}
-					if (JSVAL_IS_PRIMITIVE(id)==TRUE) {
-							printf ("       parameter is a primitive\n");
-					}
-					if (JSVAL_IS_NULL(id)) { printf ("      - its a NULL\n");}
-					if (JSVAL_IS_INT(id)) { printf ("       - its a INT %d\n",JSVAL_TO_INT(id));}
-	*/
-
-
-
 
 	if (JSVAL_IS_INT(id)) {
-		_index = JSVAL_TO_INT(id);
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 4) {
+			struct SFMatrix4d* cptr;
 
-		if (_index >= _length) {
-			JS_NewNumberValue(cx, 0.0, vp);
-			if (!JS_DefineElement(cx, obj, (jsint)_index, *vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-				printf("JS_DefineElement failed in X3DMatrix4GetProperty.\n");
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
 				return JS_FALSE;
 			}
-		}
-		else {
-			if (!JS_LookupElement(cx, obj, _index, vp)) {
-				printf(
-					"JS_LookupElement failed in X3DMatrix4GetProperty.\n");
+			cptr = &ptr->v->sfmatrix4d;
+			double* row = &cptr->c[index * 4];
+
+			AnyNative* anyret;
+			if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec4d, NULL, NULL)) == NULL) {
+				printf("SFVec4dNativeNew failed in X3DMatrix4.GetProperty.\n");
 				return JS_FALSE;
 			}
-			if (JSVAL_IS_NULL(*vp)) {
-				printf("X3DMatrix4GetProperty: obj = %p, jsval = %d does not exist!\n",
-					obj, (int)_index);
+			anyret->gc = 0;
+			anyret->type = FIELDTYPE_SFVec4d;
+			anyret->v = (union anyVrml*)row;
+			JSObject *retObj = JS_NewObject(cx, &SFVec4dClass, NULL, NULL);
+			if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+				printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
 				return JS_FALSE;
 			}
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+			return JS_TRUE;
+
 		}
 	}
 	else if (id.isObject()) {
@@ -5307,10 +5317,43 @@ X3DMatrix4GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid
 JSBool
 X3DMatrix4SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
 	JSObject* obj = *hobj.address();
-	jsid id = *hiid.address();
+	jsid iid = *hiid.address();
 	jsval* vp = hvp.address();
 
-	return doMFSetProperty(cx, obj, id, vp, 1000); /* do not have a FIELDTYPE for this */
+	int index;
+
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DMatrix4.GetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 4) {
+			struct SFMatrix4d* cptr;
+			double rhs;
+			if (!JS_ValueToNumber(cx, *vp, &rhs)) {
+				printf("problems converting Javascript val to number in X3DMatrix.SetProperty\n");
+				return JS_FALSE;
+			}
+
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+				return JS_FALSE;
+			}
+			cptr = &ptr->v->sfmatrix4d;
+			double* row = &cptr->c[index * 4];
+			row[index] = 100.0; //****
+			return JS_TRUE;
+
+		}
+	}
+	else if (id.isObject()) {
+	}
+
+	return JS_TRUE;
 }
 
 // X3DMatrix3

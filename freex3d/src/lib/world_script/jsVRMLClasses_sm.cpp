@@ -1215,7 +1215,7 @@ JSFunctionSpec (X3DMatrix3Functions)[] = {
 JSClass X3DMatrix4Class = {
 	"X3DMatrix4",
 	JSCLASS_HAS_PRIVATE,
-	X3DMatrix4AddProperty,
+	JS_PropertyStub, //X3DMatrix4AddProperty,
 	JS_DeletePropertyStub,
 	X3DMatrix4GetProperty,
 	X3DMatrix4SetProperty,
@@ -1238,7 +1238,9 @@ JSFunctionSpec (X3DMatrix4Functions)[] = {
 	{"multMatrixVec", X3DMatrix4multMatrixVec, 0},
 	{0}
 };
-
+JSPropertySpec(X3DMatrix4Properties)[] = {
+	{0}
+};
 
 //#define MFFloatProperties NULL
 //#define MFInt32Properties NULL
@@ -1313,7 +1315,7 @@ struct JSLoadPropElement JSLoadProps [] = {
 
         { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
 		{ &X3DMatrix3Class, &X3DMatrix3Constr, &X3DMatrix3Functions, NULL, "X3DMatrix3Class"},
-		{ &X3DMatrix4Class, &X3DMatrix4Constr, &X3DMatrix4Functions, NULL, "X3DMatrix4Class"},
+		{ &X3DMatrix4Class, &X3DMatrix4Constr, &X3DMatrix4Functions, X3DMatrix4Properties, "X3DMatrix4Class"},
 
         { NULL, NULL, NULL, NULL, NULL }
 };

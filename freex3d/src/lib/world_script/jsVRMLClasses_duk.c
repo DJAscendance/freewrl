@@ -3005,7 +3005,16 @@ an ecma numeric primitive, or
 2) numeric getTransform(scale,translation) with the numeric return val being the rotation, or
 3) defined an SFFloat complex type and passed it as a pointer object
 I will implment july 2014 the rotations as scalar/primitive/numerics and do #2, which doesn't comply with specs
-
+dug9 july 2023 regarding Matrix3.setTransform, .getTransform
+Holger says:
+"""
+I do it this way:
+https://create3000.github.io/x_ite/reference/field-services-and-objects#sfmatrix3dsfmatrix3f-object
+With setTransform the rotation parameter is a number value, describing the rotation angle in radians.
+With getTransform the rotation is a SFVec3f object, where x, and y are the complex value of the rotation, 
+and the z component is the rotation angle in radians.
+"""
+dug9: I'll try Holger way
 */
 
 
@@ -3014,49 +3023,102 @@ int X3DMatrix3_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 	// P' = T * C * R * SR * S * -SR * -C * P
 	int i;// , j;
 	double angle, scaleangle;
+	struct SFVec2d translation;
+	struct SFVec3d rotation;
 	struct SFVec2d scale;
 	struct SFVec3d scaleOrientation;
 	struct SFVec2d center;
 	double* matrix[3], m2[9], * mat[3], dtmp[3];
 
 	struct SFMatrix3d *ptr = (struct SFMatrix3d *)fwn;
-	struct SFVec2d translation;
 	memset(&translation, 0, sizeof(struct SFVec2d));
-	shallow_copy_field_precision(fwpars[0]._web3dval.fieldType,FIELDTYPE_SFVec2d,fwpars[0]._web3dval.native,(union anyVrml*) & translation);
-	struct SFVec3d rotation; memset(&rotation, 0, sizeof(struct SFVec3d));
+	memset(&rotation, 0, sizeof(struct SFVec3d));
+	memset(&center, 0, sizeof(struct SFVec2d));
+	scale.c[0] = scale.c[1] = 1.0;
+	memset(&scaleOrientation, 0, sizeof(struct SFVec3d));
+	angle = scaleangle = 0.0;
+
+	//translation
+	if (fwpars[0].itype == 'W') { //== FIELDTYPE_SFVec3f){
+		shallow_copy_field_precision(fwpars[0]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[0]._web3dval.native, (union anyVrml*)&translation);
+	}
+	//rotation
 	if(fwpars[1].itype == 'W' ){ //== FIELDTYPE_SFVec3f){
 		//rotation = fwpars[1]._web3dval.native;
 		shallow_copy_field_precision(fwpars[1]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[1]._web3dval.native, (union anyVrml*)&rotation);
-		angle = rotation.c[0]; //your guess is as good as mine what they meant
+		angle = rotation.c[2]; //Holger getTransform method, last element angle in radians, 0,1 could be cos,sin 
 	}
-	if(fwpars[1].itype == 'F')
-		angle = (double)fwpars[1]._numeric;
-	if (fwpars[2].itype == 'W')
-		shallow_copy_field_precision(fwpars[2]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[1]._web3dval.native, (union anyVrml*)&scale);
-	else
-		scale.c[0] = scale.c[1] = 1.0;
-	//scale = fwpars[2]._web3dval.native;
-	//scaleOrientation = NULL;
-	if(fwpars[3].itype == 'W'){ // && fwpars[3]._web3dval.fieldType == FIELDTYPE_SFVec3f){
-		//scaleOrientation = fwpars[3]._web3dval.native;
-		shallow_copy_field_precision(fwpars[3]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[1]._web3dval.native, (union anyVrml*)&scaleOrientation);
-		scaleangle = scaleOrientation.c[0]; //your guess is as good as mine what they meant
+	else if (fwpars[1].itype == 'F') {
+		angle = (double)fwpars[1]._numeric; //Holger setTransform method, takes numeric
 	}
-	if(fwpars[3].itype == 'F')
-		scaleangle = (double)fwpars[3]._numeric;
+	//scale
+	if (fwpars[2].itype == 'W') {
+		shallow_copy_field_precision(fwpars[2]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[2]._web3dval.native, (union anyVrml*)&scale);
+	}
+	//scaleorientation
+	if(fwpars[3].itype == 'W'){
+		shallow_copy_field_precision(fwpars[3]._web3dval.fieldType, FIELDTYPE_SFVec3d, fwpars[3]._web3dval.native, (union anyVrml*)&scaleOrientation);
+		scaleangle = scaleOrientation.c[2]; //Holger getTransform method
+	}
+	else if (fwpars[3].itype == 'F') {
+		scaleangle = (double)fwpars[3]._numeric; //Holger setTransform method
+	}
+	//center
 	if (fwpars[4].itype == 'W') {
-		//center = fwpars[4]._web3dval.native;
-		memset(&center, 0, sizeof(struct SFVec2d));
-		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[1]._web3dval.native, (union anyVrml*)&center);
+		shallow_copy_field_precision(fwpars[4]._web3dval.fieldType, FIELDTYPE_SFVec2d, fwpars[4]._web3dval.native, (union anyVrml*)&center);
 	}
+
 	for(i=0;i<3;i++){
 		matrix[i] = &ptr->c[i*3];
 		mat[i] = &m2[i*3];
 	}
 	//initialize to Identity
-
-
 	matidentity3d(matrix[0]);
+
+	//T
+	//if(translation){
+	matidentity3d(mat[0]);
+	veccopy2d(mat[2], translation.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+	//C
+	//if(center){
+	matidentity3d(mat[0]);
+	veccopy2d(mat[2], center.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+	//R
+	if (angle != 0.0f) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(angle);
+		mat[0][1] = mat[1][0] = sin(angle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
+	//SR
+	if (scaleangle != 0.0f) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(scaleangle);
+		mat[0][1] = mat[1][0] = sin(scaleangle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
+	//S
+	//if(scale){
+	matidentity3d(mat[0]);
+	for (i = 0; i < 3; i++)
+		vecmult2d(mat[i], mat[i], scale.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//-SR
+	if (scaleangle != 0.0) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(-scaleangle);
+		mat[0][1] = mat[1][0] = sin(-scaleangle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
 
 	//-C
 	//if(center){
@@ -3066,52 +3128,6 @@ int X3DMatrix3_setTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		matmultiply3d(matrix[0],mat[0],matrix[0]);
 	//}
 
-
-	//-SR
-	if(scaleangle != 0.0){
-		matidentity3d(mat[0]);
-		mat[0][0] =  mat[1][1] = cos(-scaleangle);
-		mat[0][1] =  mat[1][0] = sin(-scaleangle);
-		mat[0][1] = -mat[0][1];
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	}
-
-	//S
-	//if(scale){
-		matidentity3d(mat[0]);
-		for(i=0;i<3;i++)
-			vecmult2d(mat[i],mat[i],scale.c);
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	//}
-	//SR
-	if(scaleangle != 0.0f){
-		matidentity3d(mat[0]);
-		mat[0][0] =  mat[1][1] = cos(scaleangle);
-		mat[0][1] =  mat[1][0] = sin(scaleangle);
-		mat[0][1] = -mat[0][1];
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	}
-	//R
-	if(angle != 0.0f){
-		matidentity3d(mat[0]);
-		mat[0][0] =  mat[1][1] = cos(angle);
-		mat[0][1] =  mat[1][0] = sin(angle);
-		mat[0][1] = -mat[0][1];
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	}
-	//C
-	//if(center){
-		matidentity3d(mat[0]);
-		veccopy2d(mat[2],center.c);
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	//}
-	//T
-	//if(translation){
-		matidentity3d(mat[0]);
-		veccopy2d(mat[2],translation.c);
-		matmultiply3d(matrix[0],mat[0],matrix[0]);
-	//}
-	
 	return 0;
 }
 
@@ -3159,8 +3175,10 @@ int X3DMatrix3_getTransform(FWType fwtype, void *ec, void *fwn, int argc, FWval 
 		/* now copy the values over */
 		//if(rotation) 
 		memset(&rotation, 0, sizeof(struct SFVec3d));
+		rotation.c[0] = cos(angle);
+		rotation.c[1] = sin(angle);
 		rotation.c[2] = angle;
-		shallow_copy_field_precision(FIELDTYPE_SFVec2d, fwpars[1]._web3dval.fieldType, (union anyVrml*)&rotation, fwpars[1]._web3dval.native);
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, fwpars[1]._web3dval.fieldType, (union anyVrml*)&rotation, fwpars[1]._web3dval.native);
 	}
 
 	/* scale */
@@ -3312,11 +3330,28 @@ int X3DMatrix3_Getter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval
 	struct SFMatrix3d *ptr = (struct SFMatrix3d *)fwn;
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
-	if(index > -1 && index < 9){
-		nr = 1;
-		fwretval->_numeric =  ptr->c[index];
+	if (0) {
+		if (index > -1 && index < 9) {
+			nr = 1;
+			fwretval->_numeric = ptr->c[index];
+		}
+		fwretval->itype = 'F';
 	}
-	fwretval->itype = 'F';
+	else {
+		//double indexing [4][4], like Instant, Octaga do with VrmlMatrix
+		double* ret; // = malloc(sizeof(struct SFVec3d));
+
+		if (index > -1 && index < 3) {
+			nr = 1;
+			//fwretval->_numeric = ptr->c[index];
+			ret = &ptr->c[index * 3]; //return a row pointer so can do [3][2] double indexing
+			fwretval->_web3dval.native = ret;
+			fwretval->_web3dval.fieldType = FIELDTYPE_SFVec3d;
+			fwretval->_web3dval.gc = 0; // 'F';
+			fwretval->itype = 'W';
+		}
+	}
+
 	return nr;
 }
 int X3DMatrix3_Setter(FWType fwt, int index, void *ec, void *fwn, FWval fwval){
@@ -3348,7 +3383,7 @@ void * X3DMatrix3_Constructor(FWType fwtype, int ic, FWval fwpars){
 }
 
 ArgListType (X3DMatrix3_ConstructorArgs)[] = {
-		{9,0,'T',"FFFFFFFFF"},
+		{0,0,'F',"FFFFFFFFF"},
 		{1,0,'T',"W"},
 		{-1,0,0,NULL},
 };
