@@ -1179,6 +1179,9 @@ JSFunctionSpec (VrmlMatrixFunctions)[] = {
 	{0}
 };
 
+JSPropertySpec(VrmlMatrixProperties)[] = {
+	{0}
+};
 
 //JSObject *proto_X3DMatrix3;
 
@@ -1209,6 +1212,9 @@ JSFunctionSpec (X3DMatrix3Functions)[] = {
 	{0}
 };
 
+JSPropertySpec(X3DMatrix3Properties)[] = {
+	{0}
+};
 
 //JSObject *proto_X3DMatrix4;
 
@@ -1313,8 +1319,8 @@ struct JSLoadPropElement JSLoadProps [] = {
         { &MFStringClass, &MFStringConstr, &MFStringFunctions, NULL, "MFStringClass"},
 		{ &MFImageClass, &MFImageConstr, &MFImageFunctions, NULL, "MFImageClass"},
 
-        { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, NULL, "VrmlMatrixClass"},
-		{ &X3DMatrix3Class, &X3DMatrix3Constr, &X3DMatrix3Functions, NULL, "X3DMatrix3Class"},
+        { &VrmlMatrixClass, &VrmlMatrixConstr, &VrmlMatrixFunctions, VrmlMatrixProperties, "VrmlMatrixClass"},
+		{ &X3DMatrix3Class, &X3DMatrix3Constr, &X3DMatrix3Functions, X3DMatrix3Properties, "X3DMatrix3Class"},
 		{ &X3DMatrix4Class, &X3DMatrix4Constr, &X3DMatrix4Functions, X3DMatrix4Properties, "X3DMatrix4Class"},
 
         { NULL, NULL, NULL, NULL, NULL }
