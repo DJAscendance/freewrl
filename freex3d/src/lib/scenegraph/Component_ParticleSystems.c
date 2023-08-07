@@ -340,7 +340,7 @@ typedef struct {
 	float position[3];
 	float velocity[3];
 	float origin[3]; //zero normally. For boundedphysics, updated on each reflection to be last reflection point.
-	//float direction[3];
+	float direction[3]; //normalized last non-zero velocity vector
 	float speed;
 	float mass;
 	float surfaceArea;
@@ -560,6 +560,10 @@ void apply_windphysics(particle *pp, struct X3D_Node *physics, float dtime){
 		vecscale3f(acceleration,pdir,1.0f/pp->mass);
 		vecscale3f(v2,acceleration,dtime);
 		vecadd3f(pp->velocity,pp->velocity,v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
 
 	}
 }
@@ -660,6 +664,11 @@ void apply_boundedphysics(particle *pp, struct X3D_Node *physics, float *positio
 				// specs: could use an elasticity factor
 				speed = veclength3f(pp->velocity);
 				vecscale3f(pp->velocity,rn,speed);
+				float flen = veclength3f(pp->velocity);
+				if (flen > 0.0f) {
+					vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+				}
+
 				//do positionChange here, and zero positionchange for calling code
 				vecscale3f(rd,rn,dlength - dlengthi);
 				vecadd3f(pp->position,pnearest,rd);
@@ -690,6 +699,11 @@ void apply_forcephysics(particle *pp, struct X3D_Node *physics, float dtime){
 		vecscale3f(acceleration,px->force.c,1.0f/pp->mass);
 		vecscale3f(v2,acceleration,dtime);
 		vecadd3f(pp->velocity,pp->velocity,v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
+
 	}
 }
 
@@ -781,6 +795,10 @@ void apply_ConeEmitter(particle *pp, struct X3D_Node *emitter){
 	memcpy(pp->position,e->position.c,3*sizeof(float));
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 
@@ -795,6 +813,10 @@ void apply_ExplosionEmitter(particle *pp, struct X3D_Node *emitter){
 	randomDirection(direction);
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 }
@@ -812,6 +834,10 @@ void apply_PointEmitter(particle *pp, struct X3D_Node *emitter){
 	}
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 	
@@ -927,6 +953,10 @@ void apply_PolylineEmitter(particle *pp, struct X3D_Node *node){
 	}
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 
@@ -967,6 +997,10 @@ void apply_SurfaceEmitter(particle *pp, struct X3D_Node *emitter){
 		memcpy(pp->position,xyz,3*sizeof(float));
 		speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 		vecscale3f(pp->velocity,direction,speed);
+		float flen = veclength3f(direction);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, direction, 1.0f / flen);
+		}
 		pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 		pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 	}
@@ -1020,6 +1054,10 @@ void apply_VolumeEmitter(particle* pp, struct X3D_Node* emitter) {
 		}
 		speed = e->speed * (1.0f + uniformRandCentered() * e->variation);
 		vecscale3f(pp->velocity, direction, speed);
+		float flen = veclength3f(direction);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, direction, 1.0f / flen);
+		}
 		pp->mass = e->mass * (1.0f + uniformRandCentered() * e->variation);
 		pp->surfaceArea = e->surfaceArea * (1.0f + uniformRandCentered() * e->variation);
 	}
@@ -1574,6 +1612,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					vecnormalize3f(dir, diff);
 
 					vecscale3f(pp->velocity, dir, pp->speed);
+					float flen = veclength3f(dir);
+					if (flen > 0.0f) {
+						vecscale3f(pp->direction, dir, 1.0f / flen);
+					}
+
 					//clear last location
 					set_image_pixel_channel(popmap, isteps[0], isteps[1], 0,0, p.x, p.y);
 					//mark new location
@@ -1766,9 +1809,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			default:
 				break;
 			}
-			GLint ppos, cr, gtype;
+			GLint ppos, pdir, cr, gtype;
 
 			ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+			pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
 			cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
 			gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
 			glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
@@ -1781,6 +1825,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 				particle pp = vector_get(particle, _particles, i);
 				//update particle-specific uniforms
 				glUniform3fv(ppos, 1, pp.position);
+				//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
+				glUniform3fv(pdir, 1, pp.direction);
 				//draw
 				reallyDrawOnce();
 				//extent6f_translate3f(eout6, estart6, pp.position);
@@ -1814,7 +1860,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		Stack *_particles;
 		int allowsTexcoordRamp = FALSE;
 		float *texcoord = NULL;
-		GLint ppos, cr, gtype;
+		GLint ppos, pdir, cr, gtype;
 		int haveColorRamp,haveTexcoordRamp;
 
 		struct X3D_Node *tmpNG;
@@ -2144,6 +2190,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		}
 
 		ppos = GET_UNIFORM(scap->myShaderProgram,"particlePosition");
+		pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
 		cr = GET_UNIFORM(scap->myShaderProgram,"fw_UnlitColor");
 		gtype = GET_UNIFORM(scap->myShaderProgram,"fw_ParticleGeomType");
 		glUniform1i(gtype,node->_geometryType); //for SPRITE = 4, screen alignment
@@ -2165,6 +2212,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			particle pp = vector_get(particle,_particles,i);
 			//update particle-specific uniforms
 			glUniform3fv(ppos,1,pp.position);
+			glUniform3fv(pdir, 1, pp.direction);
+			//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
 			if(haveColorRamp)
 				updateColorRamp(node,&pp,cr);
 			if(haveTexcoordRamp)
