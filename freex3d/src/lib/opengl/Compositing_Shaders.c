@@ -795,6 +795,7 @@ varying vec4 cpv_Color; \n\
 #ifdef PARTICLE \n\
 uniform vec3 particlePosition; \n\
 uniform vec3 particleDirection; \n\
+uniform mat4 particleTransform; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
 #ifdef POINTP \n\
@@ -864,21 +865,22 @@ void main(void) \n\
     rot = mat4(1.0); \n\
     rot2 = mat4(1.0); \n\
     if(true){ \n\
-    float yaw = atan(particleDirection.z,particleDirection.x); \n\
-    float pitch = asin(particleDirection.y); \n\
+    float yaw = atan(particleDirection.y,particleDirection.x); \n\
+    float pitch = asin(particleDirection.z); \n\
     rot[0][0] = cos(yaw); \n\
-    rot[2][2] = rot[0][0]; \n\
-    rot[0][2] = sin(yaw); \n\
-    rot[2][0] = -rot[0][2]; \n\
+    rot[1][1] = rot[0][0]; \n\
+    rot[0][1] = sin(yaw); \n\
+    rot[1][0] = -rot[0][1]; \n\
     rot2[0][0] = cos(pitch); \n\
-    rot2[1][1] = rot2[0][0]; \n\
-    rot2[0][1] = sin(pitch); \n\
-    rot2[1][0] = -rot2[0][1]; \n\
-    rot = rot2 * rot ; \n\
+    rot2[2][2] = rot2[0][0]; \n\
+    rot2[0][2] = sin(pitch); \n\
+    rot2[2][0] = -rot2[0][2]; \n\
+    rot = rot * rot2; \n\
+    vertex_object = rot * particleTransform  * vertex_object; \n\
+    //vertex_object.xyz /= vertex_object.w; \n\
+    //vertex_object.w = 1.0; \n\
     } \n\
-    vertex_object = rot * vertex_object; \n\
-    vertex_object.xyz /= vertex_object.w; \n\
-    vertex_object.w = 1.0; \n\
+	//vertex_object = particleTransform * vertex_object; \n\
     vertex_object.xyz += particlePosition; \n\
   } \n\
   #endif //PARTICLE \n\
@@ -5304,6 +5306,7 @@ uniform mat4 fw_ProjectionMatrix; \n\
 #ifdef PARTICLE \n\
 uniform vec3 particlePosition; \n\
 uniform vec3 particleDirection; \n\
+unifomr mat4 particleTransform; \n\
 uniform int fw_ParticleGeomType; \n\
 #endif //PARTICLE \n\
 \n\
@@ -5313,22 +5316,24 @@ void main() \n\
   #ifdef PARTICLE \n\
   if(fw_ParticleGeomType != 4){ \n\
     mat4 rot, rot2; \n\
+    rot = mat4(1.0); \n\
+	rot2 = mat4(1.0); \n\
     float yaw = atan(particleDirection.y,particleDirection.x); \n\
     float pitch = asin(particleDirection.z); \n\
     rot[0][0] = cos(yaw); \n\
-    rot[2][2] = rot[0][0]; \n\
-    rot[0][2] = sin(yaw); \n\
-    rot[2][0] = -rot[0][2]; \n\
+    rot[1][1] = rot[0][0]; \n\
+    rot[0][1] = sin(yaw); \n\
+    rot[1][0] = -rot[0][1]; \n\
     rot2[0][0] = cos(pitch); \n\
-    rot2[1][1] = rot2[0][0]; \n\
-    rot2[0][1] = sin(pitch); \n\
-    rot2[1][0] = -rot2[0][1]; \n\
-    rot = rot2 * rot ; \n\
+    rot2[2][2] = rot2[0][0]; \n\
+    rot2[0][2] = sin(pitch); \n\
+    rot2[2][0] = -rot2[0][2]; \n\
+    rot = rot * rot2; \n\
+    vertex_object = rot * particleTransform  * vertex_object; \n\
+    //vertex_object.xyz /= vertex_object.w; \n\
+    //vertex_object.w = 1.0; \n\
     } \n\
-    vertex_object = rot * vertex_object; \n\
-    vertex_object.xyz /= vertex_object.w; \n\
-    vertex_object.w = 1.0; \n\
-    vertex = rot * vertex; \n\
+	//vertex_object = particleTransform * vertex_object; \n\
     vertex.xyz += particlePosition; \n\
   } \n\
   //sprite: align to viewer \n\

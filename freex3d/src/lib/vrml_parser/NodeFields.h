@@ -3325,6 +3325,7 @@ EXPOSED_FIELD(ParticleSystem,lifetimeVariation,sffloat,lifetimeVariation,FIELDTY
 EXPOSED_FIELD(ParticleSystem,maxParticles,sfint32,maxParticles,FIELDTYPE_SFInt32,UNCA_NONE)
 EXPOSED_FIELD(ParticleSystem,particleLifetime,sffloat,particleLifetime,FIELDTYPE_SFFloat,UNCA_NONE)
 EXPOSED_FIELD(ParticleSystem,particleSize,sfvec2f,particleSize,FIELDTYPE_SFVec2f,UNCA_LENGTH)
+EXPOSED_FIELD(ParticleSystem,particleOrientation,sfrotation,particleOrientation,FIELDTYPE_SFRotation,0)
 EVENT_OUT(ParticleSystem,isActive,sfbool,isActive,FIELDTYPE_SFBool)
 FIELD(ParticleSystem,colorRamp,sfnode,colorRamp,FIELDTYPE_SFNode,UNCA_NONE)
 FIELD(ParticleSystem,color,sfnode,color,FIELDTYPE_SFNode,UNCA_NONE)

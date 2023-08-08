@@ -998,6 +998,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"paramterName",
 	"paramterValue",
 	"particleLifetime",
+	"particleOrientation",
 	"particleSize",
 	"parts",
 	"pauseColor",
@@ -1951,6 +1952,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"parallelColor",
 	"parameter",
 	"particleLifetime",
+	"particleOrientation",
 	"particleSize",
 	"parts",
 	"pauseTime",
@@ -8574,6 +8576,7 @@ const int OFFSETS_ParticleSystem[] = {
 	(int) FIELDNAMES_maxParticles, (int) offsetof (struct X3D_ParticleSystem, maxParticles),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_particleLifetime, (int) offsetof (struct X3D_ParticleSystem, particleLifetime),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_particleSize, (int) offsetof (struct X3D_ParticleSystem, particleSize),  (int) FIELDTYPE_SFVec2f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_LENGTH,
+	(int) FIELDNAMES_particleOrientation, (int) offsetof (struct X3D_ParticleSystem, particleOrientation),  (int) FIELDTYPE_SFRotation, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_isActive, (int) offsetof (struct X3D_ParticleSystem, isActive),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_colorRamp, (int) offsetof (struct X3D_ParticleSystem, colorRamp),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_color, (int) offsetof (struct X3D_ParticleSystem, color),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -15857,6 +15860,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->maxParticles = 200;
 			tmp2->particleLifetime = 5.0f;
 			tmp2->particleSize.c[0] = 0.02f;tmp2->particleSize.c[1] = 0.02f;;
+			tmp2->particleOrientation.c[0] = 0;tmp2->particleOrientation.c[1] = 0;tmp2->particleOrientation.c[2] = 1;tmp2->particleOrientation.c[3] = 0;;
 			tmp2->isActive = TRUE;
 			tmp2->colorRamp = NULL;
 			tmp2->color = NULL;
@@ -22362,6 +22366,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," particleLifetime (SFFloat) \t%4.3f\n",tmp->particleLifetime);
 			spacer fprintf (fp," particleSize (SFVec2f): \t");
 			for (i=0; i<2; i++) { fprintf (fp,"%4.3f  ",tmp->particleSize.c[i]); }
+			fprintf (fp,"\n");
+			spacer fprintf (fp," particleOrientation (SFRotation): \t");
+			for (i=0; i<4; i++) { fprintf (fp,"%4.3f  ",tmp->particleOrientation.c[i]); }
 			fprintf (fp,"\n");
 		    if(allFields) {
 			spacer fprintf (fp," _lastEnabled (SFBool) \t%d\n",tmp->_lastEnabled);

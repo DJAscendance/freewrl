@@ -5501,6 +5501,7 @@ our %Nodes = (
 		maxParticles  => ["SFInt32", 200,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		particleLifetime  => ["SFFloat", 5,"inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		particleSize => ["SFVec2f", [.02,.02], "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_LENGTH"],#ff
+		particleOrientation => ["SFRotation", [0,0,1,0], "inputOutput", 0,0],#ff
 		isActive  => ["SFBool", "TRUE","outputOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		colorRamp => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		color => ["SFNode", "NULL", "initializeOnly", "(SPEC_X3D40)","UNCA_NONE"],#ff
