@@ -1809,10 +1809,11 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			default:
 				break;
 			}
-			GLint ppos, pdir, cr, gtype;
-
+			GLint ppos, pdir, cr, gtype, itrans;
+			int i;
 			ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
 			pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
+			itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
 			cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
 			gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
 			glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
@@ -1820,6 +1821,25 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			//float estart6[6], eout6[6];
 			//extent6f_copy(estart6, peek_group_extent());
 			Stack* _particles = node->_particles;
+			//apply static orientation and size to all particles
+			{
+				double matrix[16], * mat[4];
+				float fmat[16];
+				for (i = 0; i < 4; i++)
+					mat[i] = &matrix[i * 4];
+				matidentity4d(matrix);
+				if (1) {
+					double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
+					//apply particle size
+					for (i = 0; i < 2; i++)
+						mat[i][i] = node->particleSize.c[i];
+					//apply particle orientation (relative to direction 1 0 0)
+					for (i = 0; i < 3; i++)
+						axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
+				}
+				double2float(fmat, matrix, 16);
+				glUniformMatrix4fv(itrans, 1, TRUE, fmat);
+			}
 
 			for (int i = 0; i < vectorSize(_particles); i++) {
 				particle pp = vector_get(particle, _particles, i);
@@ -2224,30 +2244,6 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 				//apply particle orientation (relative to direction 1 0 0)
 				for (i = 0; i < 3; i++)
 					axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
-				//mattranspose(matrix2, matrix);
-				//apply per-particle direction
-				/*
-				if (false) {
-					for (i = 0; i < 4; i++) {
-						rot[i] = &matyaw[i * 4];
-						rot2[i] = &matpitch[i * 4];
-					}
-					matidentity4d(matyaw);
-					matidentity4d(matpitch);
-					double yaw = atan2(pp.direction[1], pp.direction[0]);
-					double pitch = asin(pp.direction[2]);
-					rot[0][0] = cos(yaw);
-					rot[1][1] = rot[0][0];
-					rot[0][1] = sin(yaw);
-					rot[1][0] = -rot[0][1];
-					rot2[0][0] = cos(pitch);
-					rot2[2][2] = rot2[0][0];
-					rot2[0][2] = sin(pitch);
-					rot2[2][0] = -rot2[0][1];
-					matmultiply(matrot, matyaw, matpitch);
-					matmultiply(matrix, matrot, matrix);
-				}
-				*/
 			}
 			double2float(fmat, matrix, 16);
 			glUniformMatrix4fv(itrans, 1, TRUE, fmat);
