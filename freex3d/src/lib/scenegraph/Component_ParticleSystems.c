@@ -1480,7 +1480,20 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 
 												//skip if its already queued in next (or should we replace if this one is fewer gross steps?)
 												done = get_image_pixel_transparency(texdata, jsteps[0], jsteps[1], q.x, q.y);
-												if (done > 0) continue;
+												if (done == 2) continue;
+												if (done == 1) {
+													//its in the queue. if current q.steps is less than the one already in next, replace steps 
+													for (int k = 0; k < vectorSize(next); k++) {
+														struct ixy* qq = vector_get_ptr(struct ixy, next, k);
+														if (qq->x == q.x && qq->y == q.y) {
+															if (qq->steps > q.steps) {
+																qq->steps = q.steps;
+															}
+															break;
+														}
+													}
+													continue;
+												}
 
 												//queue it and flag it as queued 1
 												stack_push(struct ixy, next, q);
