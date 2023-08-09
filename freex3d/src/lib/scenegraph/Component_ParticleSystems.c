@@ -1588,7 +1588,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			//which way to go? 
 			//check if we are on the sink/destination, if so recycle.
 			sinkcolor = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], p.x, p.y);
-			if (sinkcolor->int16[0] < 3) {
+			if (sinkcolor->int16[0] < 3 && sinkcolor->int16[0] > 0) {
 				//end of life, recycle - clear from population map
 				set_image_pixel_channel(popmap, jsteps[0], jsteps[1],0, 0, p.x, p.y);
 				pp->age = pp->lifespan;
