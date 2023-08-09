@@ -1065,13 +1065,22 @@ void apply_VolumeEmitter(particle* pp, struct X3D_Node* emitter) {
 
 
 // BEGIN HUMANOID PARTICLE SECTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+typedef union {
+	unsigned char bytes[4];
+	unsigned char r, g, b, a;
+	short int16[2];
+	int   int32;
+} pix;
+
 unsigned char* sample_image(textureTableIndexStruct_s* tt, float x, float y) {
 	//x, y in range 0.0 to 1.0
 	int px, py, ix, iy;
 	px = tt->x;
 	py = tt->y;
 	ix = (int)( px * x );
+	ix = ix < 0 ? 0 : ix >= tt->x ? tt->x - 1 : ix;
 	iy = (int)(py * y);
+	iy = iy < 0 ? 0 : iy >= tt->y ? tt->y - 1 : iy;
 	unsigned char* pixel = &tt->texdata[(iy * px + ix) * 4]; // tt->channels];
 	return pixel;
 }
@@ -1293,6 +1302,26 @@ void image2norm(float* fxy, int* ixy, int* isize) {
 	fxy[0] = (float)ixy[0] / (float)isize[0];
 	fxy[1] = (float)ixy[1] / (float)isize[1];
 }
+void display_imagedata4(unsigned char* texdata, int width, int height) {
+	//makes or updates a gl texture, and pops it up on the screen at end of frame render
+	//assumes 4 bytes per pixel
+	static textureTableIndexStruct_s tts;
+	static int once = 0;
+	tts.x = width;
+	tts.y = height;
+	tts.z = 1;
+	tts.texdata = texdata;
+	tts.channels = 4;
+	if (!once) {
+		FW_GL_GENTEXTURES(1, &tts.OpenGLTexture);
+		once = 1;
+		saveImage_web3dit(&tts, "C:\\tmp\\sinkmap.web3dit");
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,tts.OpenGLTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tts.x, tts.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tts.texdata);
+	set_debug_quad(1, tts.OpenGLTexture);
+}
 
 
 void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
@@ -1322,10 +1351,10 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 							extent4f_clear(px->eboxes.p[i].c);
 							extent4f_clear(px->iboxes.p[i].c);
 						}
-						//for now assume one human-step-sized grid cell is 1m
+						//for now assume one human-step-sized grid cell is .25m
 						int isteps[2];
-						isteps[0] = (int)(px->gridSize.c[0] + .5f);
-						isteps[1] = (int)(px->gridSize.c[1] + .5f);
+						isteps[0] = ((int)(px->gridSize.c[0] + .5f));
+						isteps[1] = ((int)(px->gridSize.c[1] + .5f));
 						for (int i = 0; i < isteps[0]; i++)
 							for (int j = 0; j < isteps[1]; j++) {
 								float x, y, s[3], exy[2], ixy[2];
@@ -1357,8 +1386,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 							extent4f_printf(px->iboxes.p[i].c);
 						}
 						// generate one sink map for each sink color area
-						int sinkmapsize = isteps[0] * isteps[1] * 4;
-						px->_sinkmaps = malloc(sinkmapsize * (px->eboxes.n + 1)); //one for each sink, plus a population map
+						int jsteps[2];
+						jsteps[0] = isteps[0] * 2;
+						jsteps[1] = isteps[1] * 2;
+						int sinkmapsize = jsteps[0] * jsteps[1] * 4;
+						px->_sinkmaps = malloc(sinkmapsize * (px->eboxes.n + 1)); //one for each sink, plus a population map at index 0
 						unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps;
 						unsigned char* popmap = &sinkmaps[0]; 
 						memset(popmap, 0, sinkmapsize);
@@ -1370,25 +1402,23 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 							if (is_set) {
 							
 								//generate_sink_map()
-								unsigned char* texdata = &sinkmaps[(i+1) * sinkmapsize]; // malloc(isteps[0] * isteps[1] * 4);
-								memset(texdata, 0, isteps[0] * isteps[1] * 4);
+								unsigned char* texdata = &sinkmaps[(i+1) * sinkmapsize]; 
+								memset(texdata, 0, jsteps[0] * jsteps[1] * 4);
 								//start sink map at center of ibox
 								int icenter[2];
 								float fcenter[2];
 								float* bbox = &px->iboxes.p[i].c[0];
 								fcenter[0] = ((bbox[0] + bbox[2]) / 2.0f);
 								fcenter[1] = ((bbox[1] + bbox[3]) / 2.0f);
-								norm2image(icenter, isteps, fcenter);
-								unsigned char pixel[3];
-								pixel[0] = 1; //1/255 is almost black, and we increase toward 255/255 white as the flooding progresses
-								pixel[1] = 1;
-								pixel[2] = 1;
-								set_image_pixel_color(texdata, isteps[0], isteps[1], pixel, icenter[0], icenter[1]);
+								norm2image(icenter, jsteps, fcenter);
+								pix pixel, diag;
+								pixel.int16[0] = 1; //1/255 is almost black, and we increase toward 255/255 white as the flooding progresses
+								set_image_pixel_color(texdata, jsteps[0], jsteps[1], pixel.bytes, icenter[0], icenter[1]);
 								//ideally a queue is used for breadth-first flood-filling
 								//2023 freewrl doesn't have a queue data structure
 								//will use 2 vectors, and alternate: current round, next round
 								//and use transparency to mark pixel 0=not done 1/255=queued 2/255=processed
-								struct ixy { int x, y; };
+								struct ixy { int x, y, steps; };
 								struct Vector* current = newVector(struct ixy, 100);
 								struct Vector* next = newVector(struct ixy, 100);
 								struct Vector* tmp;
@@ -1396,51 +1426,65 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 								unsigned char done, steps, * funcp;
 								float color[3];
 								//neighboring pixel relative coordinates, we'll do 8 surrounding pixels.
-								for (int i = 0; i < 8; i++) nebor[i].x = nebor[i].y = 0;
+								// 5  6  7
+								// 3     4
+								// 0  1  2
+								for (int i = 0; i < 8; i++) {
+									nebor[i].x = nebor[i].y = 0;
+									nebor[i].steps = 2; //staying with ints, we'll set 2 for this, and 3 for diagonal
+								}
 								nebor[0].y = nebor[1].y = nebor[2].y = -1;
 								nebor[0].x = nebor[3].x = nebor[5].x = -1;
 								nebor[2].x = nebor[4].x = nebor[7].x = 1;
 								nebor[5].y = nebor[6].y = nebor[7].y = 1;
+								nebor[0].steps = nebor[2].steps = nebor[5].steps = nebor[7].steps = 3; //close to 2 * root(2)
 								p.x = icenter[0];
 								p.y = icenter[1];
-								set_image_pixel_transparency(texdata, isteps[0], isteps[1], 1, p.x, p.y);
+								p.steps = 0;
+								set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 1, p.x, p.y);
 								stack_push(struct ixy, current, p);
 								int more = TRUE;
 								steps = 0;
 								
 								while (more) {
-									steps++;
-									pixel[0] = pixel[1] = pixel[2] = steps;
+									////steps+=2;
+									//pixel[0] = pixel[1] = pixel[2] = steps + 2;
+									//diag[0] = diag[1] = diag[2] = steps + 3;
+									//steps += 2;
 									for (int i = 0; i < vectorSize(current); i++) {
 										p = vector_get(struct ixy, current, i);
-										done = get_image_pixel_transparency(texdata, isteps[0], isteps[1], p.x, p.y);
+										done = get_image_pixel_transparency(texdata, jsteps[0], jsteps[1], p.x, p.y);
+										steps = p.steps;
 										if (done < 2) {
 											//mark as done and set the steps distance to sink
-											set_image_pixel_transparency(texdata, isteps[0], isteps[1], 2, p.x, p.y);
-											set_image_pixel_color(texdata, isteps[0], isteps[1], pixel, p.x, p.y);
+											pixel.int16[0] = p.steps;
+											pixel.bytes[2] = 0;
+											set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 2, p.x, p.y);
+											set_image_pixel_color(texdata, jsteps[0], jsteps[1], pixel.bytes, p.x, p.y);
 											//queue any un-done neighbors for next loop
 											for (int j = 0; j < 8; j++) {
 												q.x = p.x + nebor[j].x;
 												q.y = p.y + nebor[j].y;
+												q.steps = p.steps + nebor[j].steps;
 												//skip if outside image
-												if (q.x < 0 || q.x >= isteps[0] || q.y < 0 || q.y >= isteps[1]) continue;
+												if (q.x < 0 || q.x >= jsteps[0] || q.y < 0 || q.y >= jsteps[1]) continue;
 
 												//skip if obstacle in functionMap
 												float xx, yy;
-												xx = (float)q.x / px->gridSize.c[0];
-												yy = (float)q.y / px->gridSize.c[1];
+												xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
+												yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
 												funcp = sample_image(tt, xx,yy);
 												pixel2color3(color, funcp);
 												int is_close = vecclose3f(color, px->obstacleColor.c, px->colorMatchTolerance);
 												if (is_close) continue;
 
-												//skip if its already queued in next
-												done = get_image_pixel_transparency(texdata, isteps[0], isteps[1], q.x, q.y);
+												//skip if its already queued in next (or should we replace if this one is fewer gross steps?)
+												done = get_image_pixel_transparency(texdata, jsteps[0], jsteps[1], q.x, q.y);
 												if (done > 0) continue;
 
 												//queue it and flag it as queued 1
 												stack_push(struct ixy, next, q);
-												set_image_pixel_transparency(texdata, isteps[0], isteps[1], 1, q.x, q.y);
+												set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 1, q.x, q.y);
 
 											}
 										}
@@ -1453,16 +1497,22 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 									more = vectorSize(current);
 								} //more to flood fill
 								if (0) {
+									//no longer works - now short ints.
 									//print flood map to screen as characters, with A==0
-									printf("flood map %d x steps %d y steps %d\n", i, isteps[0], isteps[1]);
-									print_image_channel(texdata, 0, isteps[0], isteps[1]);
-									//for (int j = 0; j < isteps[1]; j++) {
-									//	for (int k = 0; k < isteps[0]; k++) {
-									//		unsigned char c = get_image_pixel_channel(texdata, isteps[0], isteps[1], 0, k, j);
-									//		printf("%c", c + 'A');
-									//	}
-									//	printf("\n");
-									//}
+									printf("flood map %d x steps %d y steps %d\n", i, jsteps[0], jsteps[1]);
+									print_image_channel(texdata, 0, jsteps[0], jsteps[1]);
+								}
+								if (0 && i==0) {
+									//show image on screen of flood map
+									for (int jj = 0; jj < jsteps[1]; jj++)
+										for (int ii = 0; ii < jsteps[0]; ii++) {
+											//texdata[(jj * jsteps[0] + ii) * 4 + 0] = 127;
+											//texdata[(jj * jsteps[0] + ii) * 4 + 1] = 127;
+											//texdata[(jj * jsteps[0] + ii) * 4 + 2] = 0; //clear blue
+											texdata[(jj * jsteps[0] + ii) * 4 + 3] = 0xff;
+										}
+									display_imagedata4(texdata, jsteps[0], jsteps[1]); //sinkmap i
+									//display_imagedata4(tt->texdata, tt->x, tt->y); //function map
 								}
 								
 							} //if box is_set
@@ -1486,17 +1536,19 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			//  and scene grid centered on 0,0
 			// and we've been assuming the functionMap image covers the same area as the gridSize (but different resolution)
 
-			int isteps[2];
-			isteps[0] = (int)(px->gridSize.c[0] + .5f);
-			isteps[1] = (int)(px->gridSize.c[1] + .5f);
-			int sinkmapsize = isteps[0] * isteps[1] * 4;
+			int isteps[2], jsteps[2];
+			isteps[0] = ((int)(px->gridSize.c[0] + .5f));
+			isteps[1] = ((int)(px->gridSize.c[1] + .5f));
+			jsteps[0] = isteps[0] * 2;
+			jsteps[1] = isteps[1] * 2;
+			int sinkmapsize = jsteps[0] * jsteps[1] * 4;
 			unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps; //have all sink maps + pop map packed in one malloc
 
 			//first sink map is the population map showing where particles are, for particle collision avoidance
 			unsigned char* popmap = &sinkmaps[0]; 
 			//mapemitter assigns a destination (sink) at random to particle
 			unsigned char* sinkmap; 
-			unsigned char* sinkcolor, * funccolor, sinkuchar;
+			pix * sinkcolor, * funccolor, sinkuchar;
 			float color[3];
 			struct ixy { int x, y; };
 			struct ixy p, q, nebor[8];
@@ -1512,10 +1564,16 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			sinkmap	= &sinkmaps[sinkmapsize * (pp->sink + 1)];
 			//pp.position is in scene/ground coords centered on 0,0
 			// we need grid coords of same size, but shifted wrt 0,0
-			p.x = (int)(pp->position[0] + px->gridSize.c[0]*.5f + .5f);
-			p.y = (int)(pp->position[1] + px->gridSize.c[1]*.5f + .5f);
+			// and rescaled to map coords
+			float xy[2];
+			//get map normalized coords (0-1)
+			xy[0] = (pp->position[0] + px->gridSize.c[0] * .5f) / px->gridSize.c[0];
+			xy[1] = (pp->position[1] + px->gridSize.c[1] * .5f) / px->gridSize.c[1];
+			//get sinkmap/popmap coords (0-imagasize)
+			p.x = (int)(xy[0] * jsteps[0] + .5);
+			p.y = (int)(xy[1] * jsteps[1] + .5); // pp->position[1] + px->gridSize.c[1] * .5f + .5f) * 2;
 			if(debug) printf("pp.position %f %f p %d %d\n", pp->position[0], pp->position[1], p.x, p.y);
-			if (p.x < 0 || p.x >= isteps[0] || p.y < 0 || p.y >= isteps[1]) {
+			if (p.x < 0 || p.x >= jsteps[0] || p.y < 0 || p.y >= jsteps[1]) {
 				//vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
 				//vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
 				return;
@@ -1529,19 +1587,19 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 
 			//which way to go? 
 			//check if we are on the sink/destination, if so recycle.
-			sinkcolor = get_image_pixel_color(sinkmap, isteps[0], isteps[1], p.x, p.y);
-			if (sinkcolor[0] == 1) {
+			sinkcolor = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], p.x, p.y);
+			if (sinkcolor->int16[0] < 3) {
 				//end of life, recycle - clear from population map
-				set_image_pixel_channel(popmap, isteps[0], isteps[1],0, 0, p.x, p.y);
+				set_image_pixel_channel(popmap, jsteps[0], jsteps[1],0, 0, p.x, p.y);
 				pp->age = pp->lifespan;
 			}
 			else {
 				//check if we are on a wait area, will affect neighbor decision
 				float xx, yy;
-				xx = (float)p.x / px->gridSize.c[0];
-				yy = (float)p.y / px->gridSize.c[1];
-				funccolor = sample_image(tt, xx,yy);
-				pixel2color3(color, funccolor);
+				//xx = (float)p.x / px->gridSize.c[0];
+				//yy = (float)p.y / px->gridSize.c[1];
+				funccolor = (pix*)sample_image(tt, xy[0], xy[1]);
+				pixel2color3(color, funccolor->bytes);
 				int on_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
 
 				//check neighbors and rank by shortest distance
@@ -1550,7 +1608,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				int dshortest = 1000000;
 				//printf("sink map %d x steps %d y steps %d\n", pp->sink, isteps[0], isteps[1]);
 				//print_image_channel(sinkmap, 0, isteps[0], isteps[1]);
-				if(debug) print_image_channel(popmap, 0, isteps[0], isteps[1]);
+				if(debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
 
 				for (int i = 0; i < 8; i++) {
 					dlist[i] = 2000000;
@@ -1558,23 +1616,24 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					q.x = p.x + nebor[i].x;
 					q.y = p.y + nebor[i].y;
 					//skip if outside image
-					if (q.x < 0 || q.x >= isteps[0] || q.y < 0 || q.y >= isteps[1]) continue;
+					if (q.x < 0 || q.x >= jsteps[0] || q.y < 0 || q.y >= jsteps[1]) continue;
 					iscore[i] = 1;
 					
 					//sinkcolor = get_image_pixel_color(sinkmap, isteps[0], isteps[1], q.x, q.y);
 					//printf("nebor %d q %d %d sinkcolor %d %d %d\n", i, q.x, q.y, sinkcolor[0], sinkcolor[1], sinkcolor[2]);
-					sinkuchar = get_image_pixel_channel(sinkmap, isteps[0], isteps[1], 0, q.x, q.y);
+					//sinkuchar = get_image_pixel_channel(sinkmap, jsteps[0], jsteps[1], 0, q.x, q.y);
+					pix *sinkval = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], q.x, q.y);
 					//printf("nebor %d q %d %d sinkred %d \n", i, q.x, q.y, sinkuchar);
 					//skip if obstacle
 					//if (sinkcolor[0] == 0) continue;
-					if (sinkuchar == 0) continue;
+					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
 					//skip if we aren't on waitzone, and next is waitzone and wait function is on
 					if (!on_wait) {
-						xx = (float)q.x / px->gridSize.c[0];
-						yy = (float)q.y / px->gridSize.c[1];
-						funccolor = sample_image(tt, xx, yy);
-						pixel2color3(color, funccolor);
+						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
+						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
+						funccolor = (pix*)sample_image(tt, xx, yy);
+						pixel2color3(color, funccolor->bytes);
 						if (px->pauseState) {
 							int is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
 							if (is_wait) continue; //skip if its an active wait area and we aren't already on it
@@ -1582,11 +1641,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					}
 					iscore[i] = 3;
 					//skip if someone already populating grid cell (avoid particle collision)
-					unsigned char populated = get_image_pixel_channel(popmap, isteps[0], isteps[1], 0, q.x, q.y);
+					unsigned char populated = get_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0, q.x, q.y);
 					//printf("nebor %d populated %d\n", i, populated);
 					if (populated) continue;
 					iscore[i] = 4;
-					dlist[i] = sinkuchar;
+					dlist[i] = sinkval->int16[0]; // uchar;
 					if (dlist[i] < dshortest) {
 						ishortest = i;
 						dshortest = dlist[i];
@@ -1602,11 +1661,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					q.x = p.x + nebor[ishortest].x;
 					q.y = p.y + nebor[ishortest].y;
 					float pxy[3], qxy[3], diff[3], dir[3];
-					pxy[0] = (float)p.x;
-					pxy[1] = (float)p.y;
+					pxy[0] = (float)p.x*.5f;
+					pxy[1] = (float)p.y*.5f;
 					pxy[2] = 0.0f;
-					qxy[0] = (float)q.x;
-					qxy[1] = (float)q.y;
+					qxy[0] = (float)q.x*.5f;
+					qxy[1] = (float)q.y*.5f;
 					qxy[2] = 0.0f;
 					vecdif3f(diff, qxy, pxy);
 					vecnormalize3f(dir, diff);
@@ -1618,9 +1677,9 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					}
 
 					//clear last location
-					set_image_pixel_channel(popmap, isteps[0], isteps[1], 0,0, p.x, p.y);
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0,0, p.x, p.y);
 					//mark new location
-					if(0) set_image_pixel_channel(popmap, isteps[0], isteps[1], 1,0, q.x, q.y);
+					//set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1,0, q.x, q.y);
 					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
 
 				}
