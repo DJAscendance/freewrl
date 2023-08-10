@@ -1066,9 +1066,10 @@ void apply_VolumeEmitter(particle* pp, struct X3D_Node* emitter) {
 
 
 // BEGIN HUMANOID PARTICLE SECTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+struct rgba { unsigned char r, g, b, a; };
 typedef union {
 	unsigned char bytes[4];
-	unsigned char r, g, b, a;
+	struct rgba;
 	short int16[2];
 	int   int32;
 } pix;
@@ -1614,10 +1615,23 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				float xx, yy;
 				//xx = (float)p.x / px->gridSize.c[0];
 				//yy = (float)p.y / px->gridSize.c[1];
+				//int ipxy[2], ttsize[2];
+				//ttsize[0] = tt->x;
+				//ttsize[1] = tt->y;
+				//norm2image(ipxy, ttsize, xy);
+				//if (ipxy[0] > 1020 && ipxy[0] < 1230){
+				//	if(ipxy[1] > 820 && ipxy[1] < 951)
+				//	  printf("top %d %d ", ipxy[0], ipxy[1]);
+				//	if (ipxy[1] > 44 && ipxy[1] < 196)
+				//		printf("bottom %d %d ", ipxy[0], ipxy[1]);
+				//}
 				funccolor = (pix*)sample_image(tt, xy[0], xy[1]);
+				//funccolor = (pix*)get_image_pixel_color(tt->texdata, isteps[0], isteps[1], ipxy[0], ipxy[1]);
+				//if (funccolor->r > 127 && funccolor->g < 127 && funccolor->b < 127) printf("R");
+
 				pixel2color3(color, funccolor->bytes);
 				int on_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
-
+				//if (on_wait) printf("on_wait ");
 				//check neighbors and rank by shortest distance
 				int nlist, ilist[8], dlist[8], iscore[8];
 				int ishortest = -1;
@@ -1647,7 +1661,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
 					//skip if we aren't on waitzone, and next is waitzone and wait function is on
-					if (!on_wait) {
+					if (on_wait) {
 						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
 						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
 						funccolor = (pix*)sample_image(tt, xx, yy);

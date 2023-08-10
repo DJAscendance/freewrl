@@ -1955,6 +1955,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"particleOrientation",
 	"particleSize",
 	"parts",
+	"pauseState",
 	"pauseTime",
 	"periodicWave",
 	"pickTarget",
@@ -2277,7 +2278,6 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"paramterName",
 	"paramterValue",
 	"pauseColor",
-	"pauseState",
 	"phaseFunction",
 	"physics",
 	"planetId",
@@ -7677,7 +7677,7 @@ const int OFFSETS_MapPhysicsModel[] = {
 	(int) FIELDNAMES_obstacleColor, (int) offsetof (struct X3D_MapPhysicsModel, obstacleColor),  (int) FIELDTYPE_SFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_sinkColor, (int) offsetof (struct X3D_MapPhysicsModel, sinkColor),  (int) FIELDTYPE_MFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_pauseColor, (int) offsetof (struct X3D_MapPhysicsModel, pauseColor),  (int) FIELDTYPE_SFColor, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_pauseState, (int) offsetof (struct X3D_MapPhysicsModel, pauseState),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_pauseState, (int) offsetof (struct X3D_MapPhysicsModel, pauseState),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_colorMatchTolerance, (int) offsetof (struct X3D_MapPhysicsModel, colorMatchTolerance),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_classified, (int) offsetof (struct X3D_MapPhysicsModel, classified),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_eboxes, (int) offsetof (struct X3D_MapPhysicsModel, eboxes),  (int) FIELDTYPE_MFVec4f, (int) KW_inputOnly, (int) 0, (int) 0,
@@ -21306,6 +21306,7 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
 			spacer fprintf (fp," functionMap (SFNode):\n"); dump_scene(fp,level+1,tmp->functionMap); 
+			spacer fprintf (fp," pauseState (SFBool) \t%d\n",tmp->pauseState);
 		    break;
 		}
 		case NODE_Material : {
