@@ -1168,7 +1168,10 @@ float* pixel2color3(float * color, unsigned char* pixel) {
 void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
 	struct X3D_MapEmitter* e = (struct X3D_MapEmitter*)emitter;
 	vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
-	pp->speed = e->speed;
+	//give it a random walking speed +- 1m/s from e->speed
+	pp->speed = normalRand() * e->variation + e->speed;
+	pp->speed = pp->speed <= 0.0 ? e->speed : pp->speed;
+
 	pp->sink = -1; //we won't assign a sink until physics, because that's when we count the sinks
 	if (e->functionMap) {
 		//printf("functionMap type %s\n", stringNodeType(e->functionMap->_nodeType));
@@ -1549,7 +1552,6 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			// we've been assuming the gridSize is in m and we have one grid cell per meter
 			//  and scene grid centered on 0,0
 			// and we've been assuming the functionMap image covers the same area as the gridSize (but different resolution)
-
 			int isteps[2], jsteps[2];
 			isteps[0] = ((int)(px->gridSize.c[0] + .5f));
 			isteps[1] = ((int)(px->gridSize.c[1] + .5f));
