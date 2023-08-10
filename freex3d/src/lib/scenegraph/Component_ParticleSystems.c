@@ -345,6 +345,7 @@ typedef struct {
 	float mass;
 	float surfaceArea;
 	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
+	int maplocation[2]; //last popmap location in MapPhysics
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -1622,6 +1623,8 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				//printf("sink map %d x steps %d y steps %d\n", pp->sink, isteps[0], isteps[1]);
 				//print_image_channel(sinkmap, 0, isteps[0], isteps[1]);
 				if(debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				//clear our last known location from popmap so we dont block ourself
+				set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0,0, pp->maplocation[0],pp->maplocation[1]);
 
 				for (int i = 0; i < 8; i++) {
 					dlist[i] = 2000000;
@@ -1656,7 +1659,8 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					//skip if someone already populating grid cell (avoid particle collision)
 					unsigned char populated = get_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0, q.x, q.y);
 					//printf("nebor %d populated %d\n", i, populated);
-					if (populated) continue;
+					if (populated)	continue;
+
 					iscore[i] = 4;
 					dlist[i] = sinkval->int16[0]; // uchar;
 					if (dlist[i] < dshortest) {
@@ -1689,10 +1693,10 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 						vecscale3f(pp->direction, dir, 1.0f / flen);
 					}
 
-					//clear last location
-					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0,0, p.x, p.y);
-					//mark new location
-					//set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1,0, q.x, q.y);
+					//mark new location in popmap so others dont hit us
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1,0, q.x, q.y);
+					pp->maplocation[0] = q.x;
+					pp->maplocation[1] = q.y;
 					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
 
 				}
