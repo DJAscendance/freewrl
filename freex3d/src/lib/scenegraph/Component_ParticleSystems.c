@@ -1309,6 +1309,8 @@ void image2norm(float* fxy, int* ixy, int* isize) {
 	fxy[1] = (float)ixy[1] / (float)isize[1];
 }
 void saveSnapshotBMP(char* pathname, char* buffer, int bytesPerPixel, int width, int height);
+void set_debug_quad(int which_debug_shader, int textureID);
+void render_debug_quad();
 void display_imagedata4(unsigned char* texdata, int width, int height, int imageIndex) {
 	//makes or updates a gl texture, and pops it up on the screen at end of frame render
 	//assumes 4 bytes per pixel
@@ -1324,15 +1326,20 @@ void display_imagedata4(unsigned char* texdata, int width, int height, int image
 		once = 1;
 	}
 	char namebuf[200];
-	sprintf(namebuf, "C:\\tmp\\sinkmap%d.web3dit", imageIndex);
-	saveImage_web3dit(&tts, namebuf);
+	if (0) {
+		//works but not needed if saving .bmp 
+		sprintf(namebuf, "C:\\tmp\\sinkmap%d.web3dit", imageIndex);
+		saveImage_web3dit(&tts, namebuf);
+	}
 	sprintf(namebuf, "C:\\tmp\\sinkmap%d.bmp", imageIndex);
 	saveSnapshotBMP(namebuf, tts.texdata, tts.channels, tts.x, tts.y);
 
-	glActiveTexture(GL_TEXTURE0);
+	// popup image doesn't render here (but cubemap use does work)
+	//glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D,tts.OpenGLTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tts.x, tts.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tts.texdata);
 	set_debug_quad(1, tts.OpenGLTexture);
+	//render_debug_quad();
 }
 
 
@@ -1527,8 +1534,8 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 									printf("flood map %d x steps %d y steps %d\n", i, jsteps[0], jsteps[1]);
 									print_image_channel(texdata, 0, jsteps[0], jsteps[1]);
 								}
-								if (1) {
-									//show image on screen of flood map
+								if (0) {
+									//show image on screen and in C:/tmp .bmp of flood map
 									for (int jj = 0; jj < jsteps[1]; jj++)
 										for (int ii = 0; ii < jsteps[0]; ii++) {
 											//texdata[(jj * jsteps[0] + ii) * 4 + 0] = 127;
