@@ -1308,7 +1308,8 @@ void image2norm(float* fxy, int* ixy, int* isize) {
 	fxy[0] = (float)ixy[0] / (float)isize[0];
 	fxy[1] = (float)ixy[1] / (float)isize[1];
 }
-void display_imagedata4(unsigned char* texdata, int width, int height) {
+void saveSnapshotBMP(char* pathname, char* buffer, int bytesPerPixel, int width, int height);
+void display_imagedata4(unsigned char* texdata, int width, int height, int imageIndex) {
 	//makes or updates a gl texture, and pops it up on the screen at end of frame render
 	//assumes 4 bytes per pixel
 	static textureTableIndexStruct_s tts;
@@ -1321,8 +1322,13 @@ void display_imagedata4(unsigned char* texdata, int width, int height) {
 	if (!once) {
 		FW_GL_GENTEXTURES(1, &tts.OpenGLTexture);
 		once = 1;
-		saveImage_web3dit(&tts, "C:\\tmp\\sinkmap.web3dit");
 	}
+	char namebuf[200];
+	sprintf(namebuf, "C:\\tmp\\sinkmap%d.web3dit", imageIndex);
+	saveImage_web3dit(&tts, namebuf);
+	sprintf(namebuf, "C:\\tmp\\sinkmap%d.bmp", imageIndex);
+	saveSnapshotBMP(namebuf, tts.texdata, tts.channels, tts.x, tts.y);
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D,tts.OpenGLTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tts.x, tts.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tts.texdata);
@@ -1521,7 +1527,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 									printf("flood map %d x steps %d y steps %d\n", i, jsteps[0], jsteps[1]);
 									print_image_channel(texdata, 0, jsteps[0], jsteps[1]);
 								}
-								if (0 && i==0) {
+								if (1) {
 									//show image on screen of flood map
 									for (int jj = 0; jj < jsteps[1]; jj++)
 										for (int ii = 0; ii < jsteps[0]; ii++) {
@@ -1530,7 +1536,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 											//texdata[(jj * jsteps[0] + ii) * 4 + 2] = 0; //clear blue
 											texdata[(jj * jsteps[0] + ii) * 4 + 3] = 0xff;
 										}
-									display_imagedata4(texdata, jsteps[0], jsteps[1]); //sinkmap i
+									display_imagedata4(texdata, jsteps[0], jsteps[1],i); //sinkmap i
 									//display_imagedata4(tt->texdata, tt->x, tt->y); //function map
 								}
 								
