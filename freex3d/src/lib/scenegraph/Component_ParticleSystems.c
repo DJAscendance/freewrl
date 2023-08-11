@@ -1172,6 +1172,7 @@ void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
 	//give it a random walking speed +- 1m/s from e->speed
 	pp->speed = normalRand() * e->variation + e->speed;
 	pp->speed = pp->speed <= 0.0 ? e->speed : pp->speed;
+	//pp->speed = e->speed;
 
 	pp->sink = -1; //we won't assign a sink until physics, because that's when we count the sinks
 	if (e->functionMap) {
@@ -1445,7 +1446,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 								nebor[0].steps = nebor[2].steps = nebor[5].steps = nebor[7].steps = 3; //close to 2 * root(2)
 								p.x = icenter[0];
 								p.y = icenter[1];
-								p.steps = 0;
+								p.steps = 1;
 								set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 1, p.x, p.y);
 								stack_push(struct ixy, current, p);
 								int more = TRUE;
@@ -1577,6 +1578,9 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			if (pp->sink == -1) {
 				pp->sink = (int)(uniformRand() * (float)px->sinkColor.n);
 				printf("pp.sink = %d\n", pp->sink);
+				if (pp->sink < 0 || pp->sink >= px->sinkColor.n) {
+					printf("bad sink number %d, should be 0-%d\n", pp->sink, px->sinkColor.n - 1);
+				}
 			}
 			sinkmap	= &sinkmaps[sinkmapsize * (pp->sink + 1)];
 			//pp.position is in scene/ground coords centered on 0,0
@@ -1593,6 +1597,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			if (p.x < 0 || p.x >= jsteps[0] || p.y < 0 || p.y >= jsteps[1]) {
 				//vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
 				//vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+				printf("off the sink map\n");
 				return;
 			}
 
@@ -1605,10 +1610,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			//which way to go? 
 			//check if we are on the sink/destination, if so recycle.
 			sinkcolor = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], p.x, p.y);
-			if (sinkcolor->int16[0] < 3 && sinkcolor->int16[0] > 0) {
+			if (sinkcolor->int16[0] < 3) { //}&& sinkcolor->int16[0] > 0) {
 				//end of life, recycle - clear from population map
+				//or emitter may have launched onto obstacle by mistake (sinkcolor == 0) so just retire early
 				set_image_pixel_channel(popmap, jsteps[0], jsteps[1],0, 0, p.x, p.y);
-				pp->age = pp->lifespan;
+				pp->age = pp->lifespan+1.0f;
 			}
 			else {
 				//check if we are on a wait area, will affect neighbor decision
@@ -1685,7 +1691,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 						iscore[i] = 5;
 					}
 				}
-				if (debug) {
+				if (debug || ishortest == -1) {
 					for (int m = 0; m < 8; m++) printf("iscore[%d]=%d,", m, iscore[m]);
 					printf("\n");
 				}
