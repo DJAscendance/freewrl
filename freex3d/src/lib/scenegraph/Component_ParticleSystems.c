@@ -708,6 +708,23 @@ void apply_forcephysics(particle *pp, struct X3D_Node *physics, float dtime){
 	}
 }
 
+void apply_resistancephysics(particle* pp, struct X3D_Node* physics, float dtime) {
+	struct X3D_ResistancePhysicsModel* px = (struct X3D_ResistancePhysicsModel*)physics;
+	//a = F/m;
+	//v += a*dt
+	if (px->enabled && pp->mass != 0.0f) {
+		float deceleration, v2;
+		deceleration = px->force / pp->mass;
+		v2 = 1.0f - deceleration * dtime;
+		vecscale3f(pp->velocity, pp->velocity, v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
+
+	}
+}
+
 //EMITTERS
 void apply_ConeEmitter(particle *pp, struct X3D_Node *emitter){
 	// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/particle_systems.html#ConeEmitter
@@ -2042,6 +2059,8 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 						apply_forcephysics(&pp,node->physics.p[k],dtime); break;
 					case NODE_MapPhysicsModel:
 						apply_mapphysics(&pp, node->physics.p[k], dtime); break;
+					case NODE_ResistancePhysicsModel:
+						apply_resistancephysics(&pp, node->physics.p[k], dtime); break;
 					default:
 						break;
 				}

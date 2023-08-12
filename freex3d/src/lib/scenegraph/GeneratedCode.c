@@ -2986,6 +2986,7 @@ const char *NODES[] = {
 	"QuadSet",
 	"ReceiverPdu",
 	"Rectangle2D",
+	"ResistancePhysicsModel",
 	"RigidBody",
 	"RigidBodyCollection",
 	"ScalarChaser",
@@ -3355,6 +3356,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_geometry,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_geometry,0,0,0,0,0,0},
+{FIELDNAMES_physics,0,0,0,0,0,0},
 {FIELDNAMES_bodies,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -4327,6 +4329,8 @@ void collide_Rectangle2D(struct X3D_Rectangle2D *);
 void compile_Rectangle2D(struct X3D_Rectangle2D *);
 struct X3D_Virt virt_Rectangle2D = { NULL,(void *)render_Rectangle2D,NULL,NULL,(void *)rendray_Rectangle2D,NULL,NULL,NULL,(void *)collide_Rectangle2D,(void *)compile_Rectangle2D};
 
+struct X3D_Virt virt_ResistancePhysicsModel = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
 struct X3D_Virt virt_RigidBody = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_RigidBodyCollection = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4845,6 +4849,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_QuadSet,
 	 &virt_ReceiverPdu,
 	 &virt_Rectangle2D,
+	 &virt_ResistancePhysicsModel,
 	 &virt_RigidBody,
 	 &virt_RigidBodyCollection,
 	 &virt_ScalarChaser,
@@ -9059,6 +9064,12 @@ const int OFFSETS_Rectangle2D[] = {
 	(int) FIELDNAMES___numPoints, (int) offsetof (struct X3D_Rectangle2D, __numPoints),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
+const int OFFSETS_ResistancePhysicsModel[] = {
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_ResistancePhysicsModel, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_force, (int) offsetof (struct X3D_ResistancePhysicsModel, force),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_FORCE,
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_ResistancePhysicsModel, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
 const int OFFSETS_RigidBody[] = {
 	(int) FIELDNAMES_angularDampingFactor, (int) offsetof (struct X3D_RigidBody, angularDampingFactor),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_angularVelocity, (int) offsetof (struct X3D_RigidBody, angularVelocity),  (int) FIELDTYPE_SFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D32 | SPEC_X3D33), (int) UNCA_ANGLERATE,
@@ -10578,6 +10589,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_QuadSet,
 	OFFSETS_ReceiverPdu,
 	OFFSETS_Rectangle2D,
+	OFFSETS_ResistancePhysicsModel,
 	OFFSETS_RigidBody,
 	OFFSETS_RigidBodyCollection,
 	OFFSETS_ScalarChaser,
@@ -11206,6 +11218,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_QuadSet : {tmp = MALLOC (struct X3D_QuadSet *, size = sizeof (struct X3D_QuadSet)); break;}
 		case NODE_ReceiverPdu : {tmp = MALLOC (struct X3D_ReceiverPdu *, size = sizeof (struct X3D_ReceiverPdu)); break;}
 		case NODE_Rectangle2D : {tmp = MALLOC (struct X3D_Rectangle2D *, size = sizeof (struct X3D_Rectangle2D)); break;}
+		case NODE_ResistancePhysicsModel : {tmp = MALLOC (struct X3D_ResistancePhysicsModel *, size = sizeof (struct X3D_ResistancePhysicsModel)); break;}
 		case NODE_RigidBody : {tmp = MALLOC (struct X3D_RigidBody *, size = sizeof (struct X3D_RigidBody)); break;}
 		case NODE_RigidBodyCollection : {tmp = MALLOC (struct X3D_RigidBodyCollection *, size = sizeof (struct X3D_RigidBodyCollection)); break;}
 		case NODE_ScalarChaser : {tmp = MALLOC (struct X3D_ScalarChaser *, size = sizeof (struct X3D_ScalarChaser)); break;}
@@ -16437,6 +16450,15 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->solid = FALSE;
 			tmp2->__points.n=0; tmp2->__points.p=0;
 			tmp2->__numPoints = 0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_ResistancePhysicsModel : {
+			struct X3D_ResistancePhysicsModel * tmp2;
+			tmp2 = (struct X3D_ResistancePhysicsModel *) tmp;
+			tmp2->enabled = TRUE;
+			tmp2->force = 0.0f;
+			tmp2->metadata = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -22906,6 +22928,17 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			fprintf (fp,"\n");
 		    break;
 		}
+		case NODE_ResistancePhysicsModel : {
+			struct X3D_ResistancePhysicsModel *tmp;
+			tmp = (struct X3D_ResistancePhysicsModel *) node;
+			UNUSED(tmp); // compiler warning mitigation
+			spacer fprintf (fp," enabled (SFBool) \t%d\n",tmp->enabled);
+			spacer fprintf (fp," force (SFFloat) \t%4.3f\n",tmp->force);
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+		    break;
+		}
 		case NODE_RigidBody : {
 			struct X3D_RigidBody *tmp;
 			tmp = (struct X3D_RigidBody *) node;
@@ -24802,6 +24835,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_QuadSet: return X3DComposedGeometryNode; break;
 	case NODE_ReceiverPdu: return X3DChildNode; break;
 	case NODE_Rectangle2D: return X3DGeometryNode; break;
+	case NODE_ResistancePhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_RigidBody: return X3DSFNode; break;
 	case NODE_RigidBodyCollection: return X3DChildNode; break;
 	case NODE_ScalarChaser: return X3DChaserNode; break;

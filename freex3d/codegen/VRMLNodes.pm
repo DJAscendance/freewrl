@@ -5479,6 +5479,13 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DParticlePhysicsModelNode"),
 	
+	# Extra ResistancePhysicsModel
+	"ResistancePhysicsModel" => new VRML::NodeType("ResistancePhysicsModel", [
+		enabled  => ["SFBool", "TRUE","inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		force => ["SFFloat", 0, "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_FORCE"],#ff
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+	],"X3DParticlePhysicsModelNode"),
+
 	
 	# 40.4.5 ParticleSystem
 	"ParticleSystem" => new VRML::NodeType ("ParticleSystem", [

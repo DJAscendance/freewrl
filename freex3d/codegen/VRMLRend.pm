@@ -263,6 +263,7 @@ our %defaultContainerType = (
 	WindPhysicsModel	=>["physics"],
 	BoundedPhysicsModel	=>["physics"],
 	ForcePhysicsModel	=>["physics"],
+	ResistancePhysicsModel	=>["physics"],
         MapPhysicsModel         =>["physics"],
 	ParticleSystem		=>["shape"],
 

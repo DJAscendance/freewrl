@@ -3722,6 +3722,13 @@ EXPOSED_FIELD(Rectangle2D,size,sfvec2f,size,FIELDTYPE_SFVec2f,UNCA_LENGTH)
 FIELD(Rectangle2D,solid,sfbool,solid,FIELDTYPE_SFBool,UNCA_NONE)
 END_NODE(Rectangle2D)
 
+/* ResistancePhysicsModel node */
+BEGIN_NODE(ResistancePhysicsModel)
+EXPOSED_FIELD(ResistancePhysicsModel,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(ResistancePhysicsModel,force,sffloat,force,FIELDTYPE_SFFloat,UNCA_FORCE)
+EXPOSED_FIELD(ResistancePhysicsModel,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+END_NODE(ResistancePhysicsModel)
+
 /* RigidBody node */
 BEGIN_NODE(RigidBody)
 EXPOSED_FIELD(RigidBody,angularDampingFactor,sffloat,angularDampingFactor,FIELDTYPE_SFFloat,UNCA_NONE)
