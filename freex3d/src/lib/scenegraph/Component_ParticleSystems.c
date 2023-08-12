@@ -1679,8 +1679,9 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					//if (sinkcolor[0] == 0) continue;
 					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
-					//skip if we aren't on waitzone, and next is waitzone and wait function is on
-					if (on_wait) {
+					//skip if we are already on waitzone/crosswalk
+					if (!on_wait) {
+						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
 						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
 						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
 						funccolor = (pix*)sample_image(tt, xx, yy);
