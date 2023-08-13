@@ -1841,6 +1841,8 @@ EXPOSED_FIELD(HAnimMotionDataFile,loa,sfint32,loa,FIELDTYPE_SFInt32,UNCA_NONE)
 EVENT_OUT(HAnimMotionDataFile,frameCount,sfint32,frameCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(HAnimMotionDataFile,frameDuration,sftime,frameDuration,FIELDTYPE_SFTime,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotionDataFile,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
+FIELD(HAnimMotionDataFile,channelShift,sfint32,channelShift,FIELDTYPE_SFInt32,0)
+FIELD(HAnimMotionDataFile,ignorePosition,sfbool,ignorePosition,FIELDTYPE_SFBool,0)
 END_NODE(HAnimMotionDataFile)
 
 /* HAnimMotionPlay node */

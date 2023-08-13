@@ -567,6 +567,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"channelFilter",
 	"channelInterpretation",
 	"channelSelection",
+	"channelShift",
 	"channelSource",
 	"channels",
 	"channelsEnabled",
@@ -789,6 +790,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hitTexCoord_changed",
 	"horizontal",
 	"iboxes",
+	"ignorePosition",
 	"image",
 	"index",
 	"indexDestination",
@@ -2197,6 +2199,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"category",
 	"ccw",
 	"centralScale",
+	"channelShift",
 	"child1Url",
 	"child2Url",
 	"child3Url",
@@ -2247,6 +2250,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"height",
 	"heightOffset",
 	"horizontal",
+	"ignorePosition",
 	"index",
 	"info",
 	"initialDestination",
@@ -6988,6 +6992,8 @@ const int OFFSETS_HAnimMotionDataFile[] = {
 	(int) FIELDNAMES_url, (int) offsetof (struct X3D_HAnimMotionDataFile, url),  (int) FIELDTYPE_MFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_HAnimMotionDataFile, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_HAnimMotionDataFile, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_channelShift, (int) offsetof (struct X3D_HAnimMotionDataFile, channelShift),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_ignorePosition, (int) offsetof (struct X3D_HAnimMotionDataFile, ignorePosition),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionPlay[] = {
@@ -13857,6 +13863,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->url.n=0; tmp2->url.p=0;
 			tmp2->_parentResource = getInputResource();
 			tmp2->__loadResource = 0;
+			tmp2->channelShift = 0;
+			tmp2->ignorePosition = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

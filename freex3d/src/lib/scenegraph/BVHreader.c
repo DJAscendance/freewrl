@@ -88,8 +88,8 @@ struct joint_frame_motion {
 	int ichan[6];
 	float *values;
 };
-void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
@@ -229,7 +229,27 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 		//fprintf(fout,"\n");
 	}
 	//fclose(fout);
-
+	int shift[3];
+	for (int j = 0; j < 3; j++) {
+		shift[j] = j + channelShift;
+		shift[j] = shift[j] % 3;
+		shift[j] -= j;
+	}
+	printf("channel shifts %d %d %d\n", shift[0], shift[1], shift[2]);
+	if (channelShift != 0) {
+		for (int j = 0; j < mjoint; j++) {
+			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+			for (int k = 0; k < cchan[j].nchan; k++) {
+				int ichan = cchan[j].ichan[k];
+				if (ichan < 4)
+					ichan += shift[ichan - 1];
+				if (ichan > 3)
+					ichan += shift[ichan - 4];
+				printf("before %d after %d\n", cchan[j].ichan[k], ichan);
+				cchan[j].ichan[k] = ichan;
+			}
+		}
+	}
 	//convert degrees to radians
 	for(int iframe=0;iframe< *bvh_frame_count;iframe++){
 		float *fv = &fvalues[iframe * (*channel_count)];
@@ -239,6 +259,8 @@ void read_bvh_blob(char *blob, struct joint_frame_motion **chan, int *njoint, in
 			for(int k=0;k<cchan[j].nchan;k++){
 				if(cchan[j].ichan[k] < 4)
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
+				if (cchan[j].ichan[k] > 3 && ignorePosition)
+					fv[kchan] = 0.0f;
 				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
 				kchan++;
 			}
