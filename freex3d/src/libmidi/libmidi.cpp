@@ -145,8 +145,8 @@ typedef struct MidiNode {
     void* queue;
 } MidiNode;
 struct mcstruct {
-    std::thread context;
-    bool running;
+    //std::thread context;
+    //bool running;
     int next_node;
     //int next_bus;
     std::map<int, MidiNode*> nodes;
@@ -154,22 +154,28 @@ struct mcstruct {
  };
 static int next_midi_context = 0;
 static std::map<int, struct mcstruct*> midi_contexts;
-void midi_context_function(struct mcstruct* ac) {
-    while (true) {
-        if (!ac->running) 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        else {
-
-        }
-    }
-}
+//void midi_context_function(struct mcstruct* ac) {
+//    while (true) {
+//        if (!ac->running) 
+//            std::this_thread::sleep_for(std::chrono::seconds(1));
+//        else {
+//
+//        }
+//    }
+//}
 int libmidi_createContext0() {
-    struct mcstruct *ac = new mcstruct();
+    // midi needs one context I think
+    // yes there are separate threads for each source
+    // but that shouldn't affect connections
+    if (next_midi_context == 0) {
+        next_midi_context++;
 
-    next_midi_context++;
-    midi_contexts[next_midi_context] = ac;
-    ac->context = std::thread(midi_context_function, ac);
-    ac->running = FALSE;
+        struct mcstruct *ac = new mcstruct();
+
+        midi_contexts[next_midi_context] = ac;
+        //ac->context = std::thread(midi_context_function, ac);
+        //ac->running = FALSE;
+    }
 	return next_midi_context;
 }
 

@@ -133,6 +133,8 @@ void push_midi_context(int midi_context) {
 }
 void create_and_push_midi_context(struct X3D_Node* node) {
 	//Hypothesis: Destination / output audio nodes create a context, and child source and processing audio nodes use the context
+	//Semi-disconfirmed for MIDI. Source nodes have different threads, but shouldn't affect connections.
+	//H2: no need for a context - just make connections whereever.
 	struct X3D_MidiRep* srep = getMidiRep(node);
 	if (!srep->icontext) {
 		int jcontext = peek_midi_context();
@@ -205,11 +207,11 @@ void update_midi_connections(struct X3D_MidiRep* srep, icset iparent)
 {
 	if (midinewconnect(srep, iparent)) {
 		libmidi_connect(srep->icontext, iparent);
-		//libmidi_print_connections();
+		libmidi_print_connections();
 	}
 	if (mididisconnect(srep, iparent)) {
 		libmidi_disconnect(srep->icontext, iparent);
-		//libmidi_print_connections();
+		libmidi_print_connections();
 	}
 }
 
