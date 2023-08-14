@@ -1843,6 +1843,8 @@ EXPOSED_FIELD(HAnimMotionDataFile,frameDuration,sftime,frameDuration,FIELDTYPE_S
 EXPOSED_FIELD(HAnimMotionDataFile,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
 FIELD(HAnimMotionDataFile,channelShift,sfint32,channelShift,FIELDTYPE_SFInt32,0)
 FIELD(HAnimMotionDataFile,ignorePosition,sfbool,ignorePosition,FIELDTYPE_SFBool,0)
+FIELD(HAnimMotionDataFile,flipZ,sfbool,flipZ,FIELDTYPE_SFBool,0)
+FIELD(HAnimMotionDataFile,mapping,mfstring,mapping,FIELDTYPE_MFString,0)
 END_NODE(HAnimMotionDataFile)
 
 /* HAnimMotionPlay node */

@@ -88,8 +88,8 @@ struct joint_frame_motion {
 	int ichan[6];
 	float *values;
 };
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
@@ -229,9 +229,12 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct join
 		//fprintf(fout,"\n");
 	}
 	//fclose(fout);
-	int shift[3];
+	int shift[3], cshift;
+	cshift = channelShift % 3;
+	if (cshift < 0) cshift += 3;
+	printf("channelShift %d\n", cshift);
 	for (int j = 0; j < 3; j++) {
-		shift[j] = j + channelShift;
+		shift[j] = j + cshift;
 		shift[j] = shift[j] % 3;
 		shift[j] -= j;
 	}
@@ -257,10 +260,18 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct join
 		for(int j=0;j<mjoint;j++){
 			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
 			for(int k=0;k<cchan[j].nchan;k++){
-				if(cchan[j].ichan[k] < 4)
+				if (cchan[j].ichan[k] < 4) {
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
-				if (cchan[j].ichan[k] > 3 && ignorePosition)
-					fv[kchan] = 0.0f;
+					if (flipZ) {
+						if (cchan[j].ichan[k] == 3) fv[kchan] *= -1;
+					}
+				}
+				if (cchan[j].ichan[k] > 3) {
+					if (cchan[j].ichan[k] == 6 && flipZ)
+						fv[kchan] = -fv[kchan];
+					if (ignorePosition)
+						fv[kchan] = 0.0f;
+				}
 				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
 				kchan++;
 			}
@@ -275,29 +286,29 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct join
 struct name_map {
 int no;
 char *jname;
-char *mocap_name[5];
+char *mocap_name[6];
 } loa1_mapping [] = {
 {1,"humanoid_root",{"Hips","hip","joint_root",0,0}},
-{2,"sacroiliac",{"Spine",0,0,0,0}},
-{3,"l_hip",{"LeftHip","lThigh","UpperLeg_L",0,0}},
-{4,"l_knee",{"LeftKnee","lShin","LowerLeg_L",0,0}},
-{5,"l_talocrural",{"LeftAnkle","lFoot","Foot_L",0,0}},
-{6,"l_metatarsophalangeal",{"Toes_L",0,0,0,0}},
-{7,"r_hip",{"RightHip","rThigh","UpperLeg_R",0,0}},
-{8,"r_knee",{"RightKnee","rShin","LowerLeg_R",0,0}},
-{9,"r_talocrural",{"RightAnkle","rFoot","Foot_R",0,0}},
-{10,"r_metatarsophalangeal",{"Toes_R",0,0,0,0}},
-{11,"vl5",{"Chest","abdomen",0,0,0}},
-{12,"skullbase",{"Neck","Head",0,0,0}},
-//{13,"l_shoulder",{"LeftCollar","lCollar",0,0,0}},
-{13,"l_shoulder",{"LeftShoulder","lShldr","UpperArm_L",0,0}},
-{14,"l_elbow",{"LeftElbow","lForeArm","LowerArm_L",0,0}},
-{15,"l_radiocarpal",{"LeftWrist","lHand","Hand_L",0,0}},
-//{16,"r_shoulder",{"RightCollar","rCollar",0,0,0}},
-{16,"r_shoulder",{"RightShoulder","rShldr","UpperArm_R",0,0}},
-{17,"r_elbow",{"RightElbow","rForeArm","LowerArm_R",0,0}},
-{18,"r_radiocarpal",{"RightWrist","rHand","Hand_R",0,0}},
-{0,NULL,{0,0,0,0,0}},
+{2,"sacroiliac",{"Spine",0,0,0,0,0}},
+{3,"l_hip",{"LeftHip","lThigh","UpperLeg_L","LeftUpLeg",0,0}},
+{4,"l_knee",{"LeftKnee","lShin","LowerLeg_L","LeftLeg",0,0}},
+{5,"l_talocrural",{"LeftAnkle","lFoot","Foot_L","LeftFoot",0,0}},
+{6,"l_metatarsophalangeal",{"Toes_L","LeftToeBase",0,0,0,0}},
+{7,"r_hip",{"RightHip","rThigh","UpperLeg_R","RightUpLeg",0,0}},
+{8,"r_knee",{"RightKnee","rShin","LowerLeg_R","RightLeg",0,0}},
+{9,"r_talocrural",{"RightAnkle","rFoot","Foot_R","RightFoot",0,0}},
+{10,"r_metatarsophalangeal",{"Toes_R","RightToeBase",0,0,0,0}},
+{11,"vl5",{"Chest","abdomen","Spine1",0,0,0}},
+{12,"skullbase",{"Neck","Head",0,0,0,0}},
+//{13,"l_shoulder",{"LeftCollar","lCollar",0,0,0,0}},
+{13,"l_shoulder",{"LeftShoulder","lShldr","UpperArm_L","LeftArm",0,0}},
+{14,"l_elbow",{"LeftElbow","lForeArm","LowerArm_L","LeftForeArm",0,0}},
+{15,"l_radiocarpal",{"LeftWrist","lHand","Hand_L","LeftHand",0,0}},
+//{16,"r_shoulder",{"RightCollar","rCollar",0,0,0,0}},
+{16,"r_shoulder",{"RightShoulder","rShldr","UpperArm_R","RightArm",0,0}},
+{17,"r_elbow",{"RightElbow","rForeArm","LowerArm_R","RightForeArm",0,0}},
+{18,"r_radiocarpal",{"RightWrist","rHand","Hand_R","RightHand",0,0}},
+{0,NULL,{0,0,0,0,0,0}},
 };
 static char *ignore = "IGNORE";
 char * jname_lookup(char *mocap_name){
@@ -327,7 +338,24 @@ char * jname_lookup(char *mocap_name){
 	return jname;
 }
 
-
+//every bvh publisher and bvh seems to have different naming convention
+//if you worked out a mapping from bvh joint name to LOA1 joint name
+// set it here and we'll use it
+static char** mapp = NULL;
+static int nmap = 0;
+void bvh_set_mapping(char** mapping, int n) {
+	mapp = mapping;
+	nmap = n;
+}
+char* jname_mapping(char* mocap_name) {
+	char* jname = ignore;
+	for (int i = 0; i < nmap; i++) {
+		if (!strcasecmp(mapp[i * 2 + 1], mocap_name)) {
+			jname = mapp[i * 2];
+		}
+	}
+	return jname;
+}
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa){
 
 	//map mocap joint names to HAnim2 loa joint names - see section 4.4.4 Joint mapping example
@@ -340,7 +368,12 @@ void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int lo
 
 	if(loa == 1 || loa == -1){
 		for(int i=0;i<mjoint;i++){
-			chan[i].jname = jname_lookup(chan[i].mocap_name);
+			if (mapp) {
+				chan[i].jname = jname_mapping(chan[i].mocap_name);
+			}
+			else {
+				chan[i].jname = jname_lookup(chan[i].mocap_name);
+			}
 		}
 	}
 

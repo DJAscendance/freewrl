@@ -3484,6 +3484,8 @@ our %Nodes = (
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
                 channelShift => ["SFInt32",0,"initializeOnly",0,0],#ff
                 ignorePosition => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                flipZ => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                mapping => ["MFString",[],"initializeOnly",0,0],#ff
 	],"X3DMotionDataNode"),
 
 	"HAnimMotionClip" => new VRML::NodeType("HAnimMotionClip", [

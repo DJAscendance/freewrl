@@ -1642,7 +1642,8 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 // MotionData can be DEF/USED by multiple MotionPlay nodes
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void bvh_set_mapping(char** mapping, int n);
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
 void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, int len){
 	//Stack *bvh_nodes = NULL;
 	float bvh_frame_time;
@@ -1652,7 +1653,16 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 	float *fvalues = NULL;
 	int channel_count;
 	int njoint;
-	read_bvh_blob(blob, node->ignorePosition, node->channelShift, &chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
+	if (node->mapping.n) {
+		char** mapp = malloc(2 * sizeof(char*) * node->mapping.n);
+		for (int i = 0; i < node->mapping.n; i++)
+			mapp[i] = node->mapping.p[i]->strptr;
+		bvh_set_mapping(mapp, node->mapping.n / 2);
+	}
+	else {
+		bvh_set_mapping(NULL, 0); //will use internal mapping
+	}
+	read_bvh_blob(blob, node->ignorePosition, node->channelShift, node->flipZ, &chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	map_mocap_to_hanim_loa(chan,njoint,node->loa);
 	node->frameCount = bvh_frame_count;
 	node->frameDuration = bvh_frame_time;
