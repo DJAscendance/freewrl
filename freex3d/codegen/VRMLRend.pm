@@ -405,7 +405,8 @@ our %defaultContainerType = (
 	MIDIFileDestination		=>["children"],
 	MIDIOut				=>["children"],
 	MIDIIn				=>["children"],
-	MIDIConverterOut		=>["children"],
+	MIDIOut				=>["children"],
+	MIDIProgram			=>["children"],
 	MIDIConverterIn			=>["children"],
 	MIDIToneSplitter		=>["children"],
 	MIDIToneMerger			=>["children"],
@@ -549,6 +550,7 @@ our %RendC = map {($_=>1)} qw/
 
 	MIDIOut
 	MIDIIn
+	MIDIProgram
 	MIDIConverterOut
 	MIDIConverterIn
 	MIDIToneSplitter

@@ -263,7 +263,8 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 				if (cchan[j].ichan[k] < 4) {
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
 					if (flipZ) {
-						if (cchan[j].ichan[k] == 3) fv[kchan] *= -1;
+						if (cchan[j].ichan[k] == 3) 
+							fv[kchan] *= -1;
 					}
 				}
 				if (cchan[j].ichan[k] > 3) {

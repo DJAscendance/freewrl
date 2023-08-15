@@ -5965,6 +5965,14 @@ our %Nodes = (
 
 	], "X3DMIDISourceNode"),
 
+	"MIDIProgram" => new VRML::NodeType("MIDIProgram",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+                instrument => ["SFInt32",1,"inputOutput",0,0],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	], "X3DMIDIProcessingNode"),
+
+
 	"MIDIConverterOut" => new VRML::NodeType("MIDIConverterOut",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff

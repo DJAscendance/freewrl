@@ -2399,6 +2399,14 @@ EXPOSED_FIELD(MIDIPrintDestination,description,sfstring,description,FIELDTYPE_SF
 EXPOSED_FIELD(MIDIPrintDestination,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
 END_NODE(MIDIPrintDestination)
 
+/* MIDIProgram node */
+BEGIN_NODE(MIDIProgram)
+EXPOSED_FIELD(MIDIProgram,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIProgram,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIProgram,instrument,sfint32,instrument,FIELDTYPE_SFInt32,0)
+EXPOSED_FIELD(MIDIProgram,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIProgram)
+
 /* MIDIToneMerger node */
 BEGIN_NODE(MIDIToneMerger)
 EXPOSED_FIELD(MIDIToneMerger,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)

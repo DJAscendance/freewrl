@@ -439,6 +439,30 @@ void render_MIDIIn(struct X3D_MIDIIn* node) {
 	iparent.s = 0;
 	update_midi_connections(srep, iparent);
 }
+void render_MIDIProgram(struct X3D_MIDIProgram* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset iparent = peek_midi_parent();
+	create_and_push_midi_context(anode);
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	libmidi_updateNode3(peek_midi_context(), iparent, anode);
+	if (!iparent.p) {
+		push_midi_parent(srep->inode); // 1); //should be the audio context device node
+	}
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->children.n) {
+		push_midi_parent(srep->inode); 
+		for (int i = 0; i < node->children.n; i++)
+			render_node(X3D_NODE(node->children.p[i]));
+		pop_midi_parent();
+	}
+	iparent.n = srep->inode;
+	iparent.s = 0;
+	update_midi_connections(srep, iparent);
+
+	if (!iparent.p)
+		pop_midi_parent(); //audio context device node 1
+	pop_midi_context();
+}
 /*
 enum message_type 
 {
@@ -483,7 +507,6 @@ void midimsg_uint2values(unsigned int msg, ubyte* channel, ubyte* command, ubyte
 	*command = bytes[0] - (*channel - 1);
 	*note = bytes[1];
 	*velocity = bytes[2];
-
 }
 unsigned int midimsg_values2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity) {
 	unsigned int msg;

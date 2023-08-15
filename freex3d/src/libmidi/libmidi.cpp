@@ -143,6 +143,7 @@ typedef struct MidiNode {
     int run;
     int loop;
     void* queue;
+    int instrument, last_instrument;
 } MidiNode;
 struct mcstruct {
     //std::thread context;
@@ -754,6 +755,81 @@ void midiOut_takepacket(MidiNode* midiNode, timedpacket tpacket) {
     std::cout << "enqueued one" << std::endl;
 }
 
+void midiProgram_takemessage(MidiNode* mnode, const struct libremidi::message* msg) {
+    struct libremidi::message m = libremidi::message(*msg);
+    if (msg->get_message_type() == libremidi::message_type::PROGRAM_CHANGE) {
+        std::vector<unsigned char> mess(msg->size());
+        mess[0] = msg->bytes[0];
+        mess[1] = mnode->instrument - 1;
+        m = libremidi::message(mess, msg->timestamp);
+        mnode->last_instrument = mnode->instrument;
+    }
+    else if (mnode->instrument != mnode->last_instrument) {
+        // on startup as we get the first note, do a program change first
+        // or if routing to the MIDIProgram.instrument field changed the instrument on the fly
+        // then we send out an extra message before the notes begin
+        ubyte channel, command;
+        channel = (msg->bytes[0] & 0xF);
+        command = command = PROGRAM_CHANGE;
+        std::vector<unsigned char> mess(2);
+        mess[0] = command | channel;
+        mess[1] = mnode->instrument - 1;
+        mnode->last_instrument = mnode->instrument;
+        struct libremidi::message mi = libremidi::message(mess, msg->timestamp);
+        for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+        {
+            MidiNode* mout = *it;
+             if (mout->takemessage) mout->takemessage(mout, &mi);
+        }
+    }
+
+    for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+    {
+        MidiNode* mout = *it;
+        if (mout->takemessage) mout->takemessage(mout, &m);
+    }
+
+}
+void midiProgram_takepacket(MidiNode* mnode, timedpacket tpacket) {
+    ubyte channel, command, note;
+    ushort velocity;
+    midiump_packet2values(tpacket.packet, &channel, &command, &note, &velocity);
+    if (command == PROGRAM_CHANGE) {
+        //intercept and change program
+        UMP* ump = (UMP*)&tpacket.packet;
+        ump->bytes[4] = mnode->instrument -1;
+        mnode->last_instrument = mnode->instrument;
+    }
+    else if (mnode->instrument != mnode->last_instrument) {
+        // on startup as we get the first note, do a program change first
+        // or if routing to the instrument field changed the instrument on the fly
+        // then we send out an extra packet before the notes begin
+        UMP ump;
+        ump.packet = 0.0;
+        command = PROGRAM_CHANGE;
+        ump.bytes[1] = command | (channel-1);
+        ump.bytes[4] = mnode->instrument-1;
+        mnode->last_instrument = mnode->instrument;
+        timedpacket tp;
+        tp.packet = ump.packet;
+        tp.timestamp = tpacket.timestamp;
+        for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+        {
+            MidiNode* mout = *it;
+            //MIDI 2.0 UMP
+            if (mout->takepacket) mout->takepacket(mout, tp);
+        }
+    }
+
+    for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+    {
+        MidiNode* mout = *it;
+        //MIDI 2.0 UMP
+        if (mout->takepacket) mout->takepacket(mout, tpacket);
+    }
+}
+
+
 void midimsg_uint2values(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity);
 unsigned int midimsg_values2uint(ubyte channel, ubyte command, ubyte note, ubyte velocity);
 void midiump_packet2values(double packet, ubyte* channel, ubyte* command, ubyte* note, ushort* velocity);
@@ -1167,7 +1243,7 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         MidiNode* input;
         if (!srepn->inode) {
             input = new MidiNode();
-            input->itype = 6; //MIDIPrintDestination
+            input->itype = 6; 
             input->numberOfOutputs = 0;
             input->numberOfInputs = 1;
             input->takemessage = midiOut_takemessage;
@@ -1175,7 +1251,7 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
 
             ac->next_node++;
             ac->nodes[ac->next_node] = input;
-            ac->nodetype[ac->next_node] = NODE_MIDIPrintDestination;
+            ac->nodetype[ac->next_node] = NODE_MIDIOut;
             srepn->inode = ac->next_node;
             srepn->icontext = icontext;
         }
@@ -1194,7 +1270,7 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         MidiNode* input;
         if (!srepn->inode) {
             input = new MidiNode();
-            input->itype = 1; //1=MIDIPortSource
+            input->itype = 7; 
             input->numberOfOutputs = 1;
             input->numberOfInputs = 0;
             input->takemessage = NULL; //it takes a normal ROUTE, not midi messages
@@ -1215,6 +1291,32 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
 
     }
     break;
+    case NODE_MIDIProgram:
+    {
+        struct X3D_MIDIProgram* pnode = (struct X3D_MIDIProgram*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 8; 
+            input->numberOfOutputs = 1;
+            input->numberOfInputs = 1;
+            input->takemessage = midiProgram_takemessage; //it takes a normal ROUTE, not midi messages
+            input->takepacket = midiProgram_takepacket;
+            input->last_instrument = 0;
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIProgram;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+        input = ac->nodes[srepn->inode];
+        input->instrument = pnode->instrument;
+        input = ac->nodes[srepn->inode];
+
+    }
+    break;
+
 
     default:
         break;
@@ -1234,6 +1336,7 @@ static struct type_name {
 {NODE_MIDIFileSource, "MFS"},
 {NODE_MIDIIn, "MIn"},
 {NODE_MIDIOut, "MOut"},
+{NODE_MIDIProgram,"PRG"},
 {0,NULL},
 };
 static const char* nodetype_lookup(int itype) {
