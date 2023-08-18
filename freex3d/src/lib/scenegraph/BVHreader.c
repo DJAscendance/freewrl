@@ -88,8 +88,11 @@ struct joint_frame_motion {
 	int ichan[6];
 	float *values;
 };
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
+char* get_jname(char* mocap_name);
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, float scale, int flipAngles, int relativeAngles, int teePoseDefault,
+	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
+void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, float scale, int flipAngles, int relativeAngles, int teePoseDefault,
+	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
@@ -153,6 +156,7 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 				for(int i=0;i<3;i++){
 					token = strtok(NULL,delims);
 					sscanf(token,"%f",&offset[i]);
+					offset[i] *= scale;
 				}
 			}
 		}
@@ -253,6 +257,8 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 			}
 		}
 	}
+	float* fv0 = &fvalues[0];
+
 	//convert degrees to radians
 	for(int iframe=0;iframe< *bvh_frame_count;iframe++){
 		float *fv = &fvalues[iframe * (*channel_count)];
@@ -261,6 +267,20 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
 			for(int k=0;k<cchan[j].nchan;k++){
 				if (cchan[j].ichan[k] < 4) {
+					if(relativeAngles)
+						fv[kchan] -= fv0[kchan]; //relative to first entry
+					if (flipAngles) fv[kchan] = -fv[kchan];
+					if (teePoseDefault) {
+						char* jname = get_jname(cchan[j].mocap_name);
+						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip") )
+							fv[kchan] += 21;
+						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_hip"))
+							fv[kchan] -= 21;
+						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_shoulder"))
+							fv[kchan] += 90;
+						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_shoulder"))
+							fv[kchan] -= 90;
+					}
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
 					if (flipZ) {
 						if (cchan[j].ichan[k] == 3) 
@@ -268,6 +288,7 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 					}
 				}
 				if (cchan[j].ichan[k] > 3) {
+					fv[kchan] *= scale;
 					if (cchan[j].ichan[k] == 6 && flipZ)
 						fv[kchan] = -fv[kchan];
 					if (ignorePosition)
@@ -357,6 +378,16 @@ char* jname_mapping(char* mocap_name) {
 	}
 	return jname;
 }
+char* get_jname(char* mocap_name) {
+	char* jname = NULL;
+	if (mapp) {
+		jname = jname_mapping(mocap_name);
+	}
+	else {
+		jname = jname_lookup(mocap_name);
+	}
+	return jname;
+}
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa){
 
 	//map mocap joint names to HAnim2 loa joint names - see section 4.4.4 Joint mapping example
@@ -369,12 +400,13 @@ void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int lo
 
 	if(loa == 1 || loa == -1){
 		for(int i=0;i<mjoint;i++){
-			if (mapp) {
-				chan[i].jname = jname_mapping(chan[i].mocap_name);
-			}
-			else {
-				chan[i].jname = jname_lookup(chan[i].mocap_name);
-			}
+			chan[i].jname = get_jname(chan[i].mocap_name);
+			//if (mapp) {
+			//	chan[i].jname = jname_mapping(chan[i].mocap_name);
+			//}
+			//else {
+			//	chan[i].jname = jname_lookup(chan[i].mocap_name);
+			//}
 		}
 	}
 

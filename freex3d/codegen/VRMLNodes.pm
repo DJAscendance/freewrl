@@ -3486,6 +3486,10 @@ our %Nodes = (
                 ignorePosition => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 flipZ => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 mapping => ["MFString",[],"initializeOnly",0,0],#ff
+                scale => ["SFFloat",1.0,"initializeOnly",0,0],#ff
+                flipAngles => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                relativeAngles => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                teePoseDefault => ["SFBool","FALSE","initializeOnly",0,0],#ff
 	],"X3DMotionDataNode"),
 
 	"HAnimMotionClip" => new VRML::NodeType("HAnimMotionClip", [

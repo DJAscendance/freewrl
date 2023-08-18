@@ -714,6 +714,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"firingRange",
 	"firingRate",
 	"fixed",
+	"flipAngles",
 	"flipZ",
 	"floatFrequencyData",
 	"floatInp",
@@ -1065,6 +1066,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"refine",
 	"refraction",
 	"refresh",
+	"relativeAngles",
 	"relativeAntennaLocation",
 	"relativeHeight",
 	"release",
@@ -1238,6 +1240,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"targetObject",
 	"tau",
 	"tdlType",
+	"teePoseDefault",
 	"tessellation",
 	"tessellationScale",
 	"texCoord",
@@ -2236,6 +2239,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"falseNorthing",
 	"family",
 	"fanCount",
+	"flipAngles",
 	"flipZ",
 	"forceTransitions",
 	"forwardDirection",
@@ -2296,6 +2300,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"range",
 	"reference",
 	"refine",
+	"relativeAngles",
 	"relativeHeight",
 	"repeatR",
 	"repeatS",
@@ -2305,6 +2310,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"rotateYUp",
 	"rtCode",
 	"rtpHeaderExpected",
+	"scale",
 	"secondaryAxis",
 	"sensorLocalOutput",
 	"shape",
@@ -2329,6 +2335,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"style",
 	"subcategory",
 	"systemParameters",
+	"teePoseDefault",
 	"texCoord",
 	"texCoordIndex",
 	"texCoordKey",
@@ -7007,6 +7014,10 @@ const int OFFSETS_HAnimMotionDataFile[] = {
 	(int) FIELDNAMES_ignorePosition, (int) offsetof (struct X3D_HAnimMotionDataFile, ignorePosition),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_flipZ, (int) offsetof (struct X3D_HAnimMotionDataFile, flipZ),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_HAnimMotionDataFile, mapping),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_scale, (int) offsetof (struct X3D_HAnimMotionDataFile, scale),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_flipAngles, (int) offsetof (struct X3D_HAnimMotionDataFile, flipAngles),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_relativeAngles, (int) offsetof (struct X3D_HAnimMotionDataFile, relativeAngles),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_teePoseDefault, (int) offsetof (struct X3D_HAnimMotionDataFile, teePoseDefault),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionPlay[] = {
@@ -13889,6 +13900,10 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->ignorePosition = FALSE;
 			tmp2->flipZ = FALSE;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
+			tmp2->scale = 1.0f;
+			tmp2->flipAngles = FALSE;
+			tmp2->relativeAngles = FALSE;
+			tmp2->teePoseDefault = FALSE;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

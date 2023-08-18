@@ -1845,6 +1845,10 @@ FIELD(HAnimMotionDataFile,channelShift,sfint32,channelShift,FIELDTYPE_SFInt32,0)
 FIELD(HAnimMotionDataFile,ignorePosition,sfbool,ignorePosition,FIELDTYPE_SFBool,0)
 FIELD(HAnimMotionDataFile,flipZ,sfbool,flipZ,FIELDTYPE_SFBool,0)
 FIELD(HAnimMotionDataFile,mapping,mfstring,mapping,FIELDTYPE_MFString,0)
+FIELD(HAnimMotionDataFile,scale,sffloat,scale,FIELDTYPE_SFFloat,0)
+FIELD(HAnimMotionDataFile,flipAngles,sfbool,flipAngles,FIELDTYPE_SFBool,0)
+FIELD(HAnimMotionDataFile,relativeAngles,sfbool,relativeAngles,FIELDTYPE_SFBool,0)
+FIELD(HAnimMotionDataFile,teePoseDefault,sfbool,teePoseDefault,FIELDTYPE_SFBool,0)
 END_NODE(HAnimMotionDataFile)
 
 /* HAnimMotionPlay node */
