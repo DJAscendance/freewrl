@@ -5976,6 +5976,13 @@ our %Nodes = (
 		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	], "X3DMIDIProcessingNode"),
 
+	"MIDIDelay" => new VRML::NodeType("MIDIDelay",[
+		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", 0,"UNCA_NONE"],#ff
+                delay => ["SFTime",0.0,"inputOutput",0,0],#ff
+		children => ["MFNode", [], "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+	], "X3DMIDIProcessingNode"),
+
 
 	"MIDIConverterOut" => new VRML::NodeType("MIDIConverterOut",[
 		metadata => ["SFNode", "NULL", "inputOutput", 0,"UNCA_NONE"],#ff

@@ -144,6 +144,7 @@ typedef struct MidiNode {
     int loop;
     void* queue;
     int instrument, last_instrument;
+    double delay,starttime,lasttime;
 } MidiNode;
 struct mcstruct {
     //std::thread context;
@@ -828,6 +829,68 @@ void midiProgram_takepacket(MidiNode* mnode, timedpacket tpacket) {
         if (mout->takepacket) mout->takepacket(mout, tpacket);
     }
 }
+double Time1970sec();
+//MIDIDelay
+void midiDelay_takemessage(MidiNode* mnode, const struct libremidi::message* msg) {
+    const struct libremidi::message& m = *msg;
+    if (!mnode->queue)
+        mnode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
+    SafeQueue<const struct libremidi::message*>* que = (SafeQueue<const struct libremidi::message*>*)mnode->queue;
+    std::cout << "enqueuing one" << std::endl;
+    que->enqueue(new libremidi::message(*msg));
+    std::cout << "enqueued one" << std::endl;
+
+}
+void midiDelay_takepacket(MidiNode* mnode, timedpacket tpacket) {
+    if (!mnode->queue)
+        mnode->queue = (void*) new SafeQueue<timedpacket>();
+    SafeQueue<timedpacket>* que = (SafeQueue<timedpacket>*)mnode->queue;
+    std::cout << "enqueuing one" << std::endl;
+    tpacket.timestamp = Time1970sec(); //swap in absolute time, will replace with delta-time below
+    que->enqueue(tpacket);
+    std::cout << "enqueued one" << std::endl;
+
+}
+
+void mididelayfunctionMSG(MidiNode* mnode) {}
+void mididelayfunctionUMP(MidiNode* mnode) {
+    double now, diff, diff1, diff2;
+    if (!mnode->queue)
+        mnode->queue = (void*) new SafeQueue<timedpacket>();
+    SafeQueue<timedpacket>* que = (SafeQueue<timedpacket>*)mnode->queue;
+    
+    //https://cplusplus.com/reference/ctime/time/  //time, difftime, mktime to seconds
+    mnode->starttime = Time1970sec();
+    mnode->lasttime = 0.0; //last outgoing packet time
+    do {
+        while (que->empty()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        timedpacket tpacket = que->dequeue();
+        now = Time1970sec();
+        diff1 = (now - mnode->starttime);
+        diff2 = (tpacket.timestamp + mnode->delay - mnode->starttime);
+        diff = diff2 - diff1;
+        //printf("diff1 %lf diff2 %lf diff %lf\n", diff1, diff2, diff);
+        if(diff > 0.0) 
+            std::this_thread::sleep_for(std::chrono::milliseconds((long long) ( diff * 1000.0)));
+        tpacket.timestamp = Time1970sec() - mnode->lasttime; //packets have the delta-time from last packet sent
+        mnode->lasttime = tpacket.timestamp;
+        for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+        {
+            MidiNode* mout = *it;
+            //MIDI 2.0 UMP
+            if (mout->takepacket) mout->takepacket(mout, tpacket);
+        }
+    } while (TRUE);
+    std::cout << "bye bye" << std::endl;
+    
+}
+void mididelayfunction(MidiNode* mnode) {
+    if (MIDITransport() == MIDI_MSG)
+        mididelayfunctionMSG(mnode);
+    else if (MIDITransport() == MIDI_UMP)
+        mididelayfunctionUMP(mnode);
+}
+
 
 
 void midimsg_uint2values(unsigned int msg, ubyte* channel, ubyte* command, ubyte* note, ubyte* velocity);
@@ -1312,6 +1375,33 @@ void libmidi_updateNode3(int icontext, icset connect_parent, struct X3D_Node* no
         }
         input = ac->nodes[srepn->inode];
         input->instrument = pnode->instrument;
+        input = ac->nodes[srepn->inode];
+
+    }
+    break;
+    case NODE_MIDIDelay:
+    {
+        struct X3D_MIDIDelay* pnode = (struct X3D_MIDIDelay*)node;
+        MidiNode* input;
+        if (!srepn->inode) {
+            input = new MidiNode();
+            input->itype = 8;
+            input->numberOfOutputs = 1;
+            input->numberOfInputs = 1;
+            input->takemessage = midiDelay_takemessage; //it takes a normal ROUTE, not midi messages
+            input->takepacket = midiDelay_takepacket;
+            input->delay = 0;
+            std::thread mididelay(mididelayfunction, input);
+            mididelay.detach(); //so it doesn't try and join when done
+
+            ac->next_node++;
+            ac->nodes[ac->next_node] = input;
+            ac->nodetype[ac->next_node] = NODE_MIDIDelay;
+            srepn->inode = ac->next_node;
+            srepn->icontext = icontext;
+        }
+        input = ac->nodes[srepn->inode];
+        input->delay = pnode->delay;
         input = ac->nodes[srepn->inode];
 
     }

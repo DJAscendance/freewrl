@@ -626,6 +626,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"data",
 	"dataLength",
 	"deadReckoning",
+	"delay",
 	"delayTime",
 	"deletionAllowed",
 	"depth",
@@ -1712,6 +1713,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"data",
 	"dataLength",
 	"deadReckoning",
+	"delay",
 	"delayTime",
 	"deletionAllowed",
 	"depth",
@@ -2880,6 +2882,7 @@ const char *NODES[] = {
 	"MIDIAudioSynth",
 	"MIDIConverterIn",
 	"MIDIConverterOut",
+	"MIDIDelay",
 	"MIDIFileDestination",
 	"MIDIFileSource",
 	"MIDIIn",
@@ -3251,6 +3254,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {0,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3976,6 +3980,9 @@ struct X3D_Virt virt_MIDIConverterIn = { NULL,(void *)render_MIDIConverterIn,NUL
 
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut *);
 struct X3D_Virt virt_MIDIConverterOut = { NULL,(void *)render_MIDIConverterOut,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+
+void render_MIDIDelay(struct X3D_MIDIDelay *);
+struct X3D_Virt virt_MIDIDelay = { NULL,(void *)render_MIDIDelay,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 void render_MIDIFileDestination(struct X3D_MIDIFileDestination *);
 struct X3D_Virt virt_MIDIFileDestination = { NULL,(void *)render_MIDIFileDestination,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4748,6 +4755,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_MIDIAudioSynth,
 	 &virt_MIDIConverterIn,
 	 &virt_MIDIConverterOut,
+	 &virt_MIDIDelay,
 	 &virt_MIDIFileDestination,
 	 &virt_MIDIFileSource,
 	 &virt_MIDIIn,
@@ -7592,6 +7600,13 @@ const int OFFSETS_MIDIConverterOut[] = {
 	(int) FIELDNAMES_pedal, (int) offsetof (struct X3D_MIDIConverterOut, pedal),  (int) FIELDTYPE_SFBool, (int) KW_outputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_midiMsg, (int) offsetof (struct X3D_MIDIConverterOut, midiMsg),  (int) FIELDTYPE_MFInt32, (int) KW_inputOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_midiUmp, (int) offsetof (struct X3D_MIDIConverterOut, midiUmp),  (int) FIELDTYPE_MFDouble, (int) KW_inputOnly, (int) 0, (int) 0,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_MIDIDelay[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_MIDIDelay, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_MIDIDelay, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) UNCA_NONE,
+	(int) FIELDNAMES_delay, (int) offsetof (struct X3D_MIDIDelay, delay),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_MIDIDelay, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_MIDIFileDestination[] = {
@@ -10504,6 +10519,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_MIDIAudioSynth,
 	OFFSETS_MIDIConverterIn,
 	OFFSETS_MIDIConverterOut,
+	OFFSETS_MIDIDelay,
 	OFFSETS_MIDIFileDestination,
 	OFFSETS_MIDIFileSource,
 	OFFSETS_MIDIIn,
@@ -11134,6 +11150,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_MIDIAudioSynth : {tmp = MALLOC (struct X3D_MIDIAudioSynth *, size = sizeof (struct X3D_MIDIAudioSynth)); break;}
 		case NODE_MIDIConverterIn : {tmp = MALLOC (struct X3D_MIDIConverterIn *, size = sizeof (struct X3D_MIDIConverterIn)); break;}
 		case NODE_MIDIConverterOut : {tmp = MALLOC (struct X3D_MIDIConverterOut *, size = sizeof (struct X3D_MIDIConverterOut)); break;}
+		case NODE_MIDIDelay : {tmp = MALLOC (struct X3D_MIDIDelay *, size = sizeof (struct X3D_MIDIDelay)); break;}
 		case NODE_MIDIFileDestination : {tmp = MALLOC (struct X3D_MIDIFileDestination *, size = sizeof (struct X3D_MIDIFileDestination)); break;}
 		case NODE_MIDIFileSource : {tmp = MALLOC (struct X3D_MIDIFileSource *, size = sizeof (struct X3D_MIDIFileSource)); break;}
 		case NODE_MIDIIn : {tmp = MALLOC (struct X3D_MIDIIn *, size = sizeof (struct X3D_MIDIIn)); break;}
@@ -14616,6 +14633,16 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->pedal = FALSE;
 			tmp2->midiMsg.n=0; tmp2->midiMsg.p=0;
 			tmp2->midiUmp.n=0; tmp2->midiUmp.p=0;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_MIDIDelay : {
+			struct X3D_MIDIDelay * tmp2;
+			tmp2 = (struct X3D_MIDIDelay *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->delay = 0;
+			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -21253,6 +21280,19 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
 		    break;
 		}
+		case NODE_MIDIDelay : {
+			struct X3D_MIDIDelay *tmp;
+			tmp = (struct X3D_MIDIDelay *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," delay (SFTime) \t%4.3f\n",tmp->delay);
+			spacer fprintf (fp," children (MFNode):\n");
+			for (i=0; i<tmp->children.n; i++) { dump_scene(fp,level+1,tmp->children.p[i]); }
+		    break;
+		}
 		case NODE_MIDIFileDestination : {
 			struct X3D_MIDIFileDestination *tmp;
 			tmp = (struct X3D_MIDIFileDestination *) node;
@@ -24783,6 +24823,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_MIDIAudioSynth: return X3DSoundSourceNode; break;
 	case NODE_MIDIConverterIn: return X3DMIDINode; break;
 	case NODE_MIDIConverterOut: return X3DMIDINode; break;
+	case NODE_MIDIDelay: return X3DMIDIProcessingNode; break;
 	case NODE_MIDIFileDestination: return X3DMIDIDestinationNode; break;
 	case NODE_MIDIFileSource: return X3DMIDISourceNode; break;
 	case NODE_MIDIIn: return X3DMIDISourceNode; break;

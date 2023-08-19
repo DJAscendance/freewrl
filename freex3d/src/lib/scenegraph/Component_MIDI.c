@@ -463,6 +463,30 @@ void render_MIDIProgram(struct X3D_MIDIProgram* node) {
 		pop_midi_parent(); //audio context device node 1
 	pop_midi_context();
 }
+void render_MIDIDelay(struct X3D_MIDIDelay* node) {
+	struct X3D_Node* anode = (struct X3D_Node*)node;
+	icset iparent = peek_midi_parent();
+	create_and_push_midi_context(anode);
+	struct X3D_MidiRep* srep = getMidiRep(X3D_NODE(node));
+	libmidi_updateNode3(peek_midi_context(), iparent, anode);
+	if (!iparent.p) {
+		push_midi_parent(srep->inode); // 1); //should be the audio context device node
+	}
+	srep->iframe = gglobal()->Mainloop.iframe;
+	if (node->children.n) {
+		push_midi_parent(srep->inode);
+		for (int i = 0; i < node->children.n; i++)
+			render_node(X3D_NODE(node->children.p[i]));
+		pop_midi_parent();
+	}
+	iparent.n = srep->inode;
+	iparent.s = 0;
+	update_midi_connections(srep, iparent);
+
+	if (!iparent.p)
+		pop_midi_parent(); //audio context device node 1
+	pop_midi_context();
+}
 /*
 enum message_type 
 {
@@ -758,6 +782,8 @@ void render_MIDIPortDestination(struct X3D_MIDIPortDestination* node) {}
 void render_MIDIFileDestination(struct X3D_MIDIFileDestination* node) {}
 void render_MIDIOut(struct X3D_MIDIOut* node) {}
 void render_MIDIIn(struct X3D_MIDIIn* node) {}
+void render_MIDIProgram(struct X3D_MIDIProgram* node) {}
+void render_MIDIDelay(struct X3D_MIDIDelay* node) {}
 void render_MIDIConverterOut(struct X3D_MIDIConverterOut* node) {}
 void render_MIDIConverterIn(struct MIDIConverterIn* node) {}
 void render_MIDIToneSplitter(struct MIDIToneSplitter* node) {}

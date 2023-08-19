@@ -2349,6 +2349,14 @@ EVENT_IN(MIDIConverterOut,midiMsg,mfint32,midiMsg,FIELDTYPE_MFInt32)
 EVENT_IN(MIDIConverterOut,midiUmp,mfdouble,midiUmp,FIELDTYPE_MFDouble)
 END_NODE(MIDIConverterOut)
 
+/* MIDIDelay node */
+BEGIN_NODE(MIDIDelay)
+EXPOSED_FIELD(MIDIDelay,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(MIDIDelay,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(MIDIDelay,delay,sftime,delay,FIELDTYPE_SFTime,0)
+EXPOSED_FIELD(MIDIDelay,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(MIDIDelay)
+
 /* MIDIFileDestination node */
 BEGIN_NODE(MIDIFileDestination)
 EXPOSED_FIELD(MIDIFileDestination,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
