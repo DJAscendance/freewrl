@@ -1414,6 +1414,7 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	node->_framevalues = fvalues;
 	//node->startFrame = 0;
 	if(node->endFrame == 0) node->endFrame = node->frameCount -1;
+	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion, frameCount));
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
@@ -1561,6 +1562,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 				switch(jm->ichan[i]){
 					case 1:
 						matrixFromAxisAngle4d(mat1, (double)value, -1.0, 0.0,0.0);
+						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("xr %f ", value*DEGREES_PER_RADIAN);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 1 mat1\n");
@@ -1571,6 +1573,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 					case 2: 
 						matrixFromAxisAngle4d(mat1, (double)value, 0.0, -1.0, 0.0);
+						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("yr %f ", value * DEGREES_PER_RADIAN);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 2 mat1\n");
@@ -1581,6 +1584,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 					case 3:
 						matrixFromAxisAngle4d(mat1, (double)value, 0.0, 0.0, -1.0);
+						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("zr %f ", value * DEGREES_PER_RADIAN);
 						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
 						if(debug){
 						printf("case 3 mat1\n");
@@ -1623,6 +1627,15 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						if(debug) printf("OUCH DEFAULT\n");
 						break;
 				}
+			}
+			if(0) if (!strcmp(jm->jname, "l_shoulder")) {
+				printf("\n");
+				printf("%lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n",
+					jmatrix[0], jmatrix[1], jmatrix[2], jmatrix[3],
+					jmatrix[4], jmatrix[5], jmatrix[6], jmatrix[7],
+					jmatrix[8], jmatrix[9], jmatrix[10], jmatrix[11],
+					jmatrix[12], jmatrix[13], jmatrix[14], jmatrix[15]);
+				printf("\n");
 			}
 			//matinverseAFFINE(mat1,jmatrix);
 			matmultiplyAFFINE(jmatrix0,jmatrix,jmatrix0);
@@ -1667,6 +1680,7 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 		&chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	map_mocap_to_hanim_loa(chan,njoint,node->loa);
 	node->frameCount = bvh_frame_count;
+	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotionDataFile, frameCount));
 	node->frameDuration = bvh_frame_time;
 	node->_njoints = njoint;
 	node->_channels = chan;
@@ -2005,10 +2019,12 @@ void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 				if(motiondatafile->__loadstatus == LOADER_LOADED) return; 
 				//node->startFrame = 0;
 				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				MARK_EVENT(X3D_NODE(motiondata), offsetof(struct X3D_HAnimMotionData, frameCount));
 				MARK_NODE_COMPILED
 			}else{
 				//node->startFrame = 0;
 				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				MARK_EVENT(X3D_NODE(motiondata), offsetof(struct X3D_HAnimMotionData, frameCount));
 				MARK_NODE_COMPILED
 			}
 		}
@@ -2032,7 +2048,7 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	int isActive = FALSE;
 
 	int increment = node->frameIncrement;
-	if(increment == 0) return; //the official way to pause
+//	if(increment == 0) return; //the official way to pause
 	index = node->frameIndex;
 	int fcount = motiondata->frameCount;
 	index = max(0,min(index,fcount-1)); //iclamp
@@ -2058,7 +2074,7 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	} else if(node->previous){
 		index = index - increment;
 		node->previous = FALSE;
-	} else if(node->enabled){
+	} else if(node->enabled && increment){
 		double dtime = TickTime() - node->_startTime;
 		index = node->frameIncrement * (int)( dtime / motiondata->frameDuration);
 	}
