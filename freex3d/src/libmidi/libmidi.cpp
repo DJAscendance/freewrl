@@ -832,12 +832,13 @@ void midiProgram_takepacket(MidiNode* mnode, timedpacket tpacket) {
 double Time1970sec();
 //MIDIDelay
 void midiDelay_takemessage(MidiNode* mnode, const struct libremidi::message* msg) {
-    const struct libremidi::message& m = *msg;
+    struct libremidi::message m = *msg;
     if (!mnode->queue)
         mnode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
     SafeQueue<const struct libremidi::message*>* que = (SafeQueue<const struct libremidi::message*>*)mnode->queue;
     std::cout << "enqueuing one" << std::endl;
-    que->enqueue(new libremidi::message(*msg));
+    m.timestamp = Time1970sec(); //overwrite with absolute time, will change back to diff time below
+    que->enqueue(new libremidi::message(m));
     std::cout << "enqueued one" << std::endl;
 
 }
@@ -852,7 +853,37 @@ void midiDelay_takepacket(MidiNode* mnode, timedpacket tpacket) {
 
 }
 
-void mididelayfunctionMSG(MidiNode* mnode) {}
+void mididelayfunctionMSG(MidiNode* mnode) {
+    double now, diff, diff1, diff2;
+    if (!mnode->queue)
+        mnode->queue = (void*) new SafeQueue<const struct libremidi::message*>();
+    SafeQueue<const struct libremidi::message*>* que = (SafeQueue<const struct libremidi::message*>*)mnode->queue;
+
+    //https://cplusplus.com/reference/ctime/time/  //time, difftime, mktime to seconds
+    mnode->starttime = Time1970sec();
+    mnode->lasttime = 0.0; //last outgoing packet time
+    do {
+        while (que->empty()) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        libremidi::message msg = *(que->dequeue());
+        now = Time1970sec();
+        diff1 = (now - mnode->starttime);
+        diff2 = (msg.timestamp + mnode->delay - mnode->starttime);
+        diff = diff2 - diff1;
+        //printf("diff1 %lf diff2 %lf diff %lf\n", diff1, diff2, diff);
+        if (diff > 0.0)
+            std::this_thread::sleep_for(std::chrono::milliseconds((long long)(diff * 1000.0)));
+        msg.timestamp = Time1970sec() - mnode->lasttime; //packets have the delta-time from last packet sent
+        mnode->lasttime = msg.timestamp;
+        for (std::list<MidiNode*>::iterator it = mnode->outputs.begin(); it != mnode->outputs.end(); ++it)
+        {
+            MidiNode* mout = *it;
+            //MIDI 2.0 UMP
+            if (mout->takepacket) mout->takemessage(mout, &msg);
+        }
+    } while (TRUE);
+    std::cout << "bye bye" << std::endl;
+
+}
 void mididelayfunctionUMP(MidiNode* mnode) {
     double now, diff, diff1, diff2;
     if (!mnode->queue)
@@ -1427,6 +1458,7 @@ static struct type_name {
 {NODE_MIDIIn, "MIn"},
 {NODE_MIDIOut, "MOut"},
 {NODE_MIDIProgram,"PRG"},
+{NODE_MIDIDelay,"DLY"},
 {0,NULL},
 };
 static const char* nodetype_lookup(int itype) {
