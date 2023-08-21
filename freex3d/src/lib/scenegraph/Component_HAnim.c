@@ -2095,7 +2095,10 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 		node->elapsedTime = TickTime();
 		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, elapsedTime));
 	}
+	int last_index = node->frameIndex;
 	node->frameIndex = index;
+	if(last_index != index)
+		MARK_EVENT(X3D_NODE(node), offsetof( struct X3D_HAnimMotionPlay, frameIndex));
 	frame_values = &fvalues[node->frameIndex * channelcount];
 	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
 	COMPILE_IF_REQUIRED

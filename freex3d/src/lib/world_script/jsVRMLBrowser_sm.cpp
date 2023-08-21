@@ -3631,8 +3631,8 @@ VrmlBrowserAddRoute(JSContext *context, uintN argc, jsval *vp) {
 
 JSBool
 VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(context,vp);
-        jsval *argv = JS_ARGV(context,vp);
+    JSObject *obj = JS_THIS_OBJECT(context,vp);
+    jsval *argv = JS_ARGV(context,vp);
 	unsigned int count;
 	JSString *_str;
 	char *_id_c;
@@ -3663,15 +3663,6 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 	}
 	/* the \n should be done with println below, or in javascript print("\n"); 
 	  except web3d V3 specs don't have Browser.println so print will do \n like the old days*/
-	// OLD_IPHONE_AQUA  #if defined(AQUA)  || defined(_MSC_VER)
-	#if defined(AQUA)  || defined(_MSC_VER)
-	ConsoleMessage("\n"); /* statusbar hud */
-	gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
-	#elif !defined(_MSC_VER)
-		#ifdef HAVE_NOTOOLKIT
-			printf ("\n");
-		#endif
-	#endif
 	JS_SET_RVAL(context,vp,INT_TO_JSVAL(0)); //JSVAL_ZERO);
 	return JS_TRUE;
 }
@@ -3679,17 +3670,61 @@ VrmlBrowserPrint(JSContext *context, uintN argc, jsval *vp) {
 JSBool
 VrmlBrowserPrintln(JSContext *context, uintN argc, jsval *vp) {
 	/* note, vp holds rval, since it is set in here we should be good */
-	VrmlBrowserPrint(context,argc,vp); 
+	//VrmlBrowserPrint(context,argc,vp); 
 
-	// OLD_IPHONE_AQUA  #if defined(AQUA) || defined(_MSC_VER)
-	#if defined(AQUA) ||  defined(_MSC_VER)
-		//ConsoleMessage("\n"); /* statusbar hud */
-		gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
-	#else
-		#ifdef HAVE_NOTOOLKIT
-			printf ("\n");
-		#endif
-	#endif
+	//// OLD_IPHONE_AQUA  #if defined(AQUA) || defined(_MSC_VER)
+	//#if defined(AQUA) ||  defined(_MSC_VER)
+	//	//ConsoleMessage("\n"); /* statusbar hud */
+	//	gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
+	//#else
+	//	#ifdef HAVE_NOTOOLKIT
+	//		printf ("\n");
+	//	#endif
+	//#endif
+
+	JSObject* obj = JS_THIS_OBJECT(context, vp);
+	jsval* argv = JS_ARGV(context, vp);
+	unsigned int count;
+	JSString* _str;
+	char* _id_c;
+
+	UNUSED(context); UNUSED(obj);
+	/* printf ("FreeWRL:javascript: "); */
+	for (count = 0; count < argc; count++) {
+		if (JSVAL_IS_STRING(argv[count])) {
+			_str = JSVAL_TO_STRING(argv[count]);
+			_id_c = JS_EncodeString(context, _str);
+			// OLD_IPHONE_AQUA #if defined(AQUA) || defined(_MSC_VER)
+#if defined(AQUA) || defined(_MSC_VER)
+			ConsoleMessage(_id_c); /* statusbar hud */
+			gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
+#else
+#ifdef HAVE_NOTOOLKIT 
+			printf("%s", _id_c);
+#else
+			printf("%s\n", _id_c);
+			ConsoleMessage(_id_c); /* statusbar hud */
+			gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
+#endif
+#endif
+			JS_free(context, _id_c);
+		}
+		else {
+			/*		printf ("unknown arg type %d\n",count); */
+		}
+	}
+	/* the \n should be done with println below, or in javascript print("\n");
+	  except web3d V3 specs don't have Browser.println so print will do \n like the old days*/
+	  // OLD_IPHONE_AQUA  #if defined(AQUA)  || defined(_MSC_VER)
+#if defined(AQUA)  || defined(_MSC_VER)
+	ConsoleMessage("\n"); /* statusbar hud */
+	gglobal()->ConsoleMessage.consMsgCount = 0; /* reset the "Maximum" count */
+#elif !defined(_MSC_VER)
+#ifdef HAVE_NOTOOLKIT
+	printf("\n");
+#endif
+#endif
+	JS_SET_RVAL(context, vp, INT_TO_JSVAL(0)); //JSVAL_ZERO);
 	return JS_TRUE;
 }
 
