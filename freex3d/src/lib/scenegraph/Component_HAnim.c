@@ -2069,10 +2069,10 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 
 
 	if(node->next){
-		index = index + increment;
+		index = index + 1;// increment;
 		node->next = FALSE;
 	} else if(node->previous){
-		index = index - increment;
+		index = index - 1; // increment;
 		node->previous = FALSE;
 	} else if(node->enabled && increment){
 		double dtime = TickTime() - node->_startTime;
