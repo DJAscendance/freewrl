@@ -597,7 +597,9 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 
 }
 void render_rig_segment(float* jcenter) {
-	//needs work
+	//needs work, idea is to render rig, based on absolute centers, 
+	// and rely on parent transform stack to orient.
+	// works a bit but lots of misses, don't know what to conclude or what to fix.
 
 	float extent[6], scale, size[3], center[3], diff[3], add[3];
 	vecdif3f(diff, peek_joint_center(), jcenter);
@@ -625,7 +627,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	HH = peek_humanoid();
 	if(HH){
 		JT = HH->_JT;
-		// needs work: 
+		// needs work, needs a launch parameter or HAnim field flag
 		if(0) render_rig_segment(node->center.c);
 
 		//step 1, generate transform
