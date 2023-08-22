@@ -250,6 +250,7 @@ x currenlty we are transforming mesh vertices in CPU on each frame - all CPU
 typedef struct pComponent_HAnim{
 	double HHMatrix[16];
 	Stack *humanoid_stack;
+	Stack* joint_center;
 }* ppComponent_HAnim;
 void *Component_HAnim_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_HAnim));
@@ -263,6 +264,7 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
+		p->joint_center = newStack(float*);
 	}
 }
 void Component_HAnim_clear(struct tComponent_HAnim *t){
@@ -271,6 +273,7 @@ void Component_HAnim_clear(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		deleteStack(struct X3D_HAnimHumanoid*,p->humanoid_stack);
+		deleteStack(float*, p->joint_center);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
@@ -290,7 +293,18 @@ struct X3D_HAnimHumanoid * peek_humanoid(){
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	return stack_top(struct X3D_HAnimHumanoid *, p->humanoid_stack);
 }
-
+void push_joint_center(float *center) {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_push(float*, p->joint_center, center);
+}
+void pop_joint_center() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_pop(float*, p->joint_center);
+}
+float* peek_joint_center() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return stack_top(float*, p->joint_center);
+}
 
 
 void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
@@ -582,14 +596,15 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	//printf ("rendering HAnimHumanoid DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 
 }
-void render_rig_segment(float* endpoint) {
+void render_rig_segment(float* jcenter) {
 	//needs work
-	float extent[6], scale, size[3], center[3];
-	scale = veclength3f(endpoint);
-	//scale = .25f;
-	center[0] = center[2] = 0.0f;
-	center[1] = scale * .5f;
-	size[0] = size[2] = scale * .1f;
+
+	float extent[6], scale, size[3], center[3], diff[3], add[3];
+	vecdif3f(diff, peek_joint_center(), jcenter);
+	scale = veclength3f(diff);
+	vecadd3f(add, peek_joint_center(), jcenter);
+	vecscale3f(center, add, .5f);
+	size[0] = size[2] = scale*.1;
 	size[1] = scale;
 	bbox2extent6f(center, size, extent);
 	extent6f_draw(extent);
@@ -611,7 +626,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	if(HH){
 		JT = HH->_JT;
 		// needs work: 
-		//render_rig_segment(node->center.c);
+		if(0) render_rig_segment(node->center.c);
 
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
@@ -823,7 +838,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		normalChildren(node->viewpoints);
 		return;
 	}
-
+	
 	if(node->motions.n){
 		for(int i=0;i<node->motions.n;i++){
 			if(node->motionsEnabled.p[i])
@@ -896,10 +911,10 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 	}
 
-
-
+	float zerocenter[3];
+	push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
-
+	pop_joint_center();
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -1050,8 +1065,10 @@ void child_HAnimJoint(struct X3D_HAnimJoint *node) {
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
+	push_joint_center(node->center.c); //joint center for drawing armature
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
+	pop_joint_center();
 
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
