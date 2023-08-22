@@ -582,6 +582,18 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	//printf ("rendering HAnimHumanoid DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 
 }
+void render_rig_segment(float* endpoint) {
+	//needs work
+	float extent[6], scale, size[3], center[3];
+	scale = veclength3f(endpoint);
+	//scale = .25f;
+	center[0] = center[2] = 0.0f;
+	center[1] = scale * .5f;
+	size[0] = size[2] = scale * .1f;
+	size[1] = scale;
+	bbox2extent6f(center, size, extent);
+	extent6f_draw(extent);
+}
 
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
@@ -591,12 +603,15 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	Stack *JT;
 	float *PVW, *PVI;
 
+
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	//printf ("rendering HAnimJoint DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 	
 	HH = peek_humanoid();
 	if(HH){
 		JT = HH->_JT;
+		// needs work: 
+		//render_rig_segment(node->center.c);
 
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
