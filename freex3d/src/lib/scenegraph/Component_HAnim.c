@@ -1577,27 +1577,35 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*) HMnode;
 	if(HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)){
 		struct joint_frame_motion *jm = jointFrameMotion(HM,jname);
-		int debug = FALSE;
-		//if(!strcmp(jname,"humanoid_root")) debug = TRUE;
+		int debug =	FALSE;
+		//if(!strcmp(jname,"l_shoulder")) debug = TRUE;
 		if(jm){ // && strcmp(jname,"HumanoidRoot")){
 			double mat1[16],jmatrix[16],xyz[3];
 			if(debug) printf("in update_jointMatrix\n");
 			if(debug) printmatrix(jmatrix0);
 			matidentity4d(jmatrix);
+			int igl = FALSE;
+			if (igl) glPushMatrix();
+			if (igl) glLoadIdentity();
 			if(debug) 
 				printf("%s ",jname);
-			for(int i=0;i<jm->nchan;i++){
+			
+			for(int ii=0;ii<jm->nchan;ii++){
+				int i = ii; // jm->nchan - 1 - ii;
 				float value = jm->values[i];
 				if(debug) 
 				printf("%d %4.2f ",jm->ichan[i],value);
 				// Q. what kind of angles are those 
 				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
+				int ir = 0;
 				matidentity4d(mat1);
 				switch(jm->ichan[i]){
 					case 1:
-						matrixFromAxisAngle4d(mat1, (double)value, -1.0, 0.0,0.0);
+						matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0,0.0);
+						if (igl) glRotatef(value*DEGREES_PER_RADIAN, 1, 0, 0);
 						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("xr %f ", value*DEGREES_PER_RADIAN);
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if(ir) matmultiplyAFFINE(jmatrix,jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 1 mat1\n");
 						printmatrix(mat1);
@@ -1606,9 +1614,11 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						}
 						break;
 					case 2: 
-						matrixFromAxisAngle4d(mat1, (double)value, 0.0, -1.0, 0.0);
+						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
+						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 1, 0);
 						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("yr %f ", value * DEGREES_PER_RADIAN);
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 2 mat1\n");
 						printmatrix(mat1);
@@ -1617,9 +1627,11 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						}
 						break;
 					case 3:
-						matrixFromAxisAngle4d(mat1, (double)value, 0.0, 0.0, -1.0);
+						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 0.0, 1.0);
+						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 0, 1);
 						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("zr %f ", value * DEGREES_PER_RADIAN);
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 3 mat1\n");
 						printmatrix(mat1);
@@ -1629,7 +1641,9 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 					case 4:
 						mattranslate4d(mat1,vecsetd(xyz,(double)value,0.0,0.0));
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if (igl) glTranslatef(value,0,0);
+						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 4 mat1\n");
 						printmatrix(mat1);
@@ -1639,7 +1653,9 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 					case 5:
 						mattranslate4d(mat1,vecsetd(xyz,0.0,(double)value,0.0));
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if (igl) glTranslatef(0, value, 0);
+						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 5 mat1\n");
 						printmatrix(mat1);
@@ -1649,7 +1665,9 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 					case 6:
 						mattranslate4d(mat1,vecsetd(xyz,0.0,0.0,(double)value));
-						matmultiplyAFFINE(jmatrix,mat1,jmatrix);
+						if (igl) glTranslatef(0, 0, value);
+						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
+						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
 						printf("case 6 mat1\n");
 						printmatrix(mat1);
@@ -1662,17 +1680,40 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char *jname, double *
 						break;
 				}
 			}
-			if(0) if (!strcmp(jm->jname, "l_shoulder")) {
+			if(debug) if (!strcmp(jm->jname, "l_shoulder")) {
+				double tmatrix[16];
+				glGetDoublev(GL_MODELVIEW_MATRIX, tmatrix);
+
 				printf("\n");
+				if (igl) {
+					printf("opengl matrix multiply\n");
+						printf("%lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n",
+							tmatrix[0], tmatrix[1], tmatrix[2], tmatrix[3],
+							tmatrix[4], tmatrix[5], tmatrix[6], tmatrix[7],
+							tmatrix[8], tmatrix[9], tmatrix[10], tmatrix[11],
+							tmatrix[12], tmatrix[13], tmatrix[14], tmatrix[15]);
+					printf("\n");
+				}
+				printf("fw matrix multiply\n");
 				printf("%lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n",
 					jmatrix[0], jmatrix[1], jmatrix[2], jmatrix[3],
 					jmatrix[4], jmatrix[5], jmatrix[6], jmatrix[7],
 					jmatrix[8], jmatrix[9], jmatrix[10], jmatrix[11],
 					jmatrix[12], jmatrix[13], jmatrix[14], jmatrix[15]);
 				printf("\n");
+				if (igl) memcpy(jmatrix, tmatrix, 16 * sizeof(double));
+				printf("fw matrix multiply\n");
+				printf("%lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n  %lf %lf %lf %lf\n",
+					jmatrix[0], jmatrix[1], jmatrix[2], jmatrix[3],
+					jmatrix[4], jmatrix[5], jmatrix[6], jmatrix[7],
+					jmatrix[8], jmatrix[9], jmatrix[10], jmatrix[11],
+					jmatrix[12], jmatrix[13], jmatrix[14], jmatrix[15]);
+				printf("\n");
+
 			}
 			//matinverseAFFINE(mat1,jmatrix);
 			matmultiplyAFFINE(jmatrix0,jmatrix,jmatrix0);
+			if (igl) glPopMatrix();
 			//if(debug)
 			//printf("\n");
 		}

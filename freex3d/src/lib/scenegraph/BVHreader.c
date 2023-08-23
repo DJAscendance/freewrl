@@ -270,6 +270,10 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 					if(relativeAngles)
 						fv[kchan] -= fv0[kchan]; //relative to first entry
 					if (flipAngles) fv[kchan] = -fv[kchan];
+					if (flipZ) {
+						if (cchan[j].ichan[k] == 3)
+							fv[kchan] *= -1;
+					}
 					if (teePoseDefault) {
 						char* jname = get_jname(cchan[j].mocap_name);
 						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip") )
@@ -282,10 +286,6 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 							fv[kchan] -= 90;
 					}
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
-					if (flipZ) {
-						if (cchan[j].ichan[k] == 3) 
-							fv[kchan] *= -1;
-					}
 				}
 				if (cchan[j].ichan[k] > 3) {
 					fv[kchan] *= scale;
@@ -294,7 +294,8 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 					if (ignorePosition)
 						fv[kchan] = 0.0f;
 				}
-				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
+				//if(!strcmp(get_jname(cchan[j].mocap_name),"l_shoulder"))
+				//	printf("%d %5.2f ",cchan[j].ichan[k],cchan[j].ichan[k] < 4 ? fv[kchan]*DEGREES_PER_RADIAN : fv[kchan]);
 				kchan++;
 			}
 			//printf("\n");
