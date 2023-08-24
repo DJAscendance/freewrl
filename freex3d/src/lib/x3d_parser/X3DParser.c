@@ -1444,7 +1444,7 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 				ConsoleMessage("\n");
 			}
 			else {
-				if (fromDEFtable->_nodeType != NODE_Proto || strcmp(fromDEFtable->__typename, nodetype->__typename)) {
+				if (fromDEFtable->_nodeType != NODE_Proto || strcmp(X3D_PROTO(fromDEFtable->__prototype)->__typename, X3D_PROTO(nodetype->__prototype)->__typename)) {
 
 					ConsoleMessage("Warning, line %d DEF/USE mismatch, '%s', %s != %s", LINE,
 						atts[i + 1], fromDEFtable->__typename, nodetype->__typename); // stringNodeType(myNodeType->name));
