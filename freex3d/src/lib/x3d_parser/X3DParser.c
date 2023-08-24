@@ -1412,7 +1412,7 @@ struct X3D_Proto* availableBroto(void* ud, const char* name) {
 }
 void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const xmlChar** atts) {
 
-	printf("starting proto %s\n", name);
+	//printf("starting proto %s\n", name);
 	struct X3D_Node* node;
 	struct X3D_Proto* fromDEFtable;
 	struct X3D_Proto* context;
@@ -1471,13 +1471,13 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 		int idepth = 0; //if its old brotos (2013) don't do depth until sceneInstance. If 2014 broto2, don't do depth here if we're in a protoDeclare or externProtoDeclare
 		idepth = pflagdepth == 1; //2014 broto2: if we're parsing a scene (or Inline) then deepcopy proto to instance it, else shallow
 		node = X3D_NODE(brotoInstance(nodetype, idepth));
-		node->_executionContext = X3D_NODE(nodetype); //really or should it be parent context of live scene aka context?
+		node->_executionContext = X3D_NODE(context);
+
 		if (defname) {
 			broto_store_DEF(context, node, defname);
 		}
 		add_node_to_broto_context(context, node);
 
-		pushNode(ud, node);
 		if (containerfield) {
 			int builtinField = findFieldInFIELDNAMES(containerfield);
 			if (builtinField > INT_ID_UNDEFINED) {
@@ -1498,26 +1498,20 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 			if (!strcmp(atts[displayBBoxIndex], "true"))
 				X3D_PROTO(node)->bboxDisplay = TRUE;
 		}
+		struct X3D_Proto* ptype, * pdest;
+		ptype = X3D_PROTO(X3D_PROTO(node)->__prototype);
+		pdest = X3D_PROTO(node);
+		deep_copy_broto_body2(&ptype, &pdest);
 
-	}
-	pushNode(ud, node);
-
-	if (!isUSE) {
-		node->_executionContext = X3D_NODE(context);
-		add_node_to_broto_context(context, node);
-		kids = indexChildrenName(node);
-		if (kids > -1)
-			suggestedChildField = FIELDNAMES[kids];
-		pushField(ud, suggestedChildField);
-		parseAttributes_B(ud, atts);
 	}
 	else {
 		pushField(ud, NULL); //we pop in endBuiltin, so we have to push something
 	}
+	pushNode(ud, node);
 
 }
 void endProto_B(void* ud, const char* name, struct X3D_Proto* proto) {
-	printf("ending proto %s\n", name);
+	//printf("ending proto %s\n", name);
 	struct X3D_Node* node;
 	struct X3D_Proto* context;
 	char pflagdepth;
@@ -1527,7 +1521,7 @@ void endProto_B(void* ud, const char* name, struct X3D_Proto* proto) {
 	pflagdepth = ciflag_get(context->__protoFlags, 0); //0 - we're in a protodeclare, 1 - we are instancing live scenery
 	applyUnitsToNode(node);
 
-//	linkNodeIn_B(ud); //recurses - did something wrong above.
+	linkNodeIn_B(ud); //recurses - did something wrong above.
 
 	popNode(ud);
 	popField(ud);
