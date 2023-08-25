@@ -1461,6 +1461,7 @@ our %X3DSpecialC = map {($_=>1)} qw/
 	ProtoInterface
 	ProtoInstance
 	ProtoBody
+        ProtoInclude
 	ROUTE
 	IS
 	connect

@@ -95,6 +95,12 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DChildNode"),
 
+	#"ProtoInclude" => new VRML::NodeType("ProtoInclude", [
+	#		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+	#		names => ["MFString",["*"],"initializeOnly", 0,0],#ff
+	#		url => ["MFString",[]","initializeOnly", 0,0"],#ff
+	#], "X3DChildNode"),
+
 	"Proto" => new VRML::NodeType("Proto", [
 		# sept 2014: keep Inline the same as Proto, so one can be cast to the other, unless/until executionContext is extracted from both
 		__children => ["MFNode", [], "inputOutput", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
@@ -135,6 +141,7 @@ our %Nodes = (
 		__unitlengthfactor => ["SFDouble", 1.0, "initializeOnly", 0,0],#ff
 		__specversion => ["SFInt32",0,"initializeOnly",0,0],#ff
 	],"X3DProtoInstance"),
+
 
 	"MetadataBoolean" => new VRML::NodeType("MetadataBoolean", [
 			metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

@@ -2950,18 +2950,19 @@ extern const int X3DSPECIAL_COUNT;
 #define X3DSP_IS	4
 #define X3DSP_ProtoBody	5
 #define X3DSP_ProtoDeclare	6
-#define X3DSP_ProtoInstance	7
-#define X3DSP_ProtoInterface	8
-#define X3DSP_ROUTE	9
-#define X3DSP_Scene	10
-#define X3DSP_X3D	11
-#define X3DSP_component	12
-#define X3DSP_connect	13
-#define X3DSP_field	14
-#define X3DSP_fieldValue	15
-#define X3DSP_head	16
-#define X3DSP_meta	17
-#define X3DSP_unit	18
+#define X3DSP_ProtoInclude	7
+#define X3DSP_ProtoInstance	8
+#define X3DSP_ProtoInterface	9
+#define X3DSP_ROUTE	10
+#define X3DSP_Scene	11
+#define X3DSP_X3D	12
+#define X3DSP_component	13
+#define X3DSP_connect	14
+#define X3DSP_field	15
+#define X3DSP_fieldValue	16
+#define X3DSP_head	17
+#define X3DSP_meta	18
+#define X3DSP_unit	19
 
 const char *stringX3DSPECIALType(int st);
 

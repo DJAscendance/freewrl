@@ -2537,6 +2537,7 @@ const int MULTITEXTUREFUNCTION_COUNT = ARR_SIZE(MULTITEXTUREFUNCTION);
 	"IS",
 	"ProtoBody",
 	"ProtoDeclare",
+	"ProtoInclude",
 	"ProtoInstance",
 	"ProtoInterface",
 	"ROUTE",
