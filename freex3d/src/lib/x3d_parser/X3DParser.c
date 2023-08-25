@@ -1808,7 +1808,48 @@ static void parseExternProtoDeclare_B (void *ud, char **atts) {
 	pushField(ud,"__children");
 
 }
+#define LOAD_STABLE 10
+static void parseProtoInclude(void* ud, char** atts) {
+	/*	load a wrl/x3d proto scene (non-live) 
+	*   synchronously (wait for loading to finish before returning)
+	*   and put the extern proto declares into the current scene for instancing.
+	*/
+	int i;
+	char* names, * url;
+	struct X3D_Proto* proto;
+	struct X3D_Proto* parent;
+	names = url = NULL;
+	if (0) printf("in parseProtoInclude\n");
 
+	proto = createNewX3DNode0(NODE_Proto);
+	for (i = 0; atts[i]; i += 2) {
+		if (!strcmp("names", atts[i])) names = atts[i + 1];
+		else if (!strcmp("url", atts[i])) url = atts[i + 1];
+	}
+	parent = (struct X3D_Proto*)getContext(ud, TOP);
+	if (url) {
+		Parser_scanStringValueToMem_B((union anyVrml*)&proto->url, FIELDTYPE_MFString, url, TRUE);
+	}
+	proto->__protoFlags = parent->__protoFlags;
+	proto->__protoFlags = ciflag_set(proto->__protoFlags, 0, 0); //((char*)(&proto->__protoFlags))[0] = 0; //shallow instancing of protoInstances inside a protoDeclare 
+	///[1] leave parent's the oldway flag if set
+	proto->__protoFlags = ciflag_set(proto->__protoFlags, 0, 2); //((char*)(&proto->__protoFlags))[2] = 0; //this is a protoDeclare we are parsing
+	proto->__protoFlags = ciflag_set(proto->__protoFlags, 1, 3); //((char*)(&proto->__protoFlags))[3] = 1; //an externProtoDeclare
+
+	proto->__loadstatus = 0; //= LOAD_INITIAL_STATE
+	// PROBLEM: The parsers are single threaded with thread state stacks
+	// we queue up scenes to be parsed. we don't push and pop scenes. Yet.
+	do {
+		load_externProtoDeclare(proto);
+		sleep(200);
+	} while (proto->__loadstatus != LOAD_STABLE);
+	printf("library %s loaded\n", proto->url.p[0]->strptr);
+	//pushMode(ud, PARSING_EXTERNPROTODECLARE);
+	//pushNode(ud, X3D_NODE(proto));
+	//pushField(ud, "__children");
+
+
+}
 static void parseProtoDeclare_B (void *ud, char **atts) {
 	/*	1.create a new proto but not registered node
 		2.get user type name from atts
@@ -2179,6 +2220,9 @@ static void XMLCALL X3DstartElement(void *ud, const xmlChar *iname, const xmlCha
 				break;
 			case X3DSP_ProtoInstance: 
 				parseProtoInstance_B(ud,myAtts); 
+				break;
+			case X3DSP_ProtoInclude:
+				parseProtoInclude(ud, myAtts);
 				break;
 			case X3DSP_ROUTE: 
 				parseRoutes_B(ud,myAtts);
