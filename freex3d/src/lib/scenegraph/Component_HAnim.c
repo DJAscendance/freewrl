@@ -1573,14 +1573,31 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 	}
 	return jm;
 }
+char* swaplistleft[] = { "l_shoulder" ,"l_elbow", "l_wrist", NULL, };
+char *swaplistright[] = { "r_shoulder", "r_elbow", "r_wrist", NULL, };
+int instringlist(char *name, char** list) {
+	int have = FALSE;
+	int i = 0;
+	while (list[i]) {
+		if (!strcmp(name, list[i])) {
+			have = TRUE; break;
+		}
+		i++;
+	}
+	return have;
+}
 void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* jmatrix0) {
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)HMnode;
 	if (HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)) {
 		struct joint_frame_motion* jm = jointFrameMotion(HM, jname);
-		int debug = FALSE;
-		int axis_swap = FALSE;
+		int debug, debug2;
+		debug = debug2 = FALSE;
+		int axis_swap_left = FALSE;
+		int axis_swap_right = FALSE;
 		//if(!strcmp(jname,"l_shoulder")) debug = TRUE;
-		if (!strcmp(jname, "l_shoulder")||!strcmp(jname,"r_shoulder")) axis_swap = TRUE;
+		axis_swap_left = instringlist(jname, swaplistleft);
+		axis_swap_right = instringlist(jname, swaplistright);
+		//if (axis_swap) debug2 = TRUE;
 		if(jm){ // && strcmp(jname,"HumanoidRoot")){
 			double mat1[16],jmatrix[16],xyz[3];
 			if(debug) printf("in update_jointMatrix\n");
@@ -1589,13 +1606,13 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			int igl = FALSE;
 			if (igl) glPushMatrix();
 			if (igl) glLoadIdentity();
-			if(debug) 
+			if(debug || debug2) 
 				printf("%s ",jname);
 			
 			for(int ii=0;ii<jm->nchan;ii++){
 				int i = ii; // jm->nchan - 1 - ii;
 				float value = jm->values[i];
-				if(debug) 
+				if(debug)
 				printf("%d %4.2f ",jm->ichan[i],value);
 				// Q. what kind of angles are those 
 				// https://www.euclideanspace.com/maths/geometry/rotations/conversions/eulerToMatrix/index.htm
@@ -1603,10 +1620,11 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 				matidentity4d(mat1);
 				switch(jm->ichan[i]){
 					case 1:
-						if(axis_swap) matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
+						if(axis_swap_left) matrixFromAxisAngle4d(mat1, (double)value, 0.0, 1.0, 0.0);
+						else if (axis_swap_right) matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
 						else matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0,0.0);
 						if (igl) glRotatef(value*DEGREES_PER_RADIAN, 1, 0, 0);
-						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("xr %f ", value*DEGREES_PER_RADIAN);
+						if (debug2) printf("xr %f ", value*DEGREES_PER_RADIAN);
 						if(ir) matmultiplyAFFINE(jmatrix,jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -1617,10 +1635,11 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						}
 						break;
 					case 2: 
-						if(axis_swap) matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0, 0.0);
+						if(axis_swap_left) matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0, 0.0);
+						else if (axis_swap_right) matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0, 0.0);
 						else matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
 						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 1, 0);
-						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("yr %f ", value * DEGREES_PER_RADIAN);
+						if (debug2) printf("yr %f ", value * DEGREES_PER_RADIAN);
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -1633,7 +1652,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 					case 3:
 						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 0.0, 1.0);
 						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 0, 1);
-						if(0) if (!strcmp(jm->jname, "l_shoulder")) printf("zr %f ", value * DEGREES_PER_RADIAN);
+						if (debug2) printf("zr %f ", value * DEGREES_PER_RADIAN);
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -1684,6 +1703,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 				}
 			}
+			if (debug2)printf("\n");
 			if(debug) if (!strcmp(jm->jname, "l_shoulder")) {
 				double tmatrix[16];
 				glGetDoublev(GL_MODELVIEW_MATRIX, tmatrix);
