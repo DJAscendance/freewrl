@@ -3490,10 +3490,14 @@ our %Nodes = (
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
                 ignorePosition => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                ignoreFirstFrame => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 flipZ => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 mapping => ["MFString",[],"initializeOnly",0,0],#ff
                 scale => ["SFFloat",1.0,"initializeOnly",0,0],#ff
-                teePoseDefault => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                teePose => ["SFBool","FALSE","initializeOnly",0,0],#ff
+                yUp => ["SFBool","TRUE","initializeOnly",0,0],#ff
+                legAngle => ["SFFloat",21,"initializeOnly",0,0],#ff
+                armAngle => ["SFFloat",90,"initializeOnly",0,0],#ff
 	],"X3DMotionDataNode"),
 
 	"HAnimMotionClip" => new VRML::NodeType("HAnimMotionClip", [

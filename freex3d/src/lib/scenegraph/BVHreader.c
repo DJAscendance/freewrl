@@ -89,10 +89,14 @@ struct joint_frame_motion {
 	float *values;
 };
 char* get_jname(char* mocap_name);
-void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale, int teePoseDefault,
-	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale, int teePoseDefault,
-	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
+void read_bvh_blob(char* blob, int ignorePosition, int ignoreFirstFrame, int yUp, int teePose,
+	int flipZ, float armAngle, float legAngle, float scale,
+	struct joint_frame_motion** chan, int* njoint, int* channel_count, float** values,
+	float* bvh_frame_time, int* bvh_frame_count);
+void read_bvh_blob(char* blob, int ignorePosition, int ignoreFirstFrame, int yUp, int teePose,
+	int flipZ, float armAngle, float legAngle, float scale,
+	struct joint_frame_motion** chan, int* njoint, int* channel_count, float** values,
+	float* bvh_frame_time, int* bvh_frame_count)
 {
     // File loading stuff
     // Open the file for importing
@@ -247,7 +251,7 @@ void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale, int t
 						if (cchan[j].ichan[k] == 3)
 							fv[kchan] *= -1;
 					}
-					if (teePoseDefault) {
+					if (teePose) {
 						char* jname = get_jname(cchan[j].mocap_name);
 						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip") )
 							fv[kchan] += 21;

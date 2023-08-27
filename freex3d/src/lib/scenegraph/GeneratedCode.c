@@ -468,6 +468,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"applicationID",
 	"applied",
 	"appliedParameters",
+	"armAngle",
 	"articulationParameterArray",
 	"articulationParameterChangeIndicatorArr",
 	"articulationParameterCount",
@@ -791,6 +792,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hitTexCoord_changed",
 	"horizontal",
 	"iboxes",
+	"ignoreFirstFrame",
 	"ignorePosition",
 	"image",
 	"index",
@@ -859,6 +861,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"leftTexture",
 	"leftToRight",
 	"leftUrl",
+	"legAngle",
 	"length",
 	"lengthOfModulationParameters",
 	"level",
@@ -1238,7 +1241,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"targetObject",
 	"tau",
 	"tdlType",
-	"teePoseDefault",
+	"teePose",
 	"tessellation",
 	"tessellationScale",
 	"texCoord",
@@ -1349,6 +1352,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"xSpacing",
 	"x_false_origin",
 	"yScale",
+	"yUp",
 	"y_false_origin",
 	"zDimension",
 	"zSpacing",
@@ -2192,6 +2196,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"B",
 	"C",
 	"F",
+	"armAngle",
 	"autoCalc",
 	"axisCount",
 	"azimuth",
@@ -2255,6 +2260,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"height",
 	"heightOffset",
 	"horizontal",
+	"ignoreFirstFrame",
 	"ignorePosition",
 	"index",
 	"info",
@@ -2269,6 +2275,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"latitude1",
 	"latitude2",
 	"leftToRight",
+	"legAngle",
 	"lineSegments",
 	"lococentre",
 	"longitude1",
@@ -2331,7 +2338,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"style",
 	"subcategory",
 	"systemParameters",
-	"teePoseDefault",
+	"teePose",
 	"texCoord",
 	"texCoordIndex",
 	"texCoordKey",
@@ -2349,6 +2356,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"xDimension",
 	"xSpacing",
 	"x_false_origin",
+	"yUp",
 	"y_false_origin",
 	"zDimension",
 	"zSpacing",
@@ -7014,10 +7022,14 @@ const int OFFSETS_HAnimMotionDataFile[] = {
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_HAnimMotionDataFile, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_HAnimMotionDataFile, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_ignorePosition, (int) offsetof (struct X3D_HAnimMotionDataFile, ignorePosition),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_ignoreFirstFrame, (int) offsetof (struct X3D_HAnimMotionDataFile, ignoreFirstFrame),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_flipZ, (int) offsetof (struct X3D_HAnimMotionDataFile, flipZ),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_HAnimMotionDataFile, mapping),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_scale, (int) offsetof (struct X3D_HAnimMotionDataFile, scale),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_teePoseDefault, (int) offsetof (struct X3D_HAnimMotionDataFile, teePoseDefault),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_teePose, (int) offsetof (struct X3D_HAnimMotionDataFile, teePose),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_yUp, (int) offsetof (struct X3D_HAnimMotionDataFile, yUp),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_legAngle, (int) offsetof (struct X3D_HAnimMotionDataFile, legAngle),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_armAngle, (int) offsetof (struct X3D_HAnimMotionDataFile, armAngle),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionPlay[] = {
@@ -13906,10 +13918,14 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_parentResource = getInputResource();
 			tmp2->__loadResource = 0;
 			tmp2->ignorePosition = FALSE;
+			tmp2->ignoreFirstFrame = FALSE;
 			tmp2->flipZ = FALSE;
 			tmp2->mapping.n=0; tmp2->mapping.p=0;
 			tmp2->scale = 1.0f;
-			tmp2->teePoseDefault = FALSE;
+			tmp2->teePose = FALSE;
+			tmp2->yUp = TRUE;
+			tmp2->legAngle = 21.0f;
+			tmp2->armAngle = 90.0f;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
