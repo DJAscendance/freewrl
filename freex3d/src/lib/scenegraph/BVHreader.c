@@ -89,6 +89,20 @@ struct joint_frame_motion {
 	float *values;
 };
 char* get_jname(char* mocap_name);
+static char* swaplistleft[] = { "l_shoulder" ,"l_elbow", "l_wrist", NULL, };
+static char* swaplistright[] = { "r_shoulder", "r_elbow", "r_wrist", NULL, };
+static int instringlist(char* name, char** list) {
+	int have = FALSE;
+	int i = 0;
+	while (list[i]) {
+		if (!strcmp(name, list[i])) {
+			have = TRUE; break;
+		}
+		i++;
+	}
+	return have;
+}
+
 void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	int flipZ, float armAngle, float legAngle, float scale,
 	struct joint_frame_motion** chan, int* njoint, int* channel_count, float** values,
@@ -245,19 +259,45 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 		int kchan = 0;
 		for(int j=0;j<mjoint;j++){
 			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+			int axis_swap_left, axis_swap_right;
+			char* jname = get_jname(cchan[j].mocap_name);
+			axis_swap_left = axis_swap_right = 0;
+			if (teePose) {
+				axis_swap_left = instringlist(jname, swaplistleft);
+				axis_swap_right = instringlist(jname, swaplistright);
+				if (axis_swap_left || axis_swap_right) {
+					int ix, iy;
+					for (int k = 0; k < cchan[j].nchan; k++) {
+						if (cchan[j].ichan[k] == 1) ix = k;
+						if (cchan[j].ichan[k] == 2) iy = k;
+					}
+					if (axis_swap_left) {
+						float tmp = fv[kchan + ix];
+						fv[kchan + ix] = fv[kchan + iy];
+						fv[kchan + iy] = -tmp;
+					}
+					if (axis_swap_right) {
+						float tmp = fv[kchan + ix];
+						fv[kchan + ix] = -fv[kchan + iy];
+						fv[kchan + iy] = tmp;
+					}
+				}
+			}
+
 			for(int k=0;k<cchan[j].nchan;k++){
 				if (cchan[j].ichan[k] < 4) {
 					if (flipZ) {
 						if (cchan[j].ichan[k] == 3)
 							fv[kchan] *= -1;
 					}
-					if (teePose) {
-						char* jname = get_jname(cchan[j].mocap_name);
-						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip") )
+					if (legAngle != 0.0f) {
+						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip"))
 							fv[kchan] += legAngle;
 						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_hip"))
 							fv[kchan] -= legAngle;
-						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_shoulder"))
+					}
+					if(armAngle != 0.0f){
+						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_shoulder"))
 							fv[kchan] += armAngle;
 						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_shoulder"))
 							fv[kchan] -= armAngle;

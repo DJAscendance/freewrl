@@ -1573,31 +1573,14 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 	}
 	return jm;
 }
-char* swaplistleft[] = { "l_shoulder" ,"l_elbow", "l_wrist", NULL, };
-char *swaplistright[] = { "r_shoulder", "r_elbow", "r_wrist", NULL, };
-int instringlist(char *name, char** list) {
-	int have = FALSE;
-	int i = 0;
-	while (list[i]) {
-		if (!strcmp(name, list[i])) {
-			have = TRUE; break;
-		}
-		i++;
-	}
-	return have;
-}
+
 void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* jmatrix0) {
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)HMnode;
 	if (HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)) {
 		struct joint_frame_motion* jm = jointFrameMotion(HM, jname);
 		int debug, debug2;
 		debug = debug2 = FALSE;
-		int axis_swap_left = FALSE;
-		int axis_swap_right = FALSE;
 		//if(!strcmp(jname,"l_shoulder")) debug = TRUE;
-		axis_swap_left = instringlist(jname, swaplistleft);
-		axis_swap_right = instringlist(jname, swaplistright);
-		//if (axis_swap) debug2 = TRUE;
 		if(jm){ // && strcmp(jname,"HumanoidRoot")){
 			double mat1[16],jmatrix[16],xyz[3];
 			if(debug) printf("in update_jointMatrix\n");
@@ -1620,9 +1603,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 				matidentity4d(mat1);
 				switch(jm->ichan[i]){
 					case 1:
-						if(axis_swap_left) matrixFromAxisAngle4d(mat1, (double)value, 0.0, 1.0, 0.0);
-						else if (axis_swap_right) matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
-						else matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0,0.0);
+						matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0,0.0);
 						if (igl) glRotatef(value*DEGREES_PER_RADIAN, 1, 0, 0);
 						if (debug2) printf("xr %f ", value*DEGREES_PER_RADIAN);
 						if(ir) matmultiplyAFFINE(jmatrix,jmatrix, mat1);
@@ -1635,9 +1616,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						}
 						break;
 					case 2: 
-						if(axis_swap_left) matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0, 0.0);
-						else if (axis_swap_right) matrixFromAxisAngle4d(mat1, (double)value, 1.0, 0.0, 0.0);
-						else matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
+						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
 						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 1, 0);
 						if (debug2) printf("yr %f ", value * DEGREES_PER_RADIAN);
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
