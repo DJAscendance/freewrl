@@ -89,11 +89,11 @@ struct joint_frame_motion {
 	float *values;
 };
 char* get_jname(char* mocap_name);
-void read_bvh_blob(char* blob, int ignorePosition, int ignoreFirstFrame, int yUp, int teePose,
+void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	int flipZ, float armAngle, float legAngle, float scale,
 	struct joint_frame_motion** chan, int* njoint, int* channel_count, float** values,
 	float* bvh_frame_time, int* bvh_frame_count);
-void read_bvh_blob(char* blob, int ignorePosition, int ignoreFirstFrame, int yUp, int teePose,
+void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	int flipZ, float armAngle, float legAngle, float scale,
 	struct joint_frame_motion** chan, int* njoint, int* channel_count, float** values,
 	float* bvh_frame_time, int* bvh_frame_count)
@@ -254,13 +254,13 @@ void read_bvh_blob(char* blob, int ignorePosition, int ignoreFirstFrame, int yUp
 					if (teePose) {
 						char* jname = get_jname(cchan[j].mocap_name);
 						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip") )
-							fv[kchan] += 21;
+							fv[kchan] += legAngle;
 						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_hip"))
-							fv[kchan] -= 21;
+							fv[kchan] -= legAngle;
 						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_shoulder"))
-							fv[kchan] += 90;
+							fv[kchan] += armAngle;
 						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_shoulder"))
-							fv[kchan] -= 90;
+							fv[kchan] -= armAngle;
 					}
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
 				}

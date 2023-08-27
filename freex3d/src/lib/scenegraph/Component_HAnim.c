@@ -1755,7 +1755,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa);
 void bvh_set_mapping(char** mapping, int n);
-void read_bvh_blob(char *blob, int ignorePosition, int ignoreFirstFrame, int yUp, int teePose, 
+void read_bvh_blob(char *blob, int ignorePosition, int yUp, int teePose, 
 	int flipZ, float armAngle, float legAngle, float scale,  
 	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, 
 	float *bvh_frame_time, int *bvh_frame_count);
@@ -1777,7 +1777,7 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 	else {
 		bvh_set_mapping(NULL, 0); //will use internal mapping
 	}
-	read_bvh_blob(blob, node->ignorePosition, node->ignoreFirstFrame, node->yUp, node->teePose, 
+	read_bvh_blob(blob, node->ignorePosition, node->yUp, node->teePose, 
 		node->flipZ, node->armAngle, node->legAngle, node->scale,
 		&chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	map_mocap_to_hanim_loa(chan,njoint,node->loa);
@@ -2118,31 +2118,48 @@ void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 			int fileclip = node->data->_nodeType == NODE_HAnimMotionClip && ((struct X3D_HAnimMotionClip*)(node->data))->url.n > 0;
 			if(node->data->_nodeType == NODE_HAnimMotionDataFile || fileclip){
 				struct X3D_HAnimMotionDataFile * motiondatafile = (struct X3D_HAnimMotionDataFile*)node->data;
-				if(motiondatafile->__loadstatus == LOADER_LOADED) return; 
-				//node->startFrame = 0;
-				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				//node->startFrame = motiondatafile->ignoreFirstFrame ? 1 : 0;
+				//if(node->endFrame == 0) node->endFrame = motiondatafile->frameCount -1;
+				if (motiondatafile->__loadstatus != LOADER_LOADED) return;
 				MARK_EVENT(X3D_NODE(motiondata), offsetof(struct X3D_HAnimMotionData, frameCount));
 				MARK_NODE_COMPILED
 			}else{
 				//node->startFrame = 0;
-				if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
+				//if(node->endFrame == 0) node->endFrame = motiondata->frameCount -1;
 				MARK_EVENT(X3D_NODE(motiondata), offsetof(struct X3D_HAnimMotionData, frameCount));
 				MARK_NODE_COMPILED
 			}
 		}
 	}
-
+}
+void updateMotionPlayFromData(struct X3D_HAnimMotionPlay* play, struct X3D_HAnimMotionData* data) {
+	if (data && data->_nodeType == NODE_HAnimMotionData || data->_nodeType == NODE_HAnimMotionDataFile || data->_nodeType == NODE_HAnimMotionClip) {
+		render_node(X3D_NODE(data));
+		if (data->__loadstatus != LOADER_LOADED) return;
+		int fileclip = data->_nodeType == NODE_HAnimMotionClip && ((struct X3D_HAnimMotionClip*)(data))->url.n > 0;
+		if (data->_nodeType == NODE_HAnimMotionDataFile || fileclip) {
+			struct X3D_HAnimMotionDataFile* motiondatafile = (struct X3D_HAnimMotionDataFile*)data;
+			play->startFrame = motiondatafile->ignoreFirstFrame ? 1 : 0;
+			play->endFrame = motiondatafile->frameCount - 1;
+		}
+		else {
+			//node->startFrame = 0;
+			//if (play->endFrame == 0) 
+			play->startFrame = 0;
+			play->endFrame = data->frameCount - 1;
+		}
+	}
 }
 void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	//main job: set the frame pointer for the current time, increment, enabled state
 	COMPILE_IF_REQUIRED
 	int index = 0;
 	struct X3D_HAnimMotionData *motiondata = (struct X3D_HAnimMotionData *)node->data;
-
 	if(motiondata && motiondata->_nodeType == NODE_HAnimMotionData || motiondata->_nodeType == NODE_HAnimMotionDataFile || motiondata->_nodeType == NODE_HAnimMotionClip ){
 		render_node(X3D_NODE(motiondata));
 		if(motiondata->__loadstatus != LOADER_LOADED) return;
 	}
+	updateMotionPlayFromData(node, motiondata);
 
 	float *fvalues = (float*)motiondata->_fvalues;
 	int channelcount = (int)motiondata->_channelcount;
@@ -2152,12 +2169,12 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	int increment = node->frameIncrement;
 //	if(increment == 0) return; //the official way to pause
 	index = node->frameIndex;
-	int fcount = motiondata->frameCount;
-	index = max(0,min(index,fcount-1)); //iclamp
+	int fcount = node->endFrame - node->startFrame + 1; // motiondata->frameCount;
+	index = max(0,min(index,node->endFrame)); //iclamp
 
 	int starting = 0;
 	int stopping = 0;
-	isActive = node->enabled && ((node->loop && increment != 0) || (increment > 0 && index < fcount -1) || (increment < 0 && index > 0) );
+	isActive = node->enabled && ((node->loop && increment != 0) || (increment > 0 && index < node->endFrame) || (increment < 0 && index > 0) );
 	if(node->enabled && !node->_lastenabled){
 		starting = TRUE;
 		node->_lastenabled = node->enabled;
@@ -2182,13 +2199,14 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	}
 	int startingloop = 0;
 	if(node->loop){
-		int lindex = index % fcount;
+		int lindex = ((index - node->startFrame) % fcount) + node->startFrame;
 		startingloop = lindex != index;
 		index = lindex;
 	}
-	index = max(0,min(index,fcount-1)); //iclamp
-	if(starting && index == fcount -1 && increment > 0) index = 0;
-	if(starting && index == 0 && increment < 0) index = fcount -1;
+	index = max(0,min(index,node->endFrame)); //iclamp
+	if (increment) index = max(index, node->startFrame); //if playing, skip initial teePose
+	if(starting && index == node->endFrame && increment > 0) index = node->startFrame;
+	if(starting && index <= node->startFrame && increment < 0) index = node->endFrame;
 	if(starting || startingloop ){
 		node->cycleTime = TickTime();
 		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, cycleTime));
