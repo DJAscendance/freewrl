@@ -89,6 +89,11 @@ struct joint_frame_motion {
 	float *values;
 };
 char* get_jname(char* mocap_name);
+// T-pose vs HAnim H-pose: designers assume different axes for arms, forarms, hands, fingers etc
+// when we rotate by -90 for left shoulder, and +90 for right shoulder,
+// we can swap x and y axis and change sign on one of them
+// I think the joint axis-swap list needs to include finger joints for LOA3
+// I think the joint axis-swap list needs to include finger joints for LOA3
 static char* swaplistleft[] = { "l_shoulder" ,"l_elbow", "l_wrist", NULL, };
 static char* swaplistright[] = { "r_shoulder", "r_elbow", "r_wrist", NULL, };
 static int instringlist(char* name, char** list) {
