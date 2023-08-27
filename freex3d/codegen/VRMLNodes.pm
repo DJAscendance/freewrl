@@ -3489,13 +3489,10 @@ our %Nodes = (
 		url => ["MFString", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		_parentResource =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__loadResource => ["FreeWRLPTR", 0, "initializeOnly", 0,0],#ff
-                channelShift => ["SFInt32",0,"initializeOnly",0,0],#ff
                 ignorePosition => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 flipZ => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 mapping => ["MFString",[],"initializeOnly",0,0],#ff
                 scale => ["SFFloat",1.0,"initializeOnly",0,0],#ff
-                flipAngles => ["SFBool","FALSE","initializeOnly",0,0],#ff
-                relativeAngles => ["SFBool","FALSE","initializeOnly",0,0],#ff
                 teePoseDefault => ["SFBool","FALSE","initializeOnly",0,0],#ff
 	],"X3DMotionDataNode"),
 

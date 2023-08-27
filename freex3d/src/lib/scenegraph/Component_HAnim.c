@@ -1755,7 +1755,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 // MotionDataFile - allows reading popular mocap/MotionCapture file formats .bvh, .c3d ...
 void map_mocap_to_hanim_loa( struct joint_frame_motion *chan, int mjoint, int loa);
 void bvh_set_mapping(char** mapping, int n);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, float scale, int flipAngles, int relativeAngles, int teePoseDefault,
+void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale,  int teePoseDefault,
 	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
 void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, int len){
 	//Stack *bvh_nodes = NULL;
@@ -1775,7 +1775,7 @@ void read_bvh_blob_to_node(struct X3D_HAnimMotionDataFile * node, char *blob, in
 	else {
 		bvh_set_mapping(NULL, 0); //will use internal mapping
 	}
-	read_bvh_blob(blob, node->ignorePosition, node->channelShift, node->flipZ, node->scale, node->flipAngles, node->relativeAngles, node->teePoseDefault,
+	read_bvh_blob(blob, node->ignorePosition, node->flipZ, node->scale, node->teePoseDefault,
 		&chan, &njoint, &channel_count, &fvalues, &bvh_frame_time,&bvh_frame_count);
 	map_mocap_to_hanim_loa(chan,njoint,node->loa);
 	node->frameCount = bvh_frame_count;

@@ -89,9 +89,9 @@ struct joint_frame_motion {
 	float *values;
 };
 char* get_jname(char* mocap_name);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, float scale, int flipAngles, int relativeAngles, int teePoseDefault,
+void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale, int teePoseDefault,
 	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count);
-void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, float scale, int flipAngles, int relativeAngles, int teePoseDefault,
+void read_bvh_blob(char *blob, int ignorePosition, int flipZ, float scale, int teePoseDefault,
 	struct joint_frame_motion **chan, int *njoint, int *channel_count, float **values, float *bvh_frame_time, int *bvh_frame_count)
 {
     // File loading stuff
@@ -233,30 +233,6 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 		//fprintf(fout,"\n");
 	}
 	//fclose(fout);
-	int shift[3], cshift;
-	cshift = channelShift % 3;
-	if (cshift < 0) cshift += 3;
-	printf("channelShift %d\n", cshift);
-	for (int j = 0; j < 3; j++) {
-		shift[j] = j + cshift;
-		shift[j] = shift[j] % 3;
-		shift[j] -= j;
-	}
-	printf("channel shifts %d %d %d\n", shift[0], shift[1], shift[2]);
-	if (channelShift != 0) {
-		for (int j = 0; j < mjoint; j++) {
-			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
-			for (int k = 0; k < cchan[j].nchan; k++) {
-				int ichan = cchan[j].ichan[k];
-				if (ichan < 4)
-					ichan += shift[ichan - 1];
-				if (ichan > 3)
-					ichan += shift[ichan - 4];
-				printf("before %d after %d\n", cchan[j].ichan[k], ichan);
-				cchan[j].ichan[k] = ichan;
-			}
-		}
-	}
 	float* fv0 = &fvalues[0];
 
 	//convert degrees to radians
@@ -267,9 +243,6 @@ void read_bvh_blob(char *blob, int ignorePosition, int channelShift, int flipZ, 
 			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
 			for(int k=0;k<cchan[j].nchan;k++){
 				if (cchan[j].ichan[k] < 4) {
-					if(relativeAngles)
-						fv[kchan] -= fv0[kchan]; //relative to first entry
-					if (flipAngles) fv[kchan] = -fv[kchan];
 					if (flipZ) {
 						if (cchan[j].ichan[k] == 3)
 							fv[kchan] *= -1;
