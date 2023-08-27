@@ -267,32 +267,41 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 				//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
 				int axis_swap_left, axis_swap_right;
 				char* jname = get_jname(cchan[j].mocap_name);
-				if (!yUp) {
-					//assume data is zUp, and rotate about x to make yUp
-					int iyr, izr, iyt, izt;
-					iyr = izr = iyt = izt = -1;
-					for (int k = 0; k < cchan[j].nchan; k++) {
-						if (cchan[j].ichan[k] == 2) iyr = k;
-						if (cchan[j].ichan[k] == 3) izr = k;
-						if (cchan[j].ichan[k] == 5) iyt = k;
-						if (cchan[j].ichan[k] == 6) izt = k;
-					}
+				//assume data is zUp, and rotate about x to make yUp
+				int iyr, izr, iyt, izt;
+				iyr = izr = iyt = izt = -1;
+				for (int k = 0; k < cchan[j].nchan; k++) {
+					if (cchan[j].ichan[k] == 2) iyr = k;
+					if (cchan[j].ichan[k] == 3) izr = k;
+					if (cchan[j].ichan[k] == 5) iyt = k;
+					if (cchan[j].ichan[k] == 6) izt = k;
+				}
+				if (0) {
 					if (iyr > -1 && izr > -1) {
 						float tmp = fv[kchan + iyr];
-						fv[kchan + iyr] = fv[kchan + izr]; 
+						fv[kchan + iyr] = fv[kchan + izr];
 						fv[kchan + izr] = -tmp;
 					}
 					if (iyt > -1 && izt > -1) {
 						float tmp = fv[kchan + iyt];
-						fv[kchan + iyt] = -fv[kchan + izt]; 
+						fv[kchan + iyt] = -fv[kchan + izt];
 						fv[kchan + izt] = tmp;
 					}
+				}
+				if (1) {
+					if (iyr > -1 && izr > -1) {
+						fv[kchan + iyr] = -fv[kchan + iyr];
+					}
+					if (iyt > -1 && izt > -1) {
+						fv[kchan + iyt] = -fv[kchan + iyt];
+					}
+
 				}
 				kchan+= cchan[j].nchan;
 			}
 		}
 		//re-order channels
-		if(0) for (int j = 0; j < mjoint; j++) {
+		if(1) for (int j = 0; j < mjoint; j++) {
 			//assume data is zUp, and rotate about x to make yUp
 			int iyr, izr, iyt, izt;
 			iyr = izr = iyt = izt = -1;
