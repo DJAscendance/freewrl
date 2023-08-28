@@ -1488,7 +1488,37 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 		if (kids > -1)
 			suggestedChildField = FIELDNAMES[kids];
 		pushField(ud, suggestedChildField);
-		parseAttributes_B(ud, atts);
+		//if (0) {
+		//	//builtin method
+		//	parseAttributes_B(ud, atts);
+		//}
+		//else 
+		{
+			char* fname, * svalue;
+			const char* ignore[] = { "containerField","USE", "DEF", "visible", "displayBBox", NULL };
+			//parse_fieldValue_b method, except SFNode, MFNode still need separate old-fashioned fieldValue elements
+			for (i = 0; atts[i]; i += 2) {
+				fname = atts[i];
+				svalue = atts[i + 1];
+				if (findFieldInARR(fname, ignore, 5) == INT_ID_UNDEFINED) {
+					int ok, builtIn, type, kind, iifield;
+					char* cname;
+					void *value;
+					ok = 0;
+					cname = NULL;
+					value = NULL;
+					builtIn = FALSE;
+					if (fname) {
+						ok = getFieldFromNodeAndNameC(node, fname, &type, &kind, &iifield, &builtIn, &value, &cname);
+					}
+					if (cname && value && svalue) {
+						deleteMallocedFieldValue(type, value);
+						Parser_scanStringValueToMem_B(value, type, svalue, TRUE);
+						printf("success\n");
+					}
+				}
+			}
+		}
 
 		if (visibleIndex != INT_ID_UNDEFINED) {
 			if (!strcmp(atts[visibleIndex], "false"))
