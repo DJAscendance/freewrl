@@ -1515,6 +1515,15 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 						deleteMallocedFieldValue(type, value);
 						Parser_scanStringValueToMem_B(value, type, svalue, TRUE);
 					}
+					if (cname && (node->_nodeType == NODE_Proto) && !builtIn) {
+						struct X3D_Proto* pnode;
+						struct ProtoFieldDecl* pfield;
+						struct ProtoDefinition* pstruct;
+						pnode = X3D_PROTO(node);
+						pstruct = (struct ProtoDefinition*)pnode->__protoDef;
+						pfield = vector_get(struct ProtoFieldDecl*, pstruct->iface, iifield);
+						pfield->alreadySet = TRUE;
+					}
 				}
 			}
 		}
