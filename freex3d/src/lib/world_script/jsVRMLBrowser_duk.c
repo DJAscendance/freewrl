@@ -967,6 +967,8 @@ FWPropertySpec (BrowserProperties)[] = {
 	{"currentScene", 7, 'P', 'T'},
 	{NULL,0,0,0},
 };
+
+
 struct proftablestruct {
 	int profileName;
 	const int *profileTable;
@@ -1664,6 +1666,24 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	}
 	return nr;
 }
+int X3DExecutionContext_toString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int nr = 0;
+	char* value;
+	value = NULL;
+
+	char str[200];
+	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
+	sprintf(str, "%#010x", ecc);
+	value = strdup(str);
+	//do a search in the perscene/perexecution context array
+	if (value) {
+		fwretval->_string = value;
+		fwretval->itype = 'S';
+		nr = 1;
+	}
+	return nr;
+
+}
 int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
 	const char *name, *content;
@@ -1733,6 +1753,7 @@ static FWFunctionSpec (X3DExecutionContextFunctions)[] = {
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 'W',{1,-1,0,"S"}},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, '0',{2,-1,0,"SW"}},
 	{"removeNamedNode", X3DExecutionContext_removeNamedNode, '0',{1,-1,0,"S"}},
+	{"toString",X3DExecutionContext_toString,'S',{0,0,0,NULL}},
 	////scene
 	{"setMetaData", X3DScene_setMetaData, '0',{2,-1,0,"SS"}},
 	{"getMetaData", X3DScene_getMetaData, 'S',{1,-1,0,"S"}},

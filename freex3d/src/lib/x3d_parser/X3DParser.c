@@ -1514,7 +1514,6 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 					if (cname && value && svalue) {
 						deleteMallocedFieldValue(type, value);
 						Parser_scanStringValueToMem_B(value, type, svalue, TRUE);
-						printf("success\n");
 					}
 				}
 			}

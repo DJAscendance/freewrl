@@ -2201,7 +2201,27 @@ X3DExecutionContext_updateImportedNode(JSContext* context, uintN argc, jsval* vp
 
 	return JS_TRUE;
 }
+JSBool
+X3DExecutionContext_toString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	JSString *_str;
 
+	UNUSED(argc);
+	UNUSED(argv);
+
+
+	char str[200];
+	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
+
+	sprintf(str, "%#010x", ec);
+	_str = JS_NewStringCopyZ(cx, str);
+	rval = STRING_TO_JSVAL(_str);
+
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
 
 static JSBool
 X3DScene_getExportedNode(JSContext* context, uintN argc, jsval* vp) {
@@ -2474,6 +2494,7 @@ static JSFunctionSpec (ExecutionContextFunctions)[] = {
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 0},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, 0},
 	{"removeNamedNode", X3DExecutionContext_removeNamedNode, 0},
+	{"toString", X3DExecutionContext_toString, 0},
 	//scene
 	{"setMetaData", X3DScene_setMetaData, 0},
 	{"getMetaData", X3DScene_getMetaData, 0},

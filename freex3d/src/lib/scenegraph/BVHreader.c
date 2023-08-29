@@ -96,6 +96,7 @@ char* get_jname(char* mocap_name);
 // I think the joint axis-swap list needs to include finger joints for LOA3
 static char* swaplistleft[] = { "l_shoulder" ,"l_elbow", "l_wrist", NULL, };
 static char* swaplistright[] = { "r_shoulder", "r_elbow", "r_wrist", NULL, };
+static char* rootnodelist[] = { "" };
 static int instringlist(char* name, char** list) {
 	int have = FALSE;
 	int i = 0;
@@ -257,7 +258,7 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	}
 	//fclose(fout);
 	float* fv0 = &fvalues[0];
-	if (!yUp) {
+	if(0) if (!yUp) {
 		//if z-up, rotate around x axis so y is up
 		// swap y, z values
 		for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
