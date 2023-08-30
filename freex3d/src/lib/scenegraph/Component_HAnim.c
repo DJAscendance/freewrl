@@ -369,7 +369,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			struct X3D_HAnimHumanoid *HH = peek_humanoid();
 			if(HH->motions.n){
 				double modelviewMatrix[16];
-				for(int i=0;i<HH->motions.n;i++){
+				for (int i = 0; i < HH->motions.n; i++) {
 					if(HH->motionsEnabled.p[i]){
 						//printmatrix(jointMatrix.mat);
 						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
@@ -1296,6 +1296,7 @@ struct joint_frame_motion {
 	char *mocap_name;
 	int nchan;
 	int ichan[6];
+	int level;
 	float *values;
 };
 char *channame_lookup(int ichan){
@@ -1552,6 +1553,7 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 				int njoints = (int)HD->_njoints;
 				struct joint_frame_motion * chan = HD->_channels;
 				float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
+				if (!frame_values) return NULL; //but with multiple motions, and changing motion on the fly, sometimes it needs another frame
 				int kchan = 0;
 				for(int i=0;i<njoints;i++){
 					if(!strcmp(chan[i].jname,jname)){
@@ -1683,6 +1685,10 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 				}
 			}
 			if (debug2)printf("\n");
+			if(0) if (jm->level == 1) {
+				double toYup[] = {1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1};
+				matmultiplyAFFINE(jmatrix, toYup, jmatrix);
+			}
 			if(debug) if (!strcmp(jm->jname, "l_shoulder")) {
 				double tmatrix[16];
 				glGetDoublev(GL_MODELVIEW_MATRIX, tmatrix);

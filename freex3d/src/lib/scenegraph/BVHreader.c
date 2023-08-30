@@ -86,6 +86,7 @@ struct joint_frame_motion {
 	char *mocap_name;
 	int nchan;
 	int ichan[6];
+	int level;
 	float *values;
 };
 char* get_jname(char* mocap_name);
@@ -149,6 +150,7 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	cjoint = ccjoints; //malloc(100 * sizeof(struct joint_frame_motion));
 	memset(cjoint,0,100*sizeof(struct joint_frame_motion));
 	int mjoint = 0;
+	int level = 0;
 	while( getline2(line,2048,&pos)){
         //...
 		token = strtok(line,delims);
@@ -191,6 +193,7 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 			*channel_count += channels;
 			printf(" channels %d totalchannels %d\n",channels,*channel_count );
 			cj->nchan = channels;
+			cj->level = level;
 
             //for channel in file_lines[lineIdx][2:]:
 			for(int i=0;i<channels;i++){
@@ -203,8 +206,10 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
         if(!strcasecmp(token,"end")){
 		}
 		if(!strcmp(token,"}")){
+			level--;
 		}
 		if(!strcmp(token,"{")){
+			level++;
 		}
         if(!strcasecmp(token,"motion") ){ //MOTION
 	        // End of joint hierarchy.
@@ -258,51 +263,23 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 	}
 	//fclose(fout);
 	float* fv0 = &fvalues[0];
-	if(0) if (!yUp) {
-		//if z-up, rotate around x axis so y is up
-		// swap y, z values
-		for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
+	if (0) if (!yUp) {
+		if(0) for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
 			float* fv = &fvalues[iframe * (*channel_count)];
 			int kchan = 0;
 			for (int j = 0; j < mjoint; j++) {
-				//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
-				int axis_swap_left, axis_swap_right;
-				char* jname = get_jname(cchan[j].mocap_name);
-				//assume data is zUp, and rotate about x to make yUp
-				int iyr, izr, iyt, izt;
-				iyr = izr = iyt = izt = -1;
-				for (int k = 0; k < cchan[j].nchan; k++) {
-					if (cchan[j].ichan[k] == 2) iyr = k;
-					if (cchan[j].ichan[k] == 3) izr = k;
-					if (cchan[j].ichan[k] == 5) iyt = k;
-					if (cchan[j].ichan[k] == 6) izt = k;
+				int ixr;
+				if (cchan[j].level == 1) {
+					for (int k = 0; k < cchan[j].nchan; k++) {
+						if (cchan[j].ichan[k] == 1) ixr = k;
+					}
+					fv[kchan + ixr] = -90;
 				}
-				if (0) {
-					if (iyr > -1 && izr > -1) {
-						float tmp = fv[kchan + iyr];
-						fv[kchan + iyr] = fv[kchan + izr];
-						fv[kchan + izr] = -tmp;
-					}
-					if (iyt > -1 && izt > -1) {
-						float tmp = fv[kchan + iyt];
-						fv[kchan + iyt] = -fv[kchan + izt];
-						fv[kchan + izt] = tmp;
-					}
-				}
-				if (1) {
-					if (iyr > -1 && izr > -1) {
-						fv[kchan + iyr] = -fv[kchan + iyr];
-					}
-					if (iyt > -1 && izt > -1) {
-						fv[kchan + iyt] = -fv[kchan + iyt];
-					}
-
-				}
-				kchan+= cchan[j].nchan;
+				kchan += cchan[j].nchan;
 			}
 		}
 		//re-order channels
-		if(1) for (int j = 0; j < mjoint; j++) {
+		if (0) for (int j = 0; j < mjoint; j++) {
 			//assume data is zUp, and rotate about x to make yUp
 			int iyr, izr, iyt, izt;
 			iyr = izr = iyt = izt = -1;
@@ -313,6 +290,69 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 			cchan[j].ichan[iyr] = 3;
 			cchan[j].ichan[izr] = 2;
 		}
+
+		yUp = TRUE;
+	}
+
+	if(1) if (!yUp) {
+		//if z-up, rotate around x axis so y is up
+		// swap y, z values
+		for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
+			float* fv = &fvalues[iframe * (*channel_count)];
+			int kchan = 0;
+			for (int j = 0; j < mjoint; j++) {
+				{
+					//assume data is zUp, and rotate about x to make yUp
+					int iyr, izr, iyt, izt;
+					iyr = izr = iyt = izt = -1;
+					for (int k = 0; k < cchan[j].nchan; k++) {
+						if (cchan[j].ichan[k] == 2) iyr = k;
+						if (cchan[j].ichan[k] == 3) izr = k;
+						if (cchan[j].ichan[k] == 5) iyt = k;
+						if (cchan[j].ichan[k] == 6) izt = k;
+					}
+					if (0) {
+						if (iyr > -1 && izr > -1) {
+							float tmp = fv[kchan + iyr];
+							fv[kchan + iyr] = fv[kchan + izr];
+							fv[kchan + izr] = -tmp;
+						}
+						if (iyt > -1 && izt > -1) {
+							float tmp = fv[kchan + iyt];
+							fv[kchan + iyt] = -fv[kchan + izt];
+							fv[kchan + izt] = tmp;
+						}
+					}
+					if (1) {
+						if (iyr > -1 && izr > -1) {
+							fv[kchan + iyr] = -fv[kchan + iyr];
+						}
+						if (iyt > -1 && izt > -1) {
+							fv[kchan + iyt] = -fv[kchan + iyt];
+						}
+
+					}
+				}
+				kchan+= cchan[j].nchan;
+			}
+		}
+		//re-order channels
+		if(1) for (int j = 0; j < mjoint; j++) {
+			//assume data is zUp, and rotate about x to make yUp
+			//if (cchan[j].level ==	1) 
+			{
+
+				int iyr, izr, iyt, izt;
+				iyr = izr = iyt = izt = -1;
+				for (int k = 0; k < cchan[j].nchan; k++) {
+					if (cchan[j].ichan[k] == 2) iyr = k;
+					if (cchan[j].ichan[k] == 3) izr = k;
+				}
+				cchan[j].ichan[iyr] = 3;
+				cchan[j].ichan[izr] = 2;
+			}
+		}
+		//yUp = TRUE;
 	}
 	//convert degrees to radians
 	for(int iframe=0;iframe< *bvh_frame_count;iframe++){
@@ -323,44 +363,47 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 			int axis_swap_left, axis_swap_right;
 			char* jname = get_jname(cchan[j].mocap_name);
 			axis_swap_left = axis_swap_right = 0;
-			if (teePose) {
+			if(1) if (teePose) {
 				axis_swap_left = instringlist(jname, swaplistleft);
 				axis_swap_right = instringlist(jname, swaplistright);
 				if (axis_swap_left || axis_swap_right) {
-					int ix, iy;
+					int ix, iy, ky, isign;
+					ky = yUp ? 2 : 1;
+					isign = yUp ? 1 : -1;
 					for (int k = 0; k < cchan[j].nchan; k++) {
 						if (cchan[j].ichan[k] == 1) ix = k;
-						if (cchan[j].ichan[k] == 2) iy = k;
+						if (cchan[j].ichan[k] == ky) iy = k;
 					}
 					if (axis_swap_left) {
 						float tmp = fv[kchan + ix];
-						fv[kchan + ix] = fv[kchan + iy];
-						fv[kchan + iy] = -tmp;
+						fv[kchan + ix] = isign*fv[kchan + iy];
+						fv[kchan + iy] = -isign*tmp;
 					}
 					if (axis_swap_right) {
 						float tmp = fv[kchan + ix];
-						fv[kchan + ix] = -fv[kchan + iy];
-						fv[kchan + iy] = tmp;
+						fv[kchan + ix] = -isign*fv[kchan + iy];
+						fv[kchan + iy] = isign*tmp;
 					}
 				}
 			}
 
 			for(int k=0;k<cchan[j].nchan;k++){
+				int ifore = 3; // yUp ? 3 : 2;
 				if (cchan[j].ichan[k] < 4) {
 					if (flipZ) {
-						if (cchan[j].ichan[k] == 3)
+						if (cchan[j].ichan[k] == ifore)
 							fv[kchan] *= -1;
 					}
 					if (legAngle != 0.0f) {
-						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_hip"))
+						if (cchan[j].ichan[k] == ifore && !strcmp(jname, "l_hip"))
 							fv[kchan] += legAngle;
-						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_hip"))
+						else if (cchan[j].ichan[k] == ifore && !strcmp(jname, "r_hip"))
 							fv[kchan] -= legAngle;
 					}
 					if(armAngle != 0.0f){
-						if (cchan[j].ichan[k] == 3 && !strcmp(jname, "l_shoulder"))
+						if (cchan[j].ichan[k] == ifore && !strcmp(jname, "l_shoulder"))
 							fv[kchan] += armAngle;
-						else if (cchan[j].ichan[k] == 3 && !strcmp(jname, "r_shoulder"))
+						else if (cchan[j].ichan[k] == ifore && !strcmp(jname, "r_shoulder"))
 							fv[kchan] -= armAngle;
 					}
 					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
