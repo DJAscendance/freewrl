@@ -3385,6 +3385,8 @@ our %Nodes = (
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		motions =>  ["MFNode",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		motionsEnabled => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+                _lastMotionsEnabled => ["MFBool", [], "inputOutput", 0,0],#ff
+                transitionTime => ["SFTime",0,"inputOutput",0,0],#ff
 		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_JT => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		_PVI => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
@@ -3418,6 +3420,8 @@ our %Nodes = (
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
+                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		#MotionData
 		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3451,6 +3455,8 @@ our %Nodes = (
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
+                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		#extra
 		data => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DMotionNode"),

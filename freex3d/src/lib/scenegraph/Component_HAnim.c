@@ -743,11 +743,21 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 			int* moe = MALLOC(int*, node->motions.n * sizeof(int));
 			memset(moe, 0, node->motions.n * sizeof(int));
 			memcpy(moe, node->motionsEnabled.p, node->motionsEnabled.n * sizeof(int));
-			for (int i = node->motionsEnabled.n; i < node->motions.n; i++)
+
+			for (int i = node->motionsEnabled.n; i < node->motions.n; i++) {
 				moe[i] = TRUE; //FALSE //not sure - specs don't say default, just empty [], I'll use TRUE while developing/debugging
+	
+			}
 			FREE_IF_NZ(node->motionsEnabled.p);
 			node->motionsEnabled.p = moe;
 			node->motionsEnabled.n = node->motions.n;
+
+		}
+		if (node->motions.n > node->_lastMotionsEnabled.n) {
+			node->_lastMotionsEnabled.p = MALLOC(int*, node->motions.n * sizeof(int));
+			node->_lastMotionsEnabled.n = node->motions.n;
+			for (int i = 0; i < node->_lastMotionsEnabled.n; i++)
+				node->_lastMotionsEnabled.p[i] = 0;
 		}
 		for (int i = 0; i < node->motions.n; i++) {
 			check_compile(node->motions.p[i]);
@@ -843,7 +853,23 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	
 	if(node->motions.n){
 		for(int i=0;i<node->motions.n;i++){
-			if(node->motionsEnabled.p[i])
+			struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)node->motions.p[i];
+			int keep = node->motionsEnabled.p[i];
+			HM->transitionWeight = 1.0f;
+			if (node->transitionTime > 0.0) {
+				if (node->motionsEnabled.p[i] != node->_lastMotionsEnabled.p[i]) {
+					HM->transitionStart = TickTime();
+				}
+				double dtime = TickTime() - HM->transitionStart;
+				float weight = dtime / node->transitionTime;
+				weight = min(1.0f, weight);
+				if (node->motionsEnabled.p[i]) 
+					HM->transitionWeight = weight;
+				else HM->transitionWeight = 1.0f - weight;
+				if (weight > 0.0f) keep = TRUE;
+				node->_lastMotionsEnabled.p[i] = node->motionsEnabled.p[i];
+			}
+			if(keep)
 				render_node(X3D_NODE(node->motions.p[i]));
 		}
 	}
@@ -1579,6 +1605,7 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* jmatrix0) {
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)HMnode;
 	if (HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)) {
+		float weight = HM->transitionWeight;
 		struct joint_frame_motion* jm = jointFrameMotion(HM, jname);
 		int debug, debug2;
 		debug = debug2 = FALSE;
@@ -1596,7 +1623,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			
 			for(int ii=0;ii<jm->nchan;ii++){
 				int i = ii; // jm->nchan - 1 - ii;
-				float value = jm->values[i];
+				float value = jm->values[i] * weight;
 				if(debug)
 				printf("%d %4.2f ",jm->ichan[i],value);
 				// Q. what kind of angles are those 

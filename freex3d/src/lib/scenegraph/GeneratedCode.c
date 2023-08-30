@@ -317,6 +317,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_lastChannelSource",
 	"_lastEnabled",
 	"_lastMethod",
+	"_lastMotionsEnabled",
 	"_lastStream",
 	"_lastTao",
 	"_lastenabled",
@@ -1275,8 +1276,10 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"trajectoryCurve",
 	"transferFunction",
 	"transitionComplete",
+	"transitionStart",
 	"transitionTime",
 	"transitionType",
+	"transitionWeight",
 	"translation",
 	"translationOffset",
 	"translation_changed",
@@ -2345,6 +2348,8 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"texCoordRamp",
 	"textureProperties",
 	"topToBottom",
+	"transitionStart",
+	"transitionWeight",
 	"type",
 	"uClosed",
 	"uKnot",
@@ -6896,6 +6901,8 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimHumanoid, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_motions, (int) offsetof (struct X3D_HAnimHumanoid, motions),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_motionsEnabled, (int) offsetof (struct X3D_HAnimHumanoid, motionsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastMotionsEnabled, (int) offsetof (struct X3D_HAnimHumanoid, _lastMotionsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionTime, (int) offsetof (struct X3D_HAnimHumanoid, transitionTime),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimHumanoid, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__JT, (int) offsetof (struct X3D_HAnimHumanoid, _JT),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__PVI, (int) offsetof (struct X3D_HAnimHumanoid, _PVI),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
@@ -6960,6 +6967,8 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotion, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotion, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotion, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotion, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotion, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimMotion, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameCount, (int) offsetof (struct X3D_HAnimMotion, frameCount),  (int) FIELDTYPE_SFInt32, (int) KW_outputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_frameDuration, (int) offsetof (struct X3D_HAnimMotion, frameDuration),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
@@ -7050,6 +7059,8 @@ const int OFFSETS_HAnimMotionPlay[] = {
 	(int) FIELDNAMES_next, (int) offsetof (struct X3D_HAnimMotionPlay, next),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_previous, (int) offsetof (struct X3D_HAnimMotionPlay, previous),  (int) FIELDTYPE_SFBool, (int) KW_inputOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionPlay, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotionPlay, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotionPlay, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_HAnimMotionPlay, data),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
@@ -13765,6 +13776,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->description = newASCIIString("");
 			tmp2->motions.n=0; tmp2->motions.p=0;
 			tmp2->motionsEnabled.n=0; tmp2->motionsEnabled.p=0;
+			tmp2->_lastMotionsEnabled.n=0; tmp2->_lastMotionsEnabled.p=0;
+			tmp2->transitionTime = 0;
 			tmp2->loa = -1;
 			tmp2->_JT = 0;
 			tmp2->_PVI = 0;
@@ -13847,6 +13860,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->next = FALSE;
 			tmp2->previous = FALSE;
 			tmp2->_framevalues = 0;
+			tmp2->transitionWeight = 0.0f;
+			tmp2->transitionStart = 0;
 			tmp2->loa = -1;
 			tmp2->frameCount = 0;
 			tmp2->frameDuration = 0.1;
@@ -13949,6 +13964,8 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->next = FALSE;
 			tmp2->previous = FALSE;
 			tmp2->_framevalues = 0;
+			tmp2->transitionWeight = 0.0f;
+			tmp2->transitionStart = 0;
 			tmp2->data = NULL;
 			tmp2->_defaultContainer = 0;
 		break;
@@ -20499,6 +20516,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->motions.n; i++) { dump_scene(fp,level+1,tmp->motions.p[i]); }
 			spacer fprintf (fp," motionsEnabled (MFBool):\n");
 			for (i=0; i<tmp->motionsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->motionsEnabled.p[i]); }
+		    if(allFields) {
+			spacer fprintf (fp," _lastMotionsEnabled (MFBool):\n");
+			for (i=0; i<tmp->_lastMotionsEnabled.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->_lastMotionsEnabled.p[i]); }
+		    }
+			spacer fprintf (fp," transitionTime (SFTime) \t%4.3f\n",tmp->transitionTime);
 			spacer fprintf (fp," loa (SFInt32) \t%d\n",tmp->loa);
 			spacer fprintf (fp," jointBindingPositions (MFVec3f):\n");
 			for (i=0; i<tmp->jointBindingPositions.n; i++) { spacer fprintf (fp,"			%d: \t[%4.3f, %4.3f, %4.3f]\n",i,(tmp->jointBindingPositions.p[i]).c[0], (tmp->jointBindingPositions.p[i]).c[1],(tmp->jointBindingPositions.p[i]).c[2]); }
