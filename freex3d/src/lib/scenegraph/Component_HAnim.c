@@ -370,10 +370,12 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 			if(HH->motions.n){
 				double modelviewMatrix[16];
 				for (int i = 0; i < HH->motions.n; i++) {
-					if(HH->motionsEnabled.p[i]){
+					//if(HH->motionsEnabled.p[i]){
+					struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)HH->motions.p[i];
+					if(HM->transitionWeight > 0.0){
 						//printmatrix(jointMatrix.mat);
 						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-						update_jointMatrixFromMotion(HH->motions.p[i],node->name->strptr,modelviewMatrix);
+						update_jointMatrixFromMotion(HM,node->name->strptr,modelviewMatrix);
 						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 						//printmatrix(jointMatrix.mat);
 					}
@@ -852,26 +854,34 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	}
 	
 	if(node->motions.n){
+		int nkept = 0;
 		for(int i=0;i<node->motions.n;i++){
 			struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)node->motions.p[i];
 			int keep = node->motionsEnabled.p[i];
 			HM->transitionWeight = 1.0f;
+			if (HM->transitionStart == 0.0) HM->transitionStart = TickTime();
 			if (node->transitionTime > 0.0) {
 				if (node->motionsEnabled.p[i] != node->_lastMotionsEnabled.p[i]) {
 					HM->transitionStart = TickTime();
 				}
 				double dtime = TickTime() - HM->transitionStart;
 				float weight = dtime / node->transitionTime;
+				//printf("%f ", weight);
 				weight = min(1.0f, weight);
 				if (node->motionsEnabled.p[i]) 
 					HM->transitionWeight = weight;
 				else HM->transitionWeight = 1.0f - weight;
-				if (weight > 0.0f) keep = TRUE;
+				if (HM->transitionWeight > 0.0f) keep = TRUE;
 				node->_lastMotionsEnabled.p[i] = node->motionsEnabled.p[i];
 			}
-			if(keep)
+			if (keep) {
+				if(HM->transitionWeight < 1.0f)
+				  printf("%d %f  ", i, HM->transitionWeight);
 				render_node(X3D_NODE(node->motions.p[i]));
+				nkept++;
+			}
 		}
+		//printf("%d", nkept);
 	}
 
 	// segments, joints, sites are flat-lists for convenience
