@@ -294,7 +294,50 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 		yUp = TRUE;
 	}
 
+	static char* wantlist[] = { "l_shoulder", "r_shoulder", NULL};
+	for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
+		float* fv = &fvalues[iframe * (*channel_count)];
+		int kchan = 0;
+		printf("%d ", iframe);
+		for (int j = 0; j < mjoint; j++) {
+			char* jname = get_jname(cchan[j].mocap_name);
+			int iwant = instringlist(jname, wantlist);
+			if (iwant) {
+				printf("%s ", jname);
+				int ixr, iyr, izr;
+				ixr = iyr = izr = -1;
+				for (int k = 0; k < cchan[j].nchan; k++) {
+					if (cchan[j].ichan[k] == 1) ixr = k;
+					if (cchan[j].ichan[k] == 2) iyr = k;
+					if (cchan[j].ichan[k] == 3) izr = k;
+				}
+				for (int k = 0; k < cchan[j].nchan; k++) {
+					printf("%d %7.2f ", cchan[j].ichan[k], fv[kchan + k]);
+				}
+				//if x is -90, exchange y and z axes, just on shoulder ??
+				if (!yUp) {
+					//Method E (Early)
+					//if (!strcmp(jname, "l_shoulder")) {
+						if (fv[kchan + ixr] > -91.0f && fv[kchan + ixr] < -89.0f) {
+							float tmp = fv[kchan + iyr];
+							fv[kchan + iyr] = -fv[kchan + izr];
+							fv[kchan + izr] = -tmp;
+							fv[kchan + ixr] = 0.0f; //blender puts weird extra -90 in x axis of shoulder
+						}
+					//}
+				}
+				
+
+			}
+			kchan += cchan[j].nchan;
+		}
+		printf("\n");
+
+	}
+
 	if(1) if (!yUp) {
+		//debug printf
+
 		//if z-up, rotate around x axis so y is up
 		// swap y, z values
 		for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
@@ -311,7 +354,8 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 						if (cchan[j].ichan[k] == 5) iyt = k;
 						if (cchan[j].ichan[k] == 6) izt = k;
 					}
-					if (0) {
+					//method A
+					if (1) {
 						if (iyr > -1 && izr > -1) {
 							float tmp = fv[kchan + iyr];
 							fv[kchan + iyr] = fv[kchan + izr];
@@ -323,7 +367,9 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 							fv[kchan + izt] = tmp;
 						}
 					}
-					if (1) {
+					//method B
+					if (0) {
+						//Y bedomes -Z, change the sign here
 						if (iyr > -1 && izr > -1) {
 							fv[kchan + iyr] = -fv[kchan + iyr];
 						}
@@ -337,7 +383,8 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 			}
 		}
 		//re-order channels
-		if(1) for (int j = 0; j < mjoint; j++) {
+		//method C
+		if(0) for (int j = 0; j < mjoint; j++) {
 			//assume data is zUp, and rotate about x to make yUp
 			//if (cchan[j].level ==	1) 
 			{
@@ -348,11 +395,31 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 					if (cchan[j].ichan[k] == 2) iyr = k;
 					if (cchan[j].ichan[k] == 3) izr = k;
 				}
+				//Z becomes Y, Y becomes -Z (sign change above)
 				cchan[j].ichan[iyr] = 3;
 				cchan[j].ichan[izr] = 2;
 			}
 		}
 		//yUp = TRUE;
+		//debug printf
+		for (int iframe = 0; iframe < *bvh_frame_count; iframe++) {
+			float* fv = &fvalues[iframe * (*channel_count)];
+			int kchan = 0;
+			printf("%d ", iframe);
+			for (int j = 0; j < mjoint; j++) {
+				char* jname = get_jname(cchan[j].mocap_name);
+				int iwant = instringlist(jname, wantlist);
+				if (iwant) {
+					printf("%s ", jname);
+					for (int k = 0; k < cchan[j].nchan; k++) {
+						printf("%d %7.2f ", cchan[j].ichan[k], fv[kchan + k]);
+					}
+				}
+				kchan += cchan[j].nchan;
+			}
+			printf("\n");
+		}
+
 	}
 	//convert degrees to radians
 	for(int iframe=0;iframe< *bvh_frame_count;iframe++){
@@ -368,8 +435,8 @@ void read_bvh_blob(char* blob, int ignorePosition, int yUp, int teePose,
 				axis_swap_right = instringlist(jname, swaplistright);
 				if (axis_swap_left || axis_swap_right) {
 					int ix, iy, ky, isign;
-					ky = yUp ? 2 : 1;
-					isign = yUp ? 1 : -1;
+					ky = 2; // yUp ? 2 : 3;
+					isign = 1; // yUp ? 1 : -1;
 					for (int k = 0; k < cchan[j].nchan; k++) {
 						if (cchan[j].ichan[k] == 1) ix = k;
 						if (cchan[j].ichan[k] == ky) iy = k;
