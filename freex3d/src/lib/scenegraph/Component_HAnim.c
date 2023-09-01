@@ -875,8 +875,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				node->_lastMotionsEnabled.p[i] = node->motionsEnabled.p[i];
 			}
 			if (keep) {
-				if(HM->transitionWeight < 1.0f)
-				  printf("%d %f  ", i, HM->transitionWeight);
+				//if(HM->transitionWeight < 1.0f)
+				//  printf("%d %f  ", i, HM->transitionWeight);
 				render_node(X3D_NODE(node->motions.p[i]));
 				nkept++;
 			}
