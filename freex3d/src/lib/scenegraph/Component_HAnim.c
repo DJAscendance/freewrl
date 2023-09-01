@@ -859,7 +859,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)node->motions.p[i];
 			int keep = node->motionsEnabled.p[i];
 			HM->transitionWeight = 1.0f;
-			if (HM->transitionStart == 0.0) HM->transitionStart = TickTime();
+			if (HM->transitionStart == 0.0) HM->transitionStart = TickTime() - node->transitionTime;
 			if (node->transitionTime > 0.0) {
 				if (node->motionsEnabled.p[i] != node->_lastMotionsEnabled.p[i]) {
 					HM->transitionStart = TickTime();
