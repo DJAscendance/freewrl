@@ -355,6 +355,7 @@ enum {
 	GEOM_TRIANGLE = 5,
 	GEOM_GEOMETRY = 6,
 	GEOM_HANIM = 7,
+	GEOM_CHILD = 8,
 };
 struct {
 const char *name;
@@ -367,6 +368,7 @@ int type;
 {"TRIANGLE",GEOM_TRIANGLE},
 {"GEOMETRY",GEOM_GEOMETRY},
 {"HANIM",GEOM_HANIM},
+{"CHILD",GEOM_CHILD},
 {NULL,0},
 };
 int lookup_geomtype(const char *name){
@@ -389,72 +391,71 @@ static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f
 
 void compile_Shape (struct X3D_Shape *node);
 // COMPILE PARTICLE SYSTEM
-void compile_ParticleSystem(struct X3D_ParticleSystem *node){
-	int i,j, maxparticles;
-	float *vertices; //*boxtris, 
-	Stack *_particles;
+void compile_geom_particle(struct X3D_ParticleSystem* node) {
+	int i, j;
+	float* vertices; //*boxtris, 
 
+	//compile shape specifics
 	//ConsoleMessage("compile_particlesystem\n");
 	//delegate to compile_shape - same order to appearance, geometry fields
 	compile_Shape((struct X3D_Shape*)node);
 
-	node->_geometryType = lookup_geomtype(node->geometryType->strptr);
-	if(node->_tris == NULL){
-		node->_tris = MALLOC(void *,18 * sizeof(float));
+	if (node->_tris == NULL) {
+		node->_tris = MALLOC(void*, 18 * sizeof(float));
 		//memcpy(node->_tris,quadtris,18*sizeof(float));
 	}
 	vertices = (float*)(node->_tris);
 	//rescale vertices, in case scale changed
-	for(i=0;i<6;i++){
-		float *vert, *vert0;
-		vert0 = &quadtris[i*3];
-		vert = &vertices[i*3];
-		vert[0] = vert0[0]*node->particleSize.c[0];
-		vert[1] = vert0[1]*node->particleSize.c[1];
+	for (i = 0; i < 6; i++) {
+		float* vert, * vert0;
+		vert0 = &quadtris[i * 3];
+		vert = &vertices[i * 3];
+		vert[0] = vert0[0] * node->particleSize.c[0];
+		vert[1] = vert0[1] * node->particleSize.c[1];
 		vert[2] = vert0[2];
 	}
 
-	if(node->texCoordRamp || node->texCoord){
-		int ml,mq,mt,n;
+	if (node->texCoordRamp || node->texCoord) {
+		int ml, mq, mt, n;
 		struct X3D_TextureCoordinate* tc;
-		if(node->texCoordRamp) 
+		if (node->texCoordRamp)
 			tc = (struct X3D_TextureCoordinate*)node->texCoordRamp;
 		else
 			tc = (struct X3D_TextureCoordinate*)node->texCoord;
 		n = node->texCoordKey.n;
-		mq = n*4; //quad
-		ml = n*2; //2 pt line
-		mt = n*6; //2 triangles
+		mq = n * 4; //quad
+		ml = n * 2; //2 pt line
+		mt = n * 6; //2 triangles
 
 		//malloc for both lines and tex, in case changed on the fly
-		if(!node->_ttex)
-			node->_ttex = MALLOC(void *,mt*2*sizeof(float));
-		if(!node->_ltex)
-			node->_ltex = MALLOC(void *,ml*2*sizeof(float));
-		if(tc->point.n == mq){
+		if (!node->_ttex)
+			node->_ttex = MALLOC(void*, mt * 2 * sizeof(float));
+		if (!node->_ltex)
+			node->_ltex = MALLOC(void*, ml * 2 * sizeof(float));
+		if (tc->point.n == mq) {
 			//enough tex coords for quads, expand to suit triangles
 			//  4 - 3
 			//  5 / 2  2 triangle config
 			//  0 _ 1
-			float *ttex, *ltex;
+			float* ttex, * ltex;
 			ttex = (float*)node->_ttex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				int k;
-				for(j=0,k=0;j<4;j++,k++){
-					float *p = (float*)(float *)&tc->point.p[i*4 + j];
-					veccopy2f(&ttex[(i*6 + k)*2],p);
-					if(k==0){
-						veccopy2f(&ttex[(i*6 + 5)*2],p); //copy to 5 (last of 0-6 2-triangle)
+				for (j = 0, k = 0; j < 4; j++, k++) {
+					float* p = (float*)(float*)&tc->point.p[i * 4 + j];
+					veccopy2f(&ttex[(i * 6 + k) * 2], p);
+					if (k == 0) {
+						veccopy2f(&ttex[(i * 6 + 5) * 2], p); //copy to 5 (last of 0-6 2-triangle)
 					}
-					if(k==2){
+					if (k == 2) {
 						k++;
-						veccopy2f(&ttex[(i*6 + k)*2],p); //copy 2 to 3 (start of 2nd triangle
+						veccopy2f(&ttex[(i * 6 + k) * 2], p); //copy 2 to 3 (start of 2nd triangle
 					}
 				}
 			}
-			if(0) for(i=0;i<n;i++){
-				for(j=0;j<6;j++)
-					printf("%f %f,",ttex[(i*6 + j)*2 +0],ttex[(i*6 + j)*2 +1]);
+			if (0) for (i = 0; i < n; i++) {
+				for (j = 0; j < 6; j++)
+					printf("%f %f,", ttex[(i * 6 + j) * 2 + 0], ttex[(i * 6 + j) * 2 + 1]);
 				printf("\n");
 			}
 			//for(i=0;i<(n*6*2);i++){
@@ -462,56 +463,67 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 			//}
 
 			ltex = (float*)node->_ltex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				// make something up for lines
-				for(j=0;j<2;j++){
+				for (j = 0; j < 2; j++) {
 					float p[2];
-					struct SFVec2f *sf = (struct SFVec2f *)&tc->point.p[i*4 + j];
+					struct SFVec2f* sf = (struct SFVec2f*)&tc->point.p[i * 4 + j];
 					p[0] = sf->c[0];
-					p[1] = min(sf->c[1],.9999f); //clamp texture here otherwise tends to wrap around
-					veccopy2f(&ltex[(i*2 + j)*2],p);
-					
+					p[1] = min(sf->c[1], .9999f); //clamp texture here otherwise tends to wrap around
+					veccopy2f(&ltex[(i * 2 + j) * 2], p);
+
 				}
 			}
 		}
-		if(tc->point.n == ml){
+		if (tc->point.n == ml) {
 			//enough points for lines
-			float *ttex, *ltex;
+			float* ttex, * ltex;
 
 			ltex = (float*)node->_ltex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				// copy lines straightforwardly
-				for(j=0;j<2;j++){
+				for (j = 0; j < 2; j++) {
 					float p[2];
-					struct SFVec2f *sf = (struct SFVec2f *)&tc->point.p[i*2 + j];
+					struct SFVec2f* sf = (struct SFVec2f*)&tc->point.p[i * 2 + j];
 					p[0] = sf->c[0];
-					p[1] = min(sf->c[1],.9999f); //clamp texture here otherwise tends to wrap around
-					veccopy2f(&ltex[(i*2 + j)*2],p);
+					p[1] = min(sf->c[1], .9999f); //clamp texture here otherwise tends to wrap around
+					veccopy2f(&ltex[(i * 2 + j) * 2], p);
 				}
 			}
-			if(0) for(i=0;i<n;i++){
-				printf("%f %f, %f %f\n",ltex[i*2*2 + 0],ltex[i*2*2 + 1],ltex[i*2*2 + 2],ltex[i*2*2 + 3]);
+			if (0) for (i = 0; i < n; i++) {
+				printf("%f %f, %f %f\n", ltex[i * 2 * 2 + 0], ltex[i * 2 * 2 + 1], ltex[i * 2 * 2 + 2], ltex[i * 2 * 2 + 3]);
 			}
 			//make something up for triangles
 			ttex = (float*)node->_ttex;
-			for(i=0;i<n;i++){
-				float *p;
+			for (i = 0; i < n; i++) {
+				float* p;
 				j = i;
-				p = (float*)(float *)&tc->point.p[j*2 + 0];
-				veccopy2f(&ttex[(i*6 + 0)*2],p); //copy to 0 
-				veccopy2f(&ttex[(i*6 + 5)*2],p); //copy to 5
-				p = (float*)(float *)&tc->point.p[j*2 + 1];
-				veccopy2f(&ttex[(i*6 + 1)*2],p); //copy to 1
+				p = (float*)(float*)&tc->point.p[j * 2 + 0];
+				veccopy2f(&ttex[(i * 6 + 0) * 2], p); //copy to 0 
+				veccopy2f(&ttex[(i * 6 + 5) * 2], p); //copy to 5
+				p = (float*)(float*)&tc->point.p[j * 2 + 1];
+				veccopy2f(&ttex[(i * 6 + 1) * 2], p); //copy to 1
 				j++;
 				j = j == n ? j - 1 : j; //clamp to last
-				p = (float*)(float *)&tc->point.p[j*2 + 1];
-				veccopy2f(&ttex[(i*6 + 2)*2],p); //copy to 2
-				veccopy2f(&ttex[(i*6 + 3)*2],p); //copy to 3
-				p = (float*)(float *)&tc->point.p[j*2 + 0];
-				veccopy2f(&ttex[(i*6 + 4)*2],p); //copy to 4
+				p = (float*)(float*)&tc->point.p[j * 2 + 1];
+				veccopy2f(&ttex[(i * 6 + 2) * 2], p); //copy to 2
+				veccopy2f(&ttex[(i * 6 + 3) * 2], p); //copy to 3
+				p = (float*)(float*)&tc->point.p[j * 2 + 0];
+				veccopy2f(&ttex[(i * 6 + 4) * 2], p); //copy to 4
 			}
 		}
 	}
+}
+
+void compile_ParticleSystem(struct X3D_ParticleSystem *node){
+	int i,j, maxparticles;
+	Stack *_particles;
+
+	node->_geometryType = lookup_geomtype(node->geometryType->strptr);
+	if (node->_geometryType < GEOM_HANIM) {
+		compile_geom_particle(node);
+	}
+	//compile particles
 	maxparticles = min(node->maxParticles,10000);
 	if(node->_particles == NULL)
 		node->_particles = newVector(particle,maxparticles);
@@ -521,6 +533,8 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		_particles->data = realloc(_particles->data,maxparticles);
 		_particles->allocn = maxparticles;
 	}
+
+	//compile time-dependent node specifics
 	if(!node->_lasttime || node->enabled && !node->_lastEnabled)
 		node->_lasttime = TickTime();
 	if(node->enabled && !node->_lastEnabled){
@@ -1854,6 +1868,463 @@ void update_effect_uniforms();
 void check_compile(struct X3D_Node* node){
 	COMPILE_IF_REQUIRED
 }
+void child_geom_particle_shadow(struct X3D_ParticleSystem* node) {
+	//child_geomParticle_shadow
+	PRINT_GL_ERROR_IF_ANY("child_shape depth start");
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+	shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
+	shader_requirements.effects = node->_shaderflags_effects;
+	shader_requirements.usershaders = node->_shaderflags_usershaders;
+
+	shader_requirements.depth = TRUE;
+	shader_requirements.base |= PARTICLE_SHADER;
+
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	sendMatriciesToShader(scap);  //send matrices
+	switch (node->_geometryType) {
+	case GEOM_LINE:
+	{
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
+		sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
+	}
+	break;
+	case GEOM_POINT:
+	{
+		float point[3];
+		memset(point, 0, 3 * sizeof(float));
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
+		sendArraysToGPU(GL_POINTS, 0, 1);
+	}
+	break;
+	case GEOM_QUAD:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_SPRITE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_TRIANGLE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_GEOMETRY:
+		render_node(node->geometry);
+		break;
+	default:
+		break;
+	}
+	GLint ppos, pdir, cr, gtype, itrans;
+	int i;
+	ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+	pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
+	itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
+	cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
+	gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
+	glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
+	//loop over live particles, drawing each one
+	//float estart6[6], eout6[6];
+	//extent6f_copy(estart6, peek_group_extent());
+	Stack* _particles = node->_particles;
+	//apply static orientation and size to all particles
+	{
+		double matrix[16], * mat[4];
+		float fmat[16];
+		for (i = 0; i < 4; i++)
+			mat[i] = &matrix[i * 4];
+		matidentity4d(matrix);
+		if (1) {
+			double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
+			//apply particle size
+			for (i = 0; i < 2; i++)
+				mat[i][i] = node->particleSize.c[i];
+			//apply particle orientation (relative to direction 1 0 0)
+			for (i = 0; i < 3; i++)
+				axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
+		}
+		double2float(fmat, matrix, 16);
+		glUniformMatrix4fv(itrans, 1, TRUE, fmat);
+	}
+
+	for (int i = 0; i < vectorSize(_particles); i++) {
+		particle pp = vector_get(particle, _particles, i);
+		//update particle-specific uniforms
+		glUniform3fv(ppos, 1, pp.position);
+		//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
+		glUniform3fv(pdir, 1, pp.direction);
+		//draw
+		reallyDrawOnce();
+		//extent6f_translate3f(eout6, estart6, pp.position);
+		//union_group_extent(eout6);
+	}
+	clearDraw();
+	//cleanup after draw, like child_shape
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
+}
+void render_geom_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
+	ttglobal tg = gglobal();
+
+	int i;
+	GLint ppos, pdir, cr, gtype;
+
+	//render_geom_particle(node);
+
+	//prepare to draw, like child_shape
+	//render appearance
+	//BORROWED FROM CHILD SHAPE >>>>>>>>>
+	//declare geom particle variables
+	int allowsTexcoordRamp = FALSE;
+	float* texcoord = NULL;
+	int haveColorRamp, haveTexcoordRamp;
+	//int colorSource, alphaSource, isLit,
+	int isUserShader;
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	struct X3D_Node* tmpNG;
+
+	//unsigned int shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+
+	//prep_Appearance
+	RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
+
+	// enable the shader for this shape
+	//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
+
+	POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->geometry, tmpNG);
+
+	shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;
+	shader_requirements.effects = node->_shaderflags_effects;
+	shader_requirements.usershaders = node->_shaderflags_usershaders;
+	isUserShader = shader_requirements.usershaders ? TRUE : FALSE; // >= USER_DEFINED_SHADER_START ? TRUE : FALSE;
+	//if(!p->userShaderNode || !(shader_requirements >= USER_DEFINED_SHADER_START)){
+	if (!isUserShader) {
+		//for Luminance and Luminance-Alpha images, we have to tinker a bit in the Vertex shader
+		// New concept of operations Aug 26, 2016
+		// in the specs there are some things that can replace other things (but not the reverse)
+		// Texture can repace CPV, diffuse and 111
+		// CPV can replace diffuse and 111
+		// diffuse can replace 111
+		// Texture > CPV > Diffuse > (1,1,1)
+		// so there's a kind of order / sequence to it.
+		// There can be a flag at each step saying if you want to replace the prior value (otherwise modulate)
+		// Diffuse replacing or modulating (111) is the same thing, no flag needed
+		// Therefore we need at most 2 flags for color:
+		// TEXTURE_REPLACE_PRIOR and CPV_REPLACE_PRIOR.
+		// and other flag for alpha: ALPHA_REPLACE_PRIOR (same as ! WANT_TEXALPHA)
+		// if all those are false, then its full modulation.
+		// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
+		// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
+
+		int channels, modulation, scenefile_specversion;
+		//modulation:
+		//- for Castle-style full-modulation of texture x CPV x mat.diffuse
+		//     and texalpha x (1-mat.trans), set 2
+		//- for specs table 17-2 RGB Tex replaces CPV with modulation
+		//     of table 17-2 entries with mat.diffuse and (1-mat.trans) set 1
+		//- for specs table 17-3 as written and ignoring modulation sentences
+		//    so CPV replaces diffuse, texture replaces CPV and diffuse- set 0
+		// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
+		//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
+		//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
+		channels = getImageChannelCountFromTTI(node->appearance);
+		// specversion <= 330 use v3.3 table 17-3
+		// specversion >= 400 modulate everything
+		scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+		switch (fwl_get_modulation()) {
+		case 0:
+			//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
+			modulation = scenefile_specversion >= 400 ? TRUE : FALSE;
+			break;
+		case 1:
+			modulation = FALSE; break;
+		case 2:
+			modulation = TRUE; break;
+		default:
+			modulation = FALSE;
+		}
+		if (modulation == TRUE) {
+			shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
+		}
+		if (!channels || (channels == 1 || channels == 3))
+			shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
+		if (channels && (channels == 1 || channels == 2))
+			shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
+
+
+		//getShaderFlags() are from non-leaf-node shader influencers:
+		//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
+		// - as such they may be different for the same shape node DEF/USEd in different branches of the scenegraph
+		// - so they are ORd here before selecting a shader permutation
+		shader_requirements.base |= getShaderFlags().base;
+		shader_requirements.effects |= getShaderFlags().effects;
+		//if(shader_requirements & FOG_APPEARANCE_SHADER)
+		//	printf("fog in child_shape\n");
+
+		//ParticleSystem flag
+		shader_requirements.base |= PARTICLE_SHADER;
+		if (node->colorRamp || node->color)
+			shader_requirements.base |= HAVE_UNLIT_COLOR;
+	}
+	//printf("child_shape shader_requirements base %d effects %d user %d\n",shader_requirements.base,shader_requirements.effects,shader_requirements.usershaders);
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
+
+	//see if we have to set up a TextureCoordinateGenerator type here
+	if (tmpNG && tmpNG->_intern && tmpNG->_intern->itype == 2) {
+		struct X3D_PolyRep* tmppr = (struct X3D_PolyRep*)tmpNG->_intern;
+		if (tmppr->tcoordtype == NODE_TextureCoordinateGenerator) {
+			getAppearanceProperties()->texCoordGeneratorType = tmppr->texgentype;
+			//ConsoleMessage("shape, matprop val %d, geom val %d",getAppearanceProperties()->texCoordGeneratorType, node->geometry->_intern->texgentype);
+		}
+	}
+	//userDefined = (whichOne >= USER_DEFINED_SHADER_START) ? TRUE : FALSE;
+	//if (p->userShaderNode != NULL && shader_requirements >= USER_DEFINED_SHADER_START) {
+#ifdef ALLOW_USERSHADERS
+	if (isUserShader && p->userShaderNode) {
+		//we come in here right after a COMPILE pass in APPEARANCE which renders the shader, which sets p->userShaderNode
+		//if nothing changed with appearance -no compile pass- we don't come in here again
+		//ConsoleMessage ("have a shader of type %s",stringNodeType(p->userShaderNode->_nodeType));
+		switch (p->userShaderNode->_nodeType) {
+		case NODE_ComposedShader:
+			if (X3D_COMPOSEDSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_COMPOSEDSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+			break;
+		case NODE_ProgramShader:
+			if (X3D_PROGRAMSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_PROGRAMSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+
+			break;
+		case NODE_PackagedShader:
+			if (X3D_PACKAGEDSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_PACKAGEDSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+
+			break;
+		}
+	}
+#endif //ALLOW_USERSHADERS
+	//update effect field uniforms
+	if (shader_requirements.effects) {
+		update_effect_uniforms();
+	}
+
+	//<<<<< BORROWED FROM CHILD SHAPE
+
+
+	//send materials, textures, matrices to shader
+	clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+	clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+	clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
+
+	textureTransform_start();
+	// maybe too much? resend_textureprojector_matrix();
+	setupShaderB();
+	//send vertex buffer to shader
+	allowsTexcoordRamp = FALSE;
+	texcoord = NULL;
+	switch (node->_geometryType) {
+	case GEOM_LINE:
+	{
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
+		sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
+		texcoord = (float*)node->_ltex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_POINT:
+	{
+		float point[3];
+		memset(point, 0, 3 * sizeof(float));
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
+		sendArraysToGPU(GL_POINTS, 0, 1);
+	}
+	break;
+	case GEOM_QUAD:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+		texcoord = (float*)node->_ttex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_SPRITE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_TRIANGLE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+		texcoord = (float*)node->_ttex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_GEOMETRY:
+		render_node(node->geometry);
+		break;
+	default:
+		break;
+	}
+
+	ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+	pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
+	cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
+	gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
+	int itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
+	glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
+	//loop over live particles, drawing each one
+	haveColorRamp = node->colorRamp || node->color ? TRUE : FALSE;
+	haveColorRamp = haveColorRamp && cr > -1;
+	haveTexcoordRamp = node->texCoordRamp || node->texCoord ? TRUE : FALSE;
+	haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord;
+	if (haveTexcoordRamp) {
+		//glUniform1i(scap->nTexMatrix,0);
+		glUniform1i(scap->nTexCoordChannels, 1);
+		glUniform1i(scap->flipuv, 0);
+		//glUniform1i(scap->textureCount,1);
+	}
+	float estart6[6], eout6[6];
+	//extent6f_copy(estart6, peek_group_extent());
+	extent6f_clear(estart6);
+	//apply static orientation and size to all particles
+	{
+		double matrix[16], * mat[4];
+		float fmat[16];
+		for (i = 0; i < 4; i++)
+			mat[i] = &matrix[i * 4];
+		matidentity4d(matrix);
+		if (1) {
+			double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
+			//apply particle size
+			for (i = 0; i < 2; i++)
+				mat[i][i] = node->particleSize.c[i];
+			//apply particle orientation (relative to direction 1 0 0)
+			for (i = 0; i < 3; i++)
+				axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
+		}
+		double2float(fmat, matrix, 16);
+		glUniformMatrix4fv(itrans, 1, TRUE, fmat);
+	}
+
+	for (i = 0; i < vectorSize(_particles); i++) {
+		particle pp = vector_get(particle, _particles, i);
+		//update particle-specific uniforms
+		glUniform3fv(ppos, 1, pp.position);
+		glUniform3fv(pdir, 1, pp.direction);
+
+		//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
+		if (haveColorRamp)
+			updateColorRamp(node, &pp, cr);
+		if (haveTexcoordRamp)
+			updateTexCoordRamp(node, &pp, texcoord);
+		if (node->_geometryType == GEOM_LINE) {
+			float lpts[6], vel[3];
+			vecnormalize3f(vel, pp.velocity);
+			vecscale3f(&lpts[3], vel, .5f * node->particleSize.c[1]);
+			vecscale3f(&lpts[0], vel, -.5f * node->particleSize.c[1]);
+			FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)lpts);
+		}
+		//draw
+		reallyDrawOnce();
+		//extent6f_translate3f(eout6, estart6, pp.position);
+		//union_group_extent(eout6);
+		//printf("pp.pos %f %f %f\n", pp.position[0], pp.position[1], pp.position[2]);
+		extent6f_union_vec3f(estart6, pp.position);
+	}
+	memcpy(node->_extent, estart6, 6 * sizeof(float));
+	clearDraw();
+	//cleanup after draw, like child_shape
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	textureTransform_end();
+
+	//BORROWED FROM CHILD_SHAPE >>>>>>
+	//fin_Appearance
+	if (node->appearance) {
+		struct X3D_Appearance* tmpA;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance*, node->appearance, tmpA);
+		if (tmpA->effects.n)
+			fin_sibAffectors(X3D_NODE(tmpA), &tmpA->effects);
+	}
+	// any shader turned on? if so, turn it off
+
+	//ConsoleMessage("turning shader off");
+	finishedWithGlobalShader();
+#ifdef HAVE_P
+	p->material_twoSided = NULL;
+	p->material_oneSided = NULL;
+	p->userShaderNode = NULL;
+#endif
+	tg->RenderFuncs.shapenode = NULL;
+
+	// load the identity matrix for textures. This is necessary, as some nodes have TextureTransforms
+	//	and some don't. So, if we have a TextureTransform, loadIdentity
+
+#ifdef HAVE_P
+	if (p->this_textureTransform) {
+		p->this_textureTransform = NULL;
+#endif //HAVE_P
+		FW_GL_MATRIX_MODE(GL_TEXTURE);
+		FW_GL_LOAD_IDENTITY();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+#ifdef HAVE_P
+	}
+#endif
+	// LineSet, PointSets, set the width back to the original.
+	{
+		float gl_linewidth = tg->Mainloop.gl_linewidth;
+		glLineWidth(gl_linewidth);
+#ifdef HAVE_P
+		p->appearanceProperties.pointSize = gl_linewidth;
+#endif
+	}
+
+	// did the lack of an Appearance or Material node turn lighting off?
+	LIGHTING_ON;
+
+	// turn off face culling
+	DISABLE_CULL_FACE;
+
+	//<<<<< BORROWED FROM CHILD_SHAPE
+
+}
+
 void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// 
 	// ParticleSystem 
@@ -1878,149 +2349,37 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 	if (renderstate()->render_depth) {
 		if (node->castShadow) {
-			PRINT_GL_ERROR_IF_ANY("child_shape depth start");
-			s_shader_capabilities_t* scap;
-			shaderflagsstruct shader_requirements;
-			memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
-			shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
-			shader_requirements.effects = node->_shaderflags_effects;
-			shader_requirements.usershaders = node->_shaderflags_usershaders;
-
-			shader_requirements.depth = TRUE;
-			shader_requirements.base |= PARTICLE_SHADER;
-
-			scap = getMyShaders(shader_requirements);
-			enableGlobalShader(scap);
-			sendMatriciesToShader(scap);  //send matrices
-			switch (node->_geometryType) {
-			case GEOM_LINE:
-			{
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
-				sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
-			}
-			break;
-			case GEOM_POINT:
-			{
-				float point[3];
-				memset(point, 0, 3 * sizeof(float));
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
-				sendArraysToGPU(GL_POINTS, 0, 1);
-			}
-			break;
-			case GEOM_QUAD:
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
-				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
-				sendArraysToGPU(GL_TRIANGLES, 0, 6);
-			}
-			break;
-			case GEOM_SPRITE:
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
-				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
-				sendArraysToGPU(GL_TRIANGLES, 0, 6);
-			}
-			break;
-			case GEOM_TRIANGLE:
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
-				FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
-				sendArraysToGPU(GL_TRIANGLES, 0, 6);
-			}
-			break;
-			case GEOM_HANIM:
-			case GEOM_GEOMETRY:
-				render_node(node->geometry);
-				break;
-			default:
-				break;
-			}
-			GLint ppos, pdir, cr, gtype, itrans;
-			int i;
-			ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
-			pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
-			itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
-			cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
-			gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
-			glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
-			//loop over live particles, drawing each one
-			//float estart6[6], eout6[6];
-			//extent6f_copy(estart6, peek_group_extent());
-			Stack* _particles = node->_particles;
-			//apply static orientation and size to all particles
-			{
-				double matrix[16], * mat[4];
-				float fmat[16];
-				for (i = 0; i < 4; i++)
-					mat[i] = &matrix[i * 4];
-				matidentity4d(matrix);
-				if (1) {
-					double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
-					//apply particle size
-					for (i = 0; i < 2; i++)
-						mat[i][i] = node->particleSize.c[i];
-					//apply particle orientation (relative to direction 1 0 0)
-					for (i = 0; i < 3; i++)
-						axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
-				}
-				double2float(fmat, matrix, 16);
-				glUniformMatrix4fv(itrans, 1, TRUE, fmat);
-			}
-
-			for (int i = 0; i < vectorSize(_particles); i++) {
-				particle pp = vector_get(particle, _particles, i);
-				//update particle-specific uniforms
-				glUniform3fv(ppos, 1, pp.position);
-				//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
-				glUniform3fv(pdir, 1, pp.direction);
-				//draw
-				reallyDrawOnce();
-				//extent6f_translate3f(eout6, estart6, pp.position);
-				//union_group_extent(eout6);
-			}
-			clearDraw();
-			//cleanup after draw, like child_shape
-			FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-			finishedWithGlobalShader();
-
+			child_geom_particle_shadow(node);
 			PRINT_GL_ERROR_IF_ANY("child_shape depth end");
 		}
 		return;
 	}
-	/* copy the material stuff in preparation for copying all to the shader */
-	initialize_front_and_back_material_params();
+
 
 	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+
+	/* copy the material stuff in preparation for copying all to the shader */
+	initialize_front_and_back_material_params();
 
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
 	if(TRUE){ //node->isActive){
+		//declare particle variables
 		int i,j,k,maxparticles;
 		double ttime;
 		float dtime;
-		//int colorSource, alphaSource, isLit, 
-		int isUserShader; 
-		s_shader_capabilities_t *scap;
-		shaderflagsstruct shader_requirements;
-		Stack *_particles;
-		int allowsTexcoordRamp = FALSE;
-		float *texcoord = NULL;
-		GLint ppos, pdir, cr, gtype;
-		int haveColorRamp,haveTexcoordRamp;
+		Stack* _particles;
 
-		struct X3D_Node *tmpNG;
 
+		//initialize time-dependen node variables
 		ttime = TickTime();
 		dtime = (float)(ttime - node->_lasttime); //increment to particle age
 
 		//if(!once)
 		//	printf("child particlesystem \n");
 
-
+		//UPDATE PARTICLES
 		//RETIRE remove deceased/retired particles (by packing vector)
 		_particles = node->_particles;
 		maxparticles = min(node->maxParticles,10000);
@@ -2129,338 +2488,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			}
 			_particles->n = j;
 		}
-
-		//prepare to draw, like child_shape
-		//render appearance
-		//BORROWED FROM CHILD SHAPE >>>>>>>>>
-
-		//unsigned int shader_requirements;
-		memset(&shader_requirements,0,sizeof(shaderflagsstruct));
-
-		//prep_Appearance
-		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
-
-		/* enable the shader for this shape */
-		//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
-
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->geometry,tmpNG);
-
-		shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
-		shader_requirements.effects = node->_shaderflags_effects;
-		shader_requirements.usershaders = node->_shaderflags_usershaders;
-		isUserShader = shader_requirements.usershaders ? TRUE : FALSE; // >= USER_DEFINED_SHADER_START ? TRUE : FALSE;
-		//if(!p->userShaderNode || !(shader_requirements >= USER_DEFINED_SHADER_START)){
-		if(!isUserShader){
-			//for Luminance and Luminance-Alpha images, we have to tinker a bit in the Vertex shader
-			// New concept of operations Aug 26, 2016
-			// in the specs there are some things that can replace other things (but not the reverse)
-			// Texture can repace CPV, diffuse and 111
-			// CPV can replace diffuse and 111
-			// diffuse can replace 111
-			// Texture > CPV > Diffuse > (1,1,1)
-			// so there's a kind of order / sequence to it.
-			// There can be a flag at each step saying if you want to replace the prior value (otherwise modulate)
-			// Diffuse replacing or modulating (111) is the same thing, no flag needed
-			// Therefore we need at most 2 flags for color:
-			// TEXTURE_REPLACE_PRIOR and CPV_REPLACE_PRIOR.
-			// and other flag for alpha: ALPHA_REPLACE_PRIOR (same as ! WANT_TEXALPHA)
-			// if all those are false, then its full modulation.
-			// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
-			// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
-
-			int channels,modulation,scenefile_specversion;
-			//modulation:
-			//- for Castle-style full-modulation of texture x CPV x mat.diffuse
-			//     and texalpha x (1-mat.trans), set 2
-			//- for specs table 17-2 RGB Tex replaces CPV with modulation 
-			//     of table 17-2 entries with mat.diffuse and (1-mat.trans) set 1
-			//- for specs table 17-3 as written and ignoring modulation sentences
-			//    so CPV replaces diffuse, texture replaces CPV and diffuse- set 0
-			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
-			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
-			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			channels = getImageChannelCountFromTTI(node->appearance);
-			// specversion <= 330 use v3.3 table 17-3
-			// specversion >= 400 modulate everything
-			scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
-			// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
-			switch(fwl_get_modulation()){
-				case 0:
-					//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
-					modulation = scenefile_specversion >= 400 ? TRUE : FALSE; 
-					break;
-				case 1:
-					modulation = FALSE; break;
-				case 2:
-					modulation = TRUE; break;
-				default:
-					modulation = FALSE;
-			}
-			if(modulation == TRUE){
-				shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
-			}
-			if(!channels || (channels == 1 || channels == 3))
-				shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
-			if(channels && (channels == 1 || channels == 2) )
-				shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
-
-
-			//getShaderFlags() are from non-leaf-node shader influencers: 
-			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
-			// - as such they may be different for the same shape node DEF/USEd in different branches of the scenegraph
-			// - so they are ORd here before selecting a shader permutation
-			shader_requirements.base |= getShaderFlags().base; 
-			shader_requirements.effects |= getShaderFlags().effects;
-			//if(shader_requirements & FOG_APPEARANCE_SHADER)
-			//	printf("fog in child_shape\n");
-
-			//ParticleSystem flag
-			shader_requirements.base |= PARTICLE_SHADER;
-			if(node->colorRamp || node->color)
-				shader_requirements.base |= HAVE_UNLIT_COLOR;
+		if (node->_geometryType < GEOM_HANIM) {
+			render_geom_particle(node, _particles);
 		}
-		//printf("child_shape shader_requirements base %d effects %d user %d\n",shader_requirements.base,shader_requirements.effects,shader_requirements.usershaders);
-		scap = getMyShaders(shader_requirements);
-		enableGlobalShader(scap);
-		//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
-
-		//see if we have to set up a TextureCoordinateGenerator type here
-		if (tmpNG && tmpNG->_intern && tmpNG->_intern->itype == 2) {
-			struct X3D_PolyRep* tmppr = (struct X3D_PolyRep*)tmpNG->_intern;
-			if (tmppr->tcoordtype == NODE_TextureCoordinateGenerator) {
-				getAppearanceProperties()->texCoordGeneratorType = tmppr->texgentype;
-				//ConsoleMessage("shape, matprop val %d, geom val %d",getAppearanceProperties()->texCoordGeneratorType, node->geometry->_intern->texgentype);
-			}
-		}
-		//userDefined = (whichOne >= USER_DEFINED_SHADER_START) ? TRUE : FALSE;
-		//if (p->userShaderNode != NULL && shader_requirements >= USER_DEFINED_SHADER_START) {
-		#ifdef ALLOW_USERSHADERS
-		if(isUserShader && p->userShaderNode){
-			//we come in here right after a COMPILE pass in APPEARANCE which renders the shader, which sets p->userShaderNode
-			//if nothing changed with appearance -no compile pass- we don't come in here again
-			//ConsoleMessage ("have a shader of type %s",stringNodeType(p->userShaderNode->_nodeType));
-			switch (p->userShaderNode->_nodeType) {
-				case NODE_ComposedShader:
-					if (X3D_COMPOSEDSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_COMPOSEDSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-					break;
-				case NODE_ProgramShader:
-					if (X3D_PROGRAMSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_PROGRAMSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-
-					break;
-				case NODE_PackagedShader:
-					if (X3D_PACKAGEDSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_PACKAGEDSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-
-					break;
-			}
-		}
-		#endif //ALLOW_USERSHADERS
-		//update effect field uniforms
-		if(shader_requirements.effects){
-			update_effect_uniforms();
-		}
-
-		//<<<<< BORROWED FROM CHILD SHAPE
-
-
-		//send materials, textures, matrices to shader
-		clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
-		clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
-		clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
-
-		textureTransform_start();
-		// maybe too much? resend_textureprojector_matrix();  
-		setupShaderB();
-		//send vertex buffer to shader
-		allowsTexcoordRamp = FALSE;
-		texcoord = NULL;
-		switch(node->_geometryType){
-			case GEOM_LINE: 
-			{
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)linepts);
-				sendElementsToGPU(GL_LINES,2,(ushort *)lineindices);
-				texcoord = (float*)node->_ltex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_POINT: 
-			{
-				float point[3];
-				memset(point,0,3*sizeof(float));
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)point);
-        		sendArraysToGPU (GL_POINTS, 0, 1);
-			}
-			break;
-			case GEOM_QUAD: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-				texcoord = (float*)node->_ttex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_SPRITE: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-			}
-			break;
-			case GEOM_TRIANGLE: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-				texcoord = (float*)node->_ttex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_GEOMETRY: 
-				render_node(node->geometry);
-			break;
-			case GEOM_HANIM:
-				render_node(node->geometry);
-				break;
-			default:
-				break;
-		}
-
-		ppos = GET_UNIFORM(scap->myShaderProgram,"particlePosition");
-		pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
-		cr = GET_UNIFORM(scap->myShaderProgram,"fw_UnlitColor");
-		gtype = GET_UNIFORM(scap->myShaderProgram,"fw_ParticleGeomType");
-		int itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
-		glUniform1i(gtype,node->_geometryType); //for SPRITE = 4, screen alignment
-		//loop over live particles, drawing each one
-		haveColorRamp = node->colorRamp || node->color ? TRUE : FALSE;
-		haveColorRamp = haveColorRamp && cr > -1;
-		haveTexcoordRamp = node->texCoordRamp || node->texCoord ? TRUE : FALSE;
-		haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord; 
-		if(haveTexcoordRamp){
-			//glUniform1i(scap->nTexMatrix,0);
-			glUniform1i(scap->nTexCoordChannels,1);
-			glUniform1i(scap->flipuv, 0);
-			//glUniform1i(scap->textureCount,1);
-		}
-		float estart6[6], eout6[6];
-		//extent6f_copy(estart6, peek_group_extent());
-		extent6f_clear(estart6);
-		//apply static orientation and size to all particles
-		{
-			double matrix[16], * mat[4];
-			float fmat[16];
-			for (i = 0; i < 4; i++)
-				mat[i] = &matrix[i * 4];
-			matidentity4d(matrix);
-			if (1) {
-				double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
-				//apply particle size
-				for (i = 0; i < 2; i++)
-					mat[i][i] = node->particleSize.c[i];
-				//apply particle orientation (relative to direction 1 0 0)
-				for (i = 0; i < 3; i++)
-					axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
-			}
-			double2float(fmat, matrix, 16);
-			glUniformMatrix4fv(itrans, 1, TRUE, fmat);
-		}
-
-		for(i=0;i<vectorSize(_particles);i++){
-			particle pp = vector_get(particle,_particles,i);
-			//update particle-specific uniforms
-			glUniform3fv(ppos,1,pp.position);
-			glUniform3fv(pdir, 1, pp.direction);
-
-			//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
-			if(haveColorRamp)
-				updateColorRamp(node,&pp,cr);
-			if(haveTexcoordRamp)
-				updateTexCoordRamp(node,&pp,texcoord);
-			if(node->_geometryType == GEOM_LINE){
-				float lpts[6], vel[3];
-				vecnormalize3f(vel,pp.velocity);
-				vecscale3f(&lpts[3],vel,.5f*node->particleSize.c[1]);
-				vecscale3f(&lpts[0],vel,-.5f*node->particleSize.c[1]);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)lpts);
-			}
-			//draw
-			reallyDrawOnce();
-			//extent6f_translate3f(eout6, estart6, pp.position);
-			//union_group_extent(eout6);
-			//printf("pp.pos %f %f %f\n", pp.position[0], pp.position[1], pp.position[2]);
-			extent6f_union_vec3f(estart6,pp.position);
-		}
-		memcpy(node->_extent, estart6, 6 * sizeof(float));
-		clearDraw();
-		//cleanup after draw, like child_shape
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		textureTransform_end();
-
-		//BORROWED FROM CHILD_SHAPE >>>>>>
-		//fin_Appearance
-		if(node->appearance){
-			struct X3D_Appearance *tmpA;
-			POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *,node->appearance,tmpA);
-			if(tmpA->effects.n)
-				fin_sibAffectors(X3D_NODE(tmpA),&tmpA->effects);
-		}
-		/* any shader turned on? if so, turn it off */
-
-		//ConsoleMessage("turning shader off");
-		finishedWithGlobalShader();
-#ifdef HAVE_P
-		p->material_twoSided = NULL;
-		p->material_oneSided = NULL;
-		p->userShaderNode = NULL;
-#endif
-		tg->RenderFuncs.shapenode = NULL;
-    
-		/* load the identity matrix for textures. This is necessary, as some nodes have TextureTransforms
-			and some don't. So, if we have a TextureTransform, loadIdentity */
-    
-#ifdef HAVE_P
-		if (p->this_textureTransform) {
-			p->this_textureTransform = NULL;
-#endif //HAVE_P
-			FW_GL_MATRIX_MODE(GL_TEXTURE);
-			FW_GL_LOAD_IDENTITY();
-			FW_GL_MATRIX_MODE(GL_MODELVIEW);
-#ifdef HAVE_P
-		}
-#endif    
-		/* LineSet, PointSets, set the width back to the original. */
-		{
-			float gl_linewidth = tg->Mainloop.gl_linewidth;
-			glLineWidth(gl_linewidth);
-#ifdef HAVE_P
-			p->appearanceProperties.pointSize = gl_linewidth;
-#endif
-		}
-
-		/* did the lack of an Appearance or Material node turn lighting off? */
-		LIGHTING_ON;
-
-		/* turn off face culling */
-		DISABLE_CULL_FACE;
-
-		//<<<<< BORROWED FROM CHILD_SHAPE
-
+		
 		node->_lasttime = ttime;
 	} //isActive
 	} //enabled
@@ -2469,3 +2500,4 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	fin_BBox((struct X3D_Node*)node, (struct BBoxFields*)&node->bboxCenter, FALSE);
 
 }
+
