@@ -1661,6 +1661,9 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			nebor[0].x = nebor[3].x = nebor[5].x = -1;
 			nebor[2].x = nebor[4].x = nebor[7].x = 1;
 			nebor[5].y = nebor[6].y = nebor[7].y = 1;
+			// ^   5 6 7
+			// y   3   4
+			// x>  0 1 2
 
 			//which way to go? 
 			//check if we are on the sink/destination, if so recycle.
