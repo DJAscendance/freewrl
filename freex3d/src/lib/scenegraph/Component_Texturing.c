@@ -43,6 +43,22 @@ X3D Texturing Component
 #include "../scenegraph/Polyrep.h"
 #include "LinearAlgebra.h"
 
+void render_GeneratedPixelTexture(struct X3D_GeneratedPixelTexture* node) {
+	int count, iface;
+
+	if (!strcmp(node->update->strptr, "ALWAYS") || !strcmp(node->update->strptr, "NEXT_FRAME_ONLY")) {
+		ttrenderstate rs;
+		rs = renderstate();
+		if (rs->render_geom) {
+
+		}
+	}
+	//render what we have now
+	gglobal()->RenderFuncs.textureStackTop = 1;
+	gglobal()->RenderFuncs.texturenode = node;
+
+}
+
 
 void render_PixelTexture (struct X3D_PixelTexture *node) {
 	loadTextureNode(X3D_NODE(node),NULL);

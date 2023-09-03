@@ -1494,7 +1494,7 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 		//}
 		//else 
 		{
-			char* fname, * svalue;
+			const char *fname, *svalue;
 			const char* ignore[] = { "containerField","USE", "DEF", "visible", "displayBBox", NULL };
 			//parse_fieldValue_b method, except SFNode, MFNode still need separate old-fashioned fieldValue elements
 			for (i = 0; atts[i]; i += 2) {
@@ -1503,7 +1503,7 @@ void startProto_B(void* ud, const char* name, struct X3D_Proto* nodetype, const 
 				if (findFieldInARR(fname, ignore, 5) == INT_ID_UNDEFINED) {
 					int ok, builtIn, type, kind, iifield;
 					char* cname;
-					void *value;
+					union anyVrml *value;
 					ok = 0;
 					cname = NULL;
 					value = NULL;

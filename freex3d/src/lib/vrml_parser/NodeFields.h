@@ -1293,6 +1293,20 @@ EXPOSED_FIELD(GeneratedCubeMapTexture,update,sfstring,update,FIELDTYPE_SFString,
 FIELD(GeneratedCubeMapTexture,size,sfint32,size,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(GeneratedCubeMapTexture)
 
+/* GeneratedPixelTexture node */
+BEGIN_NODE(GeneratedPixelTexture)
+EXPOSED_FIELD(GeneratedPixelTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(GeneratedPixelTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeneratedPixelTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(GeneratedPixelTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(GeneratedPixelTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(GeneratedPixelTexture,update,sfstring,update,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeneratedPixelTexture,size,mfint32,size,FIELDTYPE_MFInt32,UNCA_NONE)
+FIELD(GeneratedPixelTexture,viewpoint,sfnode,viewpoint,FIELDTYPE_SFNode,0)
+FIELD(GeneratedPixelTexture,background,sfnode,background,FIELDTYPE_SFNode,0)
+FIELD(GeneratedPixelTexture,children,mfnode,children,FIELDTYPE_MFNode,0)
+END_NODE(GeneratedPixelTexture)
+
 /* GeoConvert node */
 BEGIN_NODE(GeoConvert)
 EVENT_IN(GeoConvert,set_geoCoords,sfvec3d,set_geoCoords,FIELDTYPE_SFVec3d)
@@ -3417,11 +3431,13 @@ END_NODE(PickableGroup)
 
 /* PixelTexture node */
 BEGIN_NODE(PixelTexture)
-EXPOSED_FIELD(PixelTexture,image,sfimage,image,FIELDTYPE_SFImage,UNCA_NONE)
 EXPOSED_FIELD(PixelTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PixelTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+EVENT_OUT(PixelTexture,image,sfimage,image,FIELDTYPE_SFImage)
 FIELD(PixelTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(PixelTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
 FIELD(PixelTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(PixelTexture,update,sfstring,update,FIELDTYPE_SFString,UNCA_NONE)
 END_NODE(PixelTexture)
 
 /* PixelTexture3D node */

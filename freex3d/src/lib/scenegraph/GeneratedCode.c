@@ -519,6 +519,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"backTexture",
 	"backTransparency",
 	"backUrl",
+	"background",
 	"baseColor",
 	"baseTexture",
 	"baseTextureMapping",
@@ -1329,6 +1330,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"version",
 	"vertexCount",
 	"vertices",
+	"viewpoint",
 	"viewpoints",
 	"viewport",
 	"visibilityLimit",
@@ -2203,6 +2205,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"autoCalc",
 	"axisCount",
 	"azimuth",
+	"background",
 	"bboxCenter",
 	"bboxSize",
 	"beginCap",
@@ -2216,6 +2219,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"child2Url",
 	"child3Url",
 	"child4Url",
+	"children",
 	"closed",
 	"closureType",
 	"code",
@@ -2356,6 +2360,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"upDirection",
 	"vClosed",
 	"vKnot",
+	"viewpoint",
 	"weightFunction1",
 	"weightFunction2",
 	"xDimension",
@@ -2814,6 +2819,7 @@ const char *NODES[] = {
 	"ForcePhysicsModel",
 	"Gain",
 	"GeneratedCubeMapTexture",
+	"GeneratedPixelTexture",
 	"GeoConvert",
 	"GeoCoordinate",
 	"GeoECParameters",
@@ -3185,6 +3191,7 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_fontStyle,0,0,0,0,0,0},
 {FIELDNAMES_physics,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_texture,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_coord,0,0,0,0,0,0},
@@ -3742,6 +3749,9 @@ struct X3D_Virt virt_Gain = { NULL,(void *)render_Gain,NULL,NULL,NULL,NULL,NULL,
 void render_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 void compile_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *);
 struct X3D_Virt virt_GeneratedCubeMapTexture = { NULL,(void *)render_GeneratedCubeMapTexture,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_GeneratedCubeMapTexture};
+
+void render_GeneratedPixelTexture(struct X3D_GeneratedPixelTexture *);
+struct X3D_Virt virt_GeneratedPixelTexture = { NULL,(void *)render_GeneratedPixelTexture,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 struct X3D_Virt virt_GeoConvert = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
@@ -4687,6 +4697,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_ForcePhysicsModel,
 	 &virt_Gain,
 	 &virt_GeneratedCubeMapTexture,
+	 &virt_GeneratedPixelTexture,
 	 &virt_GeoConvert,
 	 &virt_GeoCoordinate,
 	 &virt_GeoECParameters,
@@ -6379,6 +6390,21 @@ const int OFFSETS_GeneratedCubeMapTexture[] = {
 	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_GeneratedCubeMapTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_update, (int) offsetof (struct X3D_GeneratedCubeMapTexture, update),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_size, (int) offsetof (struct X3D_GeneratedCubeMapTexture, size),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_GeneratedPixelTexture[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_GeneratedPixelTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_GeneratedPixelTexture, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_GeneratedPixelTexture, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_GeneratedPixelTexture, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_GeneratedPixelTexture, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_GeneratedPixelTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_GeneratedPixelTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_update, (int) offsetof (struct X3D_GeneratedPixelTexture, update),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_size, (int) offsetof (struct X3D_GeneratedPixelTexture, size),  (int) FIELDTYPE_MFInt32, (int) KW_initializeOnly, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_viewpoint, (int) offsetof (struct X3D_GeneratedPixelTexture, viewpoint),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_background, (int) offsetof (struct X3D_GeneratedPixelTexture, background),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_GeneratedPixelTexture, children),  (int) FIELDTYPE_MFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_GeoConvert[] = {
@@ -8718,13 +8744,15 @@ const int OFFSETS_PickableGroup[] = {
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PixelTexture[] = {
-	(int) FIELDNAMES_image, (int) offsetof (struct X3D_PixelTexture, image),  (int) FIELDTYPE_SFImage, (int) KW_inputOutput, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_PixelTexture, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_PixelTexture, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_image, (int) offsetof (struct X3D_PixelTexture, image),  (int) FIELDTYPE_SFImage, (int) KW_outputOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_repeatS, (int) offsetof (struct X3D_PixelTexture, repeatS),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_repeatT, (int) offsetof (struct X3D_PixelTexture, repeatT),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) (SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_textureProperties, (int) offsetof (struct X3D_PixelTexture, textureProperties),  (int) FIELDTYPE_SFNode, (int) KW_initializeOnly, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES__parentResource, (int) offsetof (struct X3D_PixelTexture, _parentResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___textureTableIndex, (int) offsetof (struct X3D_PixelTexture, __textureTableIndex),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_update, (int) offsetof (struct X3D_PixelTexture, update),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_PixelTexture3D[] = {
@@ -10458,6 +10486,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_ForcePhysicsModel,
 	OFFSETS_Gain,
 	OFFSETS_GeneratedCubeMapTexture,
+	OFFSETS_GeneratedPixelTexture,
 	OFFSETS_GeoConvert,
 	OFFSETS_GeoCoordinate,
 	OFFSETS_GeoECParameters,
@@ -11089,6 +11118,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_ForcePhysicsModel : {tmp = MALLOC (struct X3D_ForcePhysicsModel *, size = sizeof (struct X3D_ForcePhysicsModel)); break;}
 		case NODE_Gain : {tmp = MALLOC (struct X3D_Gain *, size = sizeof (struct X3D_Gain)); break;}
 		case NODE_GeneratedCubeMapTexture : {tmp = MALLOC (struct X3D_GeneratedCubeMapTexture *, size = sizeof (struct X3D_GeneratedCubeMapTexture)); break;}
+		case NODE_GeneratedPixelTexture : {tmp = MALLOC (struct X3D_GeneratedPixelTexture *, size = sizeof (struct X3D_GeneratedPixelTexture)); break;}
 		case NODE_GeoConvert : {tmp = MALLOC (struct X3D_GeoConvert *, size = sizeof (struct X3D_GeoConvert)); break;}
 		case NODE_GeoCoordinate : {tmp = MALLOC (struct X3D_GeoCoordinate *, size = sizeof (struct X3D_GeoCoordinate)); break;}
 		case NODE_GeoECParameters : {tmp = MALLOC (struct X3D_GeoECParameters *, size = sizeof (struct X3D_GeoECParameters)); break;}
@@ -13143,6 +13173,24 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__textureTableIndex = 0;
 			tmp2->update = newASCIIString("NONE");
 			tmp2->size = 128;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_GeneratedPixelTexture : {
+			struct X3D_GeneratedPixelTexture * tmp2;
+			tmp2 = (struct X3D_GeneratedPixelTexture *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->repeatS = TRUE;
+			tmp2->repeatT = TRUE;
+			tmp2->textureProperties = 0;
+			tmp2->_parentResource = getInputResource();
+			tmp2->__textureTableIndex = 0;
+			tmp2->update = newASCIIString("NONE");
+			tmp2->size.n=0; tmp2->size.p=0;
+			tmp2->viewpoint = NULL;
+			tmp2->background = NULL;
+			tmp2->children.n=0; tmp2->children.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -16061,13 +16109,15 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_PixelTexture : {
 			struct X3D_PixelTexture * tmp2;
 			tmp2 = (struct X3D_PixelTexture *) tmp;
-			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->image.arr.n=0; tmp2->image.arr.p=NULL; tmp2->image.whc[0] = 0; tmp2->image.whc[1] = 0; tmp2->image.whc[2] = 0;;
 			tmp2->repeatS = TRUE;
 			tmp2->repeatT = TRUE;
 			tmp2->textureProperties = 0;
 			tmp2->_parentResource = getInputResource();
 			tmp2->__textureTableIndex = 0;
+			tmp2->update = newASCIIString("NONE");
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -19791,6 +19841,17 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," update (SFString) \t%s\n",tmp->update->strptr);
 		    break;
 		}
+		case NODE_GeneratedPixelTexture : {
+			struct X3D_GeneratedPixelTexture *tmp;
+			tmp = (struct X3D_GeneratedPixelTexture *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," update (SFString) \t%s\n",tmp->update->strptr);
+		    break;
+		}
 		case NODE_GeoConvert : {
 			struct X3D_GeoConvert *tmp;
 			tmp = (struct X3D_GeoConvert *) node;
@@ -22607,11 +22668,11 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			struct X3D_PixelTexture *tmp;
 			tmp = (struct X3D_PixelTexture *) node;
 			UNUSED(tmp); // compiler warning mitigation
-			spacer fprintf (fp," image (SFImage): (not dumped)\t");
-			fprintf (fp,"\n");
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
 		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," update (SFString) \t%s\n",tmp->update->strptr);
 		    break;
 		}
 		case NODE_PixelTexture3D : {
@@ -24774,6 +24835,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_ForcePhysicsModel: return X3DParticlePhysicsModelNode; break;
 	case NODE_Gain: return X3DSoundProcessingNode; break;
 	case NODE_GeneratedCubeMapTexture: return X3DEnvironmentTextureNode; break;
+	case NODE_GeneratedPixelTexture: return X3DTextureNode; break;
 	case NODE_GeoConvert: return X3DInterpolatorNode; break;
 	case NODE_GeoCoordinate: return X3DCoordinateNode; break;
 	case NODE_GeoECParameters: return X3DGeoSRFTParametersNode; break;
