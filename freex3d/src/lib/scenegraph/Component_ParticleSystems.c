@@ -346,6 +346,7 @@ typedef struct {
 	float surfaceArea;
 	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
 	int maplocation[2]; //last popmap location in MapPhysics
+	int paused; //HANIM 0= use first motion 1= use second motion
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -1721,6 +1722,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
 					//skip if we are already on waitzone/crosswalk
+					pp->paused = FALSE; //for HANIM motion change
 					if (!on_wait) {
 						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
 						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
@@ -1751,6 +1753,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					printf("\n");
 				}
 				if (ishortest > -1) {
+					printf("%f ", dshortest);
 					//move toward ishortest neighbor
 					q.x = p.x + nebor[ishortest].x;
 					q.y = p.y + nebor[ishortest].y;
@@ -1775,12 +1778,13 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					pp->maplocation[0] = q.x;
 					pp->maplocation[1] = q.y;
 					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
-
+					pp->paused = FALSE; //for HANIM motion change
 				}
 				else {
 					//wait / stand
 					if(debug) printf("waiting particle %p\n", pp);
 					vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+					pp->paused = TRUE; //for HANIM motion change
 				}
 				if(debug) getchar();
 			} //end of life
@@ -2356,7 +2360,18 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 			FW_GL_ROTATE_RADIANS(tilt, 1, 0, 0);
 			FW_GL_ROTATE_RADIANS(yaw, 0, 1, 0);
 		}
-		child_HAnimHumanoid(node->geometry);
+		//assume first motion is walk, second is stand
+		struct X3D_HAnimHumanoid* HH = (struct X3D_HAnimHumanoid*)node->geometry;
+		struct Multi_Bool* ME = &HH->motionsEnabled;
+		if (pp.paused) {
+			ME->p[0] = FALSE;
+			ME->p[1] = TRUE;
+		}
+		else {
+			ME->p[0] = TRUE;
+			ME->p[1] = FALSE;
+		}
+		child_HAnimHumanoid(HH);
 		if(1)
 		FW_GL_POP_MATRIX();
 		//draw
