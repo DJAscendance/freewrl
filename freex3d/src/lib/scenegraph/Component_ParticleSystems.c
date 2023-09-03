@@ -514,16 +514,25 @@ void compile_geom_particle(struct X3D_ParticleSystem* node) {
 		}
 	}
 }
-
+void compile_hanim_particle(struct X3D_ParticleSystem* pnode) {
+	struct X3D_HAnimHumanoid* node = (struct X3D_HAnimHumanoid*)pnode->geometry;
+	COMPILE_IF_REQUIRED
+}
 void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 	int i,j, maxparticles;
 	Stack *_particles;
 
+	//compile GEOM type particles
 	node->_geometryType = lookup_geomtype(node->geometryType->strptr);
 	if (node->_geometryType < GEOM_HANIM) {
 		compile_geom_particle(node);
 	}
-	//compile particles
+	//compile HANIM type particles
+	if (node->_geometryType == GEOM_HANIM) {
+		compile_hanim_particle(node);
+	}
+
+	//compile generic particles
 	maxparticles = min(node->maxParticles,10000);
 	if(node->_particles == NULL)
 		node->_particles = newVector(particle,maxparticles);
@@ -534,7 +543,7 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		_particles->allocn = maxparticles;
 	}
 
-	//compile time-dependent node specifics
+	//compile time-dependent node
 	if(!node->_lasttime || node->enabled && !node->_lastEnabled)
 		node->_lasttime = TickTime();
 	if(node->enabled && !node->_lastEnabled){
@@ -547,6 +556,7 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 	node->_lastEnabled = node->enabled;
 	MARK_NODE_COMPILED
 }
+
 
 //PHYSICS
 void prep_windphysics(struct X3D_Node *physics){
@@ -2324,7 +2334,37 @@ void render_geom_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 	//<<<<< BORROWED FROM CHILD_SHAPE
 
 }
+void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
+	double mat[16], xyz[3];
+	for (int i = 0; i < vectorSize(_particles); i++) {
+		particle pp = vector_get(particle, _particles, i);
+		//update particle-specific uniforms
+		//glUniform3fv(ppos, 1, pp.position);
+		//glUniform3fv(pdir, 1, pp.direction);
+		//convert ppos,pdir to matrix and push on transform stack
+		//matrixIdentity4d(mat);
+		//mattranslate4d(mat, float2double(xyz, pp.position, 3));
+		if (1) {
+			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+			//FW_GL_LOAD_IDENTITY();
+			FW_GL_TRANSLATE_F(pp.position[0], pp.position[1], pp.position[2]);
+			FW_GL_ROTATE_RADIANS(1.570796, 1, 0, 0);
+			//euler2axixAngle
+			float yaw = atan2(pp.direction[1], pp.direction[0]) + 1.570796;
+			float xydist = sqrt(pp.direction[1] * pp.direction[1] + pp.direction[0] * pp.direction[0]);
+			float tilt = atan(pp.direction[2], xydist);
+			FW_GL_ROTATE_RADIANS(tilt, 1, 0, 0);
+			FW_GL_ROTATE_RADIANS(yaw, 0, 1, 0);
+		}
+		child_HAnimHumanoid(node->geometry);
+		if(1)
+		FW_GL_POP_MATRIX();
+		//draw
+		//reallyDrawOnce();
+		//extent6f_union_vec3f(estart6, pp.position);
+	}
 
+}
 void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// 
 	// ParticleSystem 
@@ -2491,6 +2531,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 		if (node->_geometryType < GEOM_HANIM) {
 			render_geom_particle(node, _particles);
 		}
+		if (node->_geometryType == GEOM_HANIM) {
+			render_hanim_particle(node, _particles);
+		}
+
 		
 		node->_lasttime = ttime;
 	} //isActive
