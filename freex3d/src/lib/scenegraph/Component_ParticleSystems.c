@@ -347,6 +347,9 @@ typedef struct {
 	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
 	int maplocation[2]; //last popmap location in MapPhysics
 	int paused; //HANIM 0= use first motion 1= use second motion
+	double transitionStart[2];
+	double transitionTime[2];
+	int lastMotionsEnabled[2];
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -1725,7 +1728,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
 					//skip if we are already on waitzone/crosswalk
-					pp->paused = FALSE; //for HANIM motion change
+					//pp->paused = FALSE; //for HANIM motion change
 					if (!on_wait) {
 						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
 						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
@@ -1734,7 +1737,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 						pixel2color3(color, funccolor->bytes);
 						if (px->pauseState) {
 							int is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
-							if (is_wait) continue; //skip if its an active wait area and we aren't already on it
+							if (is_wait) {
+								ishortest = -2;
+								break;
+								//continue; //skip if its an active wait area and we aren't already on it
+							}
 						}
 					}
 					iscore[i] = 3;
@@ -1751,12 +1758,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 						iscore[i] = 5;
 					}
 				}
-				if (debug || ishortest == -1) {
+				if(0) if (debug || ishortest < 0) {
 					for (int m = 0; m < 8; m++) printf("iscore[%d]=%d,", m, iscore[m]);
 					printf("\n");
 				}
 				if (ishortest > -1) {
-					printf("%f ", dshortest);
 					//move toward ishortest neighbor
 					q.x = p.x + nebor[ishortest].x;
 					q.y = p.y + nebor[ishortest].y;
@@ -1786,8 +1792,10 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				else {
 					//wait / stand
 					if(debug) printf("waiting particle %p\n", pp);
-					vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
-					pp->paused = TRUE; //for HANIM motion change
+					//if (ishortest == -2) {
+						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+						pp->paused = TRUE; //for HANIM motion change
+					//}
 				}
 				if(debug) getchar();
 			} //end of life
@@ -2344,7 +2352,7 @@ void render_geom_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 	double mat[16], xyz[3];
 	for (int i = 0; i < vectorSize(_particles); i++) {
-		particle pp = vector_get(particle, _particles, i);
+		particle *pp = vector_get_ptr(particle, _particles, i);
 		//update particle-specific uniforms
 		//glUniform3fv(ppos, 1, pp.position);
 		//glUniform3fv(pdir, 1, pp.direction);
@@ -2354,27 +2362,42 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 		if (1) {
 			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
 			//FW_GL_LOAD_IDENTITY();
-			FW_GL_TRANSLATE_F(pp.position[0], pp.position[1], pp.position[2]);
+			FW_GL_TRANSLATE_F(pp->position[0], pp->position[1], pp->position[2]);
 			FW_GL_ROTATE_RADIANS(1.570796, 1, 0, 0);
 			//euler2axixAngle
-			float yaw = atan2(pp.direction[1], pp.direction[0]) + 1.570796;
-			float xydist = sqrt(pp.direction[1] * pp.direction[1] + pp.direction[0] * pp.direction[0]);
-			float tilt = atan(pp.direction[2], xydist);
+			float yaw = atan2(pp->direction[1], pp->direction[0]) + 1.570796;
+			float xydist = sqrt(pp->direction[1] * pp->direction[1] + pp->direction[0] * pp->direction[0]);
+			float tilt = atan(pp->direction[2] / xydist);
 			FW_GL_ROTATE_RADIANS(tilt, 1, 0, 0);
 			FW_GL_ROTATE_RADIANS(yaw, 0, 1, 0);
 		}
 		//assume first motion is walk, second is stand
 		struct X3D_HAnimHumanoid* HH = (struct X3D_HAnimHumanoid*)node->geometry;
-		struct Multi_Bool* ME = &HH->motionsEnabled;
-		if (pp.paused) {
-			ME->p[0] = FALSE;
-			ME->p[1] = TRUE;
+		struct X3D_HAnimMotion* HM[2];
+		for (int j = 0; j < 2; j++) {
+			HM[j] = (struct X3D_HAnimMotion*)HH->motions.p[j];
+			HM[j]->transitionStart = pp->transitionStart[j];
+			HH->_lastMotionsEnabled.p[j] = pp->lastMotionsEnabled[j];
+		}
+		if (pp->paused) {
+			//ME->p[0] = FALSE;
+			//ME->p[1] = TRUE;
+			HH->motionsEnabled.p[0] = FALSE;
+			HH->motionsEnabled.p[1] = TRUE;
 		}
 		else {
-			ME->p[0] = TRUE;
-			ME->p[1] = FALSE;
+			//ME->p[0] = TRUE;
+			//ME->p[1] = FALSE;
+			HH->motionsEnabled.p[0] = TRUE;
+			HH->motionsEnabled.p[1] = FALSE;
 		}
 		child_HAnimHumanoid(HH);
+		//save HM parameters for this particle
+		for (int j = 0; j < 2; j++) {
+			pp->transitionStart[j] = HM[j]->transitionStart;
+			pp->lastMotionsEnabled[j] = HH->_lastMotionsEnabled.p[j] ;
+		}
+
 		if(1)
 		FW_GL_POP_MATRIX();
 		//draw
