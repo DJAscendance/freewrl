@@ -1673,7 +1673,7 @@ int X3DExecutionContext_toString(FWType fwtype, void* ec, void* fwn, int argc, F
 
 	char str[200];
 	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
-	sprintf(str, "%#010x", ecc);
+	sprintf(str, "%p", (void*)ecc);
 	value = strdup(str);
 	//do a search in the perscene/perexecution context array
 	if (value) {

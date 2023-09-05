@@ -375,7 +375,7 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 					if(HM->transitionWeight > 0.0){
 						//printmatrix(jointMatrix.mat);
 						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-						update_jointMatrixFromMotion(HM,node->name->strptr,modelviewMatrix);
+						update_jointMatrixFromMotion(X3D_NODE(HM),node->name->strptr,modelviewMatrix);
 						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 						//printmatrix(jointMatrix.mat);
 					}

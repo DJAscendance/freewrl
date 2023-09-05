@@ -2215,7 +2215,7 @@ X3DExecutionContext_toString(JSContext* cx, uintN argc, jsval* vp) {
 	char str[200];
 	struct X3D_Proto* ec = (struct X3D_Proto*)JS_GetContextPrivate(cx);
 
-	sprintf(str, "%#010x", ec);
+	sprintf(str, "%p", (void*)ec);
 	_str = JS_NewStringCopyZ(cx, str);
 	rval = STRING_TO_JSVAL(_str);
 

@@ -167,7 +167,7 @@ typedef int indexT;
 #define NODE_ForcePhysicsModel	88
 #define NODE_Gain	89
 #define NODE_GeneratedCubeMapTexture	90
-#define NODE_GeneratedPixelTexture	91
+#define NODE_GeneratedTexture	91
 #define NODE_GeoConvert	92
 #define NODE_GeoCoordinate	93
 #define NODE_GeoECParameters	94
@@ -6178,7 +6178,7 @@ struct X3D_GeneratedCubeMapTexture {
 };
 extern struct X3D_Virt virt_GeneratedCubeMapTexture;
 /***********************/
-struct X3D_GeneratedPixelTexture {
+struct X3D_GeneratedTexture {
        int _nodeType; /* unique integer for each type */ 
        int _renderFlags; /*sensitive, etc */ 
        int _hit; 
@@ -6207,7 +6207,7 @@ struct X3D_GeneratedPixelTexture {
 	struct X3D_Node *background;
 	struct Multi_Node children;
 };
-extern struct X3D_Virt virt_GeneratedPixelTexture;
+extern struct X3D_Virt virt_GeneratedTexture;
 /***********************/
 struct X3D_GeoConvert {
        int _nodeType; /* unique integer for each type */ 

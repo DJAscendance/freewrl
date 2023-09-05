@@ -153,7 +153,7 @@ our %defaultContainerType = (
 	OrientationInterpolator	=>["children"],
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
-	GeneratedPixelTexture 	=>["texture"],
+	GeneratedTexture 	=>["texture"],
 	BufferTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
 	MultiTouchSensor 	=>["children"],
@@ -477,7 +477,7 @@ our %RendC = map {($_=>1)} qw/
 	PackagedShader
 	ComposedShader
 	PixelTexture
-        GeneratedPixelTexture
+        GeneratedTexture
 	BufferTexture
 	ImageTexture
 	ProjectiveTexture

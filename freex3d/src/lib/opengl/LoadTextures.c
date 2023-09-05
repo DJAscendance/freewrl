@@ -418,6 +418,46 @@ static void texture_load_from_pixelTexture (textureTableIndexStruct_s* this_tex,
 	}
 }
 
+static void texture_load_blank_Texture(textureTableIndexStruct_s* this_tex, struct X3D_GeneratedTexture* node)
+{
+	int hei, wid, depth;
+	unsigned char* texture;
+	int count;
+	int ok;
+	int* iptr;
+	int tctr;
+	char pix;
+
+	wid = node->size.p[0];
+	hei = node->size.p[1];
+	depth = 4;
+
+	/* did we have any errors? if so, create a grey pixeltexture and get out of here */
+	if (!wid*hei) {
+		return;
+	}
+
+	/* ok, we are good to go here */
+	this_tex->x = wid;
+	this_tex->y = hei;
+	this_tex->hasAlpha = (depth == 4);
+	this_tex->channels = depth;
+
+	texture = MALLOC(unsigned char*, wid * hei * 4);
+	memset(texture, 0, wid * hei * 4);
+	this_tex->texdata = texture; /* this will be freed when texture opengl-ized */
+	this_tex->status = TEX_NEEDSBINDING;
+
+	tctr = 0;
+	if (texture != NULL) {
+
+		for (count = 0; count < (wid * hei); count++) {
+			texture[tctr+3] = 0xff; /*alpha, but force it to be ff */
+			tctr += 4;
+		}
+	}
+}
+
 
 static void texture_load_from_pixelTexture3D (textureTableIndexStruct_s* this_tex, struct X3D_PixelTexture3D *node)
 {
@@ -2707,6 +2747,12 @@ static bool texture_process_entry(textureTableIndexStruct_s *entry)
 		//sets TEX_NEEDSBINDING internally
 		return TRUE;
 		break;
+	case NODE_GeneratedTexture:
+		texture_load_blank_Texture(entry, (struct X3D_GeneratedTexture*)entry->scenegraphNode);
+		//sets TEX_NEEDSBINDING internally
+		return TRUE;
+		break;
+
 
 	case NODE_PixelTexture3D:
 		texture_load_from_pixelTexture3D(entry,(struct X3D_PixelTexture3D *)entry->scenegraphNode);

@@ -1293,19 +1293,19 @@ EXPOSED_FIELD(GeneratedCubeMapTexture,update,sfstring,update,FIELDTYPE_SFString,
 FIELD(GeneratedCubeMapTexture,size,sfint32,size,FIELDTYPE_SFInt32,UNCA_NONE)
 END_NODE(GeneratedCubeMapTexture)
 
-/* GeneratedPixelTexture node */
-BEGIN_NODE(GeneratedPixelTexture)
-EXPOSED_FIELD(GeneratedPixelTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(GeneratedPixelTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
-FIELD(GeneratedPixelTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
-FIELD(GeneratedPixelTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
-FIELD(GeneratedPixelTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(GeneratedPixelTexture,update,sfstring,update,FIELDTYPE_SFString,UNCA_NONE)
-FIELD(GeneratedPixelTexture,size,mfint32,size,FIELDTYPE_MFInt32,UNCA_NONE)
-FIELD(GeneratedPixelTexture,viewpoint,sfnode,viewpoint,FIELDTYPE_SFNode,0)
-FIELD(GeneratedPixelTexture,background,sfnode,background,FIELDTYPE_SFNode,0)
-FIELD(GeneratedPixelTexture,children,mfnode,children,FIELDTYPE_MFNode,0)
-END_NODE(GeneratedPixelTexture)
+/* GeneratedTexture node */
+BEGIN_NODE(GeneratedTexture)
+EXPOSED_FIELD(GeneratedTexture,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(GeneratedTexture,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeneratedTexture,repeatS,sfbool,repeatS,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(GeneratedTexture,repeatT,sfbool,repeatT,FIELDTYPE_SFBool,UNCA_NONE)
+FIELD(GeneratedTexture,textureProperties,sfnode,textureProperties,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(GeneratedTexture,update,sfstring,update,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(GeneratedTexture,size,mfint32,size,FIELDTYPE_MFInt32,UNCA_NONE)
+FIELD(GeneratedTexture,viewpoint,sfnode,viewpoint,FIELDTYPE_SFNode,0)
+FIELD(GeneratedTexture,background,sfnode,background,FIELDTYPE_SFNode,0)
+FIELD(GeneratedTexture,children,mfnode,children,FIELDTYPE_MFNode,0)
+END_NODE(GeneratedTexture)
 
 /* GeoConvert node */
 BEGIN_NODE(GeoConvert)

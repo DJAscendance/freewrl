@@ -1935,7 +1935,7 @@ our %Nodes = (
 		update => ["SFString","NONE","inputOutput", "(SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 	],"X3DTextureNode"),
 
-	"GeneratedPixelTexture" => new VRML::NodeType("GeneratedPixelTexture", [
+	"GeneratedTexture" => new VRML::NodeType("GeneratedTexture", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		# image => ["SFImage", "0, 0, 0", "outputOnly", "(SPEC_VRML | SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff

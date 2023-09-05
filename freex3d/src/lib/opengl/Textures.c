@@ -677,6 +677,9 @@ int getTextureTableIndexFromFromTextureNode(struct X3D_Node *node){
 	} else if (thisTextureType == NODE_BufferTexture) {
 		struct X3D_BufferTexture* pt = (struct X3D_BufferTexture*)node;
 		thisTexture = pt->__textureTableIndex;
+	} else if (thisTextureType == NODE_GeneratedTexture) {
+		struct X3D_GeneratedTexture* gt = (struct X3D_GeneratedTexture*)node;
+		thisTexture = gt->__textureTableIndex;
 	} else if (thisTextureType==NODE_MovieTexture){
 		struct X3D_MovieTexture* mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
@@ -747,6 +750,7 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 	if ((it->_nodeType == NODE_ImageTexture) ||
 		(it->_nodeType == NODE_PixelTexture) ||
 		(it->_nodeType == NODE_BufferTexture) ||
+		(it->_nodeType == NODE_GeneratedTexture) ||
 		(it->_nodeType == NODE_ComposedCubeMapTexture) ||
 		(it->_nodeType == NODE_ImageCubeMapTexture) ||
 		(it->_nodeType == NODE_GeneratedCubeMapTexture) ||
@@ -792,6 +796,11 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 			case NODE_BufferTexture: {
 				struct X3D_BufferTexture* pt;
 				pt = (struct X3D_BufferTexture*)tmp;
+				pt->__textureTableIndex = textureNumber;
+				break; }
+			case NODE_GeneratedTexture: {
+				struct X3D_GeneratedTexture* pt;
+				pt = (struct X3D_GeneratedTexture*)tmp;
 				pt->__textureTableIndex = textureNumber;
 				break; }
 			case NODE_PixelTexture3D: {
@@ -869,6 +878,11 @@ void registerTexture0(int iaction, struct X3D_Node *tmp) {
 			case NODE_BufferTexture: {
 				struct X3D_BufferTexture* pt;
 				pt = (struct X3D_BufferTexture*)tmp;
+				textureNumber = &pt->__textureTableIndex;
+				break; }
+			case NODE_GeneratedTexture: {
+				struct X3D_GeneratedTexture* pt;
+				pt = (struct X3D_GeneratedTexture*)tmp;
 				textureNumber = &pt->__textureTableIndex;
 				break; }
 			case NODE_PixelTexture3D: {
@@ -1184,6 +1198,9 @@ void loadTextureNode (struct X3D_Node *node, void *vparam)
 			case NODE_ImageTexture:
 	    			releaseTexture(node);
 			break;
+			case NODE_GeneratedTexture:
+				releaseTexture(node);
+				break;
 
 			case NODE_ImageCubeMapTexture:
 	    			releaseTexture(node);
@@ -1414,6 +1431,7 @@ void loadMultiTexture (struct X3D_MultiTexture *node) {
 		switch (nt->_nodeType) {
 			case NODE_PixelTexture:
 			case NODE_ImageTexture :
+			case NODE_GeneratedTexture:
 				/* printf ("MultiTexture %d is a ImageTexture param %d\n",count,*paramPtr);  */
 				//loadTextureNode (X3D_NODE(nt),paramPtr);
 				render_node(X3D_NODE(nt));
@@ -1555,10 +1573,11 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 
 	/* for getting repeatS and repeatT info. */
 	struct X3D_PixelTexture* pt = NULL;
+	struct X3D_BufferTexture* bt = NULL;
 	struct X3D_MovieTexture* mt = NULL;
 	struct X3D_ImageTexture* it = NULL;
 	struct X3D_PixelTexture3D* pt3d = NULL;
-
+	struct X3D_GeneratedTexture* gt = NULL;
 	struct X3D_TextureProperties* tpNode = NULL;
 	int haveValidTexturePropertiesNode;
 	GLfloat texPri;
@@ -1636,6 +1655,16 @@ void move_texture_to_opengl(textureTableIndexStruct_s* me) {
 		pt = (struct X3D_PixelTexture*)me->scenegraphNode;
 		Src = pt->repeatS; Trc = pt->repeatT;
 		tpNode = X3D_TEXTUREPROPERTIES(pt->textureProperties);
+	}
+	else if (me->nodeType == NODE_BufferTexture) {
+		bt = (struct X3D_BufferTexture*)me->scenegraphNode;
+		Src = bt->repeatS; Trc = bt->repeatT;
+		tpNode = X3D_TEXTUREPROPERTIES(bt->textureProperties);
+	}
+	else if (me->nodeType == NODE_GeneratedTexture) {
+		gt = (struct X3D_GeneratedTexture*)me->scenegraphNode;
+		Src = gt->repeatS; Trc = gt->repeatT;
+		tpNode = X3D_TEXTUREPROPERTIES(gt->textureProperties);
 	}
 	else if (me->nodeType == NODE_MovieTexture) {
 		mt = (struct X3D_MovieTexture*)me->scenegraphNode;
@@ -2251,6 +2280,7 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	struct X3D_MovieTexture *mt;
 	struct X3D_ImageCubeMapTexture *ict;
 	struct X3D_GeneratedCubeMapTexture *gct;
+	struct X3D_GeneratedTexture* gt;
 
 	textureTableIndexStruct_s *myTableIndex;
 	//float dcol[] = {0.8f, 0.8f, 0.8f, 1.0f};
@@ -2273,6 +2303,9 @@ void new_bind_image(struct X3D_Node *node, struct multiTexParams *param) {
 	} else if (thisTextureType == NODE_BufferTexture) {
 		bt = (struct X3D_BufferTexture*)node;
 		thisTexture = bt->__textureTableIndex;
+	} else if (thisTextureType == NODE_GeneratedTexture) {
+		gt = (struct X3D_GeneratedTexture*)node;
+		thisTexture = gt->__textureTableIndex;
 	} else if (thisTextureType==NODE_MovieTexture){
 		mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
@@ -2398,6 +2431,7 @@ int get_bound_image(struct X3D_Node *node) {
 	struct X3D_MovieTexture *mt;
 	struct X3D_ImageCubeMapTexture *ict;
 	struct X3D_GeneratedCubeMapTexture *gct;
+	struct X3D_GeneratedTexture* gt;
 
 	textureTableIndexStruct_s *myTableIndex;
 	//float dcol[] = {0.8f, 0.8f, 0.8f, 1.0f};
@@ -2420,6 +2454,9 @@ int get_bound_image(struct X3D_Node *node) {
 	} else if (thisTextureType == NODE_BufferTexture) {
 		bt = (struct X3D_BufferTexture*)node;
 		thisTexture = bt->__textureTableIndex;
+	} else if (thisTextureType == NODE_GeneratedTexture) {
+		gt = (struct X3D_GeneratedTexture*)node;
+		thisTexture = gt->__textureTableIndex;
 	} else if (thisTextureType==NODE_MovieTexture){
 		mt = (struct X3D_MovieTexture*) node;
 		thisTexture = mt->__textureTableIndex;
