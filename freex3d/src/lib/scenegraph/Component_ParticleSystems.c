@@ -349,6 +349,7 @@ typedef struct {
 	int paused; //HANIM 0= use first motion 1= use second motion
 	double transitionStart[2];
 	double transitionTime[2];
+	double _startTime[2];
 	int lastMotionsEnabled[2];
 } particle;
 enum {
@@ -1217,6 +1218,7 @@ void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
 	//give it a random walking speed +- 1m/s from e->speed
 	pp->speed = normalRand() * e->variation + e->speed;
 	pp->speed = pp->speed <= 0.0 ? e->speed : pp->speed;
+	pp->_startTime[0] = pp->_startTime[1] = TickTime(); //for HAnim, but could be used for anything
 	//pp->speed = e->speed;
 
 	pp->sink = -1; //we won't assign a sink until physics, because that's when we count the sinks
@@ -2377,6 +2379,8 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 		for (int j = 0; j < 2; j++) {
 			HM[j] = (struct X3D_HAnimMotion*)HH->motions.p[j];
 			HM[j]->transitionStart = pp->transitionStart[j];
+			if(pp->_startTime[j] > 0.0)
+				HM[j]->_startTime = pp->_startTime[j];
 			HH->_lastMotionsEnabled.p[j] = pp->lastMotionsEnabled[j];
 		}
 		if (pp->paused) {
@@ -2396,6 +2400,7 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 		for (int j = 0; j < 2; j++) {
 			pp->transitionStart[j] = HM[j]->transitionStart;
 			pp->lastMotionsEnabled[j] = HH->_lastMotionsEnabled.p[j] ;
+			pp->_startTime[j] = HM[j]->_startTime;
 		}
 
 		if(1)
