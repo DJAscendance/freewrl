@@ -2245,3 +2245,78 @@ void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *node){
 	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
 	COMPILE_IF_REQUIRED
 }
+
+void compile_HAnimPermuter(struct X3D_HAnimPermuter* node){
+	if (node->compute) {
+		//generate random permutations of
+		// HH HAnimHumanoid
+		// HM HAnimMotion 
+		// keep Stand motion the same for all
+		unsigned int permutation;
+		int HHindex, HMindex, np;
+		int HHn, HMn;
+		HHn = node->humanoids.n;
+		HMn = node->motions.n; //first one is walk same for every humanoid
+		np = 0;
+		FREE_IF_NZ(node->permutations.p);
+		node->permutations.p = malloc((HHn*HMn+2) * sizeof(int));
+		for (int i = 0; i < HHn; i++) {
+			for (int j = 1; j < HMn; j++) {
+				node->permutations.p[np] = i * 1000 + j;
+				np++;
+			}
+		}
+		node->permutations.n = np;
+	}
+	MARK_NODE_COMPILED
+}
+void render_HAnimPermuter(struct X3D_HAnimPermuter* node){
+	COMPILE_IF_REQUIRED
+}
+void child_HAnimPermuter(struct X3D_HAnimPermuter* node){
+	//here we do the permutation you choose in the ParticleSystem
+	int permutation = node->permutations.p[node->index];
+	int HHindex = permutation / 1000;
+	int HMindex = permutation - (HHindex*1000);
+	struct X3D_HAnimHumanoid* HH = (struct X3D_HAnimHumanoid*)node->humanoids.p[HHindex];
+	if (HH->motions.n == 0) {
+		HH->motions.n = 2;
+		HH->motions.p = malloc(2 * sizeof(void*));
+	}
+	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)node->motions.p[HMindex];
+	if (node->_play.n == 0) {
+		struct X3D_HAnimMotionPlay* HMP0, * HMP1;
+		node->_play.p = malloc(2 * sizeof(void*));
+		node->_play.p[0] = HMP0 = createNewX3DNode(NODE_HAnimMotionPlay); //for standing motion
+		node->_play.p[1] = HMP1 = createNewX3DNode(NODE_HAnimMotionPlay); //for walking motions
+		node->_play.n = 2;
+		//enabled='true' loop='true' frameIncrement='1' frameIndex='1'
+		HMP0->enabled = TRUE;
+		HMP1->enabled = TRUE;
+		HMP0->loop = TRUE;
+		HMP1->loop = TRUE;
+		HMP0->frameIncrement = 1;
+		HMP1->frameIncrement = 1;
+		HMP0->frameIndex = 1;
+		HMP1->frameIndex = 1;
+	}
+	if (HM->_nodeType == NODE_HAnimMotionData || HM->_nodeType == NODE_HAnimMotionDataFile) {
+		//parent MotionData to MotionPlay
+		struct X3D_HAnimMotionPlay* HMP = (struct X3D_HAnimMotionPlay*)node->_play.p[1];
+		HMP->data = X3D_NODE(HM);
+		HM = (struct X3D_HAnimMotion*)HMP;
+	}
+	HH->motions.p[1] = X3D_NODE(HM);
+	//set HM-stand
+	struct X3D_HAnimMotion* HMS = (struct X3D_HAnimMotion*)node->motions.p[0]; //assume stand is the first motion
+	if (HMS->_nodeType == NODE_HAnimMotionData || HMS->_nodeType == NODE_HAnimMotionDataFile) {
+		struct X3D_HAnimMotionPlay* HMP = (struct X3D_HAnimMotionPlay*)node->_play.p[0];
+		HMP->data = X3D_NODE(HMS);
+		HMS = (struct X3D_HAnimMotion*)HMP;
+	}
+	HH->motions.p[0] = X3D_NODE(HMS);
+	node->humanoid = X3D_NODE(HH);
+	//now draw
+	//child_HAnimHumanoid(HH); // node->humanoid);
+
+}

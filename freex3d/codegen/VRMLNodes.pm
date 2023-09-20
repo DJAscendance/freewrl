@@ -3420,6 +3420,19 @@ our %Nodes = (
 		skinBindingNormals => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 	],"X3DChildNode"),
 
+	"HAnimPermuter" => new VRML::NodeType("HAnimPermuter", [
+                # ParticleSystem > HANIM uses this node to randomize humanoids
+		metadata => ["SFNode", "NULL", "inputOutput", 0,0],#ff
+		description => ["SFString", "", "inputOutput", 0,0],#ff
+		humanoids => ["MFNode",[],"inputOutput", 0,0],#ff
+		motions => ["MFNode",[],"inputOutput", 0,0],#ff
+		compute => ["SFBool","TRUE","initializeOnly", 0,0],#ff
+		permutations => ["MFInt32", [], "inputOutput", 0,0],#ff
+                index => ["SFInt32",0,"inputOutput",0,0],#ff
+                humanoid => ["SFNode","NULL","outputOnly",0,0],#ff
+                _play => ["MFNode",[],"initializeOnly",0,0],#ff
+	],"X3DChildNode"),
+
 	"HAnimMotion" => new VRML::NodeType("HAnimMotion", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff

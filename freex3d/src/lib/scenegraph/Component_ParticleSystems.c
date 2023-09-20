@@ -344,6 +344,7 @@ typedef struct {
 	float speed;
 	float mass;
 	float surfaceArea;
+	//mapemitter method
 	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
 	int maplocation[2]; //last popmap location in MapPhysics
 	int paused; //HANIM 0= use first motion 1= use second motion
@@ -351,6 +352,8 @@ typedef struct {
 	double transitionTime[2];
 	double _startTime[2];
 	int lastMotionsEnabled[2];
+	//mapemitter + HAnimPermuter method (could be generalized to more emitters?)
+	int permutationIndex;
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -1313,6 +1316,8 @@ void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
 						//the rest is like point emitter
 						printf("iregion %d xy %f %f valid_regions %d", iregion, exy[0], exy[1], valid_regions);
 						veccopy3f(pp->position, xyz);
+						//HAnimPermuter method
+						pp->permutationIndex = -1; //on first draw do uniformRand()*permutations.n
 						break;
 					}
 				}
@@ -2375,25 +2380,42 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 		}
 		//assume first motion is walk, second is stand
 		struct X3D_HAnimHumanoid* HH = (struct X3D_HAnimHumanoid*)node->geometry;
+		if (HH->_nodeType == NODE_HAnimPermuter) {
+			struct X3D_HAnimPermuter* HP = (struct X3D_HAnimPermuter*)HH;
+			if (pp->permutationIndex == -1)
+				pp->permutationIndex = uniformRand() * HP->permutations.n;
+			HP->index = pp->permutationIndex;
+			render_node(HP);
+			HH = HP->humanoid;
+		}
 		struct X3D_HAnimMotion* HM[2];
 		for (int j = 0; j < 2; j++) {
 			HM[j] = (struct X3D_HAnimMotion*)HH->motions.p[j];
 			HM[j]->transitionStart = pp->transitionStart[j];
 			if(pp->_startTime[j] > 0.0)
 				HM[j]->_startTime = pp->_startTime[j];
+			if (HH->_lastMotionsEnabled.n == 0) {
+				HH->_lastMotionsEnabled.p = malloc(2 * sizeof(int));
+				HH->_lastMotionsEnabled.n = 2;
+			}
 			HH->_lastMotionsEnabled.p[j] = pp->lastMotionsEnabled[j];
 		}
 		if (pp->paused) {
 			//ME->p[0] = FALSE;
 			//ME->p[1] = TRUE;
-			HH->motionsEnabled.p[0] = FALSE;
-			HH->motionsEnabled.p[1] = TRUE;
+			HH->motionsEnabled.p[0] = TRUE;
+			HH->motionsEnabled.p[1] = FALSE;
 		}
 		else {
 			//ME->p[0] = TRUE;
 			//ME->p[1] = FALSE;
-			HH->motionsEnabled.p[0] = TRUE;
-			HH->motionsEnabled.p[1] = FALSE;
+			HH->motionsEnabled.p[0] = FALSE;
+			HH->motionsEnabled.p[1] = TRUE;
+		}
+		if (0) {
+			struct X3D_HAnimMotion* HM0 = (struct X3D_HAnimMotion*)HH->motions.p[0];
+			struct X3D_HAnimMotion* HM1 = (struct X3D_HAnimMotion*)HH->motions.p[1];
+			printf("HH %p HM0 %p HM1 %p wt %f %f enabled %d %d\n", HH, HM0, HM1, HM0->transitionWeight, HM1->transitionWeight, HH->motionsEnabled.p[0], HH->motionsEnabled.p[1]);
 		}
 		child_HAnimHumanoid(HH);
 		//save HM parameters for this particle

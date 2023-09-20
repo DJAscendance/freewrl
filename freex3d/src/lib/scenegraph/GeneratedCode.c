@@ -380,6 +380,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_pduchange_transmitter",
 	"_phaseFunction",
 	"_pin_point",
+	"_play",
 	"_pointMethod",
 	"_portions",
 	"_position",
@@ -597,6 +598,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"colorPerVertex",
 	"colorRamp",
 	"colorSteps",
+	"compute",
 	"coneInnerAngle",
 	"coneOuterAngle",
 	"coneOuterGain",
@@ -793,6 +795,8 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"hitPoint_changed",
 	"hitTexCoord_changed",
 	"horizontal",
+	"humanoid",
+	"humanoids",
 	"iboxes",
 	"ignoreFirstFrame",
 	"ignorePosition",
@@ -1015,6 +1019,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"pauseTime",
 	"pedal",
 	"periodicWave",
+	"permutations",
 	"phaseFunction",
 	"physics",
 	"pickTarget",
@@ -1436,6 +1441,7 @@ const int FIELDNAMES_COUNT = ARR_SIZE(FIELDNAMES);
 	"hitNormal_changed",
 	"hitPoint_changed",
 	"hitTexCoord_changed",
+	"humanoid",
 	"image",
 	"inputFalse",
 	"inputNegate",
@@ -1827,6 +1833,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"hatchStyle",
 	"hatched",
 	"headlight",
+	"humanoids",
 	"image",
 	"index",
 	"indexDestination",
@@ -1974,6 +1981,7 @@ const int EVENT_IN_COUNT = ARR_SIZE(EVENT_IN);
 	"pauseState",
 	"pauseTime",
 	"periodicWave",
+	"permutations",
 	"pickTarget",
 	"pickable",
 	"pickingGeometry",
@@ -2230,6 +2238,7 @@ const int EXPOSED_FIELD_COUNT = ARR_SIZE(EXPOSED_FIELD);
 	"colorMatchTolerance",
 	"colorPerVertex",
 	"colorRamp",
+	"compute",
 	"contentVolumeType",
 	"convex",
 	"coordIndex",
@@ -2862,6 +2871,7 @@ const char *NODES[] = {
 	"HAnimMotionData",
 	"HAnimMotionDataFile",
 	"HAnimMotionPlay",
+	"HAnimPermuter",
 	"HAnimSegment",
 	"HAnimSite",
 	"ImageBackdropBackground",
@@ -3228,13 +3238,14 @@ const short NODE_DEFAULT_CONTAINER[][7] = {
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_displacers,0,0,0,0,0,0},
-{FIELDNAMES_children,0,0,0,0,0,0},
+{FIELDNAMES_children,FIELDNAMES_humanoids,0,0,0,0,0},
 {FIELDNAMES_joints,0,0,0,0,0,0},
 {FIELDNAMES_motions,0,0,0,0,0,0},
-{FIELDNAMES_data,0,0,0,0,0,0},
-{FIELDNAMES_data,0,0,0,0,0,0},
-{FIELDNAMES_data,0,0,0,0,0,0},
+{FIELDNAMES_data,FIELDNAMES_motions,0,0,0,0,0},
+{FIELDNAMES_data,FIELDNAMES_motions,0,0,0,0,0},
+{FIELDNAMES_data,FIELDNAMES_motions,0,0,0,0,0},
 {FIELDNAMES_motions,0,0,0,0,0,0},
+{FIELDNAMES_children,0,0,0,0,0,0},
 {FIELDNAMES_segments,0,0,0,0,0,0},
 {FIELDNAMES_sites,FIELDNAMES_viewpoints,0,0,0,0,0},
 {FIELDNAMES_children,0,0,0,0,0,0},
@@ -3886,6 +3897,11 @@ struct X3D_Virt virt_HAnimMotionDataFile = { NULL,(void *)render_HAnimMotionData
 void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
 void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
 struct X3D_Virt virt_HAnimMotionPlay = { NULL,(void *)render_HAnimMotionPlay,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionPlay};
+
+void render_HAnimPermuter(struct X3D_HAnimPermuter *);
+void child_HAnimPermuter(struct X3D_HAnimPermuter *);
+void compile_HAnimPermuter(struct X3D_HAnimPermuter *);
+struct X3D_Virt virt_HAnimPermuter = { NULL,(void *)render_HAnimPermuter,(void *)child_HAnimPermuter,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimPermuter};
 
 void child_HAnimSegment(struct X3D_HAnimSegment *);
 struct X3D_Virt virt_HAnimSegment = { NULL,NULL,(void *)child_HAnimSegment,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
@@ -4740,6 +4756,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_HAnimMotionData,
 	 &virt_HAnimMotionDataFile,
 	 &virt_HAnimMotionPlay,
+	 &virt_HAnimPermuter,
 	 &virt_HAnimSegment,
 	 &virt_HAnimSite,
 	 &virt_ImageBackdropBackground,
@@ -7088,6 +7105,18 @@ const int OFFSETS_HAnimMotionPlay[] = {
 	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotionPlay, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotionPlay, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_HAnimMotionPlay, data),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	-1, -1, -1, -1, -1, -1};
+
+const int OFFSETS_HAnimPermuter[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimPermuter, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimPermuter, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_humanoids, (int) offsetof (struct X3D_HAnimPermuter, humanoids),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_motions, (int) offsetof (struct X3D_HAnimPermuter, motions),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_compute, (int) offsetof (struct X3D_HAnimPermuter, compute),  (int) FIELDTYPE_SFBool, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_permutations, (int) offsetof (struct X3D_HAnimPermuter, permutations),  (int) FIELDTYPE_MFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_index, (int) offsetof (struct X3D_HAnimPermuter, index),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) 0, (int) 0,
+	(int) FIELDNAMES_humanoid, (int) offsetof (struct X3D_HAnimPermuter, humanoid),  (int) FIELDTYPE_SFNode, (int) KW_outputOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__play, (int) offsetof (struct X3D_HAnimPermuter, _play),  (int) FIELDTYPE_MFNode, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimSegment[] = {
@@ -10529,6 +10558,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_HAnimMotionData,
 	OFFSETS_HAnimMotionDataFile,
 	OFFSETS_HAnimMotionPlay,
+	OFFSETS_HAnimPermuter,
 	OFFSETS_HAnimSegment,
 	OFFSETS_HAnimSite,
 	OFFSETS_ImageBackdropBackground,
@@ -11161,6 +11191,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_HAnimMotionData : {tmp = MALLOC (struct X3D_HAnimMotionData *, size = sizeof (struct X3D_HAnimMotionData)); break;}
 		case NODE_HAnimMotionDataFile : {tmp = MALLOC (struct X3D_HAnimMotionDataFile *, size = sizeof (struct X3D_HAnimMotionDataFile)); break;}
 		case NODE_HAnimMotionPlay : {tmp = MALLOC (struct X3D_HAnimMotionPlay *, size = sizeof (struct X3D_HAnimMotionPlay)); break;}
+		case NODE_HAnimPermuter : {tmp = MALLOC (struct X3D_HAnimPermuter *, size = sizeof (struct X3D_HAnimPermuter)); break;}
 		case NODE_HAnimSegment : {tmp = MALLOC (struct X3D_HAnimSegment *, size = sizeof (struct X3D_HAnimSegment)); break;}
 		case NODE_HAnimSite : {tmp = MALLOC (struct X3D_HAnimSite *, size = sizeof (struct X3D_HAnimSite)); break;}
 		case NODE_ImageBackdropBackground : {tmp = MALLOC (struct X3D_ImageBackdropBackground *, size = sizeof (struct X3D_ImageBackdropBackground)); break;}
@@ -14015,6 +14046,21 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transitionWeight = 0.0f;
 			tmp2->transitionStart = 0;
 			tmp2->data = NULL;
+			tmp2->_defaultContainer = 0;
+		break;
+		}
+		case NODE_HAnimPermuter : {
+			struct X3D_HAnimPermuter * tmp2;
+			tmp2 = (struct X3D_HAnimPermuter *) tmp;
+			tmp2->metadata = NULL;
+			tmp2->description = newASCIIString("");
+			tmp2->humanoids.n=0; tmp2->humanoids.p=0;
+			tmp2->motions.n=0; tmp2->motions.p=0;
+			tmp2->compute = TRUE;
+			tmp2->permutations.n=0; tmp2->permutations.p=0;
+			tmp2->index = 0;
+			tmp2->humanoid = NULL;
+			tmp2->_play.n=0; tmp2->_play.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -20742,6 +20788,23 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," data (SFNode):\n"); dump_scene(fp,level+1,tmp->data); 
 		    break;
 		}
+		case NODE_HAnimPermuter : {
+			struct X3D_HAnimPermuter *tmp;
+			tmp = (struct X3D_HAnimPermuter *) node;
+			UNUSED(tmp); // compiler warning mitigation
+		    if(allFields) {
+			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
+		    }
+			spacer fprintf (fp," description (SFString) \t%s\n",tmp->description->strptr);
+			spacer fprintf (fp," humanoids (MFNode):\n");
+			for (i=0; i<tmp->humanoids.n; i++) { dump_scene(fp,level+1,tmp->humanoids.p[i]); }
+			spacer fprintf (fp," motions (MFNode):\n");
+			for (i=0; i<tmp->motions.n; i++) { dump_scene(fp,level+1,tmp->motions.p[i]); }
+			spacer fprintf (fp," permutations (MFInt32):\n");
+			for (i=0; i<tmp->permutations.n; i++) { spacer fprintf (fp,"			%d: \t%d\n",i,tmp->permutations.p[i]); }
+			spacer fprintf (fp," index (SFInt32) \t%d\n",tmp->index);
+		    break;
+		}
 		case NODE_HAnimSegment : {
 			struct X3D_HAnimSegment *tmp;
 			tmp = (struct X3D_HAnimSegment *) node;
@@ -24878,6 +24941,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_HAnimMotionData: return X3DMotionDataNode; break;
 	case NODE_HAnimMotionDataFile: return X3DMotionDataNode; break;
 	case NODE_HAnimMotionPlay: return X3DMotionNode; break;
+	case NODE_HAnimPermuter: return X3DChildNode; break;
 	case NODE_HAnimSegment: return X3DChildNode; break;
 	case NODE_HAnimSite: return X3DGroupingNode; break;
 	case NODE_ImageBackdropBackground: return X3DBackgroundNode; break;

@@ -114,15 +114,16 @@ our %defaultContainerType = (
 	Group 			=>["children"],
 	ViewpointGroup		=>["children"],
 	HAnimDisplacer		=>["displacers"],
-	HAnimHumanoid		=>["children"],
+	HAnimHumanoid		=>["children","humanoids"],
+	HAnimPermuter		=>["children"],
 	HAnimJoint		=>["joints"],
 	HAnimSegment		=>["segments"],
 	HAnimSite		=>["sites","viewpoints"],
 	HAnimMotion		=>["motions"],
 	HAnimMotionPlay		=>["motions"],
-	HAnimMotionData		=>["data"],
-	HAnimMotionDataFile	=>["data"],
-	HAnimMotionClip		=>["data"],
+	HAnimMotionData		=>["data","motions"],
+	HAnimMotionDataFile	=>["data","motions"],
+	HAnimMotionClip		=>["data","motions"],
 	ImageTexture 		=>["texture","diffuseTexture","emissiveTexture","normalTexture","ambientTexture"],
 	ImageCubeMapTexture 	=>["texture"],
 	GeneratedCubeMapTexture	=>["texture"],
@@ -492,6 +493,7 @@ our %RendC = map {($_=>1)} qw/
 	PointLight
 	EnvironmentLight
 	HAnimHumanoid
+	HAnimPermuter
 	HAnimJoint
 	HAnimMotion
 	HAnimMotionPlay
@@ -681,6 +683,7 @@ our %FinC = map {($_=>1)} qw/
 
 our %ChildC = map {($_=>1)} qw/
 	HAnimHumanoid
+	HAnimPermuter
 	HAnimJoint
 	HAnimSegment
 	HAnimSite
@@ -860,6 +863,7 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimJoint
 	HAnimSite
 	HAnimHumanoid
+	HAnimPermuter
 	HAnimMotion
 	HAnimMotionPlay
 	HAnimMotionData

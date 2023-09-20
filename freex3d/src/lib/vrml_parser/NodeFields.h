@@ -1889,6 +1889,18 @@ FIELD(HAnimMotionPlay,transitionStart,sftime,transitionStart,FIELDTYPE_SFTime,0)
 EXPOSED_FIELD(HAnimMotionPlay,data,sfnode,data,FIELDTYPE_SFNode,UNCA_NONE)
 END_NODE(HAnimMotionPlay)
 
+/* HAnimPermuter node */
+BEGIN_NODE(HAnimPermuter)
+EXPOSED_FIELD(HAnimPermuter,metadata,sfnode,metadata,FIELDTYPE_SFNode,0)
+EXPOSED_FIELD(HAnimPermuter,description,sfstring,description,FIELDTYPE_SFString,0)
+EXPOSED_FIELD(HAnimPermuter,humanoids,mfnode,humanoids,FIELDTYPE_MFNode,0)
+EXPOSED_FIELD(HAnimPermuter,motions,mfnode,motions,FIELDTYPE_MFNode,0)
+FIELD(HAnimPermuter,compute,sfbool,compute,FIELDTYPE_SFBool,0)
+EXPOSED_FIELD(HAnimPermuter,permutations,mfint32,permutations,FIELDTYPE_MFInt32,0)
+EXPOSED_FIELD(HAnimPermuter,index,sfint32,index,FIELDTYPE_SFInt32,0)
+EVENT_OUT(HAnimPermuter,humanoid,sfnode,humanoid,FIELDTYPE_SFNode)
+END_NODE(HAnimPermuter)
+
 /* HAnimSegment node */
 BEGIN_NODE(HAnimSegment)
 EVENT_IN(HAnimSegment,addChildren,mfnode,addChildren,FIELDTYPE_MFNode)
