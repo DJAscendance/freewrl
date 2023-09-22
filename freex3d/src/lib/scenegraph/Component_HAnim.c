@@ -674,7 +674,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		PVI = (float*)HH->_PVI;
 		for(i=0;i<node->skinCoordIndex.n;i++){
 			int idx = node->skinCoordIndex.p[i];
-			float wt = node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)];
+			float wt = node->skinCoordWeight.n ? node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)] : 1.0f;
 			for(j=0;j<4;j++){
 				if(PVI[idx*4 + j] == 0.0f){
 					PVI[idx*4 +j] = (float)jointTransformIndex;
@@ -1456,7 +1456,10 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 		printf("\n");
 	}
 	//parse float frame data
-	float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+	//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+	float* fvalues = node->values.p;
+	node->frameCount = node->values.n / channelcount;
+	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion,frameCount));
 
 	//convert degrees to radians
 	for(int iframe=0;iframe<node->frameCount;iframe++){
@@ -1855,7 +1858,10 @@ void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
 		printf("\n");
 	}
 	//parse float frame data
-	float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+	//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+	float* fvalues = node->values.p;
+	node->frameCount = node->values.n / channelcount;
+	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotionData, frameCount));
 
 	//convert degrees to radians
 	for(int iframe=0;iframe<node->frameCount;iframe++){
@@ -2095,7 +2101,10 @@ void compile_HAnimMotionClip(struct X3D_HAnimMotionClip *node){
 			printf("\n");
 		}
 		//parse float frame data
-		float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+		//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+		float* fvalues = node->values.p;
+		node->frameCount = node->values.n / channelcount;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotionClip, frameCount));
 
 		//convert degrees to radians
 		for(int iframe=0;iframe<node->frameCount;iframe++){
@@ -2287,8 +2296,11 @@ void child_HAnimPermuter(struct X3D_HAnimPermuter* node){
 	if (node->_play.n == 0) {
 		struct X3D_HAnimMotionPlay* HMP0, * HMP1;
 		node->_play.p = malloc(2 * sizeof(void*));
-		node->_play.p[0] = HMP0 = createNewX3DNode(NODE_HAnimMotionPlay); //for standing motion
-		node->_play.p[1] = HMP1 = createNewX3DNode(NODE_HAnimMotionPlay); //for walking motions
+		HMP0 = createNewX3DNode(NODE_HAnimMotionPlay); //for standing motion
+		HMP1 = createNewX3DNode(NODE_HAnimMotionPlay); //for walking motions
+		node->_play.p[0] = X3D_NODE(HMP0);
+		node->_play.p[1] = X3D_NODE(HMP1);
+
 		node->_play.n = 2;
 		//enabled='true' loop='true' frameIncrement='1' frameIndex='1'
 		HMP0->enabled = TRUE;

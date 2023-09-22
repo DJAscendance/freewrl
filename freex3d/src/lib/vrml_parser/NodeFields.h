@@ -1822,7 +1822,7 @@ EVENT_OUT(HAnimMotion,frameCount,sfint32,frameCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(HAnimMotion,frameDuration,sftime,frameDuration,FIELDTYPE_SFTime,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotion,channels,sfstring,channels,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotion,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotion,values,sfstring,values,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotion,values,mffloat,values,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(HAnimMotion)
 
 /* HAnimMotionClip node */
@@ -1835,7 +1835,7 @@ EXPOSED_FIELD(HAnimMotionClip,frameDuration,sftime,frameDuration,FIELDTYPE_SFTim
 EXPOSED_FIELD(HAnimMotionClip,url,mfstring,url,FIELDTYPE_MFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotionClip,channels,sfstring,channels,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotionClip,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionClip,values,sfstring,values,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionClip,values,mffloat,values,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(HAnimMotionClip)
 
 /* HAnimMotionData node */
@@ -1847,7 +1847,7 @@ EVENT_OUT(HAnimMotionData,frameCount,sfint32,frameCount,FIELDTYPE_SFInt32)
 EXPOSED_FIELD(HAnimMotionData,frameDuration,sftime,frameDuration,FIELDTYPE_SFTime,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotionData,channels,sfstring,channels,FIELDTYPE_SFString,UNCA_NONE)
 EXPOSED_FIELD(HAnimMotionData,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionData,values,sfstring,values,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionData,values,mffloat,values,FIELDTYPE_MFFloat,UNCA_NONE)
 END_NODE(HAnimMotionData)
 
 /* HAnimMotionDataFile node */

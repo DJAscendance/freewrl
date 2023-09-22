@@ -7021,7 +7021,7 @@ const int OFFSETS_HAnimMotion[] = {
 	(int) FIELDNAMES__fvalues, (int) offsetof (struct X3D_HAnimMotion, _fvalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotion, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotion, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotion, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotion, values),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionClip[] = {
@@ -7040,7 +7040,7 @@ const int OFFSETS_HAnimMotionClip[] = {
 	(int) FIELDNAMES___loadResource, (int) offsetof (struct X3D_HAnimMotionClip, __loadResource),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotionClip, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionClip, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionClip, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionClip, values),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionData[] = {
@@ -7056,7 +7056,7 @@ const int OFFSETS_HAnimMotionData[] = {
 	(int) FIELDNAMES___loadstatus, (int) offsetof (struct X3D_HAnimMotionData, __loadstatus),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_channels, (int) offsetof (struct X3D_HAnimMotionData, channels),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionData, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionData, values),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_values, (int) offsetof (struct X3D_HAnimMotionData, values),  (int) FIELDTYPE_MFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionDataFile[] = {
@@ -13950,7 +13950,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_fvalues = 0;
 			tmp2->channels = newASCIIString("");
 			tmp2->joints = newASCIIString("");
-			tmp2->values = newASCIIString("");
+			tmp2->values.n=0; tmp2->values.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -13972,7 +13972,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__loadResource = 0;
 			tmp2->channels = newASCIIString("");
 			tmp2->joints = newASCIIString("");
-			tmp2->values = newASCIIString("");
+			tmp2->values.n=0; tmp2->values.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -13991,7 +13991,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->__loadstatus = 1;
 			tmp2->channels = newASCIIString("");
 			tmp2->joints = newASCIIString("");
-			tmp2->values = newASCIIString("");
+			tmp2->values.n=0; tmp2->values.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -20714,7 +20714,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
 			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
 			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
-			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
+			spacer fprintf (fp," values (MFFloat):\n");
+			for (i=0; i<tmp->values.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->values.p[i]); }
 		    break;
 		}
 		case NODE_HAnimMotionClip : {
@@ -20731,7 +20732,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
 			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
-			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
+			spacer fprintf (fp," values (MFFloat):\n");
+			for (i=0; i<tmp->values.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->values.p[i]); }
 		    break;
 		}
 		case NODE_HAnimMotionData : {
@@ -20746,7 +20748,8 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			spacer fprintf (fp," frameDuration (SFTime) \t%4.3f\n",tmp->frameDuration);
 			spacer fprintf (fp," channels (SFString) \t%s\n",tmp->channels->strptr);
 			spacer fprintf (fp," joints (SFString) \t%s\n",tmp->joints->strptr);
-			spacer fprintf (fp," values (SFString) \t%s\n",tmp->values->strptr);
+			spacer fprintf (fp," values (MFFloat):\n");
+			for (i=0; i<tmp->values.n; i++) { spacer fprintf (fp,"			%d: \t%4.3f\n",i,tmp->values.p[i]); }
 		    break;
 		}
 		case NODE_HAnimMotionDataFile : {

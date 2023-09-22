@@ -7423,7 +7423,7 @@ struct X3D_HAnimMotion {
 	void * _fvalues;
 	struct Uni_String *channels;
 	struct Uni_String *joints;
-	struct Uni_String *values;
+	struct Multi_Float values;
 };
 extern struct X3D_Virt virt_HAnimMotion;
 /***********************/
@@ -7458,7 +7458,7 @@ struct X3D_HAnimMotionClip {
 	void * __loadResource;
 	struct Uni_String *channels;
 	struct Uni_String *joints;
-	struct Uni_String *values;
+	struct Multi_Float values;
 };
 extern struct X3D_Virt virt_HAnimMotionClip;
 /***********************/
@@ -7490,7 +7490,7 @@ struct X3D_HAnimMotionData {
 	int __loadstatus;
 	struct Uni_String *channels;
 	struct Uni_String *joints;
-	struct Uni_String *values;
+	struct Multi_Float values;
 };
 extern struct X3D_Virt virt_HAnimMotionData;
 /***********************/
