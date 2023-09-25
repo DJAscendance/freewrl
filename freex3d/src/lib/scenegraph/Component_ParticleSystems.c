@@ -1690,31 +1690,15 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 			else {
 				//check if we are on a wait area, will affect neighbor decision
 				float xx, yy;
-				//xx = (float)p.x / px->gridSize.c[0];
-				//yy = (float)p.y / px->gridSize.c[1];
-				//int ipxy[2], ttsize[2];
-				//ttsize[0] = tt->x;
-				//ttsize[1] = tt->y;
-				//norm2image(ipxy, ttsize, xy);
-				//if (ipxy[0] > 1020 && ipxy[0] < 1230){
-				//	if(ipxy[1] > 820 && ipxy[1] < 951)
-				//	  printf("top %d %d ", ipxy[0], ipxy[1]);
-				//	if (ipxy[1] > 44 && ipxy[1] < 196)
-				//		printf("bottom %d %d ", ipxy[0], ipxy[1]);
-				//}
 				funccolor = (pix*)sample_image(tt, xy[0], xy[1]);
-				//funccolor = (pix*)get_image_pixel_color(tt->texdata, isteps[0], isteps[1], ipxy[0], ipxy[1]);
-				//if (funccolor->r > 127 && funccolor->g < 127 && funccolor->b < 127) printf("R");
-
 				pixel2color3(color, funccolor->bytes);
 				int on_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
 				//if (on_wait) printf("on_wait ");
+				
 				//check neighbors and rank by shortest distance
 				int nlist, ilist[8], dlist[8], iscore[8];
 				int ishortest = -1;
 				int dshortest = 1000000;
-				//printf("sink map %d x steps %d y steps %d\n", pp->sink, isteps[0], isteps[1]);
-				//print_image_channel(sinkmap, 0, isteps[0], isteps[1]);
 				if (debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
 				/*
 				static int iframes;
@@ -1747,32 +1731,11 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					if (q.x < 0 || q.x >= jsteps[0] || q.y < 0 || q.y >= jsteps[1]) continue;
 					iscore[i] = 1;
 					
-					//sinkcolor = get_image_pixel_color(sinkmap, isteps[0], isteps[1], q.x, q.y);
-					//printf("nebor %d q %d %d sinkcolor %d %d %d\n", i, q.x, q.y, sinkcolor[0], sinkcolor[1], sinkcolor[2]);
-					//sinkuchar = get_image_pixel_channel(sinkmap, jsteps[0], jsteps[1], 0, q.x, q.y);
 					pix *sinkval = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], q.x, q.y);
-					//printf("nebor %d q %d %d sinkred %d \n", i, q.x, q.y, sinkuchar);
 					//skip if obstacle
-					//if (sinkcolor[0] == 0) continue;
 					if (sinkval->int16[0] == 0) continue;
 					iscore[i] = 2;
 					//skip if we are already on waitzone/crosswalk
-					//pp->paused = FALSE; //for HANIM motion change
-					if(0) if (!on_wait) {
-						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
-						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
-						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
-						funccolor = (pix*)sample_image(tt, xx, yy);
-						pixel2color3(color, funccolor->bytes);
-						if (px->pauseState) {
-							int is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
-							if (is_wait) {
-								ishortest = -2;
-								break;
-								//continue; //skip if its an active wait area and we aren't already on it
-							}
-						}
-					}
 					iscore[i] = 3;
 					//skip if someone already populating grid cell (avoid particle collision)
 					unsigned char populated = get_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0, q.x, q.y);
@@ -1808,6 +1771,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 						}
 					}
 					if (is_wait) {
+						set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, p.x, p.y);
 						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
 						pp->paused = TRUE; //for HANIM motion change
 					}
@@ -1839,6 +1803,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				else {
 					//wait / stand
 					if(debug) printf("waiting particle %p\n", pp);
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, p.x, p.y);
 					//if (ishortest == -2) {
 						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
 						pp->paused = TRUE; //for HANIM motion change
