@@ -1159,7 +1159,10 @@ void print_image_channel(unsigned char* imageRGBA, int channel, int width, int h
 	for (int j = 0; j < height; j++) {
 		for (int k = 0; k < width; k++) {
 			unsigned char c = get_image_pixel_channel(imageRGBA, width, height, channel, k, j);
-			printf("%c", c + 'A');
+			if (c)
+				printf("%c", c + 'A');
+			else
+				printf("%c", ' ');
 		}
 		printf(" %2d\n", j);
 	}
@@ -1712,7 +1715,26 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				int dshortest = 1000000;
 				//printf("sink map %d x steps %d y steps %d\n", pp->sink, isteps[0], isteps[1]);
 				//print_image_channel(sinkmap, 0, isteps[0], isteps[1]);
-				if(debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				if (debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				/*
+				static int iframes;
+				iframes++;
+				if (iframes == 10600) {
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1, 0, 1,1);
+					//show image on screen and in C:/tmp .bmp of flood map
+					for (int jj = 0; jj < jsteps[1]; jj++)
+						for (int ii = 0; ii < jsteps[0]; ii++) {
+							//texdata[(jj * jsteps[0] + ii) * 4 + 0] = 127;
+							//texdata[(jj * jsteps[0] + ii) * 4 + 1] = 127;
+							//texdata[(jj * jsteps[0] + ii) * 4 + 2] = 0; //clear blue
+							popmap[(jj * jsteps[0] + ii) * 4 + 3] = 0xff;
+						}
+					display_imagedata4(popmap, jsteps[0], jsteps[1], 0); //sinkmap i
+					//display_imagedata4(tt->texdata, tt->x, tt->y); //function map
+					print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				}
+				*/
+
 				//clear our last known location from popmap so we dont block ourself
 				set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0,0, pp->maplocation[0],pp->maplocation[1]);
 
@@ -1790,7 +1812,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					}
 
 					//mark new location in popmap so others dont hit us
-					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1,0, q.x, q.y);
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255,0, q.x, q.y);
 					pp->maplocation[0] = q.x;
 					pp->maplocation[1] = q.y;
 					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
