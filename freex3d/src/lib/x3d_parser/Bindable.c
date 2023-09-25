@@ -377,10 +377,11 @@ void send_bind_to(struct X3D_Node *node, int value) {
 	case NODE_OrthoViewpoint: {
 		struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
 		ovp->set_bind = value;
+		//ovp->set_bind = ovp->_reachablethispass ? value : 0;
 		setMenuStatusVP (ovp->description->strptr);
 		bind_node (node, getBindableStacksByLayer(tg,ovp->_layerId)->viewpoint);
-		if (value == 1) {
-				bind_Viewpoint(X3D_VIEWPOINT(ovp));
+		if (value == 1) { //ovp->set_bind > 0) {
+			bind_OrthoViewpoint(ovp);
 		}
 		break;
 		}
