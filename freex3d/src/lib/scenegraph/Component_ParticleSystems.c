@@ -1758,7 +1758,7 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 					iscore[i] = 2;
 					//skip if we are already on waitzone/crosswalk
 					//pp->paused = FALSE; //for HANIM motion change
-					if (!on_wait) {
+					if(0) if (!on_wait) {
 						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
 						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
 						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
@@ -1793,30 +1793,48 @@ void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
 				}
 				if (ishortest > -1) {
 					//move toward ishortest neighbor
+
 					q.x = p.x + nebor[ishortest].x;
 					q.y = p.y + nebor[ishortest].y;
-					float pxy[3], qxy[3], diff[3], dir[3];
-					pxy[0] = (float)p.x*.5f;
-					pxy[1] = (float)p.y*.5f;
-					pxy[2] = 0.0f;
-					qxy[0] = (float)q.x*.5f;
-					qxy[1] = (float)q.y*.5f;
-					qxy[2] = 0.0f;
-					vecdif3f(diff, qxy, pxy);
-					vecnormalize3f(dir, diff);
-
-					vecscale3f(pp->velocity, dir, pp->speed);
-					float flen = veclength3f(dir);
-					if (flen > 0.0f) {
-						vecscale3f(pp->direction, dir, 1.0f / flen);
+					int is_wait = 0;
+					if (!on_wait) {
+						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
+						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
+						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
+						funccolor = (pix*)sample_image(tt, xx, yy);
+						pixel2color3(color, funccolor->bytes);
+						if (px->pauseState) {
+							is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
+						}
 					}
+					if (is_wait) {
+						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+						pp->paused = TRUE; //for HANIM motion change
+					}
+					else {
+						float pxy[3], qxy[3], diff[3], dir[3];
+						pxy[0] = (float)p.x * .5f;
+						pxy[1] = (float)p.y * .5f;
+						pxy[2] = 0.0f;
+						qxy[0] = (float)q.x * .5f;
+						qxy[1] = (float)q.y * .5f;
+						qxy[2] = 0.0f;
+						vecdif3f(diff, qxy, pxy);
+						vecnormalize3f(dir, diff);
 
-					//mark new location in popmap so others dont hit us
-					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255,0, q.x, q.y);
-					pp->maplocation[0] = q.x;
-					pp->maplocation[1] = q.y;
-					if(debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
-					pp->paused = FALSE; //for HANIM motion change
+						vecscale3f(pp->velocity, dir, pp->speed);
+						float flen = veclength3f(dir);
+						if (flen > 0.0f) {
+							vecscale3f(pp->direction, dir, 1.0f / flen);
+						}
+
+						//mark new location in popmap so others dont hit us
+						set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, q.x, q.y);
+						pp->maplocation[0] = q.x;
+						pp->maplocation[1] = q.y;
+						if (debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
+						pp->paused = FALSE; //for HANIM motion change
+					}
 				}
 				else {
 					//wait / stand
