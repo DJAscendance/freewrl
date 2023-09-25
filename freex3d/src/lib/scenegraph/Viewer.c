@@ -364,6 +364,8 @@ void toggle_collision() {
 int fwl_getCollision(){
 	X3D_Viewer *viewer;
 	viewer = Viewer();
+	if (viewer->SLERPing || viewer->SLERPing2 || viewer->SLERPing3) 
+		return 0;
 	return viewer->collision;
 }
 void fwl_setCollision(int state) {
