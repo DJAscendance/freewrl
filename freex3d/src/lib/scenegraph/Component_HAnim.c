@@ -1458,7 +1458,10 @@ void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	//parse float frame data
 	//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
 	float* fvalues = node->values.p;
-	node->frameCount = node->values.n / channelcount;
+	if (channelcount)
+		node->frameCount = node->values.n / channelcount;
+	else
+		node->frameCount = 0;
 	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion,frameCount));
 
 	//convert degrees to radians
@@ -1860,7 +1863,10 @@ void compile_HAnimMotionData(struct X3D_HAnimMotionData *node){
 	//parse float frame data
 	//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
 	float* fvalues = node->values.p;
-	node->frameCount = node->values.n / channelcount;
+	if (channelcount)
+		node->frameCount = node->values.n / channelcount;
+	else
+		node->frameCount = 0;
 	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotionData, frameCount));
 
 	//convert degrees to radians
@@ -2103,7 +2109,10 @@ void compile_HAnimMotionClip(struct X3D_HAnimMotionClip *node){
 		//parse float frame data
 		//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
 		float* fvalues = node->values.p;
-		node->frameCount = node->values.n / channelcount;
+		if (channelcount)
+			node->frameCount = node->values.n / channelcount;
+		else
+			node->frameCount = 0;
 		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotionClip, frameCount));
 
 		//convert degrees to radians
