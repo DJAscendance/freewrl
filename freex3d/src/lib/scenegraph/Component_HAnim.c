@@ -738,7 +738,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
 
-		push_humanoid(node);
+	push_humanoid(node);
 	if (node->motions.n) {
 		if (node->motions.n > node->motionsEnabled.n) {
 			// the default is to enable all motions
@@ -797,7 +797,20 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 		node->_origNorms = realloc(node->_origNorms, nsn * 3 * sizeof(float));
 		memcpy(node->_origNorms, psn, nsn * 3 * sizeof(float));
 	}
+	if (!node->skeleton.n && node->joints.n) {
+		//find name='humanoid_root' or 'root' and put in skeleton
+		for (int i = 0; i < node->joints.n; i++) {
+			struct X3D_HAnimJoint* joint = (struct X3D_HAnimJoint*)node->joints.p[i];
+			char* name = joint->name->strptr;
+			if (name && !strcmp(name, "humanoid_root") || !strcmp(name, "root")){
 
+				node->skeleton.p = malloc(sizeof(void*));
+				node->skeleton.n = 1;
+				node->skeleton.p[0] = joint;
+				break;
+			}
+		}
+	}
 	//allocate the joint-transform_index and joint-weight arrays
 	//Nov 2016: max 4: meaning each skinCoord can have up to 4 joints referencing/influencing it
 	//4 chosen so it's easier to port to GPU method with vec4
