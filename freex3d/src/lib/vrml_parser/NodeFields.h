@@ -1887,6 +1887,7 @@ EVENT_IN(HAnimMotionPlay,previous,sfbool,previous,FIELDTYPE_SFBool)
 FIELD(HAnimMotionPlay,transitionWeight,sffloat,transitionWeight,FIELDTYPE_SFFloat,0)
 FIELD(HAnimMotionPlay,transitionStart,sftime,transitionStart,FIELDTYPE_SFTime,0)
 EXPOSED_FIELD(HAnimMotionPlay,data,sfnode,data,FIELDTYPE_SFNode,UNCA_NONE)
+FIELD(HAnimMotionPlay,mapping,mfstring,mapping,FIELDTYPE_MFString,0)
 END_NODE(HAnimMotionPlay)
 
 /* HAnimPermuter node */

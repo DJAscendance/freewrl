@@ -7105,6 +7105,7 @@ const int OFFSETS_HAnimMotionPlay[] = {
 	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotionPlay, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotionPlay, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_data, (int) offsetof (struct X3D_HAnimMotionPlay, data),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_mapping, (int) offsetof (struct X3D_HAnimMotionPlay, mapping),  (int) FIELDTYPE_MFString, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimPermuter[] = {
@@ -14046,6 +14047,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->transitionWeight = 0.0f;
 			tmp2->transitionStart = 0;
 			tmp2->data = NULL;
+			tmp2->mapping.n=0; tmp2->mapping.p=0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}

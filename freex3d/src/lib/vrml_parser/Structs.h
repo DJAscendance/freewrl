@@ -7571,6 +7571,7 @@ struct X3D_HAnimMotionPlay {
 	float transitionWeight;
 	double transitionStart;
 	struct X3D_Node *data;
+	struct Multi_String mapping;
 };
 extern struct X3D_Virt virt_HAnimMotionPlay;
 /***********************/

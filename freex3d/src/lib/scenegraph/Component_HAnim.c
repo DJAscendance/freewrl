@@ -244,13 +244,17 @@ https://www.khronos.org/files/gltf20-reference-guide.pdf
 x currenlty we are transforming mesh vertices in CPU on each frame - all CPU
 
 */
-
+typedef struct {
+	float head[3];
+	float tail[3];
+} bone;
 
 /* last HAnimHumanoid skinCoord and skinNormals */
 typedef struct pComponent_HAnim{
 	double HHMatrix[16];
 	Stack *humanoid_stack;
 	Stack* joint_center;
+	Stack* bones;
 }* ppComponent_HAnim;
 void *Component_HAnim_constructor(){
 	void *v = MALLOCV(sizeof(struct pComponent_HAnim));
@@ -264,7 +268,8 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
-		p->joint_center = newStack(float*);
+		p->joint_center = newStack(struct SFVec3f);
+		p->bones = newStack(bone);
 	}
 }
 void Component_HAnim_clear(struct tComponent_HAnim *t){
@@ -274,6 +279,7 @@ void Component_HAnim_clear(struct tComponent_HAnim *t){
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		deleteStack(struct X3D_HAnimHumanoid*,p->humanoid_stack);
 		deleteStack(float*, p->joint_center);
+		deleteStack(bone, p->bones);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
@@ -294,17 +300,47 @@ struct X3D_HAnimHumanoid * peek_humanoid(){
 	return stack_top(struct X3D_HAnimHumanoid *, p->humanoid_stack);
 }
 void push_joint_center(float *center) {
+	//push alread transformed to humanoid root coords
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	stack_push(float*, p->joint_center, center);
+	double modelview[16], rootmat[16], a[3], r[3];
+	struct SFVec3f rcenter;
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelview);
+	matmultiplyAFFINE(rootmat, modelview, p->HHMatrix);
+	float2double(a, center, 3);
+	transformAFFINEd(r, a, rootmat);
+	double2float(rcenter.c, r,3);
+	stack_push(struct SFVec3f, p->joint_center, rcenter);
 }
 void pop_joint_center() {
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	stack_pop(float*, p->joint_center);
+	stack_pop(struct SFVec3f, p->joint_center);
 }
 float* peek_joint_center() {
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	return stack_top(float*, p->joint_center);
+	struct SFVec3f* cc = stack_top_ptr(struct SFVec3f, p->joint_center);
+	return cc->c;
 }
+void push_bone(float *head, float* tail) {
+	//assume head,tail already transformed into Humanoid root coordinates
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	bone b;
+	veccopy3f(b.head, head);
+	veccopy3f(b.tail, tail);
+	stack_push(bone, p->bones, b);
+}
+void clear_bones() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	clearStack(p->bones);
+}
+bone* peek_bone(int index) {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return vector_get_ptr(bone, p->bones,index);
+}
+int bone_count() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return vectorSize(p->bones);
+}
+
 
 
 void update_jointMatrixFromMotion(struct X3D_Node* HM, char *jname, double *jmatrix);
@@ -332,8 +368,8 @@ void compile_HAnimJoint (struct X3D_HAnimJoint *node){
 	MARK_NODE_COMPILED
 
 }
+void render_rig_bone(double* pmat, struct X3D_HAnimJoint* joint, double* jointmat);
 void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
-
 
 
 	COMPILE_IF_REQUIRED
@@ -375,7 +411,11 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 					if(HM->transitionWeight > 0.0){
 						//printmatrix(jointMatrix.mat);
 						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
+						double dmat[16];
+						memcpy(dmat, modelviewMatrix, 16 * sizeof(double));
+
 						update_jointMatrixFromMotion(X3D_NODE(HM),node->name->strptr,modelviewMatrix);
+
 						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 						//printmatrix(jointMatrix.mat);
 					}
@@ -613,7 +653,51 @@ void render_rig_segment(float* jcenter) {
 	bbox2extent6f(center, size, extent);
 	extent6f_draw(extent);
 }
+int fwl_getDrawHAnimRig() {
+	return TRUE;
+}
+void line_draw(float* p, float* q, int depthtest, float linewidth);
 
+void render_rig_bones() {
+	//renders the whole skeletal rig as bones
+	//coordinates are in hanim root local
+	//turn off depth testing
+	glDisable(GL_DEPTH_TEST);
+	//iterate over pre-transformed bone (head,tail) pairs drawing bone
+	for (int i = 0; i < bone_count(); i++) {
+		bone *b = peek_bone(i);
+		line_draw(b->head, b->tail, TRUE, 3);
+	}
+	//turn on depth testing
+	glEnable(GL_DEPTH_TEST);
+	clear_bones();
+}
+//struct Vector *JT
+void render_rig_bone(double *pmat, struct X3D_HAnimJoint *joint, double *jointmat) {
+	if (renderstate()->render_geom && fwl_getDrawHAnimRig()) {
+		struct X3D_HAnimJoint *parent = vector_get(struct X3D_HAnimJoint*, joint->_parentVector, 0);
+		struct X3D_HAnimJoint* p = (struct X3D_HAnimJoint*)parent;
+		double pp[3], qq[3];// , * pmat;
+		float pf[3], qf[3];
+		//pmat = stack_top(JMATRIX, JT).mat;
+		//float2double(pp, p->center.c, 3);
+		float2double(pp, peek_joint_center(), 3);
+		transformAFFINEd(pp, pp, pmat);
+		float2double(qq, joint->center.c, 3);
+		//transformAFFINEd(qq, qq, pmat); // jointmat);
+		double2float(pf, pp, 3);
+		double2float(qf, qq, 3);
+		line_draw(pf, qf, FALSE, 3.0f);
+	}
+}
+void save_rig_bone(struct X3D_HAnimJoint* joint, double* jointmat) {
+	double a[3], r[3];
+	float rcenter[3];
+	float2double(a, joint->center.c,3);
+	transformAFFINEd(r, a, jointmat);
+	double2float(rcenter, r, 3);
+	push_bone(peek_joint_center(), rcenter);
+}
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
 	double modelviewMatrix[16]; //, mvmInverse[16];
@@ -621,7 +705,6 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	JMATRIX jointMatrix;
 	Stack *JT;
 	float *PVW, *PVI;
-
 
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	//printf ("rendering HAnimJoint DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
@@ -635,6 +718,8 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
+		//double* pmat = stack_top(JMATRIX, JT).mat;
+		if (1) save_rig_bone(node, jointMatrix.mat);
 
 		//any motion nodes enabled? if so apply current frame transform
 		if(0) if(HH->motions.n){
@@ -656,6 +741,8 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 			mattranspose3f(jointMatrix.normat,fmat3i);
 			//printf("jm.normat[1] %f\n",jointMatrix.normat[1]);
 		}
+
+		//if (0) render_rig_bone(JT, node, jointMatrix.mat);
 
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
 			//convert to quaternion + position
@@ -806,7 +893,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 
 				node->skeleton.p = malloc(sizeof(void*));
 				node->skeleton.n = 1;
-				node->skeleton.p[0] = joint;
+				node->skeleton.p[0] = X3D_NODE(joint);
 				break;
 			}
 		}
@@ -1089,6 +1176,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		}
 	} //if skin
 	//if (renderstate()->render_geom) printf("humanoid gets geom and other=%d\n",renderstate()->render_other);
+	if (fwl_getDrawHAnimRig()) render_rig_bones();
+
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	//printf("bboxCenter %f %f %f size %f %f %f\n", node->bboxCenter.c[0], node->bboxCenter.c[1], node->bboxCenter.c[2],
 	//	node->bboxSize.c[0], node->bboxSize.c[1], node->bboxSize.c[2]);
@@ -1099,7 +1188,6 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	//LOCAL_LIGHT_OFF
 	pop_humanoid();
 }
-
 
 void child_HAnimJoint(struct X3D_HAnimJoint *node) {
 
@@ -1610,8 +1698,23 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 				float *frame_values = (float*)HM->_framevalues;  //render_HAnimMotion should have run this frame to set the frame pointer
 				if (!frame_values) return NULL; //but with multiple motions, and changing motion on the fly, sometimes it needs another frame
 				int kchan = 0;
+				char* kname = jname;
+				if (HM->mapping.n) {
+					// MotionPlay.mapping maps names from foreign skeleton to HAnim LOA names
+					// (when .bvh mocap loads, the MotionDataFile also has a .mapping to 
+					//  .. map from foreign animation rig to HAnim LOA
+					// 2-step mapping reduces the number of mappings needed from n x m to n + m
+					for (int k = 0; k < HM->mapping.n; k += 2) {
+						char* sname = HM->mapping.p[k]->strptr;
+						char* dname = HM->mapping.p[k + 1]->strptr;
+						if (!strcmp(jname, sname)) {
+							kname = dname;
+							break;
+						}
+					}
+				}
 				for(int i=0;i<njoints;i++){
-					if(!strcmp(chan[i].jname,jname)){
+					if(!strcmp(chan[i].jname,kname)){
 						//if so return the channel mapping and fvalue pointer
 						//printf("%s ",jname);
 						jm = &chan[i];

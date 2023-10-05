@@ -857,3 +857,31 @@ void draw_frustum(float *corners)
 	restoreGlobalShader();
 
 }
+void line_draw(float* p, float* q, int depthtest, float width) {
+	GLint  positionLoc;
+	GLfloat pp[2][3];
+
+	s_shader_capabilities_t* scap;
+	ttglobal tg = gglobal();
+	veccopy3f(pp[0], p);
+	veccopy3f(pp[1], q);
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	positionLoc = scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU(GL_LINES, 0, 2);
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, pp[0]);
+	if (!depthtest) glDisable(GL_DEPTH_TEST);
+	glLineWidth(width);
+	reallyDrawOnce();
+	if (!depthtest) glEnable(GL_DEPTH_TEST);
+	glLineWidth(1.0f);
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
+}

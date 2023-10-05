@@ -3491,6 +3491,7 @@ our %Nodes = (
                 transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		#extra
 		data => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+                mapping => ["MFString",[],"initializeOnly",0,0],#ff
 	],"X3DMotionNode"),
 
 	"HAnimMotionData" => new VRML::NodeType("HAnimMotionData", [
