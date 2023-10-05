@@ -543,7 +543,7 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 34;
+static int lenOptions   = 35;
 
 void statusbar_clear(struct tstatusbar *t){
 	//public
@@ -954,6 +954,7 @@ char * optionsText[] = {
 "  allow DIS",
 "texture modulate or replace mat.diffuse:",
 "  by file_version   v3.3- replace   v4.0+ modulate",
+"  draw rig",
 NULL,
 };
 //0123456789012345678901234567890
@@ -1086,6 +1087,10 @@ void initOptionsVal()
 		case 1: p->optionsVal[33][19] = 035; break; //[*]
 		case 2: p->optionsVal[33][35] = 035; break; //[*]
 	}
+	p->optionsVal[34][0] = 034; //[]
+	if (fwl_getDrawRig())
+		p->optionsVal[34][0] = 035; //[*] '*';
+
 	p->optionsLoaded = 1;
 }
 void updateOptionsVal()
@@ -1130,6 +1135,7 @@ char * optionsCase[] = {
 "WWWWWWWWWW",
 " ",
 "eeeee            ffffffff          ggggggg",
+"YYYYYYYYYY",
 NULL,
 };
 
@@ -1411,6 +1417,10 @@ int handleOptionPress(int mouseX, int mouseY)
 			fwl_set_modulation(opt - 'e');
 		}
 		break;
+	case 'Y': {
+		fwl_setDrawRig(1 - fwl_getDrawRig());
+		break;
+	}
 
 	default: 
 		break;

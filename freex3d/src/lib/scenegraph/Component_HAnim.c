@@ -300,7 +300,7 @@ struct X3D_HAnimHumanoid * peek_humanoid(){
 	return stack_top(struct X3D_HAnimHumanoid *, p->humanoid_stack);
 }
 void push_joint_center(float *center) {
-	//push alread transformed to humanoid root coords
+	//push already transformed to humanoid root coords
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	double modelview[16], rootmat[16], a[3], r[3];
 	struct SFVec3f rcenter;
@@ -319,6 +319,10 @@ float* peek_joint_center() {
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	struct SFVec3f* cc = stack_top_ptr(struct SFVec3f, p->joint_center);
 	return cc->c;
+}
+int joint_center_count() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return p->joint_center->n;
 }
 void push_bone(float *head, float* tail) {
 	//assume head,tail already transformed into Humanoid root coordinates
@@ -368,7 +372,7 @@ void compile_HAnimJoint (struct X3D_HAnimJoint *node){
 	MARK_NODE_COMPILED
 
 }
-void render_rig_bone(double* pmat, struct X3D_HAnimJoint* joint, double* jointmat);
+
 void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 
 
@@ -638,65 +642,37 @@ void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	//printf ("rendering HAnimHumanoid DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 
 }
-void render_rig_segment(float* jcenter) {
-	//needs work, idea is to render rig, based on absolute centers, 
-	// and rely on parent transform stack to orient.
-	// works a bit but lots of misses, don't know what to conclude or what to fix.
 
-	float extent[6], scale, size[3], center[3], diff[3], add[3];
-	vecdif3f(diff, peek_joint_center(), jcenter);
-	scale = veclength3f(diff);
-	vecadd3f(add, peek_joint_center(), jcenter);
-	vecscale3f(center, add, .5f);
-	size[0] = size[2] = scale*.1;
-	size[1] = scale;
-	bbox2extent6f(center, size, extent);
-	extent6f_draw(extent);
-}
-int fwl_getDrawHAnimRig() {
-	return TRUE;
-}
+
 void line_draw(float* p, float* q, int depthtest, float linewidth);
 
 void render_rig_bones() {
-	//renders the whole skeletal rig as bones
+	//renders the whole skeletal rig as bones, after skin rendered 
 	//coordinates are in hanim root local
 	//turn off depth testing
-	glDisable(GL_DEPTH_TEST);
-	//iterate over pre-transformed bone (head,tail) pairs drawing bone
-	for (int i = 0; i < bone_count(); i++) {
-		bone *b = peek_bone(i);
-		line_draw(b->head, b->tail, TRUE, 3);
-	}
-	//turn on depth testing
-	glEnable(GL_DEPTH_TEST);
-	clear_bones();
-}
-//struct Vector *JT
-void render_rig_bone(double *pmat, struct X3D_HAnimJoint *joint, double *jointmat) {
-	if (renderstate()->render_geom && fwl_getDrawHAnimRig()) {
-		struct X3D_HAnimJoint *parent = vector_get(struct X3D_HAnimJoint*, joint->_parentVector, 0);
-		struct X3D_HAnimJoint* p = (struct X3D_HAnimJoint*)parent;
-		double pp[3], qq[3];// , * pmat;
-		float pf[3], qf[3];
-		//pmat = stack_top(JMATRIX, JT).mat;
-		//float2double(pp, p->center.c, 3);
-		float2double(pp, peek_joint_center(), 3);
-		transformAFFINEd(pp, pp, pmat);
-		float2double(qq, joint->center.c, 3);
-		//transformAFFINEd(qq, qq, pmat); // jointmat);
-		double2float(pf, pp, 3);
-		double2float(qf, qq, 3);
-		line_draw(pf, qf, FALSE, 3.0f);
+	if (fwl_getDrawRig()) {
+		glDisable(GL_DEPTH_TEST);
+		//iterate over pre-transformed bone (head,tail) pairs drawing bone
+		for (int i = 0; i < bone_count(); i++) {
+			bone* b = peek_bone(i);
+			line_draw(b->head, b->tail, TRUE, 3);
+		}
+		//turn on depth testing
+		glEnable(GL_DEPTH_TEST);
+		clear_bones();
 	}
 }
 void save_rig_bone(struct X3D_HAnimJoint* joint, double* jointmat) {
-	double a[3], r[3];
-	float rcenter[3];
-	float2double(a, joint->center.c,3);
-	transformAFFINEd(r, a, jointmat);
-	double2float(rcenter, r, 3);
-	push_bone(peek_joint_center(), rcenter);
+	if(fwl_getDrawRig())
+	if (joint_center_count()) {
+		double a[3], r[3];
+		float rcenter[3];
+		float2double(a, joint->center.c, 3);
+		transformAFFINEd(r, a, jointmat);
+		double2float(rcenter, r, 3);
+
+		push_bone(peek_joint_center(), rcenter);
+	}
 }
 void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	int i,j, jointTransformIndex;
@@ -712,13 +688,9 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	HH = peek_humanoid();
 	if(HH){
 		JT = HH->_JT;
-		// needs work, needs a launch parameter or HAnim field flag
-		if(0) render_rig_segment(node->center.c);
-
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
-		//double* pmat = stack_top(JMATRIX, JT).mat;
 		if (1) save_rig_bone(node, jointMatrix.mat);
 
 		//any motion nodes enabled? if so apply current frame transform
@@ -1050,9 +1022,9 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	}
 
 	float zerocenter[3];
-	push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
+	//push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
-	pop_joint_center();
+	//pop_joint_center();
 
 	if(node->skin.n){
 		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
@@ -1176,7 +1148,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		}
 	} //if skin
 	//if (renderstate()->render_geom) printf("humanoid gets geom and other=%d\n",renderstate()->render_other);
-	if (fwl_getDrawHAnimRig()) render_rig_bones();
+	render_rig_bones(); //rendered last so depth testing can be disabled
 
 	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	//printf("bboxCenter %f %f %f size %f %f %f\n", node->bboxCenter.c[0], node->bboxCenter.c[1], node->bboxCenter.c[2],

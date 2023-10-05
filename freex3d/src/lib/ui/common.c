@@ -84,6 +84,7 @@ typedef struct pcommon{
 	int jsengine_variant;
 	int draw_bounding_boxes;
 	int show_viewpoints;
+	int draw_rig;
 	int record_inputs;
 	int playback_inputs;
 	double start_time;
@@ -118,6 +119,7 @@ void common_init(struct tcommon *t){
 		p->jsengine = JSENGINE_STUB;
 		p->draw_bounding_boxes = FALSE;
 		p->show_viewpoints = FALSE;
+		p->draw_rig = FALSE;
 #ifdef JAVASCRIPT_DUK
 		p->jsengine = JSENGINE_DUK;
 #endif
@@ -1028,4 +1030,12 @@ void fwl_setShowViewpoints(int show){
 int fwl_getShowViewpoints(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->show_viewpoints; //0 means off, 1 means on
+}
+void fwl_setDrawRig(int draw) {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->draw_rig = draw; //0 means off, 1 means on
+}
+int fwl_getDrawRig() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->draw_rig; //0 means off, 1 means on
 }

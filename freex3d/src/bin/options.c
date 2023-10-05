@@ -107,6 +107,7 @@ void fv_usage()
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
 		"  -X|--viewpoints         Show viewpointss\n"
+		"  -l|--rig                Draw HAnim rig\n"
 		"  -M|--midi <int>         choose MIDI transport 1=msg 2=ump\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
@@ -147,6 +148,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	//{"fast", no_argument, 0, 'f'},
 	{"linewidth", required_argument, 0, 'W'},
 	//{"nocollision", no_argument, 0, 'Q'},
+	{"rig",no_argument,0,'l'},
 
 	{"gif", no_argument, 0, 'p'},
 	{"snapfile", required_argument, 0, 'n'},
@@ -223,7 +225,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:xM:"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:xM:l"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -519,6 +521,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'k': /* --instance, required argument: number */
 	    sscanf(optarg,"%u",(unsigned int *)(void *)(&_fw_instance));
 	    break;
+
+	case 'l': /* --rig no arg*/
+		fwl_setDrawRig(TRUE);
+		break;
 
 	case 'L': /* --logfile, required argument: log filename */
 	    if (optarg) {

@@ -61,6 +61,8 @@ int fwl_getDrawBoundingBoxes();
 void fwl_set_depth_slices(int nslices);
 int fwl_get_depth_slices();
 void fwl_setShowViewpoints(int show);
+void fwl_setDrawRig(int draw);
+int fwl_getDrawRig();
 int fwl_getShowViewpoints();
 #ifdef _MSC_VER
 #define snprintf _snprintf
