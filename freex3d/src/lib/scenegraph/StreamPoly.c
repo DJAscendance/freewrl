@@ -279,10 +279,12 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 
 		if (r->tcoordtype == NODE_TextureCoordinate) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
-			textureCoordPoint[0] = &(texCoordNode->point);
-			nmtexcoord = 1;
-			ntexdim[0] = 2;
-			map[0] = texCoordNode->mapping ? texCoordNode->mapping->strptr : NULL;
+			if (texCoordNode) {
+				textureCoordPoint[0] = &(texCoordNode->point);
+				nmtexcoord = 1;
+				ntexdim[0] = 2;
+				map[0] = texCoordNode->mapping ? texCoordNode->mapping->strptr : NULL;
+			}
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate3D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -588,19 +590,22 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					// get the 2 tex coords from here, and copy them over to newTexCoords
 					ndim = ntexdim[k];
 					me = (float*)textureCoordPoint[k]->p; //[j]; //lets hope struct SFVec2f is same layout as float[2]
-					me = &me[j*ndim];
-					if(jj){
-						//experiment for when not enough texture coordinates
-						newTexCoords[k][i*ndim] = me[0]/(float)(jj); 
-						newTexCoords[k][i*ndim+1] = me[1]/(float)(jj); 
-					}else{
-						newTexCoords[k][i*ndim] = me[0];
-						newTexCoords[k][i*ndim+1] = me[1];
+					if (me) {
+						me = &me[j * ndim];
+						if (jj) {
+							//experiment for when not enough texture coordinates
+							newTexCoords[k][i * ndim] = me[0] / (float)(jj);
+							newTexCoords[k][i * ndim + 1] = me[1] / (float)(jj);
+						}
+						else {
+							newTexCoords[k][i * ndim] = me[0];
+							newTexCoords[k][i * ndim + 1] = me[1];
+						}
+						if (ndim > 2)
+							newTexCoords[k][i * ndim + 2] = me[2]; //me.c[1];
+						if (ndim > 3)
+							newTexCoords[k][i * ndim + 3] = me[3]; //me.c[1];
 					}
-					if(ndim>2)
-						newTexCoords[k][i*ndim+2] = me[2]; //me.c[1];
-					if(ndim>3)
-						newTexCoords[k][i*ndim+3] = me[3]; //me.c[1];
 				} else if(k==0) {
 					/* default textures */
 					/* we want the S values to range from 0..1, and the

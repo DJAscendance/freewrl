@@ -415,8 +415,8 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 					if(HM->transitionWeight > 0.0){
 						//printmatrix(jointMatrix.mat);
 						FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
-						double dmat[16];
-						memcpy(dmat, modelviewMatrix, 16 * sizeof(double));
+						//double dmat[16];
+						//memcpy(dmat, modelviewMatrix, 16 * sizeof(double));
 
 						update_jointMatrixFromMotion(X3D_NODE(HM),node->name->strptr,modelviewMatrix);
 
