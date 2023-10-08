@@ -1121,7 +1121,7 @@ typedef ptw32_handle_t pthread_t;
 
 
                 //audioClipNode->start((float)pnode->startTime); //do we need to convert to labsound absolute time from x3d absolute time?
-                //audioClipNode->schedule(0.0, -1); // -1 to loop forever
+                audioClipNode->schedule(0.0, -1); // -1 to loop forever
 
 
             }
@@ -1136,8 +1136,9 @@ typedef ptw32_handle_t pthread_t;
                     pnode->__context_paused = FALSE;
                 }
                 SchedulingState status = audioClipNode_ptr->playbackState();
-                if (status == SchedulingState::PLAYING) {
-                    if (pnode->isActive == FALSE)
+                if (status == SchedulingState::PLAYING){
+                    //if (pnode->isActive == FALSE)
+                    if (pnode->isPaused == TRUE)
                         audioClipNode_ptr->stop(0.0);
                     if (pnode->isPaused == TRUE) {
                         ac->context->suspend();
