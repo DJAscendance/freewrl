@@ -731,6 +731,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		//step 3, add transform index and weight to each skin vertex
 		PVW = (float*)HH->_PVW;
 		PVI = (float*)HH->_PVI;
+		if(PVW && PVI)
 		for(i=0;i<node->skinCoordIndex.n;i++){
 			int idx = node->skinCoordIndex.p[i];
 			float wt = node->skinCoordWeight.n ? node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)] : 1.0f;
@@ -1506,65 +1507,68 @@ float *parse_float_values(int n, char *str){
 #define DEGREES_PER_RADIAN (double)57.2957795130823208768
 void compile_HAnimMotion(struct X3D_HAnimMotion *node) {
 	//motion data
-
-	//parse jouint names
-	struct Vector *jnames = parse_joint_names(X3D_NODE(node),node->joints->strptr);
-	printf("\n");
-	for(int i=0;i<jnames->n;i++)
-		printf("%d %s\n",i,vector_get(char*,jnames,i));
-	int njoints = jnames->n;
-
-	//parse channels
-	struct joint_frame_motion *chan = malloc(njoints * sizeof(struct joint_frame_motion));
-	int channelcount = parse_channels(node->channels->strptr,njoints,chan);
-	//in theory channelcount is how many floats to advance in fvalues to get the next frame pointer.
-
-
-	for(int i=0;i<njoints;i++){
-		chan[i].jname = vector_get(char*,jnames,i);
-		printf("joint %d nchan %d ",i, chan[i].nchan);
-		for(int j=0;j<chan[i].nchan;j++){
-			printf("%s ",channame_lookup(chan[i].ichan[j]));
-		}
+	if (node->frameCount == 0) {
+		//parse jouint names
+		struct Vector* jnames = parse_joint_names(X3D_NODE(node), node->joints->strptr);
 		printf("\n");
-	}
-	//parse float frame data
-	//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
-	float* fvalues = node->values.p;
-	if (channelcount)
-		node->frameCount = node->values.n / channelcount;
-	else
-		node->frameCount = 0;
-	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion,frameCount));
+		for (int i = 0; i < jnames->n; i++)
+			printf("%d %s\n", i, vector_get(char*, jnames, i));
+		int njoints = jnames->n;
 
-	//convert degrees to radians
-	for(int iframe=0;iframe<node->frameCount;iframe++){
-		float *fv = &fvalues[iframe * channelcount];
-		int kchan = 0;
-		for(int j=0;j<njoints;j++){
-			//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
-			for(int k=0;k<chan[j].nchan;k++){
-				if(chan[j].ichan[k] < 4)
-					fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
-				//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
-				kchan++;
+		//parse channels
+		struct joint_frame_motion* chan = malloc(njoints * sizeof(struct joint_frame_motion));
+		int channelcount = parse_channels(node->channels->strptr, njoints, chan);
+		//in theory channelcount is how many floats to advance in fvalues to get the next frame pointer.
+
+
+		for (int i = 0; i < njoints; i++) {
+			chan[i].jname = vector_get(char*, jnames, i);
+			printf("joint %d nchan %d ", i, chan[i].nchan);
+			for (int j = 0; j < chan[i].nchan; j++) {
+				printf("%s ", channame_lookup(chan[i].ichan[j]));
 			}
-			//printf("\n");
+			printf("\n");
 		}
+		//parse float frame data
+		//float *fvalues = parse_float_values(node->frameCount * channelcount, node->values->strptr);
+		float* fvalues = node->values.p;
+		if (channelcount)
+			node->frameCount = node->values.n / channelcount;
+		else
+			node->frameCount = 0;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion, frameCount));
+
+		//convert degrees to radians
+		for (int iframe = 0; iframe < node->frameCount; iframe++) {
+			float* fv = &fvalues[iframe * channelcount];
+			int kchan = 0;
+			for (int j = 0; j < njoints; j++) {
+				//printf("%s %d \n",vector_get(char*,jnames,j),chan[j].nchan);
+				for (int k = 0; k < chan[j].nchan; k++) {
+					if (chan[j].ichan[k] < 4)
+						fv[kchan] *= RADIANS_PER_DEGREE; //PI / 180.0; //
+					//printf("%d %5.2f ",chan[j].ichan[k],chan[j].ichan[k] < 4 ? fv[kchan]*180.0/PI : fv[kchan]);
+					kchan++;
+				}
+				//printf("\n");
+			}
+		}
+
+		//we won't 'map' to parent during compile - we'll find the motion joint -if any- on the fly in HAnimJoint function(s)
+
+		//frame state
+		//?? anything to do?
+		node->_njoints = njoints;
+		node->_channelcount = channelcount;
+		node->_fvalues = fvalues;
+		node->_channels = chan;
+		node->_framevalues = fvalues;
+		//node->startFrame = 0;
+		if (node->endFrame == 0) node->endFrame = node->frameCount - 1;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion, frameCount));
+		printf("frameCount %d startFrame %d endFrame %d channels %d\n",
+			node->frameCount, node->startFrame, node->endFrame, node->_channelcount);
 	}
-
-	//we won't 'map' to parent during compile - we'll find the motion joint -if any- on the fly in HAnimJoint function(s)
-
-	//frame state
-	//?? anything to do?
-	node->_njoints = njoints;
-	node->_channelcount = channelcount;
-	node->_fvalues = fvalues;
-	node->_channels = chan;
-	node->_framevalues = fvalues;
-	//node->startFrame = 0;
-	if(node->endFrame == 0) node->endFrame = node->frameCount -1;
-	MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion, frameCount));
 	MARK_NODE_COMPILED
 }
 void render_HAnimMotion(struct X3D_HAnimMotion *node) {
@@ -1624,7 +1628,10 @@ void render_HAnimMotion(struct X3D_HAnimMotion *node) {
 		node->elapsedTime = TickTime();
 		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_HAnimMotion, elapsedTime));
 	}
+	int last_index = node->frameIndex;
 	node->frameIndex = index;
+	if (last_index != index)
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_HAnimMotion, frameIndex));
 	frame_values = &fvalues[node->frameIndex * channelcount];
 	node->_framevalues = frame_values; //frame pointer into big array of floats, good for current frame only
 }

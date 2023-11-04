@@ -2390,8 +2390,8 @@ void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 			if (pp->permutationIndex == -1)
 				pp->permutationIndex = uniformRand() * HP->permutations.n;
 			HP->index = pp->permutationIndex;
-			render_node(HP);
-			HH = HP->humanoid;
+			render_node(X3D_NODE(HP));
+			HH = (struct X3D_HAnimHumanoid*)HP->humanoid;
 		}
 		struct X3D_HAnimMotion* HM[2];
 		for (int j = 0; j < 2; j++) {
