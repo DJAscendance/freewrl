@@ -3433,10 +3433,30 @@ our %Nodes = (
                 _play => ["MFNode",[],"initializeOnly",0,0],#ff
 	],"X3DChildNode"),
 
+
+
+	"HAnimMotionOrientation" => new VRML::NodeType("HAnimMotionOrientation", [
+		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
+		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
+		#MotionPlay
+                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
+                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
+		channelsEnabled => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		enabled => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_lastenabled => ["SFBool","FALSE","inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		#Extra
+		joints => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		children => ["MFNode",[],"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
+		_jointnames => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+	],"X3DMotionNode"),
+
 	"HAnimMotion" => new VRML::NodeType("HAnimMotion", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		#MotionPlay
+                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
+                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		channelsEnabled => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		cycleTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3452,8 +3472,6 @@ our %Nodes = (
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
-                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		#MotionData
 		loa => ["SFInt32",-1,"inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		frameCount => ["SFInt32",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3472,6 +3490,8 @@ our %Nodes = (
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		#MotionPlay
+                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
+                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		channelsEnabled => ["MFBool", [], "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		cycleTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		elapsedTime => ["SFTime",0,"outputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
@@ -3487,8 +3507,6 @@ our %Nodes = (
 		next => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		previous => ["SFBool","FALSE","inputOnly", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40)","UNCA_NONE"],#ff
 		_framevalues => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
-                transitionWeight => ["SFFloat",0,"initializeOnly",0,0],#ff
-                transitionStart => ["SFTime",0,"initializeOnly",0,0],#ff
 		#extra
 		data => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
                 mapping => ["MFString",[],"initializeOnly",0,0],#ff

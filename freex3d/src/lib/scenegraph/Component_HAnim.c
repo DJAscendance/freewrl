@@ -1865,6 +1865,41 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			//printf("\n");
 		}
 	}
+	else if (HM && (HM->_nodeType == NODE_HAnimMotionOrientation)) {
+		//printf("update from orientation ");
+		struct X3D_HAnimMotionOrientation *HMO = (struct X3D_HAnimMotionOrientation*)HM;
+		struct Vector* jointnames = HMO->_jointnames;
+		float weight = HMO->transitionWeight;
+
+		if(jointnames && vectorSize(jointnames)){
+			double mat1[16];
+			int n = vectorSize(jointnames);
+			//printf("jointnames size %d ", n);
+			for (int i = 0; i < n; i++) {
+				char* hmoname = vector_get(char*, jointnames, i);
+				//printf("(%s,%s)", jname, hmoname);
+				if (!strcmp(jname, hmoname) && strcmp(jname,"IGNORE")) {
+					//printf(" %s",jname);
+					if (i < HMO->children.n) {
+						matidentity4d(mat1);
+
+						struct X3D_Node* inode = HMO->children.p[i];
+						if (inode->_nodeType == NODE_OrientationInterpolator) {
+							struct X3D_OrientationInterpolator* onode = (struct X3D_OrientationInterpolator*)inode;
+							//printf(" %d(%f %f %f %f)", i,onode->value_changed.c[0], onode->value_changed.c[1], onode->value_changed.c[2], onode->value_changed.c[3]);
+							struct SFRotation* sfr = &onode->value_changed;
+							matrixFromAxisAngle4d(mat1, -sfr->c[3]*weight,sfr->c[0],sfr->c[1], sfr->c[2]);
+							matmultiplyAFFINE(jmatrix0, mat1, jmatrix0);
+						}
+						else if (inode->_nodeType == NODE_PositionInterpolator) {
+
+						}
+					}
+				}
+			}
+		}
+	}
+
 }
 // <<<<<<<<< HAnimMotion ======================
 
@@ -2434,5 +2469,17 @@ void child_HAnimPermuter(struct X3D_HAnimPermuter* node){
 	node->humanoid = X3D_NODE(HH);
 	//now draw
 	//child_HAnimHumanoid(HH); // node->humanoid);
+
+}
+void compile_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation* node) {
+	struct Vector* jnames = parse_joint_names(X3D_NODE(node), node->joints->strptr);
+	node->_jointnames = jnames;
+	//printf("_jointnames size %d", vectorSize(jnames));
+	MARK_NODE_COMPILED
+}
+void render_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation* node) {
+	//we can expose something here -- a string of eulers
+	// or let the update_joint function do the work
+	COMPILE_IF_REQUIRED
 
 }
