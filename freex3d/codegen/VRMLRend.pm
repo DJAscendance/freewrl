@@ -1164,7 +1164,7 @@ our %ComponentC = map {($_=>1)} qw/
 	ParticleSystems
 	Picking
 	PointDeviceSensor
-	ProjectiveTextureMapping
+	TextureProjection
 	Shaders
 	Rendering
 	RigidBodyPhysics
@@ -1179,6 +1179,7 @@ our %ComponentC = map {($_=>1)} qw/
         MIDI
 /;
 
+#ProjectiveTextureMapping
 
 #######################################################################
 #

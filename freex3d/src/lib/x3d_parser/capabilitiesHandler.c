@@ -75,7 +75,7 @@ static const int capabilities[] = {
 	COM_ParticleSystems,	3, 	/* Nov 2016 */
 	COM_Sound,	1, 		/* May 12, 2009 */
 	COM_VolumeRendering,  4, /* Oct 1, 2016 */
-	COM_ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
 	COM_MIDI,		3,			/*July 2023*/
 	INT_ID_UNDEFINED, 	INT_ID_UNDEFINED,
 };
@@ -140,7 +140,7 @@ static const int FullProfile[] = {
 	COM_Picking,			3,
 	COM_Followers,			1,
 	COM_ParticleSystems,		3,
-	COM_ProjectiveTextureMapping, 2,
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2,
 	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
@@ -167,7 +167,7 @@ static const int ImmersiveProfile[] = {
 	COM_Scripting,			1,
 	COM_EventUtilities,		1,
 	COM_ParticleSystems,		3,
-	COM_ProjectiveTextureMapping, 2,
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2,
 	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
