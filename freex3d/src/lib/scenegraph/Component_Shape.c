@@ -1407,7 +1407,16 @@ int setupShaderB();
 void textureTransform_start();
 void reallyDraw();
 void sendProjectorInfo();
-
+static struct X3D_Shape* wrap_shape = NULL;
+void push_shape(struct X3D_Shape* node) {
+	wrap_shape = node;
+}
+void pop_shape() {
+	wrap_shape = NULL;
+}
+struct X3D_Shape* peek_shape() {
+	return wrap_shape;
+}
 void PRINT_GL_ERROR(GLenum _global_gl_err);
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
@@ -1644,7 +1653,7 @@ void child_Shape (struct X3D_Shape *node) {
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
 
 		//PRINT_GL_ERROR_IF_ANY("BEFORE render node");
-
+		push_shape(node);
 		render_node(tmpNG);
 		//PRINT_GL_ERROR_IF_ANY("AFTER render node");
 
@@ -1664,6 +1673,7 @@ void child_Shape (struct X3D_Shape *node) {
 			}
 
 		}
+		pop_shape();
 		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
 
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
@@ -1775,6 +1785,24 @@ void compile_Shape (struct X3D_Shape *node) {
 	//printf ("compile_Shape, node->_shaderTableEntry is %x\n",node->_shaderTableEntry);
 
 	MARK_NODE_COMPILED
+}
+static struct X3D_Shape *shape = NULL;
+static struct X3D_Appearance* appearance = NULL;
+static struct X3D_Material* material = NULL;
+void wrap_Shape(struct X3D_Node* node) {
+	//if there's a naked geometry node with no Shape wrapping it
+	// this function is called by render to wrap with a generic shape and render the geom
+	if (!shape) shape = createNewX3DNode(NODE_Shape);
+	shape->_executionContext = node->_executionContext;
+	if (!appearance) appearance = createNewX3DNode(NODE_Appearance);
+	appearance->_executionContext = node->_executionContext;
+	if (!material) material = createNewX3DNode(NODE_Material);
+	material->_executionContext = node->_executionContext;
+	shape->appearance = X3D_NODE(appearance);
+	appearance->material = X3D_NODE(material);
+	vecset3f(material->diffuseColor.c, .5f, .5f, .5f);
+	shape->geometry = node;
+	render_node(X3D_NODE(shape));
 }
 //void register_node_gc(void *node, void *p);
 

@@ -1398,7 +1398,8 @@ int render_foundSelectedViewpoint();
 void extent6f_draw(float *extent);
 static int draw_extents = TRUE;
 int is_vp_new_way();
-
+void wrap_Shape(struct X3D_Node* node);
+void* peek_shape();
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1571,7 +1572,11 @@ void render_node(struct X3D_Node *node) {
 			DEBUG_RENDER("rs 3\n");
 			PRINT_GL_ERROR_IF_ANY("BEFORE render_geom"); PRINT_NODE(node,virt);
 			profile_start("rend");
-			virt->rend(node);
+			if (getSAI_X3DNodeType(node->_nodeType) == X3DGeometryNode && peek_shape() == NULL)
+				wrap_Shape(node); // printf("geom node\n");
+			//void wrap_Shape(struct X3D_Node* node)
+			else
+				virt->rend(node);
 			profile_end("rend");
 			PRINT_GL_ERROR_IF_ANY("render_geom"); PRINT_NODE(node,virt);
 	}
