@@ -243,6 +243,13 @@ https://www.khronos.org/files/gltf20-reference-guide.pdf
 - freewrl needs this 
 x currenlty we are transforming mesh vertices in CPU on each frame - all CPU
 
+Dec 18, 2023
+- stream polyrep duplicates vertices to make simple streaming triangle set
+x that destroys indexability, so GPU skinning can't work on original indexes
+options: 
+1) change from stream_polyrep to index preserving methods
+2) map stream polyrep vertex indexes back to original indexes
+
 */
 typedef struct {
 	float head[3];
