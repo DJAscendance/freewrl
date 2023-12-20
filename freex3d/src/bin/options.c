@@ -225,7 +225,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:xM:l"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:xM:l\0"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -281,25 +281,25 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    /* Error handling */
 
 	case '?': /* getopt error: unknown option or missing argument */
-	    ERROR_MSG("ERROR: unknown option or missing argument to option: %c (%s)\n", 
+	    printf("ERROR: unknown option or missing argument to option: %c (%s)\n", 
 		     c, real_option_name);
 	    //fwExit(1);
-		return FALSE;
-	   // break;
+		//return TRUE;
+	    break;
 
 	    /* Options handling */
 
 	case 'h': /* --help, no argument */
 	    fv_usage();
 	    //fwExit(0);
-		return FALSE;
-	    //break;
+		//return FALSE;
+	    break;
 
 	case 'v': /* --version, no argument */
 	    fv_print_version();
 	    //fwExit(0);
-		return FALSE;
-	    //break;
+		//return FALSE;
+	    break;
 
 /* Window options */
 
@@ -563,7 +563,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	default:
 	    ERROR_MSG("ERROR: getopt returned character code 0%o, unknown error.\n", c);
 	    //fwExit(1);
-		return FALSE;
+		//return FALSE;
 	    break;
 	}
     }
