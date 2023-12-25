@@ -41,6 +41,7 @@ X3D H-Anim Component
 #include "../opengl/OpenGL_Utils.h"
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
+#include "Polyrep.h"
 #include "../opengl/Frustum.h"
 #include "LinearAlgebra.h"
 
@@ -249,7 +250,14 @@ x that destroys indexability, so GPU skinning can't work on original indexes
 options: 
 1) change from stream_polyrep to index preserving methods
 2) map stream polyrep vertex indexes back to original indexes
-
+Dec 25, 2023
+Decided to try #2 by making Cindex (already used for collision) into a VBO 
+- always created for polyrep (indexed face set etc geom types)
+- and only bound/sent to GPU if the shader has a use for it
+- so vertex shader will get a vertex attribute int that points to original vertex index
+- then for skinning that index will [index] image buffers
+   or SSBO holding skin weights and joint matrix indices
+- optionally for accelerating displacers, it can index back to a sum-of-displacements buffer
 */
 typedef struct {
 	float head[3];
@@ -641,7 +649,10 @@ enum {
 	VERTEXTRANSFORMMETHOD_CPU = 1,
 	VERTEXTRANSFORMMETHOD_GPU = 2,
 };
-static int vertexTransformMethod = VERTEXTRANSFORMMETHOD_CPU;
+static int vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
+int vertexTransformMethod() {
+	return vertex_transform_method;
+}
 char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
 
 void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
@@ -687,14 +698,17 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	struct X3D_HAnimHumanoid *HH;
 	JMATRIX jointMatrix;
 	Stack *JT;
-	float *PVW, *PVI;
+	float* PVW;
+	int* PVI;
+	struct X3D_HanimRep* hr;
 
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	//printf ("rendering HAnimJoint DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
 	
 	HH = peek_humanoid();
 	if(HH){
-		JT = HH->_JT;
+		hr = (struct X3D_HanimRep*)HH->_intern;
+		JT = hr->JT;
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
@@ -723,10 +737,10 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 
 		//if (0) render_rig_bone(JT, node, jointMatrix.mat);
 
-		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
+		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
 			//convert to quaternion + position
 			//add to HH transform list
-		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+		}else if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//step 2, add transform to HH transform list, get its index in list
 			stack_push(JMATRIX,JT,jointMatrix);
 		}
@@ -736,15 +750,15 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		jointTransformIndex = vectorSize(JT); 
 	
 		//step 3, add transform index and weight to each skin vertex
-		PVW = (float*)HH->_PVW;
-		PVI = (float*)HH->_PVI;
+		PVW = hr->PVW; // (float*)HH->_PVW;
+		PVI = hr->PVI; // (int*)HH->_PVI;
 		if(PVW && PVI)
 		for(i=0;i<node->skinCoordIndex.n;i++){
 			int idx = node->skinCoordIndex.p[i];
 			float wt = node->skinCoordWeight.n ? node->skinCoordWeight.p[min(i,node->skinCoordWeight.n -1)] : 1.0f;
 			for(j=0;j<4;j++){
-				if(PVI[idx*4 + j] == 0.0f){
-					PVI[idx*4 +j] = (float)jointTransformIndex;
+				if(PVI[idx*4 + j] == 0){
+					PVI[idx*4 +j] = jointTransformIndex;
 					PVW[idx*4 +j] = wt;
 				}
 			}
@@ -804,6 +818,12 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
 	INITIALIZE_EXTENT
+		if (!node->_intern) {
+			node->_intern = malloc(sizeof(struct X3D_HanimRep));
+			memset(node->_intern, 0, sizeof(struct X3D_HanimRep));
+		}
+	struct X3D_HanimRep* hr = (struct X3D_HanimRep*)node->_intern;
+	hr->itype = 9; 
 
 	push_humanoid(node);
 	if (node->motions.n) {
@@ -839,6 +859,14 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 		float ee[6];
 		struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
 		nsc = nc->point.n;
+		static int ionce = 0;
+		if (!ionce) {
+			printf("number of skin coord points %d", nsc);
+			ionce = 1;
+		}
+		else {
+			printf("^"); //a hint we are recompiling, for testing in Dec 2023
+		}
 		psc = (float*)nc->point.p;
 		node->_origCoords = realloc(node->_origCoords, nsc * 3 * sizeof(float));
 		memcpy(node->_origCoords, psc, nsc * 3 * sizeof(float));
@@ -881,24 +909,34 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	//allocate the joint-transform_index and joint-weight arrays
 	//Nov 2016: max 4: meaning each skinCoord can have up to 4 joints referencing/influencing it
 	//4 chosen so it's easier to port to GPU method with vec4
-	if (node->_NV == 0 || node->_NV != nsc) {
-		node->_PVI = realloc(node->_PVI, nsc * 4 * sizeof(float)); //indexes, up to 4 joints per skinCoord
-		node->_PVW = realloc(node->_PVW, nsc * 4 * sizeof(float)); //weights, up to 4 joints per skinCoord
-		node->_NV = nsc;
+	if (hr->NV == 0 || hr->NV != nsc) {
+		hr->PVI = realloc(hr->PVI, nsc * 4 * sizeof(int)); //indexes, up to 4 joints per skinCoord can be ivec4
+		hr->PVW = realloc(hr->PVW, nsc * 4 * sizeof(float)); //weights, up to 4 joints per skinCoord
+		hr->NV = nsc;
 	}
 	//allocate the transform array
-	if (node->_JT == NULL) {
-		if (vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU) {
-			//new stack quat + position
+	if (hr->JT == NULL) {
+		if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+			hr->JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
 		}
-		else if (vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU) {
-			node->_JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
+		else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+			hr->JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
 		}
 	}
 	node->_renderFlags |= VF_Geom; //a HAnimHumanoid is a child but also skin is geom
 	MARK_NODE_COMPILED
 	pop_humanoid();
 
+}
+static void * humanoid_skin_coord = NULL;
+void push_humanoid_skinCoord(void* coord) {
+	humanoid_skin_coord = coord;
+}
+void* peek_humanoid_skinCoord() {
+	return humanoid_skin_coord;
+}
+void pop_humanoid_skinCoord() {
+	humanoid_skin_coord = NULL;
 }
 
 void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
@@ -908,7 +946,8 @@ void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 	Stack *JT;
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 	COMPILE_IF_REQUIRED
-	//LOCAL_LIGHT_SAVE
+		//LOCAL_LIGHT_SAVE
+	struct X3D_HanimRep* hr = (struct X3D_HanimRep*)node->_intern;
 
 	/* any segments at all? */
 /*
@@ -994,9 +1033,9 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	/* do we have to sort this node? */
 	/* now, just render the non-directionalLight skeleton */
 	//skeleton is the basic thing to render for LOA 0
-	memset(node->_PVI,0,4*node->_NV*sizeof(float));
-	memset(node->_PVW,0,4*node->_NV*sizeof(float));
-	JT = node->_JT; 
+	memset(hr->PVI,0,4*hr->NV*sizeof(int));
+	memset(hr->PVW,0,4*hr->NV*sizeof(float));
+	JT = hr->JT; 
 	JT->n = 0;
 
 	//in theory, HH, HHMatrix could be a stack, so you could have an hanimhumaoid within an hanimhunaniod
@@ -1007,7 +1046,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		matinverseAFFINE(p->HHMatrix,modelviewMatrix);
 	}
 	if(node->skin.n){
-		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//save original coordinates before rendering skeleton
 			// - HAnimJoint may have displacers that change the Coords
 			//transform each vertex and its normal using weighted transform
@@ -1035,7 +1074,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	//pop_joint_center();
 
 	if(node->skin.n){
-		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//save original coordinates
 			//transform each vertex and its normal using weighted transform
 			int i,j,nsc = 0;
@@ -1058,24 +1097,25 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 					float totalWeight;
 					float *point, *norm; 
 					float newpoint[3], newnorm[3];
-					float *PVW, *PVI;
+					float* PVW;
+					int *PVI;
 
 					point = &psc[i*3];
 					norm = NULL;
 					if(nn) norm = &psn[i*3];
-					PVW = node->_PVW;
-					PVI = node->_PVI;
+					PVW = hr->PVW;
+					PVI = hr->PVI;
 
 					memset(newpoint,0,3*sizeof(float));
 					memset(newnorm,0,3*sizeof(float));
 					totalWeight = 0.0f;
 					for(j=0;j<4;j++){
-						int jointTransformIndex = (int)PVI[i*4 + j];
+						int jointTransformIndex = PVI[i*4 + j];
 						float wt = PVW[i*4 + j];
 						if(jointTransformIndex > 0){
 							float tpoint[3], tnorm[3];
 							JMATRIX jointMatrix;
-							jointMatrix = vector_get(JMATRIX,node->_JT,jointTransformIndex -1);
+							jointMatrix = vector_get(JMATRIX,hr->JT,jointTransformIndex -1);
 							transformf(tpoint,point,jointMatrix.mat);
 							vecscale3f(tpoint,tpoint,wt);
 							vecadd3f(newpoint,newpoint,tpoint);
@@ -1127,8 +1167,52 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				//setExtent(ee[0], ee[1], ee[2], ee[3], ee[4], ee[5], X3D_NODE(node));
 
 			}
-		}else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
-			//push shader flaga with += SKELETAL
+		}else if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+			//push shader flaga with += SKINNING (later in Shape or render_polyrep)
+			if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+				push_humanoid_skinCoord(node->skinCoord);
+#define USING_IMAGEBUFFER 1
+#ifdef USING_SSBO
+				//bind skin weights and joint indexes to SSBO once if not done yet
+				// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
+				
+				if (hr->bo_PVW == 0) {
+					struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
+					struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal; //might be NULL
+					int nsc = nc->point.n;
+					glGenBuffers(1, &hr->bo_PVW);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
+					glBufferData(GL_SHADER_STORAGE_BUFFER, nsc * sizeof(float) * 4, hr->PVW, GL_STATIC_READ); //sizeof(data) only works for statically sized C/C++ arrays.
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, hr->bo_PVW);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+					glGenBuffers(1, &hr->bo_PVI);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
+					glBufferData(GL_SHADER_STORAGE_BUFFER, nsc * sizeof(int) * 4, hr->PVI, GL_STATIC_READ); //sizeof(data) only works for statically sized C/C++ arrays.
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, hr->bo_PVI);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+
+			}
+#elif USING_IMAGEBUFFER //USING_IMAGEBUFFER
+				if (hr->bo_PVW == 0) {
+					struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
+					struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal; //might be NULL
+					int nsc = nc->point.n;
+					glGenBuffers(1, &hr->bo_PVW);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
+					glBufferData(GL_SHADER_STORAGE_BUFFER, nsc * sizeof(float) * 4, hr->PVW, GL_STATIC_READ); //sizeof(data) only works for statically sized C/C++ arrays.
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, hr->bo_PVW);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+					glGenBuffers(1, &hr->bo_PVI);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
+					glBufferData(GL_SHADER_STORAGE_BUFFER, nsc * sizeof(int) * 4, hr->PVI, GL_STATIC_READ); //sizeof(data) only works for statically sized C/C++ arrays.
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, hr->bo_PVI);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+				}
+
+#endif //USING SSBO
+				//re-set and bind joint matrices UBO
+
+			}
 		}
 		if(1) normalChildren(node->skin);
 		if(0) for (int j = 0; j < node->skin.n; j++) {
@@ -1137,9 +1221,14 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			printf("\n");
 		}
 
-		if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_GPU){
+		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
 			//pop shader flags
-		} else if(vertexTransformMethod == VERTEXTRANSFORMMETHOD_CPU){
+			if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+				//unbind joint matrices UBO
+				//unbind skin weights SSBO
+				pop_humanoid_skinCoord();
+			}
+		} else if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//restore original coordinates 
 			int nsc, nsn;
 			float *psc, *psn;
@@ -2489,4 +2578,17 @@ void render_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation* node) {
 	// or let the update_joint function do the work
 	COMPILE_IF_REQUIRED
 
+}
+
+void delete_HanimRep(void* _hanimrep) {
+	//call during node deletion > unRegisterX3DAnyNode > delete_geomrep
+	if (_hanimrep) {
+		struct X3D_HanimRep* hanimrep = _hanimrep;
+		if (hanimrep->JT) {
+			deleteStack(struct JMATRIX*, hanimrep->JT);
+		}
+		FREE_IF_NZ(hanimrep->PVI);
+		FREE_IF_NZ(hanimrep->PVW);
+		FREE_IF_NZ(_hanimrep);
+	}
 }

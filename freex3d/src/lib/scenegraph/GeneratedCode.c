@@ -83,11 +83,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"Gs",
 	"_CPU_Routes_out",
 	"_GPU_Routes_out",
-	"_JT",
-	"_NV",
 	"_OK",
-	"_PVI",
-	"_PVW",
 	"_T0",
 	"_T1",
 	"__DEFnames",
@@ -6955,10 +6951,6 @@ const int OFFSETS_HAnimHumanoid[] = {
 	(int) FIELDNAMES__lastMotionsEnabled, (int) offsetof (struct X3D_HAnimHumanoid, _lastMotionsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_transitionTime, (int) offsetof (struct X3D_HAnimHumanoid, transitionTime),  (int) FIELDTYPE_SFTime, (int) KW_inputOutput, (int) 0, (int) 0,
 	(int) FIELDNAMES_loa, (int) offsetof (struct X3D_HAnimHumanoid, loa),  (int) FIELDTYPE_SFInt32, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__JT, (int) offsetof (struct X3D_HAnimHumanoid, _JT),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__PVI, (int) offsetof (struct X3D_HAnimHumanoid, _PVI),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__PVW, (int) offsetof (struct X3D_HAnimHumanoid, _PVW),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES__NV, (int) offsetof (struct X3D_HAnimHumanoid, _NV),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__origCoords, (int) offsetof (struct X3D_HAnimHumanoid, _origCoords),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__origNorms, (int) offsetof (struct X3D_HAnimHumanoid, _origNorms),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES_jointBindingPositions, (int) offsetof (struct X3D_HAnimHumanoid, jointBindingPositions),  (int) FIELDTYPE_MFVec3f, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
@@ -13883,10 +13875,6 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_lastMotionsEnabled.n=0; tmp2->_lastMotionsEnabled.p=0;
 			tmp2->transitionTime = 0;
 			tmp2->loa = -1;
-			tmp2->_JT = 0;
-			tmp2->_PVI = 0;
-			tmp2->_PVW = 0;
-			tmp2->_NV = 0;
 			tmp2->_origCoords = 0;
 			tmp2->_origNorms = 0;
 			tmp2->jointBindingPositions.n=0; tmp2->jointBindingPositions.p=0;

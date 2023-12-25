@@ -761,7 +761,7 @@ void do_glNormal3fv(struct SFVec3f *dest, GLfloat *param) {
  ********************************************************************/
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
-
+void* peek_humanoid_skinCoord();
 void render_polyrep(void* node) {
 	//struct X3D_Virt *virt;
 	struct X3D_Node* renderedNodePtr;
@@ -871,6 +871,19 @@ void render_polyrep(void* node) {
 	}
 	else {
 		ConsoleMessage("skipping tds of textures");
+	}
+	//humanoid skinning
+	if (pr->VBO_buffers[CINDEX_VBO] != 0) {
+		PRINT_GL_ERROR_IF_ANY("");
+
+		//in child_humanoid before drawing skin we push the humanoid.coords 
+		// and in here if we set the joint index VBO and joint matrix UBO
+		printf("SKINNING ");
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[CINDEX_VBO]);
+		PRINT_GL_ERROR_IF_ANY("");
+		FW_GL_CINDEX_POINTER(GL_INT, 0, 0);
+		PRINT_GL_ERROR_IF_ANY("");
+
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[VERTEX_VBO]);
@@ -1751,6 +1764,7 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 	}
 
 	polyrep = (struct X3D_PolyRep*) node->_intern;
+	polyrep->coordinate_node = coord; //for testing if skinning elsewhere
 
 	/* Android, for instance, needs the VBO_buffers re-created. Check to see if this is the case here */
 	if (polyrep->VBO_buffers[VERTEX_VBO] == 0) {
@@ -1857,6 +1871,11 @@ void delete_geomrep(struct X3D_Node *node){
 		{
 			delete_LightRep(node->_intern);
 			node->_intern = NULL;
+	}
+	case 9: //HanimRep
+	{
+		delete_HanimRep(node->_intern);
+		node->_intern = NULL;
 	}
 	default:
 		break;

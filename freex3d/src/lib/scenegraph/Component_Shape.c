@@ -1417,6 +1417,7 @@ void pop_shape() {
 struct X3D_Shape* peek_shape() {
 	return wrap_shape;
 }
+void* peek_humanoid_skinCoord();
 void PRINT_GL_ERROR(GLenum _global_gl_err);
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
@@ -1498,7 +1499,19 @@ void child_Shape (struct X3D_Shape *node) {
 
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->geometry,tmpNG);
 
+
+
 		shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
+		//is it a humanoid skinning pass?
+		void* hsc = peek_humanoid_skinCoord(); //only pushed if GPU skinning
+		if (hsc) {
+			//does the geometry use the humanoid.skinCoord node?
+			struct X3D_PolyRep* pr = (struct X3D_PolyRep*)tmpNG->_intern;
+			if (pr->itype == 2 && pr->coordinate_node && pr->coordinate_node == hsc) {
+				shader_requirements.base |= SKINNING_SHADER;
+			}
+		}
+
 		shader_requirements.effects = node->_shaderflags_effects;
 		shader_requirements.usershaders = node->_shaderflags_usershaders;
 		isUserShader = shader_requirements.usershaders ? TRUE : FALSE; // >= USER_DEFINED_SHADER_START ? TRUE : FALSE;
@@ -1665,11 +1678,16 @@ void child_Shape (struct X3D_Shape *node) {
 			//reallyDraw();
 			reallyDrawOnce();
 			//PRINT_GL_ERROR_IF_ANY("child_shape after reallyDrawOnce");
-			GLenum _global_gl_err = glGetError(); 
-			while (_global_gl_err != GL_NONE) {
-				PRINT_GL_ERROR(_global_gl_err);
-				printf(" here: %s (%s:%d)\n", "child_shape after reallyDrawOnce", __FILE__, __LINE__);
-				_global_gl_err = glGetError();
+			static int err_count = 0;
+			if (err_count < 10) {
+				//just 10 reports, then end user gets the idea
+				GLenum _global_gl_err = glGetError();
+				while (_global_gl_err != GL_NONE && err_count < 10) {
+					PRINT_GL_ERROR(_global_gl_err);
+					printf(" here: %s (%s:%d)\n", "child_shape after reallyDrawOnce", __FILE__, __LINE__);
+					_global_gl_err = glGetError();
+					err_count++;
+				}
 			}
 
 		}

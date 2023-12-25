@@ -60,7 +60,7 @@ shaderflags changed from int to struct { int, int, int }
 */
 
 typedef struct {
-int base;
+unsigned int base;
 int effects;
 int usershaders; 
 int volume;
@@ -121,6 +121,7 @@ enum {
 #define HAVE_PROJECTIVETEXTURE	0X20000000
 #define LINE_PROPERTIES_SHADER	0X40000000
 #define POINT_PROPERTIES_SHADER 0x80000000
+#define SKINNING_SHADER			0X100000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume

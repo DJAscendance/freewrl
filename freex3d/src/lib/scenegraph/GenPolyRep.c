@@ -1268,7 +1268,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 				/* Triangle Coordinate */
 				cindex [vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
 
-				/* printf ("vertex  %d  gic %d cindex %d\n",vert_ind,global_IFS_Coords[i],cindex[vert_ind]); */
+				// printf ("vertex  %d  gic %d cindex %d\n",vert_ind, tg->Tess.global_IFS_Coords[i],cindex[vert_ind]);
 
 				/* Vertex Normal */
 				if(nnormals) {

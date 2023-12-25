@@ -517,6 +517,9 @@ uniform mat4 fw_ModelViewInverseMatrix; \n\
 //#endif //CUB \n\
 attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
+#if SKINNING \n\
+attribute int fw_Cindex; \n\
+#endif //SKINNING \n\
 #if defined(LINETYPE) && defined(FULL) \n\
 //desktop glsl 130 \n\
 //glsl desktop version 130 can do flat instead of varying \n\
@@ -4046,6 +4049,10 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	if(DESIRE(whichOne.base,PARTICLE_SHADER)){
 		AddDefine(SHADERPART_VERTEX,"PARTICLE",CompleteCode);
 	}
+	if (DESIRE(whichOne.base, SKINNING_SHADER)) {
+		AddDefine(SHADERPART_VERTEX, "SKINNING", CompleteCode);
+	}
+
 	//EFFECTS - castle game engine effect nodes X3D_Effect with plugs applied here
 	EnableEffects(CompleteCode,&unique_int);
 

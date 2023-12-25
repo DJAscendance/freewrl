@@ -3122,6 +3122,7 @@ static void getShaderCommonInterfaces (s_shader_capabilities_t *me) {
 	me->Normals = GET_ATTRIB(myProg,"fw_Normal");
 	me->Colours = GET_ATTRIB(myProg,"fw_Color");
 	me->FogCoords = GET_ATTRIB(myProg,"fw_FogCoords");
+	me->Cindex = GET_ATTRIB(myProg, "fw_Cindex");
 
 
 	//for (i=0; i<MAX_MULTITEXTURE; i++) {

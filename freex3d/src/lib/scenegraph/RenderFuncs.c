@@ -571,7 +571,18 @@ ConsoleMessage ("myType %d, dataSize %d, dataType %d, stride %d\n",myType,dataSi
 
 		}
 			break;
+		case FW_CINDEX_POINTER_TYPE:
+			if (me->Cindex != -1) {
+				PRINT_GL_ERROR_IF_ANY("");
 
+				glEnableVertexAttribArray(me->Cindex);
+				PRINT_GL_ERROR_IF_ANY("");
+
+				glVertexAttribPointer(me->Cindex, dataSize, dataType, normalized, stride, pointer);
+				PRINT_GL_ERROR_IF_ANY("");
+
+			}
+			break;
 		default : {printf ("sendAttribToGPU, unknown type in shader\n");}
 	}
 }

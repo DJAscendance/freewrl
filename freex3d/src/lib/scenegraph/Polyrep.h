@@ -64,12 +64,21 @@ struct bufAccess {
 
 
 // structs that go in void * node->_intern field
+// basically a dumping ground for node-specific states that don't belong in public fields
 struct X3D_InternalRep {
 	//abstract type for all that go in _intern
-	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep 8 MidiRep
+	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep 6 ProjectorRep 7 SoundRep 8 MidiRep 9 HanimRep
 };
 
-
+struct X3D_HanimRep {
+	int itype; //9 HanimRep
+	int* PVI;
+	float* PVW;
+	int NV;
+	GLuint bo_PVI;
+	GLuint bo_PVW;
+	Stack* JT;
+};
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
 	int decoded;  //0=still .jgp/.png/.gif 1=parsed into rectangular rgba texture blob
@@ -196,6 +205,7 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	float* actualFog; /* float (per point) */
 	float* color; /* triples or null */
 	float* normal; /* triples or null */
+	GLuint* vindex; //index to original vertex, used for humanoid skinning, displacers
 	float* flat_normal; /*triples or null*/
 	int last_normal_type; /* 0=regular 1=flat last normal type we put in the vbo normal buffer */
 	int last_index_type; /* 0=regular 1=wire last vertex index type we put in the vbo index buffer */
@@ -208,6 +218,7 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLfloat maxVals[3];		/* for collision and default texture coord generation */
 	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
 	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
+	void* coordinate_node; //we need to know when we are skinning, populate during make_polyrep for testing against a stack push of humanoid.coord
 };
 void findExtentInCoord0(struct X3D_Node* node, int count, float* coord, int dimensions);
 

@@ -368,6 +368,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	newtcindex = MALLOC (GLuint *, sizeof (GLuint)*r->ntri*3);
 
 	newpoints = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)*r->ntri*3);
+
 	if(fogpoints)
 		newfog = MALLOC (float *, sizeof(float)*r->ntri*3);
 
@@ -716,6 +717,11 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		if (r->VBO_buffers[FOG_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[FOG_VBO]);            
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
 		glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
+	}
+	if (r->cindex) {
+		if (r->VBO_buffers[CINDEX_VBO] == 0) glGenBuffers(1, &r->VBO_buffers[CINDEX_VBO]);
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
+		glBufferData(GL_ARRAY_BUFFER, r->ntri * sizeof(int) * 3, r->cindex, GL_STATIC_DRAW);
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[VERTEX_VBO]);

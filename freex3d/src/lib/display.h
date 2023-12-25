@@ -321,7 +321,8 @@ GLEWContext * glewGetContext();
 #define TEXTURE_VBO1 6
 #define TEXTURE_VBO2 7
 #define TEXTURE_VBO3 8
-#define VBO_COUNT 9
+#define CINDEX_VBO 9
+#define VBO_COUNT 10
 
 
 void fv_setScreenDim(int wi, int he);
@@ -440,6 +441,7 @@ typedef struct s_shader_capabilities{
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
 	GLint nTexCoordChannels;
+	GLint Cindex;
 	GLint flipuv;
 	GLint FogCoords; //Aug 2016
 	GLint prevVertex; //for dashed lines
@@ -855,6 +857,7 @@ void resetGeometry();
 	#define FW_FOG_POINTER_TYPE 33888 //?? how geenerate these numbers
 	#define FW_COLOR_POINTER_TYPE 12453
 	#define FW_TEXCOORD_POINTER_TYPE 67655
+	#define FW_CINDEX_POINTER_TYPE 67644
 	//void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line);
 	//                           datasize, dataType, stride, pointer
 	#define FW_GL_VERTEX_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
@@ -863,6 +866,8 @@ void resetGeometry();
 	#define FW_GL_NORMAL_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
 	#define FW_GL_FOG_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
 	#define FW_GL_TEXCOORD_POINTER(dataSize, dataType, stride, pointer, texID) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,texID,__FILE__,__LINE__); }
+	#define FW_GL_CINDEX_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_CINDEX_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+
 	#define FW_GL_BINDBUFFER(target,buffer) {sendBindBufferToGPU(target,buffer,__FILE__,__LINE__); }
 
 
