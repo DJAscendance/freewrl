@@ -520,28 +520,15 @@ attribute vec4 fw_Vertex; \n\
 attribute vec3 fw_Normal; \n\
 #ifdef SKINNING \n\
 attribute int fw_Cindex; \n\
-#define SSBO 1 \n\
-#ifdef SSBO \n\
 layout (std430, binding = 10) buffer BufferBlock1 { \n\
   vec4 PVW []; \n\
 }; \n\
 layout (std430, binding = 11) buffer BufferBlock2 { \n\
   ivec4 PVI []; \n\
 }; \n\
-#else //SSBO \n\
-layout (binding = 3, rgba32f) uniform imageBuffer1 PVW; \n\
-layout (binding = 4, rgba32i) uniform imageBuffer2 PVI; \n\
-#endif //SSBO \n\
-//#define JT_UBO 1 \n\
-#ifdef JT_UBO \n\
-layout (std140, binding = 12) uniform UniformBlock1 { \n\
-  mat4 JT[144]; //if you need an array size use LOA 144 joints\n\
-}; \n\
-#else //JT_UBO \n\
 layout (std430, binding = 12) buffer BufferObject { \n\
   mat4 JT[]; \n\
 }; \n\
-#endif //JT_UBO \n\
 #endif //SKINNING \n\
 #if defined(LINETYPE) && defined(FULL) \n\
 //desktop glsl 130 \n\
@@ -886,33 +873,13 @@ void main(void) \n\
   //\n\
   vec4 vertex_object = fw_Vertex; \n\
   #ifdef SKINNING \n\
-#ifdef SSBO \n\
   ivec4 pvi = PVI[fw_Cindex]; \n\
   vec4 pvw = PVW[fw_Cindex]; \n\
-#else //SSBO \n\
-  //USING_IMGBUF \n\
-  ivec4 pvi = imageLoad(PVI, fw_Cindex); \n\
-  vec4 pvw = imageLoad(PVW,fw_Cindex); \n\
-#endif //SSBO \n\
   vertex_object = vec4(0.0); \n\
   vertex_object += JT[pvi.r-1]*pvw.r*fw_Vertex; \n\
   vertex_object += JT[pvi.g-1]*pvw.g*fw_Vertex; \n\
   vertex_object += JT[pvi.b-1]*pvw.b*fw_Vertex; \n\
   vertex_object += JT[pvi.a-1]*pvw.a*fw_Vertex; \n\
-  #endif //SKINNING \n\
-  #ifdef SK_INNING \n\
-  //float testshift = 0.0; \n\
-  //if(fw_Cindex < 100 && fw_Cindex > 0) testshift = .1; \n\
-  //if(fw_Cindex > 100) testshift = -.1; \n\
-  //vertex_object.x +=  testshift; \n\
-  //float testy = 0.0; \n\
-  //ivec4 pvi = PVI[fw_Cindex]; \n\
-  //vertex_object += float(pvi)*.01; \n\
-  vec4 pvw = PVW[fw_Cindex]; \n\
-  vertex_object.xyz += pvw.xyz; \n\
-  //if(pvi >= 100) testy = .1; \n\
-  //if(pvi > 0 && pvi < 100) testy = -.1; \n\
-  //vertex_object.y += testy; \n\
   #endif //SKINNING \n\
   #ifdef PARTICLE \n\
   if(fw_ParticleGeomType != 4){ \n\

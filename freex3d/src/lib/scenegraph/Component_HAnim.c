@@ -675,7 +675,7 @@ void render_rig_bones() {
 		//iterate over pre-transformed bone (head,tail) pairs drawing bone
 		for (int i = 0; i < bone_count(); i++) {
 			bone* b = peek_bone(i);
-			line_draw(b->head, b->tail, TRUE, 3);
+			line_draw(b->head, b->tail, TRUE, 1.5);
 		}
 		//turn on depth testing
 		glEnable(GL_DEPTH_TEST);
@@ -1166,16 +1166,14 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
 					push_humanoid_skinCoord(node->skinCoord);
 					//#define USING_IMAGEBUFFER 1
-#define USING_SSBO 1
-#ifdef USING_SSBO
-				//untested just typed in
-				//bind skin weights and joint indexes to SSBO once if not done yet
-				// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
+
+					//bind skin weights and joint indexes to SSBO once if not done yet
+					// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
 
 					if (hr->bo_PVI == 0) {
 						//OGLPG 4.5 Chapter 11 Memory example 11.6 Creating a Buffer and Using It for Shader Storage
 						if (1) {
-							static int pvwonce = 0;
+							static int pvwonce = 1;// 0;
 							if (pvwonce == 0) {
 								for (int kk = 0; kk < hr->NV; kk++)
 								{
@@ -1195,14 +1193,14 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(float) * 4, hr->PVW, GL_STATIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 2");
 
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW);
+							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW); //GL 3+
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 3");
 
 							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 4");
 						}
 						if (1) {
-							static int pvionce = 0;
+							static int pvionce = 1; //0;
 							if (pvionce == 0) {
 								for (int kk = 0; kk < hr->NV; kk++)
 								{
@@ -1217,7 +1215,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							glGenBuffers(1, &hr->bo_PVI);
 							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 5");
-							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int) * 4, hr->PVI, GL_STATIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int) * 4, hr->PVI, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 6");
 							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 7");
@@ -1226,33 +1224,6 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						}
 
 					}
-#elif USING_IMAGEBUFFER //USING_IMAGEBUFFER
-					if (hr->bo_PVW == 0) {
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 0");
-						glCreateBuffers(1, &hr->bo_PVW);
-						glNamedBufferStorage(hr->bo_PVW, hr->NV * 4 * sizeof(float), hr->PVW, 0); //gl 4.5
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 1");
-						glCreateTextures(GL_TEXTURE_BUFFER, 1, &hr->tex_PVW); //gl 4.5
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 1b");
-						glTextureBuffer(hr->tex_PVW, GL_RGBA32F, hr->bo_PVW);
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 2");
-						glBindImageTexture(3, hr->tex_PVW, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 3");
-
-						glCreateBuffers(1, &hr->bo_PVI);
-						glNamedBufferStorage(hr->bo_PVI, hr->NV * 4 * sizeof(int), hr->PVI, 0); //gl 4.5
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 4");
-						glCreateTextures(GL_TEXTURE_BUFFER, 1, &hr->tex_PVI); //gl 4.5
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 5");
-						glTextureBuffer(hr->tex_PVI, GL_RGBA32I, hr->bo_PVI);
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 6");
-						glBindImageTexture(4, hr->tex_PVI, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32I);
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 7");
-						glBindTexture(GL_TEXTURE_BUFFER, 0);
-						PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF 8");
-					}
-
-#endif //USING SSBO
 					if (1) {
 						//# joints LAO1 18 LOA2 71 LOA3 94 LOA4 144 
 						// uniform blocks limited to 64k bytes
@@ -1265,46 +1236,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							//Q. do we need to transpose?
 							double2float(&hr->jt32[i * 16], jm->mat, 16);
 						}
-#define JT_UBO 0
-						if (JT_UBO) {
-							//re-set and bind joint matrices UBO
 
-							if (hr->ubo_JT == 0) {
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 0");
-								//glGenBuffers(1, &hr->ubo_JT);
-								glCreateBuffers(1, &hr->ubo_JT);
-								glBindBuffer(GL_UNIFORM_BUFFER, hr->ubo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 1");
-								glBindBufferBase(GL_UNIFORM_BUFFER, 12, hr->ubo_JT); //if you have more than one UBO in your shader give it an index
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 2");
-								//bit flags see Table 3.3 Buffer Flags in Opengl Programmers Guide 4.5 location 3561 in kindle
-								//on first pass nmat is 0, so we use LOA4 joint count 144
-								glBufferStorage(GL_UNIFORM_BUFFER, 144 * 16 * sizeof(float), NULL, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 3");
-							}
-							else {
-								glBindBuffer(GL_UNIFORM_BUFFER, hr->ubo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 4");
-								glBindBufferBase(GL_UNIFORM_BUFFER, 12, hr->ubo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim UBO 5");
-
-							}
-
-							//glClearNamedBufferData(hr->ubo_JT...) or glClearNamedBufferSubData(...)
-							//glNamedBufferSubData(hr->ubo_JT, 0, nmat * 16 * sizeof(float), hr->jt32);
-							void* bdata = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY); //access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
-							PRINT_GL_ERROR_IF_ANY("Hanim UBO 6");
-							memcpy(bdata, hr->jt32, nmat * 16 * sizeof(float));
-							glUnmapBuffer(GL_UNIFORM_BUFFER);
-							PRINT_GL_ERROR_IF_ANY("Hanim UBO 7");
-
-							//unsigned int jt = glGetUniformBlockIndex(program, "jointmatrix"); //find the block by block name
-							// if in shadeer you do layout(...,binding = 12) then you don't need to find block by name..
-							// glBindBufferBase(GL_UNIFORM_BUFFER,12, hr->ubo_JT); //..just use the index directly
-							//glUniformBlockBinding(program,block_index,binding_point_index);
-							glBindBuffer(GL_UNIFORM_BUFFER, 0);
-						}
-						else {
+						if(1){
 							//JT_SSBO
 							if (!hr->ubo_JT) {
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 0");
@@ -1322,7 +1255,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->ubo_JT);
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 5");
 							}
-							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
 							PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 6");
 							memcpy(bdata, hr->jt32, nmat * 16 * sizeof(float));
 							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -1385,14 +1318,7 @@ void sendSkinningInfo() {
 		struct X3D_HanimRep* hr = (struct X3D_HanimRep*)HH->_intern;
 		PRINT_GL_ERROR_IF_ANY("Hanim SENd 0");
 		if(1)
-		if (JT_UBO) {
-			glBindBuffer(GL_UNIFORM_BUFFER, hr->ubo_JT);
-			PRINT_GL_ERROR_IF_ANY("Hanim JT_UBO SENd 1");
-			glBindBufferBase(GL_UNIFORM_BUFFER, 12, hr->ubo_JT);
-			PRINT_GL_ERROR_IF_ANY("Hanim JT_UBO SENd 2");
-
-		}
-		else {
+		{
 			//JT_SSBO
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->ubo_JT);
 			PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO SENd 3");
@@ -1401,7 +1327,7 @@ void sendSkinningInfo() {
 
 		}
 
-#ifdef USING_SSBO
+
 		if (1) {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW);
@@ -1410,13 +1336,7 @@ void sendSkinningInfo() {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
 		}
-#else //USING_SSBO
-		//USING_IMAGE_BUFFER
-		glBindImageTexture(3, hr->tex_PVW, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF SENd 1");
-		glBindImageTexture(4, hr->tex_PVI, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32I);
-		PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF SENd 2");
-#endif //USING_SSBO
+
 	}
 }
 void clearSkinningInfo() {
@@ -1424,18 +1344,8 @@ void clearSkinningInfo() {
 		struct X3D_HAnimHumanoid* HH = peek_humanoid();
 		struct X3D_HanimRep* hr = (struct X3D_HanimRep*)HH->_intern;
 		PRINT_GL_ERROR_IF_ANY("Hanim CLEAR 0");
-		if (JT_UBO) {
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			PRINT_GL_ERROR_IF_ANY("Hanim JT_UBO CLEAR 1");
-		}
-#ifdef USING_SSBO
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 		PRINT_GL_ERROR_IF_ANY("Hanim SSBO CLEAR 1");
-#else //USING_SSBO
-		//USING_IMAGE_BUFFERS
-		glBindTexture(GL_TEXTURE_BUFFER, 0);
-		PRINT_GL_ERROR_IF_ANY("Hanim IMGBUF CLEAR 1");
-#endif //USING_SSBO
 	}
 }
 void child_HAnimJoint(struct X3D_HAnimJoint *node) {
