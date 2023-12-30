@@ -80,6 +80,8 @@ struct X3D_HanimRep {
 	Stack* JT; //joint transforms
 	GLuint bo_JT;
 	float* jt32;
+	GLuint bo_JN;
+	float* jn32;
 	int have_skin;
 	int joint_changed;
 };

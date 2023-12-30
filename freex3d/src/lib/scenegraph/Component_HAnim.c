@@ -659,7 +659,7 @@ enum {
 	VERTEXTRANSFORMMETHOD_CPU = 1,
 	VERTEXTRANSFORMMETHOD_GPU = 2,
 };
-static int vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
+static int vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
 int vertexTransformMethod() {
 	return vertex_transform_method;
 }
@@ -734,7 +734,8 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 				}
 			}
 		}
-		if(HH->skinNormal){
+		//if(HH->skinNormal){
+		if(1){
 			//want 'inverse-transpose' 3x3 float for transforming normals
 			//(its almost the same as jointMatrix.mat except when shear due to assymetric scales)
 			float fmat4[16], fmat3[9],fmat3i[9]; //,fmat3it[9];
@@ -1250,20 +1251,29 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						int nmat = vectorSize(hr->JT);
 						if (hr->jt32 == NULL)
 							hr->jt32 = malloc(nmat * 16 * sizeof(float));
+						if (hr->jn32 == NULL) {
+							hr->jn32 = malloc(nmat * 16 * sizeof(float));
+							memset(hr->jn32, 0, nmat * 16 * sizeof(float));
+						}
 						for (int i = 0; i < nmat; i++) {
 							JMATRIX* jm = vector_get_ptr(JMATRIX, hr->JT, i);
-							//Q. do we need to transpose?
 							double2float(&hr->jt32[i * 16], jm->mat, 16);
+							//if (HH->skinNormal) {
+								//GLSL needs N4 alignment
+								// .. a mat3 needs a padding on every row, so 3 rows of 4 floats
+								for (int k = 0; k < 3; k++)
+									veccopy3f(&hr->jn32[i * 16 + k * 4], &jm->normat[k * 3]);
+								hr->jn32[i * 16 + 15] = 1.0f;
+							//}
 						}
 
 						if(1){
-							//JT_SSBO
 							if (!hr->bo_JT) {
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 0");
 								glGenBuffers(1, &hr->bo_JT);
 								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JT);
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 1");
-								glBufferData(GL_SHADER_STORAGE_BUFFER, 144 * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 2");
 								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 3");
@@ -1279,6 +1289,43 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							memcpy(bdata, hr->jt32, nmat * 16 * sizeof(float));
 							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 							PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 7");
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+						}
+						if (1) { //&& HH->skinNormal) {
+							static int normat_once = 0;
+							if (0 && normat_once == 30) {
+								for (int kk = 0; kk < nmat; kk++) {
+									printf("%d\n", kk);
+									for (int jj = 0; jj < 4; jj++) {
+										for (int ii = 0; ii < 4; ii++)
+											printf("%f ", hr->jn32[(kk * 3 + jj) * 4 + ii]);
+										printf("\n");
+									}
+								}
+							}
+							normat_once++;
+							if (!hr->bo_JN) {
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 0");
+								glGenBuffers(1, &hr->bo_JN);
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 1");
+								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 2");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 3");
+							}
+							else {
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 4");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 5");
+							}
+							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 6");
+							memcpy(bdata, hr->jn32, nmat * 16 * sizeof(float));
+							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 7");
 							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 						}
@@ -1343,7 +1390,12 @@ void sendSkinningInfo() {
 			PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO SENd 3");
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
 			PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO SENd 4");
-
+			if (hr->bo_JN) {
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
+				PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO SENd 5");
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
+				PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO SENd 6");
+			}
 		}
 
 
@@ -1360,8 +1412,6 @@ void sendSkinningInfo() {
 }
 void clearSkinningInfo() {
 	if (1) {
-		struct X3D_HAnimHumanoid* HH = peek_humanoid();
-		struct X3D_HanimRep* hr = (struct X3D_HanimRep*)HH->_intern;
 		PRINT_GL_ERROR_IF_ANY("Hanim CLEAR 0");
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 		PRINT_GL_ERROR_IF_ANY("Hanim SSBO CLEAR 1");
