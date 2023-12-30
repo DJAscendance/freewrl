@@ -685,7 +685,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	GLuint *colindex;		/* Color Index		*/
 	GLuint *tcindex=0;		/* Tex Coord Index	*/
 	GLuint *norindex;               /* Normals Index        */
-
+	
 	int normalArraySize = INT_ID_UNDEFINED;	/* bounds checking on normals generated */
 
 	int faces=0;
@@ -1110,7 +1110,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
     FREE_IF_NZ(rep_->cindex);
     FREE_IF_NZ(rep_->colindex);
     FREE_IF_NZ(rep_->norindex);
-    
+	FREE_IF_NZ(rep_->oindex);
 	cindex = rep_->cindex = MALLOC(GLuint *, sizeof(*(rep_->cindex))*3*(ntri));
 	colindex = rep_->colindex = MALLOC(GLuint *, sizeof(*(rep_->colindex))*3*(ntri));
 	norindex = rep_->norindex = MALLOC(GLuint *,sizeof(*(rep_->norindex))*3*ntri);

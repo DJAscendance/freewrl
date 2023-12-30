@@ -72,12 +72,16 @@ struct X3D_InternalRep {
 
 struct X3D_HanimRep {
 	int itype; //9 HanimRep
-	int* PVI;
-	float* PVW;
-	int NV;
-	GLuint bo_PVI;
+	int* PVI; //skinning per-vertex joint matrix index, 4 per vertex
+	float* PVW; //skinning per-vertex weight applied to joint matrix, 4 per vertex
+	int NV; //number of vertices in skin
+	GLuint bo_PVI; //GPU skinning, buffer object bo_ 
 	GLuint bo_PVW;
-	Stack* JT;
+	GLuint tex_PVI; //GPU skinning using image textures as buffers
+	GLuint tex_PVW;
+	Stack* JT; //joint transforms
+	GLuint ubo_JT;
+	float* jt32;
 };
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
@@ -179,6 +183,8 @@ void* set_MeshRep(void* _meshrep);
 void render_MeshRep(void* meshrep);
 void delete_MeshRep(void* meshrep);
 void delete_LightRep(void* _lightrep);
+void delete_HanimRep(void* _hanimrep);
+
 /* Internal representation of IndexedFaceSet, Text, Extrusion & ElevationGrid:
  * set of triangles.
  * done so that we get rid of concave polygons etc.
@@ -200,6 +206,7 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLuint* tcindex; /* triples or null */
 	ushort* tri_indices;
 	ushort* wire_indices;
+	GLuint* oindex; //original coordinate indexes before streaming
 
 	float* actualCoord; /* triples (per point) */
 	float* actualFog; /* float (per point) */

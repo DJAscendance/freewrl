@@ -650,6 +650,8 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	FREE_IF_NZ(r->normal);
 	r->normal = (float *)newnorms;
 	FREE_IF_NZ(r->flat_normal);
+	r->oindex = r->cindex;  //transfer cindex to oindex before copying newcindex to cindex, for skinning
+	r->cindex = NULL;
 	FREE_IF_NZ(r->cindex);
 	r->cindex = newcindex;
 	FREE_IF_NZ(r->actualFog);
@@ -718,10 +720,29 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
 		glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
 	}
-	if (r->cindex) {
+	if (r->oindex) {
+		//original coordinate indexes, still 3 per triangle, but index into original Coordinate.point.p
+		//used for humanoid skinning in shader fw_Cindex attribute
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 0");
 		if (r->VBO_buffers[CINDEX_VBO] == 0) glGenBuffers(1, &r->VBO_buffers[CINDEX_VBO]);
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
-		glBufferData(GL_ARRAY_BUFFER, r->ntri * sizeof(int) * 3, r->cindex, GL_STATIC_DRAW);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 1");
+		//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
+		glBindBuffer(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 2");
+		glBufferData(GL_ARRAY_BUFFER, r->ntri * sizeof(int) * 3, r->oindex, GL_STATIC_DRAW);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 3");
+		if (0) {
+			static int once = 0;
+			if (!once)
+				for (int j = 0; j < r->ntri; j++)
+				{
+					printf("[");
+					for (int k = 0; k < 3; k++)
+						printf("%d ", r->oindex[(3 * j) + k]);
+					printf("]");
+				}
+			once = 1;
+		}
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[VERTEX_VBO]);

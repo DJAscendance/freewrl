@@ -573,13 +573,14 @@ ConsoleMessage ("myType %d, dataSize %d, dataType %d, stride %d\n",myType,dataSi
 			break;
 		case FW_CINDEX_POINTER_TYPE:
 			if (me->Cindex != -1) {
-				PRINT_GL_ERROR_IF_ANY("");
+				//PRINT_GL_ERROR_IF_ANY("");
 
 				glEnableVertexAttribArray(me->Cindex);
-				PRINT_GL_ERROR_IF_ANY("");
-
-				glVertexAttribPointer(me->Cindex, dataSize, dataType, normalized, stride, pointer);
-				PRINT_GL_ERROR_IF_ANY("");
+				//PRINT_GL_ERROR_IF_ANY("");
+				//note I in Attrib I Pointer, opengl 3+, prevents conversion of int to float
+				//https://registry.khronos.org/OpenGL-Refpages/gl4/html/glVertexAttribPointer.xhtml
+				glVertexAttribIPointer(me->Cindex, 1, dataType, stride, pointer);
+				//PRINT_GL_ERROR_IF_ANY("");
 
 			}
 			break;

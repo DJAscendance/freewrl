@@ -60,7 +60,7 @@ shaderflags changed from int to struct { int, int, int }
 */
 
 typedef struct {
-unsigned int base;
+unsigned long long base;
 int effects;
 int usershaders; 
 int volume;

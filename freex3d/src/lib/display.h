@@ -694,7 +694,10 @@ void getMotifWindowedGLwin(Window *win);
 				else if (_global_gl_err == GL_CONTEXT_LOST) {printf ("GL_CONTEXT_LOST"); } \
 				else if (_global_gl_err == GL_TABLE_TOO_LARGE) {printf ("GL_TABLE_TOO_LARGE"); } \
 				else printf ("unknown error %d ",_global_gl_err); \
-				printf(" here: %s (%s:%d)\n", _where,__FILE__,__LINE__); \
+				char* fname = strrchr(__FILE__,'\\'); \
+				if (!fname) fname = strrchr(__FILE__, '/'); \
+                if(fname) fname++; \
+				printf(" here: %s (%s:%d)\n", _where,fname,__LINE__); \
 				_global_gl_err = glGetError(); \
 			} \
 		} 

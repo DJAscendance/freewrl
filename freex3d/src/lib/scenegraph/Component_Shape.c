@@ -1418,6 +1418,8 @@ struct X3D_Shape* peek_shape() {
 	return wrap_shape;
 }
 void* peek_humanoid_skinCoord();
+void sendSkinningInfo();
+void clearSkinningInfo();
 void PRINT_GL_ERROR(GLenum _global_gl_err);
 void child_Shape (struct X3D_Shape *node) {
 	struct X3D_Node *tmpNG;  
@@ -1504,11 +1506,13 @@ void child_Shape (struct X3D_Shape *node) {
 		shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
 		//is it a humanoid skinning pass?
 		void* hsc = peek_humanoid_skinCoord(); //only pushed if GPU skinning
+		int do_skinning = FALSE;
 		if (hsc) {
 			//does the geometry use the humanoid.skinCoord node?
 			struct X3D_PolyRep* pr = (struct X3D_PolyRep*)tmpNG->_intern;
-			if (pr->itype == 2 && pr->coordinate_node && pr->coordinate_node == hsc) {
+			if (pr && pr->itype == 2 && pr->coordinate_node && pr->coordinate_node == hsc) {
 				shader_requirements.base |= SKINNING_SHADER;
+				do_skinning = TRUE;
 			}
 		}
 
@@ -1585,7 +1589,7 @@ void child_Shape (struct X3D_Shape *node) {
 		enableGlobalShader(scap);
 		//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
 		PRINT_GL_ERROR_IF_ANY("AFTER getMyShaders");
-
+		
 		//see if we have to set up a TextureCoordinateGenerator type here
 		if (tmpNG && tmpNG->_intern && tmpNG->_intern->itype == 2) {
 			struct X3D_PolyRep* tmppr = (struct X3D_PolyRep*) tmpNG->_intern;
@@ -1664,6 +1668,8 @@ void child_Shape (struct X3D_Shape *node) {
 		//PRINT_GL_ERROR_IF_ANY("BEFORE setupShaderB");
 		setupShaderB();  //send materials, fill patters miscalaneous to shader
 		//print_bound_textures("s"); //testing only, uncomment clear_bound_textues too
+		//are we skinning? if so send skinning matrices and skin weights
+		if (do_skinning) sendSkinningInfo();
 
 		//PRINT_GL_ERROR_IF_ANY("BEFORE render node");
 		push_shape(node);
@@ -1693,7 +1699,7 @@ void child_Shape (struct X3D_Shape *node) {
 		}
 		pop_shape();
 		clearDraw(); //other shaders like cursorDraw, extent6f_draw need this stack cleared
-
+		if (do_skinning) clearSkinningInfo();
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 		textureTransform_end();

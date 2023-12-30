@@ -874,15 +874,14 @@ void render_polyrep(void* node) {
 	}
 	//humanoid skinning
 	if (pr->VBO_buffers[CINDEX_VBO] != 0) {
-		PRINT_GL_ERROR_IF_ANY("");
-
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 0");
 		//in child_humanoid before drawing skin we push the humanoid.coords 
 		// and in here if we set the joint index VBO and joint matrix UBO
-		printf("SKINNING ");
+		//printf("SKINNING ");
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[CINDEX_VBO]);
-		PRINT_GL_ERROR_IF_ANY("");
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 1");
 		FW_GL_CINDEX_POINTER(GL_INT, 0, 0);
-		PRINT_GL_ERROR_IF_ANY("");
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 2");
 
 	}
 
