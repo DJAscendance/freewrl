@@ -77,11 +77,11 @@ struct X3D_HanimRep {
 	int NV; //number of vertices in skin
 	GLuint bo_PVI; //GPU skinning, buffer object bo_ 
 	GLuint bo_PVW;
-	GLuint tex_PVI; //GPU skinning using image textures as buffers
-	GLuint tex_PVW;
 	Stack* JT; //joint transforms
-	GLuint ubo_JT;
+	GLuint bo_JT;
 	float* jt32;
+	int have_skin;
+	int joint_changed;
 };
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
