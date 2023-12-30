@@ -659,7 +659,7 @@ enum {
 	VERTEXTRANSFORMMETHOD_CPU = 1,
 	VERTEXTRANSFORMMETHOD_GPU = 2,
 };
-static int vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
+static int vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
 int vertexTransformMethod() {
 	return vertex_transform_method;
 }
@@ -1248,12 +1248,13 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						// uniform blocks limited to 64k bytes
 						// SSBO no limit on size
 						//convert joint transforms to float32
+						int normatsize = 12; //mat3 is 12, mat4 is 16
 						int nmat = vectorSize(hr->JT);
 						if (hr->jt32 == NULL)
 							hr->jt32 = malloc(nmat * 16 * sizeof(float));
 						if (hr->jn32 == NULL) {
-							hr->jn32 = malloc(nmat * 16 * sizeof(float));
-							memset(hr->jn32, 0, nmat * 16 * sizeof(float));
+							hr->jn32 = malloc(nmat * normatsize * sizeof(float));
+							memset(hr->jn32, 0, nmat * normatsize * sizeof(float));
 						}
 						for (int i = 0; i < nmat; i++) {
 							JMATRIX* jm = vector_get_ptr(JMATRIX, hr->JT, i);
@@ -1262,8 +1263,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 								//GLSL needs N4 alignment
 								// .. a mat3 needs a padding on every row, so 3 rows of 4 floats
 								for (int k = 0; k < 3; k++)
-									veccopy3f(&hr->jn32[i * 16 + k * 4], &jm->normat[k * 3]);
-								hr->jn32[i * 16 + 15] = 1.0f;
+									veccopy3f(&hr->jn32[i * normatsize + k * 4], &jm->normat[k * 3]);
+								if(normatsize == 16) hr->jn32[i * normatsize + 15] = 1.0f;
 							//}
 						}
 
@@ -1295,11 +1296,12 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						if (1) { //&& HH->skinNormal) {
 							static int normat_once = 0;
 							if (0 && normat_once == 30) {
+								int nrow = normatsize == 12 ? 3 : 4;
 								for (int kk = 0; kk < nmat; kk++) {
 									printf("%d\n", kk);
 									for (int jj = 0; jj < 4; jj++) {
 										for (int ii = 0; ii < 4; ii++)
-											printf("%f ", hr->jn32[(kk * 3 + jj) * 4 + ii]);
+											printf("%f ", hr->jn32[(kk * nrow + jj) * 4 + ii]);
 										printf("\n");
 									}
 								}
@@ -1310,7 +1312,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 								glGenBuffers(1, &hr->bo_JN);
 								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
 								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 1");
-								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * normatsize * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
 								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 2");
 								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
 								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 3");
@@ -1323,7 +1325,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							}
 							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
 							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 6");
-							memcpy(bdata, hr->jn32, nmat * 16 * sizeof(float));
+							memcpy(bdata, hr->jn32, nmat * normatsize * sizeof(float));
 							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 7");
 							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

@@ -530,7 +530,7 @@ layout (std430, binding = 12) buffer BufferObject1 { \n\
   mat4 JT[]; \n\
 }; \n\
 layout (std430, binding = 13) buffer BufferObject2 { \n\
-  mat4 JN[]; \n\
+  mat3 JN[]; \n\
 }; \n\
 #endif //SKINNING \n\
 #if defined(LINETYPE) && defined(FULL) \n\
@@ -914,10 +914,14 @@ void main(void) \n\
   //ivec4 pvi = PVI[fw_Cindex]; \n\
   //vec4 pvw = PVW[fw_Cindex]; \n\
   normal_object = vec3(0.0); \n\
-  normal_object += (JN[pvi.r-1]*pvw.r*vec4(fw_Normal,1.0)).xyz; \n\
-  normal_object += (JN[pvi.g-1]*pvw.g*vec4(fw_Normal,1.0)).xyz; \n\
-  normal_object += (JN[pvi.b-1]*pvw.b*vec4(fw_Normal,1.0)).xyz; \n\
-  normal_object += (JN[pvi.a-1]*pvw.a*vec4(fw_Normal,1.0)).xyz; \n\
+  //normal_object += (JN[pvi.r-1]*pvw.r*vec4(fw_Normal,1.0)).xyz; \n\
+  //normal_object += (JN[pvi.g-1]*pvw.g*vec4(fw_Normal,1.0)).xyz; \n\
+  //normal_object += (JN[pvi.b-1]*pvw.b*vec4(fw_Normal,1.0)).xyz; \n\
+  //normal_object += (JN[pvi.a-1]*pvw.a*vec4(fw_Normal,1.0)).xyz; \n\
+  normal_object += JN[pvi.r-1]*pvw.r*fw_Normal; \n\
+  normal_object += JN[pvi.g-1]*pvw.g*fw_Normal; \n\
+  normal_object += JN[pvi.b-1]*pvw.b*fw_Normal; \n\
+  normal_object += JN[pvi.a-1]*pvw.a*fw_Normal; \n\
   #endif //SKINNING \n\
   /* PLUG: vertex_object_space_change (vertex_object, normal_object) */ \n\
   /* PLUG: vertex_object_space (vertex_object, normal_object) */ \n\
