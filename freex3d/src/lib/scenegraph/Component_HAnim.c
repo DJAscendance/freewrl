@@ -876,7 +876,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 			ionce = 1;
 		}
 		else {
-			printf("^"); //a hint we are recompiling, for testing in Dec 2023
+			//printf("^"); //a hint we are recompiling, for testing in Dec 2023
 		}
 		psc = (float*)nc->point.p;
 		node->_origCoords = realloc(node->_origCoords, nsc * 3 * sizeof(float));
@@ -951,7 +951,7 @@ void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 	struct X3D_HAnimHumanoid *HH;
 	Stack *JT;
 	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
-	COMPILE_IF_REQUIRED
+	COMPILE_IF_REQUIRED;
 		//LOCAL_LIGHT_SAVE
 	struct X3D_HanimRep* hr = (struct X3D_HanimRep*)node->_intern;
 
