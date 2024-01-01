@@ -383,7 +383,7 @@ typedef struct {
 	GLuint textureID;
 	GLfloat *vert;
 	//GLfloat *tex;
-	GLushort *ind;
+	GLuint *ind;
 	int blankItem;
 	bool top; // true: menu appears at top of screen, else bottom
 	int yoffset; // computed position of menu y
@@ -714,7 +714,7 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	GLfloat x,y,z;
     GLfloat *vert;
     GLfloat *tex;
-    GLushort* ind;
+    GLuint* ind;
 	int sizeoftex, sizeofvert, sizeofind;
 
 	// construct triangle list
@@ -724,10 +724,10 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	len1 = 2*len + 1;
 	sizeofvert = len1 * sizeof(GLfloat) * 4 * 3;
 	sizeoftex = len1 * sizeof(GLfloat) * 4 * 2;
-	sizeofind = len1 * sizeof(GLshort) * 2 * 3;
+	sizeofind = len1 * sizeof(GLuint) * 2 * 3;
 	vert = (GLfloat*)alloca(sizeofvert); //2 new vertex, 3D
 	tex  = (GLfloat*)alloca(sizeoftex); //4 new texture coords, 2D
-	ind  = (GLushort*)alloca(sizeofind); //2 triangles, 3 points each
+	ind  = (GLuint*)alloca(sizeofind); //2 triangles, 3 points each
 	x=y=z = 0.0f;
 	x = sx;
 	y = sy;
@@ -786,7 +786,7 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	glEnableVertexAttribArray ( p->texCoordLoc );
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_SHORT, ind );
+	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_INT, ind );
 
 	//glDisableVertexAttribArray( p->texCoordLoc );
 	//glDisableVertexAttribArray ( p->positionLoc );
@@ -812,7 +812,7 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	GLfloat x,y,z;
     GLfloat vert[12];
     GLfloat tex[8];
-    GLushort ind[6];
+    GLuint ind[6];
 	int sizeoftex, sizeofvert, sizeofind;
 
 	// construct triangle list
@@ -876,7 +876,7 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 			glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
 								   GL_FALSE, 0, tex );  //fails - p->texCoordLoc is 429xxxxx - garbage
 
-			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind );
 		}
 	}
 	//glDisableVertexAttribArray ( p->positionLoc );
@@ -1952,7 +1952,7 @@ void initButtons()
 		memset(p->pmenu.lumalpha,0,32*32*2 *buttonAtlasSquared);
 		p->pmenu.vert= MALLOC(GLfloat*, 3*4*buttonAtlasSquared*sizeof(GLfloat));
 //		p->pmenu.tex = MALLOC(GLfloat*, 2*4*buttonAtlasSquared*sizeof(GLfloat));
-		p->pmenu.ind = MALLOC(GLushort*, 3*2*buttonAtlasSquared*sizeof(GLushort));
+		p->pmenu.ind = MALLOC(GLuint*, 3*2*buttonAtlasSquared*sizeof(GLuint));
 		p->pmenu.yoffset = 0;
 		if(p->pmenu.top) p->pmenu.yoffset = p->vport.H - p->buttonSize; //32.0f;
 		for(i=0;i<p->pmenu.nitems;i++)
@@ -2136,12 +2136,12 @@ void initButtons()
 			// 1-3
 			// |/|
 			// 0-2
-			p->pmenu.ind[mi +0] = (GLushort)(i*4) +0;
-			p->pmenu.ind[mi +1] = (GLushort)(i*4) +1;
-			p->pmenu.ind[mi +2] = (GLushort)(i*4) +3;
-			p->pmenu.ind[mi +3] = (GLushort)(i*4) +0;
-			p->pmenu.ind[mi +4] = (GLushort)(i*4) +3;
-			p->pmenu.ind[mi +5] = (GLushort)(i*4) +2;
+			p->pmenu.ind[mi +0] = (GLuint)(i*4) +0;
+			p->pmenu.ind[mi +1] = (GLuint)(i*4) +1;
+			p->pmenu.ind[mi +2] = (GLuint)(i*4) +3;
+			p->pmenu.ind[mi +3] = (GLuint)(i*4) +0;
+			p->pmenu.ind[mi +4] = (GLuint)(i*4) +3;
+			p->pmenu.ind[mi +5] = (GLuint)(i*4) +2;
 
 			//assign icon+action to menubar button location
 			for(j=0;j<p->pmenu.nitems;j++){
@@ -2698,7 +2698,7 @@ void renderButtons()
 						GL_FALSE, 0, p->pmenu.items[p->pmenu.nitems-1].tex );   //nitems -1 should be the blank texture
 			glEnableVertexAttribArray ( p->positionLoc );
 			glEnableVertexAttribArray ( p->texCoordLoc );
-			glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
+			glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_INT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
 		}
 		// render triangles
 
@@ -2719,7 +2719,7 @@ void renderButtons()
 		glUniform4f(p->color4fLoc,colorButtonIcon[0],colorButtonIcon[1],colorButtonIcon[2],colorButtonIcon[3]);
 		glEnableVertexAttribArray ( p->positionLoc );
 		glEnableVertexAttribArray ( p->texCoordLoc );
-		glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
+		glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_INT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
 
 		/* old one-shot
 		// Load the vertex position
@@ -2759,7 +2759,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	FXY fxy;
 	XY xy;
@@ -2817,7 +2817,7 @@ GLfloat cursorTex[] = {
 
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); //just render the active ones
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); //just render the active ones
 
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

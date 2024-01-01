@@ -286,7 +286,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelo
     if (command == POLY_PRESSURE) {
         ump.bytes[1] = bytes[0]; //command, channel
         ump.bytes[2] = bytes[1]; //note
-        ump.uint[1] = scaleUp(bytes[2], 7, 32);
+        ump.u32[1] = scaleUp(bytes[2], 7, 32);
         packets[npacket] = ump.packet;
         npacket++;
     }
@@ -294,7 +294,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelo
     if (command == CONTROL_CHANGE) {
         ump.bytes[1] = bytes[0];
         ump.bytes[2] = bytes[1];
-        ump.uint[1] = scaleUp(bytes[2], 7, 32);
+        ump.u32[1] = scaleUp(bytes[2], 7, 32);
         packets[npacket] = ump.packet;
         npacket++;
         //special case with MSB, LSB values, don't know if I have the right idea
@@ -303,7 +303,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelo
             //send 2nd packet
             ump.bytes[1] = bytes[0];
             ump.bytes[2] = bytes[1];
-            ump.uint[1] = scaleUp(bytes[3], 7, 32);
+            ump.u32[1] = scaleUp(bytes[3], 7, 32);
             packets[npacket] = ump.packet;
             npacket++;
         }
@@ -324,7 +324,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelo
     //D.3.5 Channel Pressure
     if (command == CHANNEL_PRESSURE) {
         ump.bytes[1] = bytes[0];
-        ump.uint[1] = scaleUp(bytes[1], 7, 32);
+        ump.u32[1] = scaleUp(bytes[1], 7, 32);
         packets[npacket] = ump.packet;
         npacket++;
     }
@@ -332,7 +332,7 @@ int msg2ump(int nbytes, const unsigned char* bytes, double* packets, int fixvelo
     if (command == PITCH_BEND) {
         ump.bytes[1] = bytes[0];
         ushort pitchbend = bytes[1] | (bytes[2] << 7);
-        ump.uint[1] = scaleUp(pitchbend, 14, 32);
+        ump.u32[1] = scaleUp(pitchbend, 14, 32);
         packets[npacket] = ump.packet;
         npacket++;
     }

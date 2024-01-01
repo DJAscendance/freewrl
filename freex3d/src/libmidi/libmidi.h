@@ -17,7 +17,7 @@ typedef unsigned char ubyte;
 //MIDI 2 64 bit packet, a few ways to slice it
 typedef union {
 	double packet;
-	unsigned int uint[2];
+	unsigned int u32[2];
 	unsigned short u16[4];
 	unsigned char bytes[8];
 } UMP;

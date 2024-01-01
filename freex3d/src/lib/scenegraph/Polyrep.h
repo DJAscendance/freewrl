@@ -128,6 +128,7 @@ struct X3D_LineRep {
 	float* fogcoord;
 	struct SFColor* color;
 	struct SFColorRGBA* colorRgba;
+	int* skindex; //LineSet, IndexedLineSet only, which have coord field which could be humanod.coord Coordinate node
 };
 
 struct X3D_TexturableGeomRep {
@@ -206,15 +207,14 @@ struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
 	GLuint* colindex;   /* triples (per triangle) */
 	GLuint* norindex;
 	GLuint* tcindex; /* triples or null */
-	ushort* tri_indices;
-	ushort* wire_indices;
+	GLuint* tri_indices;
+	GLuint* wire_indices;
 	GLuint* oindex; //original coordinate indexes before streaming
 
 	float* actualCoord; /* triples (per point) */
 	float* actualFog; /* float (per point) */
 	float* color; /* triples or null */
 	float* normal; /* triples or null */
-	GLuint* vindex; //index to original vertex, used for humanoid skinning, displacers
 	float* flat_normal; /*triples or null*/
 	int last_normal_type; /* 0=regular 1=flat last normal type we put in the vbo normal buffer */
 	int last_index_type; /* 0=regular 1=wire last vertex index type we put in the vbo index buffer */

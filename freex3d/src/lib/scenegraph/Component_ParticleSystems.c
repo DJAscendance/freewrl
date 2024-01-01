@@ -1899,7 +1899,7 @@ void updateTexCoordRamp(struct X3D_ParticleSystem *node, particle *pp, float *te
 void reallyDrawOnce();
 void clearDraw();
 GLfloat linepts [6] = {-.5f,0.f,0.f, .5f,0.f,0.f};
-ushort lineindices[2] = {0,1};
+int lineindices[2] = {0,1};
 int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode );
 void update_effect_uniforms();
 void check_compile(struct X3D_Node* node){
@@ -1925,7 +1925,7 @@ void child_geom_particle_shadow(struct X3D_ParticleSystem* node) {
 	case GEOM_LINE:
 	{
 		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
-		sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
+		sendElementsToGPU(GL_LINES, 2, (int*)lineindices);
 	}
 	break;
 	case GEOM_POINT:
@@ -2191,7 +2191,7 @@ void render_geom_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
 	case GEOM_LINE:
 	{
 		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
-		sendElementsToGPU(GL_LINES, 2, (ushort*)lineindices);
+		sendElementsToGPU(GL_LINES, 2, (int*)lineindices);
 		texcoord = (float*)node->_ltex;
 		allowsTexcoordRamp = TRUE;
 	}

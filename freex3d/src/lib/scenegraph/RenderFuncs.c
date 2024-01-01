@@ -505,7 +505,7 @@ void enableGlobalShader(s_shader_capabilities_t *myShader) {
 
 
 /* send in vertices, normals, etc, etc... to either a shader or via older opengl methods */
-void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line){
+void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, void *pointer, int texID, char *file, int line){
 
     s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
 
@@ -772,7 +772,7 @@ void sendArraysToGPU (int mode, int first, int count) {
 
 
 
-void sendElementsToGPU (int mode, int count, ushort *indices) {
+void sendElementsToGPU (int mode, int count, int *indices) {
     #ifdef RENDERVERBOSE
 	printf ("sendElementsToGPU start\n"); 
     #endif
@@ -780,7 +780,7 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 	if (setupShader()){
 		profile_start("draw_el");
 //        glDrawElements(mode,count,GL_UNSIGNED_SHORT,indices);
-		saveElementsForGPU0(mode,count,GL_UNSIGNED_SHORT, indices);
+		saveElementsForGPU0(mode,count,GL_UNSIGNED_INT, indices);
 		profile_end("draw_el");
 	}
 

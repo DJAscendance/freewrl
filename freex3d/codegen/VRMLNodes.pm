@@ -451,6 +451,7 @@ our %Nodes = (
 		__xfog  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertices  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__vertexCount =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
+		__skindex =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 	"LineSet" => new VRML::NodeType("LineSet", [
@@ -466,6 +467,7 @@ our %Nodes = (
 		__starts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		#__counts  =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 		__segCount =>["SFInt32",0,"initializeOnly", 0,0],#ff
+		__skindex =>["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometryNode"),
 
 

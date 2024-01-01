@@ -237,7 +237,7 @@ float boxvert [24] = {
 -.5f,-.5f,-.5f, .5f,-.5f,-.5f, -.5f,.5f,-.5f, .5f,.5f,-.5f, //far z
 };
 //ccw tris
-ushort boxtriindccw [48] = {
+int boxtriindccw [48] = {
 0, 1, 3, -1,  //near z
 3, 2, 0, -1,
 1, 5, 7, -1, //right
@@ -251,7 +251,7 @@ ushort boxtriindccw [48] = {
 4, 5, 1, -1, //bottom y
 1, 0, 4, -1,
 };
-ushort boxtriindcw [48] = {
+int boxtriindcw [48] = {
 0, 3, 1, -1,  //near z
 3, 0, 2, -1,
 1, 7, 5, -1, //right

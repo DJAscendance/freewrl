@@ -204,7 +204,7 @@ void compile_Box (struct X3D_Box *node) {
 void render_Box (struct X3D_Box *node) {
 	extern GLfloat boxtex[];		/*  in CFuncs/statics.c*/
 	extern GLfloat boxnorms[];		/*  in CFuncs/statics.c*/
-	extern ushort boxwireindices[];
+	extern int boxwireindices[];
 	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL,NULL};
 
 	float x = ((node->size).c[0])/2;
@@ -458,7 +458,7 @@ void compile_Cylinder (struct X3D_Cylinder * node) {
 		{
 			//prepare wireframe indices
 			int i3, i6;
-			ushort *lindex = MALLOC(ushort *,indx * 2 * sizeof(ushort));
+			int *lindex = MALLOC(int *,indx * 2 * sizeof(int));
 			for(i=0;i<indx/3;i++){
 				i3 = i*3;
 				i6 = i*6;
@@ -675,7 +675,7 @@ void compile_Cone (struct X3D_Cone *node) {
 	{
 		//prepare wireframe indices
 		int i3, i6;
-		ushort *lindex = MALLOC(ushort *,indx * 2 * sizeof(ushort));
+		int *lindex = MALLOC(int *,indx * 2 * sizeof(int));
 		for(i=0;i<indx/3;i++){
 			i3 = i*3;
 			i6 = i*6;
@@ -792,7 +792,7 @@ void compile_Sphere (struct X3D_Sphere *node) {
 	float t_aa, t_ab, t_sa, t_ca, t_sa1;
 	float t2_aa, t2_ab, t2_sa, t2_ca, t2_sa1;
 	struct SFVec3f *pts;
-	//ushort *pindices;
+	//int *pindices;
 
 	/*  have to regen the shape*/
 	MARK_NODE_COMPILED
@@ -864,8 +864,8 @@ void compile_Sphere (struct X3D_Sphere *node) {
 		glBufferData(GL_ARRAY_BUFFER, myVertexVBOSize, SphVBO, GL_STATIC_DRAW);
 
 		if (node->__SphereIndxVBO == 0) {
-			ushort pindices[TRISINSPHERE*2];
-			ushort *pind; // = pindices;
+			int pindices[TRISINSPHERE*2];
+			int *pind; // = pindices;
 			int row;
 			int indx;
 			pind = pindices;
@@ -888,12 +888,12 @@ void compile_Sphere (struct X3D_Sphere *node) {
 			}
 			node->__pindices = pindices;
  			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__SphereIndxVBO);
- 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*TRISINSPHERE*2, pindices, GL_STATIC_DRAW);
+ 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*TRISINSPHERE*2, pindices, GL_STATIC_DRAW);
 
 			{
 				//prepare wireframe indices - we'll use the pindices from above, still on the stack
 				int i, i3, i6, ntris;
-				ushort lindex[SPHDIV*SPHDIV*2*3*2];
+				int lindex[SPHDIV*SPHDIV*2*3*2];
 				ntris = SPHDIV * SPHDIV * 2;
 				glGenBuffers(1,(GLuint *) &node->__wireindicesVBO);
 				for(i=0;i<ntris;i++){
@@ -908,7 +908,7 @@ void compile_Sphere (struct X3D_Sphere *node) {
 				}
 				//node->__wireindices = lindex;
  				FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__wireindicesVBO);
- 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*SPHDIV*SPHDIV*2*3, lindex, GL_STATIC_DRAW);
+ 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*SPHDIV*SPHDIV*2*3, lindex, GL_STATIC_DRAW);
 			}
 		}
 
@@ -971,10 +971,10 @@ void render_Sphere (struct X3D_Sphere *node) {
 	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
 		//wireframe triangles
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__wireindicesVBO);
-		sendElementsToGPU(GL_LINES,TRISINSPHERE *3, (ushort *)BUFFER_OFFSET(0)); //node->__wireindices);
+		sendElementsToGPU(GL_LINES,TRISINSPHERE *3, (int *)BUFFER_OFFSET(0)); //node->__wireindices);
 	}else{
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__SphereIndxVBO);
-		sendElementsToGPU (GL_TRIANGLES, TRISINSPHERE, (ushort *)BUFFER_OFFSET(0));   //The starting point of the IBO
+		sendElementsToGPU (GL_TRIANGLES, TRISINSPHERE, (int *)BUFFER_OFFSET(0));   //The starting point of the IBO
 	}
 
 	/* turn off */

@@ -756,28 +756,28 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		//because we do glDrawArrays(GL_TRIANGLES,,,) in Polyrep.c which doesn't use indices. 
 		//(glDrawElements uses indices, used below for wireframe)
 		int i;
-		GLushort *to;
+		GLuint *to;
 		unsigned int *from;
 		
-		r->tri_indices = MALLOC(GLushort *, sizeof(GLushort) * r->ntri*3);
+		r->tri_indices = MALLOC(GLuint *, sizeof(GLuint) * r->ntri*3);
 
 		to = r->tri_indices;
 		from = r->cindex;
 
 		for (i=0; i<r->ntri*3; i++) {
 			//printf ("and, index %d is %d\n",i,*from);
-			*to = (GLushort) *from; to++; from++;
+			*to = (GLuint) *from; to++; from++;
 		}
  
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*r->ntri*3,r->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLuint)*r->ntri*3,r->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
 		//FREE_IF_NZ(myindicies);
 	}
 	{
 		//wireframe lines - prepare in case someone does SHADINGSTYLE_WIRE
 		int i, i3, i6;
-		GLushort *lindex;
+		GLuint *lindex;
 		FREE_IF_NZ(r->wire_indices);
-		lindex = MALLOC(GLushort *, sizeof(GLushort) * r->ntri*3*2);
+		lindex = MALLOC(GLuint *, sizeof(GLuint) * r->ntri*3*2);
 		
 		for(i=0;i<r->ntri;i++){
 			i3 = i*3;

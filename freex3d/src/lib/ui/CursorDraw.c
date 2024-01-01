@@ -642,7 +642,7 @@ void extent6f_draw(float *extent)
 	int i,j,k,n;
 	GLint  positionLoc;
 	GLfloat p[24][3];
-	unsigned short lineindices[3];
+	GLuint lineindices[3];
 	struct cline *cur, *line;
 	s_shader_capabilities_t *scap;
 	ttglobal tg = gglobal();
@@ -701,7 +701,7 @@ void extent6f_draw(float *extent)
 		reallyDrawOnce();
 	}else{
 		//this also works
-		sendElementsToGPU(GL_LINES,2,(ushort *)lineindices);
+		sendElementsToGPU(GL_LINES,2,(int *)lineindices);
 
 		for(i=0;i<n;i+=2){
 			//printf("line [%f %f %f] to [%f %f %f]\n",p[i][0],p[i][1],p[i][2],p[i+1][0],p[i+1][1],p[i+1][2]);

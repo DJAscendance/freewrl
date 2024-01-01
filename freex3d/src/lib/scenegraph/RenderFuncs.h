@@ -54,7 +54,7 @@ struct X3D_Anchor *AnchorsAnchor();
 void setAnchorsAnchor(struct X3D_Anchor* anchor);
 void projectorTable_clear();
 
-void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, int, char*, int);
+void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, void *pointer, int, char*, int);
 void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
 void sendElementsToGPU0 (int mode, int count, int type, void *indices);

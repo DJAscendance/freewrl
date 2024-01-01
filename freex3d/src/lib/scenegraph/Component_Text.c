@@ -296,7 +296,7 @@ typedef struct pComponent_Text{
 	int started;// = FALSE;
 	GLfloat *textpanel_vert;
 	GLfloat *textpanel_tex;
-	GLushort *textpanel_ind;
+	GLuint *textpanel_ind;
 	int textpanel_size;
 	int textpanel_vert_size;
 	int textpanel_tex_size;
@@ -466,7 +466,7 @@ static void FW_NewVertexPoint ()
 		double x_scale, y_scale, pixel_size_x, pixel_size_y, device_x, device_y, design_x, design_y;
 		double x_scale1, y_scale1;
 		double x_scale2, y_scale2;
-		ushort fu_per_em;
+		int fu_per_em;
 		//FT_Size ftsize;
 		lastx = p->last_point.x;
 		lasty = p->last_point.y;
@@ -3258,7 +3258,7 @@ GLfloat cursorTex[] = {
 	1.0f, 1.0f,
 	1.0f, 0.0f,
 	};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2 fxy, fwh;
 	//ivec2 xy;
@@ -3326,7 +3326,7 @@ GLfloat cursorTex[] = {
 	//printvpstacktop(__LINE__);
 	//char *saveme[4*4*4];
 	//memcpy(saveme,_vpstack->data,4*4*4); //glew config overwrites vpstack->data top.X
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind );
 	//memcpy(_vpstack->data,saveme,4*4*4);
 	//printvpstacktop(__LINE__);
 
@@ -3373,7 +3373,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2  fixy, fiwh; //fxy, fwh,
 	//ivec2 xy;
@@ -3452,7 +3452,7 @@ GLfloat cursorTex[] = {
 
 	//// Set the base map sampler to texture unit to 0
 	//glUniform1i ( textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); 
 }
 
 
@@ -3636,7 +3636,7 @@ int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int
 		//(4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
 		GLfloat *tex; //tex[1024];
 		//(2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
-		GLushort *ind; //ind[768];
+		GLuint *ind; //ind[768];
 		int maxlen = 128;
 		ttglobal tg = gglobal();
 		ppComponent_Text p = (ppComponent_Text)tg->Component_Text.prv;
@@ -3652,7 +3652,7 @@ int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int
 			//tex: (4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
 			p->textpanel_tex = REALLOC(p->textpanel_tex,p->textpanel_tex_size*sizeof(GLfloat));
 			//ind: (2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
-			p->textpanel_ind = REALLOC(p->textpanel_ind,p->textpanel_ind_size*sizeof(GLushort));
+			p->textpanel_ind = REALLOC(p->textpanel_ind,p->textpanel_ind_size*sizeof(GLuint));
 		}
 		vert = p->textpanel_vert;
 		tex  = p->textpanel_tex;
@@ -3752,7 +3752,7 @@ if(0) glEnableVertexAttribArray (p->texCoordLoc );
 		glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
 							   GL_FALSE, 0, tex ); 
 
-		glDrawElements ( GL_TRIANGLES, len*3*2, GL_UNSIGNED_SHORT, ind );
+		glDrawElements ( GL_TRIANGLES, len*3*2, GL_UNSIGNED_INT, ind );
 
 
 	}
@@ -3911,7 +3911,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2  fixy, fiwh; //fxy, fwh,
 	//ivec2 xy;
@@ -3989,7 +3989,7 @@ GLfloat cursorTex[] = {
 
 	//// Set the base map sampler to texture unit to 0
 	//glUniform1i ( textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); 
 
 
 }

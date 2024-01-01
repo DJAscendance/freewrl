@@ -2357,7 +2357,7 @@ void stage_resize(void *_self,int width, int height){
 typedef struct contenttype_texturegrid {
 	tcontenttype t1;
 	int nx, ny, nelements, nvert; //number of grid vertices
-	GLushort *index; //winRT needs short
+	GLuint *index; //winRT needs short
 	GLfloat *vert, *vert2, *tex, *norm, dx, tx;
 	float k1,xc; //optionally used during distort and pick for radial/barrel distortion
 	int usingDistortions;
@@ -2410,11 +2410,11 @@ contenttype *new_contenttype_texturegrid(int nx, int ny){
 	{
 		//generate an nxn grid, of object size [-1,1]x[-1,1] = 2x2, complete with vertices, normals, texture coords and triangles
 		int i,j,k; //,n;
-		GLushort *index;
+		GLuint *index;
 		GLfloat *vert, *vert2, *tex, *norm;
 		GLfloat dx,dy, tx,ty;
 		//n = p->ngridsize;
-		index = (GLushort*)MALLOCV((nx-1)*(ny-1)*2*3 *sizeof(GLushort));
+		index = (GLuint*)MALLOCV((nx-1)*(ny-1)*2*3 *sizeof(GLuint));
 		vert = (GLfloat*)MALLOCV(nx*ny*3*sizeof(GLfloat));
 		vert2 = (GLfloat*)MALLOCV(nx*ny*3*sizeof(GLfloat));
 		tex = (GLfloat*)MALLOCV(nx*ny*2*sizeof(GLfloat));
@@ -2744,7 +2744,7 @@ void render_texturegrid(void *_self){
 	if(0){
 		glDrawArrays(GL_TRIANGLES,0,self->nelements);
 	}else{
-		glDrawElements(GL_TRIANGLES,self->nelements,GL_UNSIGNED_SHORT,self->index);
+		glDrawElements(GL_TRIANGLES,self->nelements,GL_UNSIGNED_INT,self->index);
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
@@ -2761,7 +2761,7 @@ void render_texturegrid(void *_self){
 typedef struct contenttype_orientation {
 	tcontenttype t1;
 	int nx, ny, nelements, nvert; //number of grid vertices
-	GLushort *index; //winRT needs short
+	GLuint *index; //winRT needs short NO IT DOESN'T, fixed elsewhere
 	GLfloat *vert, *vert2, *tex, *norm, dx, tx;
 	GLuint textureID;
 } contenttype_orientation;
@@ -2879,7 +2879,7 @@ GLfloat quad1Tex[] = {
 	1.0f, 0.0f,
 	1.0f, 1.0f,
 };
-GLushort quad1TriangleInd[] = {
+GLuint quad1TriangleInd[] = {
 	0, 1, 3, 3, 2, 0
 };
 
@@ -3035,7 +3035,7 @@ void render_orientation(void* _self) {
 		glUniformMatrix4fv(scap->ModelViewMatrix, 1, GL_FALSE, orientationMatrix); //matrix90); //
 	}
 	//desktop glew, angleproject and winRT can do this:
-	glDrawElements(GL_TRIANGLES, self->nelements, GL_UNSIGNED_SHORT, self->index);// winRT needs GLushort indexes, can't do GL_QUADS
+	glDrawElements(GL_TRIANGLES, self->nelements, GL_UNSIGNED_INT, self->index);// winRT needs GLushort indexes, can't do GL_QUADS
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);

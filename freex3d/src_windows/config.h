@@ -261,6 +261,7 @@ char *getWgetPath();
 //#define int32_t long
 
 #define ushort unsigned short
+#define uint unsigned int
 
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc

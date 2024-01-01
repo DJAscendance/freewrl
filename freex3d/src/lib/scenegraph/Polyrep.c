@@ -892,17 +892,17 @@ void render_polyrep(void* node) {
 	if (DESIRE(getShaderFlags().base, SHADINGSTYLE_WIRE)) {
 		//wireframe triangles
 		if (pr->last_index_type != 1)
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * pr->ntri * 3 * 2, pr->wire_indices, GL_STATIC_DRAW); /* OpenGL-ES */
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * pr->ntri * 3 * 2, pr->wire_indices, GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 1;
 		//if (setupShader())
-		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_SHORT, NULL);
+		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_INT, NULL);
 		sendElementsToGPU(GL_LINES, pr->ntri * 3 * 2, NULL);
 	}
 	else {
 		//surface triangles 
 		//glDrawArrays(GL_TRIANGLES,,,) doesn't use indices - its glDrawElements that does
 		//if(pr->last_index_type != 0)
-		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLuint)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 0;
 		sendArraysToGPU(GL_TRIANGLES, 0, pr->ntri * 3);
 	}

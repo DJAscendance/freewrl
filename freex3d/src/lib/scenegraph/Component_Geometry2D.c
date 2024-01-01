@@ -93,7 +93,7 @@ void compile_##myType (struct X3D_##myType *node){ \
 /***********************************************************************************/
 void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, 
 		struct SFColorRGBA *colorRgba, struct SFColor *color, float *fog,
-		int nsegments, int *counts, int *starts);
+		int nsegments, int *counts, int *starts, int *skindex);
 void clear_LineRep(void *_linerep);
 void render_LineRep(struct X3D_LineRep *linerep);
 
@@ -117,7 +117,7 @@ void compile_Arc2D (struct X3D_Arc2D *node) {
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
 	start[0] = 0;
-	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start);
+	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start, NULL);
 	
 }
 
@@ -152,7 +152,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	int tmpint;
 	int simpleDisc;
 	int closure;
-	ushort *lindex;
+	int *lindex;
 	float start, end, radius, angle, angle_increment;
 	int numPoints, arcpoints;
 
@@ -202,7 +202,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	tmpint = SEGMENTS_PER_CIRCLE+2;
 	fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints));
 	tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints)); 
-	lindex = MALLOC (ushort *, sizeof(ushort) * (numPoints*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+	lindex = MALLOC (int *, sizeof(int) * (numPoints*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
 	//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
 	//vector_pushBack(void*,node->_gc,lindex);
 
@@ -448,7 +448,7 @@ void compile_Circle2D (struct X3D_Circle2D *node) {
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
 	start[0] = 0;
-	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start);
+	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start,NULL);
 }
 
 void render_Circle2D (struct X3D_Circle2D *node) {
@@ -476,7 +476,7 @@ void compile_Polyline2D (struct X3D_Polyline2D *node){
 	extent6f_from_box2fn(node->_extent,(float*)node->lineSegments.p,node->lineSegments.n);
 	MARK_NODE_COMPILED
 	start[0] = 0;
-	node->_intern = set_LineRep(node->_intern,NULL,node->lineSegments.p,NULL,NULL,NULL,1,&node->lineSegments.n,start);
+	node->_intern = set_LineRep(node->_intern,NULL,node->lineSegments.p,NULL,NULL,NULL,1,&node->lineSegments.n,start,NULL);
 }
 
 void render_Polyline2D (struct X3D_Polyline2D *node){
@@ -543,7 +543,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	GLfloat od;
 	int tmpint;
 	int simpleDisc;
-	ushort *lindex;
+	int *lindex;
 
 	MARK_NODE_COMPILED
 
@@ -562,7 +562,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		tmpint = SEGMENTS_PER_CIRCLE+2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint));
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //(GLfloat *, sizeof(GLfloat) * 2 * (tmpint));
-		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+		lindex = MALLOC (int *, sizeof(int) * (tmpint*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
 		//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
 		//vector_pushBack(void*,node->_gc,lindex);
 
@@ -591,7 +591,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		tmpint = (SEGMENTS_PER_CIRCLE+1) * 2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * 2 * tmpint);
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof(GLfloat) * 2 * tmpint);
-		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2) *2); //over malloc by a few, should be (nseg-1)*4 lines/seg * 2 lineEnds per line
+		lindex = MALLOC (int *, sizeof(int) * (tmpint*2) *2); //over malloc by a few, should be (nseg-1)*4 lines/seg * 2 lineEnds per line
 		//if(!node->_gc) node->_gc = newVector(void *,4);
 		//vector_pushBack(void*,node->_gc,lindex);
 
@@ -712,7 +712,7 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	GLfloat maxY, minY;
 	GLfloat Ssize, Tsize;
 	int i,j;
-	ushort *lindex;
+	int *lindex;
 	struct SFVec2f *fp; //GLfloat *fp;
 	int tmpint;
 
@@ -732,7 +732,7 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	FREE_IF_NZ (node->__texCoords.p);
 	node->__texCoords.p = fp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof (GLfloat) * tmpint * 2);
 	node->__texCoords.n = tmpint;
-	node->__wireindices = lindex = MALLOC (ushort *, sizeof(ushort)*(tmpint+1)*2); //over malloc a bit, should be: pts = lines, lines * 2 ends/line
+	node->__wireindices = lindex = MALLOC (int *, sizeof(int)*(tmpint+1)*2); //over malloc a bit, should be: pts = lines, lines * 2 ends/line
 	/* find min/max values for X and Y axes */
 	minY = minX = FLT_MAX;
 	maxY = maxX = -FLT_MAX;
@@ -902,7 +902,7 @@ void render_Rectangle2D (struct X3D_Rectangle2D *node) {
 	/* do the array drawing; sides are simple 0-1-2-3, 4-5-6-7, etc quads */
 	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
 		//wireframe triangles
-		static ushort wireindices [] = { 0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3 };
+		static int wireindices [] = { 0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3 };
 		sendElementsToGPU(GL_LINES,6*2,wireindices); //(nseg -1)*4 = (npts-2)*2 = npts*2 -4
 	}else{
 		sendArraysToGPU (GL_TRIANGLES, 0, 6);
