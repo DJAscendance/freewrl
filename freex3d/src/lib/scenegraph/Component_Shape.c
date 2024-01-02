@@ -1510,9 +1510,16 @@ void child_Shape (struct X3D_Shape *node) {
 		if (hsc) {
 			//does the geometry use the humanoid.skinCoord node?
 			struct X3D_PolyRep* pr = (struct X3D_PolyRep*)tmpNG->_intern;
-			if (pr && pr->itype == 2 && pr->coordinate_node && pr->coordinate_node == hsc) {
-				shader_requirements.base |= SKINNING_SHADER;
-				do_skinning = TRUE;
+			if (pr && (pr->itype == 1 || pr->itype == 2)) {
+				void* coordnode = pr->coordinate_node;
+				if(pr->itype == 1) {
+				  struct X3D_LineRep* lr = (struct X3D_LineRep*)tmpNG->_intern;
+				  coordnode = lr->coordinate_node;
+				}
+				if (coordnode && coordnode == hsc) {
+					shader_requirements.base |= SKINNING_SHADER;
+					do_skinning = TRUE;
+				}
 			}
 		}
 
@@ -1690,7 +1697,7 @@ void child_Shape (struct X3D_Shape *node) {
 				GLenum _global_gl_err = glGetError();
 				while (_global_gl_err != GL_NONE && err_count < 10) {
 					PRINT_GL_ERROR(_global_gl_err);
-					printf(" here: %s (%s:%d)\n", "child_shape after reallyDrawOnce", __FILE__, __LINE__);
+					printf(" here: %s (%s:%d)\n", "child_shape after reallyDrawOnce", "Component_Shape", __LINE__);
 					_global_gl_err = glGetError();
 					err_count++;
 				}

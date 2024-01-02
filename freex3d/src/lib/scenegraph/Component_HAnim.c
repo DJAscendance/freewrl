@@ -270,6 +270,7 @@ typedef struct {
 typedef struct pComponent_HAnim{
 	double HHMatrix[16];
 	Stack *humanoid_stack;
+	Stack* humanoid_skinCoord_stack;
 	Stack* joint_center;
 	Stack* bones;
 }* ppComponent_HAnim;
@@ -285,6 +286,8 @@ void Component_HAnim_init(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		p->humanoid_stack = newStack(struct X3D_HAnimHumanoid*);
+		p->humanoid_skinCoord_stack = newStack(void*);
+		stack_push(void*, p->humanoid_skinCoord_stack, NULL);
 		p->joint_center = newStack(struct SFVec3f);
 		p->bones = newStack(bone);
 	}
@@ -295,12 +298,25 @@ void Component_HAnim_clear(struct tComponent_HAnim *t){
 	{
 		ppComponent_HAnim p = (ppComponent_HAnim)t->prv;
 		deleteStack(struct X3D_HAnimHumanoid*,p->humanoid_stack);
+		deleteStack(void*, p->humanoid_skinCoord_stack);
 		deleteStack(float*, p->joint_center);
 		deleteStack(bone, p->bones);
 	}
 }
 //ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
 
+void push_humanoid_skinCoord(void* coord) {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_push(void*, p->humanoid_skinCoord_stack, coord);
+}
+void* peek_humanoid_skinCoord() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	return stack_top(void*, p->humanoid_skinCoord_stack);
+}
+void pop_humanoid_skinCoord() {
+	ppComponent_HAnim p = (ppComponent_HAnim)gglobal()->Component_HAnim.prv;
+	stack_pop(void*, p->humanoid_skinCoord_stack);
+}
 
 // compile_HAnimHumanoid and render_ push and pop 
 // so accessory nodes when rendered can refer to HH = peek_humanoid() without passing down call stack
@@ -761,7 +777,7 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		// no, we have to zero PVI, PVW and start over on every frame
 		PVW = hr->PVW; // (float*)HH->_PVW;
 		PVI = hr->PVI; // (int*)HH->_PVI;
-		if (PVW && PVI)
+		if (PVW && PVI) {
 			for (i = 0; i < node->skinCoordIndex.n; i++) {
 				int idx = node->skinCoordIndex.p[i];
 				float wt = node->skinCoordWeight.n ? node->skinCoordWeight.p[min(i, node->skinCoordWeight.n - 1)] : 1.0f;
@@ -773,6 +789,8 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 					}
 				}
 			}
+			hr->PVset = TRUE;
+		}
 	
 		//step 4: add on any Displacer displacements
 		if(HH->skinCoord && node->displacers.n ){
@@ -934,16 +952,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	pop_humanoid();
 
 }
-static void * humanoid_skin_coord = NULL;
-void push_humanoid_skinCoord(void* coord) {
-	humanoid_skin_coord = coord;
-}
-void* peek_humanoid_skinCoord() {
-	return humanoid_skin_coord;
-}
-void pop_humanoid_skinCoord() {
-	humanoid_skin_coord = NULL;
-}
+
 
 void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node) {
 	int nc;
@@ -1175,7 +1184,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			}
 		}
 		else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
-			if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
+			if (renderstate()->render_blend || renderstate()->render_geom){// == (node->_renderFlags & VF_Blend)) {
 				//push shader flaga with += SKINNING (later in Shape or render_polyrep)
 				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
 					push_humanoid_skinCoord(node->skinCoord);
@@ -1183,7 +1192,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 					//bind skin weights and joint indexes to SSBO once if not done yet
 					// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
-					if (hr->joint_changed == TRUE) {
+					if ((TRUE || hr->joint_changed == TRUE) && hr->PVset) {
 						hr->joint_changed = FALSE;
 						//OGLPG 4.5 Chapter 11 Memory example 11.6 Creating a Buffer and Using It for Shader Storage
 						if (1) {
@@ -1242,7 +1251,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						}
 
 					}
-					if (1) {
+					if (vectorSize(hr->JT)) {
 						// skin joint_matrix - send every frame
 						//# joints LAO1 18 LOA2 71 LOA3 94 LOA4 144 
 						// uniform blocks limited to 64k bytes
@@ -1269,6 +1278,20 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 						}
 
 						if(1){
+							static int mat_once = 0;
+							if (0 && mat_once == 30) {
+								int nrow = 4;
+								for (int kk = 0; kk < nmat; kk++) {
+									printf("%d\n", kk);
+									for (int jj = 0; jj < 4; jj++) {
+										for (int ii = 0; ii < 4; ii++)
+											printf("%f ", hr->jt32[(kk * nrow + jj) * 4 + ii]);
+										printf("\n");
+									}
+								}
+							}
+							mat_once++;
+
 							if (!hr->bo_JT) {
 								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 0");
 								glGenBuffers(1, &hr->bo_JT);
@@ -1344,10 +1367,13 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
 			//pop shader flags
-			if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
-				//unbind joint matrices UBO
-				//unbind skin weights SSBO
-				pop_humanoid_skinCoord();
+			if (renderstate()->render_blend || renderstate()->render_geom){ //} == (node->_renderFlags & VF_Blend)) {
+				//push shader flaga with += SKINNING (later in Shape or render_polyrep)
+				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+					//unbind joint matrices UBO
+					//unbind skin weights SSBO
+					pop_humanoid_skinCoord();
+				}
 			}
 		} else if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//restore original coordinates 
@@ -1401,11 +1427,11 @@ void sendSkinningInfo() {
 		}
 
 
-		if (1) {
+		if (hr->PVset) {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW);
 		}
-		if (1) {
+		if (hr->PVset) {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
 		}

@@ -914,10 +914,6 @@ void main(void) \n\
   //ivec4 pvi = PVI[fw_Cindex]; \n\
   //vec4 pvw = PVW[fw_Cindex]; \n\
   normal_object = vec3(0.0); \n\
-  //normal_object += (JN[pvi.r-1]*pvw.r*vec4(fw_Normal,1.0)).xyz; \n\
-  //normal_object += (JN[pvi.g-1]*pvw.g*vec4(fw_Normal,1.0)).xyz; \n\
-  //normal_object += (JN[pvi.b-1]*pvw.b*vec4(fw_Normal,1.0)).xyz; \n\
-  //normal_object += (JN[pvi.a-1]*pvw.a*vec4(fw_Normal,1.0)).xyz; \n\
   normal_object += JN[pvi.r-1]*pvw.r*fw_Normal; \n\
   normal_object += JN[pvi.g-1]*pvw.g*fw_Normal; \n\
   normal_object += JN[pvi.b-1]*pvw.b*fw_Normal; \n\

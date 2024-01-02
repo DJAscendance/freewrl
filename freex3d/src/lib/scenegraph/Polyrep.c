@@ -761,7 +761,7 @@ void do_glNormal3fv(struct SFVec3f *dest, GLfloat *param) {
  ********************************************************************/
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
-void* peek_humanoid_skinCoord();
+
 void render_polyrep(void* node) {
 	//struct X3D_Virt *virt;
 	struct X3D_Node* renderedNodePtr;

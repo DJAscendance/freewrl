@@ -84,6 +84,7 @@ struct X3D_HanimRep {
 	float* jn32;
 	int have_skin;
 	int joint_changed;
+	int PVset;
 };
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep
@@ -129,6 +130,7 @@ struct X3D_LineRep {
 	struct SFColor* color;
 	struct SFColorRGBA* colorRgba;
 	int* skindex; //LineSet, IndexedLineSet only, which have coord field which could be humanod.coord Coordinate node
+	void* coordinate_node; //we need to know when we are skinning, populate during make_polyrep for testing against a stack push of humanoid.coord
 };
 
 struct X3D_TexturableGeomRep {
@@ -150,6 +152,7 @@ struct X3D_PointRep {
 	// indirection to sharable, delay-loadable buffer
 	struct geomBuffer* buffer;
 	struct bufAccess attrib[3]; //vertex coord, color per vertex, fog per vertex
+	void* coordinate_node; //we need to know when we are skinning, populate during make_polyrep for testing against a stack push of humanoid.coord
 };
 int lookup_dataType_size(int dataType); //GL_FLOAT -> 4 GL_SHORT - 2
 int set_Attrib(struct bufAccess* ba, int dataSize, int dataType, int byteOffset);
