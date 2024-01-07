@@ -532,6 +532,14 @@ layout (std430, binding = 12) buffer BufferObject1 { \n\
 layout (std430, binding = 13) buffer BufferObject2 { \n\
   mat3 JN[]; \n\
 }; \n\
+#ifdef DISPLACER \n\
+layout (std430, binding = 14) buffer BufferBlock3 { \n\
+  int dindex []; \n\
+}; \n\
+layout (std430, binding = 15) buffer BufferBlock4 { \n\
+  vec4 displace []; \n\
+}; \n\
+#endif //DISPLACER  \n\
 #endif //SKINNING \n\
 #if defined(LINETYPE) && defined(FULL) \n\
 //desktop glsl 130 \n\
@@ -876,13 +884,18 @@ void main(void) \n\
   //\n\
   vec4 vertex_object = fw_Vertex; \n\
   #ifdef SKINNING \n\
+  #ifdef DISPLACER \n\
+  vertex_object.xyz += displace[dindex[fw_Cindex]].xyz; \n\
+  //vertex_object.x += displace[6].x; \n\
+  #endif //DISPLACER \n\
   ivec4 pvi = PVI[fw_Cindex]; \n\
   vec4 pvw = PVW[fw_Cindex]; \n\
-  vertex_object = vec4(0.0); \n\
-  vertex_object += JT[pvi.r-1]*pvw.r*fw_Vertex; \n\
-  vertex_object += JT[pvi.g-1]*pvw.g*fw_Vertex; \n\
-  vertex_object += JT[pvi.b-1]*pvw.b*fw_Vertex; \n\
-  vertex_object += JT[pvi.a-1]*pvw.a*fw_Vertex; \n\
+  vec4 vo = vec4(0.0); \n\
+  vo += JT[pvi.r-1]*pvw.r*vertex_object; \n\
+  vo += JT[pvi.g-1]*pvw.g*vertex_object; \n\
+  vo += JT[pvi.b-1]*pvw.b*vertex_object; \n\
+  vo += JT[pvi.a-1]*pvw.a*vertex_object; \n\
+  vertex_object = vo; \n\
   #endif //SKINNING \n\
   #ifdef PARTICLE \n\
   if(fw_ParticleGeomType != 4){ \n\
@@ -4083,6 +4096,8 @@ int getSpecificShaderSourceCastlePlugs (const GLchar **vertexSource, const GLcha
 	}
 	if (DESIRE(whichOne.base, SKINNING_SHADER)) {
 		AddDefine(SHADERPART_VERTEX, "SKINNING", CompleteCode);
+		if(DESIRE(whichOne.base,DISPLACER_SHADER))
+			AddDefine(SHADERPART_VERTEX, "DISPLACER", CompleteCode);
 	}
 
 	//EFFECTS - castle game engine effect nodes X3D_Effect with plugs applied here

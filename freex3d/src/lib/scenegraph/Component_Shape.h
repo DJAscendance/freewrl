@@ -122,6 +122,7 @@ enum {
 #define LINE_PROPERTIES_SHADER	0X40000000
 #define POINT_PROPERTIES_SHADER 0x80000000
 #define SKINNING_SHADER			0X100000000
+#define DISPLACER_SHADER		0x200000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume

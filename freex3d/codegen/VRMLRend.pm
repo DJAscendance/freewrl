@@ -121,7 +121,7 @@ our %defaultContainerType = (
 	HAnimSite		=>["sites","viewpoints"],
 	HAnimMotion		=>["motions"],
 	HAnimMotionPlay		=>["motions"],
-	HAnimMotionOrientation	=>["motions"],
+	HAnimMotionInterpolator	=>["motions"],
 	HAnimMotionData		=>["data","motions"],
 	HAnimMotionDataFile	=>["data","motions"],
 	HAnimMotionClip		=>["data","motions"],
@@ -497,7 +497,7 @@ our %RendC = map {($_=>1)} qw/
 	HAnimPermuter
 	HAnimJoint
 	HAnimMotion
-	HAnimMotionOrientation
+	HAnimMotionInterpolator
 	HAnimMotionPlay
 	HAnimMotionData
 	HAnimMotionDataFile
@@ -867,7 +867,7 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimHumanoid
 	HAnimPermuter
 	HAnimMotion
-	HAnimMotionOrientation
+	HAnimMotionInterpolator
 	HAnimMotionPlay
 	HAnimMotionData
 	HAnimMotionDataFile

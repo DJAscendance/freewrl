@@ -85,6 +85,15 @@ struct X3D_HanimRep {
 	int have_skin;
 	int joint_changed;
 	int PVset;
+	//GPU joint displacer method: packed displace array with int displace[dindex[cindex]]
+	int joint_displacer_count;
+	int dindex_done;
+	Stack* dindex_lookup;
+	GLuint bo_dindex;
+	int* dindex; //dindex[NV] per-original-vertex index into packed displace array
+	GLuint bo_displace;
+	float* displace; //[4*(ND+1)] - 0th is 0,0,0 
+	int ND; //number of unique-vertex displacements
 };
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep

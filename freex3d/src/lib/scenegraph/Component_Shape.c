@@ -1418,6 +1418,7 @@ struct X3D_Shape* peek_shape() {
 	return wrap_shape;
 }
 void* peek_humanoid_skinCoord();
+struct X3D_HAnimHumanoid* peek_humanoid();
 void sendSkinningInfo();
 void clearSkinningInfo();
 void PRINT_GL_ERROR(GLenum _global_gl_err);
@@ -1519,6 +1520,8 @@ void child_Shape (struct X3D_Shape *node) {
 				if (coordnode && coordnode == hsc) {
 					shader_requirements.base |= SKINNING_SHADER;
 					do_skinning = TRUE;
+					struct X3D_HanimRep* hr = (struct X3D_HanimRep*)peek_humanoid()->_intern;
+					if(hr->bo_dindex) shader_requirements.base |= DISPLACER_SHADER;
 				}
 			}
 		}

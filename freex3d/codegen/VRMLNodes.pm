@@ -3377,6 +3377,7 @@ our %Nodes = (
 		weight => ["SFFloat", 0.0, "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
+		_dindex => ["FreeWRLPTR",0,"initializeOnly", 0,0],#ff
 	],"X3DGeometricPropertyNode"),
 
 	"HAnimHumanoid" => new VRML::NodeType("HAnimHumanoid", [
@@ -3437,7 +3438,7 @@ our %Nodes = (
 
 
 
-	"HAnimMotionOrientation" => new VRML::NodeType("HAnimMotionOrientation", [
+	"HAnimMotionInterpolator" => new VRML::NodeType("HAnimMotionInterpolator", [
 		metadata => ["SFNode", "NULL", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33)","UNCA_NONE"],#ff
 		description => ["SFString", "", "inputOutput", "(SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40)","UNCA_NONE"],#ff
 		#MotionPlay

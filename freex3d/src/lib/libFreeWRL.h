@@ -199,6 +199,7 @@ int fwg_get_unread_message_count(void);
 char *fwg_get_last_message();
 void fwl_set_logfile(char *);
 void fwl_set_nameTest(char *);
+void fwl_set_skinning(char);
 
 #if defined(_ANDROID)
 int DROIDDEBUG( const char*pFmtStr, ...);

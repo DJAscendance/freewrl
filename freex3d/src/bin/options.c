@@ -114,6 +114,7 @@ void fv_usage()
 	    "  -j|--fd <number>        Pipe to command the program.\n"
 	    "  -k|--instance <number>  Instance of plugin.\n"
 	    "  -L|--logfile <filename> Log file where all messages should go.\n"
+		"     --skinGPU  TF        for HAnim T= GPU skinning F= CPU skinning .\n"
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
@@ -190,6 +191,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"DISport",required_argument,0,129},
 	{"DISsite",required_argument,0,130},
 	{"DISapp",required_argument,0,131},
+	{"skinGPU",required_argument,0,132},
 	{0, 0, 0, 0}
     };
 
@@ -444,6 +446,11 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 		sscanf(optarg, "%d", &itmp);
 		fwl_set_DISapplication(itmp);
 		break;
+
+	case 132: /* --skinGPU T/F */
+		fwl_set_skinning(optarg[0]);
+		break;
+
 
 	case 'S': /* --set, required argument: int */
 		sscanf(optarg, "%d", &itmp);

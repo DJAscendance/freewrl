@@ -275,6 +275,7 @@ extern char *parser_getNameFromNode(struct X3D_Node* node);
 	"_coordIndex",
 	"_csensor",
 	"_destination",
+	"_dindex",
 	"_dir",
 	"_donethispass",
 	"_drag_count",
@@ -2868,7 +2869,7 @@ const char *NODES[] = {
 	"HAnimMotionClip",
 	"HAnimMotionData",
 	"HAnimMotionDataFile",
-	"HAnimMotionOrientation",
+	"HAnimMotionInterpolator",
 	"HAnimMotionPlay",
 	"HAnimPermuter",
 	"HAnimSegment",
@@ -3894,9 +3895,9 @@ void render_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *);
 void compile_HAnimMotionDataFile(struct X3D_HAnimMotionDataFile *);
 struct X3D_Virt virt_HAnimMotionDataFile = { NULL,(void *)render_HAnimMotionDataFile,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionDataFile};
 
-void render_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation *);
-void compile_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation *);
-struct X3D_Virt virt_HAnimMotionOrientation = { NULL,(void *)render_HAnimMotionOrientation,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionOrientation};
+void render_HAnimMotionInterpolator(struct X3D_HAnimMotionInterpolator *);
+void compile_HAnimMotionInterpolator(struct X3D_HAnimMotionInterpolator *);
+struct X3D_Virt virt_HAnimMotionInterpolator = { NULL,(void *)render_HAnimMotionInterpolator,NULL,NULL,NULL,NULL,NULL,NULL,NULL,(void *)compile_HAnimMotionInterpolator};
 
 void render_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
 void compile_HAnimMotionPlay(struct X3D_HAnimMotionPlay *);
@@ -4759,7 +4760,7 @@ struct X3D_Virt* virtTable[] = {
 	 &virt_HAnimMotionClip,
 	 &virt_HAnimMotionData,
 	 &virt_HAnimMotionDataFile,
-	 &virt_HAnimMotionOrientation,
+	 &virt_HAnimMotionInterpolator,
 	 &virt_HAnimMotionPlay,
 	 &virt_HAnimPermuter,
 	 &virt_HAnimSegment,
@@ -6920,6 +6921,7 @@ const int OFFSETS_HAnimDisplacer[] = {
 	(int) FIELDNAMES_weight, (int) offsetof (struct X3D_HAnimDisplacer, weight),  (int) FIELDTYPE_SFFloat, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimDisplacer, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
 	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimDisplacer, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__dindex, (int) offsetof (struct X3D_HAnimDisplacer, _dindex),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimHumanoid[] = {
@@ -7085,18 +7087,18 @@ const int OFFSETS_HAnimMotionDataFile[] = {
 	(int) FIELDNAMES_armAngle, (int) offsetof (struct X3D_HAnimMotionDataFile, armAngle),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
-const int OFFSETS_HAnimMotionOrientation[] = {
-	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionOrientation, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
-	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotionOrientation, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotionOrientation, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotionOrientation, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_channelsEnabled, (int) offsetof (struct X3D_HAnimMotionOrientation, channelsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotionOrientation, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotionOrientation, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionOrientation, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
-	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionOrientation, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES_children, (int) offsetof (struct X3D_HAnimMotionOrientation, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__jointnames, (int) offsetof (struct X3D_HAnimMotionOrientation, _jointnames),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+const int OFFSETS_HAnimMotionInterpolator[] = {
+	(int) FIELDNAMES_metadata, (int) offsetof (struct X3D_HAnimMotionInterpolator, metadata),  (int) FIELDTYPE_SFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33), (int) UNCA_NONE,
+	(int) FIELDNAMES_description, (int) offsetof (struct X3D_HAnimMotionInterpolator, description),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33 | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_transitionWeight, (int) offsetof (struct X3D_HAnimMotionInterpolator, transitionWeight),  (int) FIELDTYPE_SFFloat, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_transitionStart, (int) offsetof (struct X3D_HAnimMotionInterpolator, transitionStart),  (int) FIELDTYPE_SFTime, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_channelsEnabled, (int) offsetof (struct X3D_HAnimMotionInterpolator, channelsEnabled),  (int) FIELDTYPE_MFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_enabled, (int) offsetof (struct X3D_HAnimMotionInterpolator, enabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__lastenabled, (int) offsetof (struct X3D_HAnimMotionInterpolator, _lastenabled),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__framevalues, (int) offsetof (struct X3D_HAnimMotionInterpolator, _framevalues),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES_joints, (int) offsetof (struct X3D_HAnimMotionInterpolator, joints),  (int) FIELDTYPE_SFString, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES_children, (int) offsetof (struct X3D_HAnimMotionInterpolator, children),  (int) FIELDTYPE_MFNode, (int) KW_inputOutput, (int) (SPEC_X3D30 | SPEC_X3D31 | SPEC_X3D32 | SPEC_X3D33  | SPEC_X3D40), (int) UNCA_NONE,
+	(int) FIELDNAMES__jointnames, (int) offsetof (struct X3D_HAnimMotionInterpolator, _jointnames),  (int) FIELDTYPE_FreeWRLPTR, (int) KW_initializeOnly, (int) 0, (int) 0,
 	-1, -1, -1, -1, -1, -1};
 
 const int OFFSETS_HAnimMotionPlay[] = {
@@ -10575,7 +10577,7 @@ const int *NODE_OFFSETS[] = {
 	OFFSETS_HAnimMotionClip,
 	OFFSETS_HAnimMotionData,
 	OFFSETS_HAnimMotionDataFile,
-	OFFSETS_HAnimMotionOrientation,
+	OFFSETS_HAnimMotionInterpolator,
 	OFFSETS_HAnimMotionPlay,
 	OFFSETS_HAnimPermuter,
 	OFFSETS_HAnimSegment,
@@ -11209,7 +11211,7 @@ void *createNewX3DNode0 (int nt) {
 		case NODE_HAnimMotionClip : {tmp = MALLOC (struct X3D_HAnimMotionClip *, size = sizeof (struct X3D_HAnimMotionClip)); break;}
 		case NODE_HAnimMotionData : {tmp = MALLOC (struct X3D_HAnimMotionData *, size = sizeof (struct X3D_HAnimMotionData)); break;}
 		case NODE_HAnimMotionDataFile : {tmp = MALLOC (struct X3D_HAnimMotionDataFile *, size = sizeof (struct X3D_HAnimMotionDataFile)); break;}
-		case NODE_HAnimMotionOrientation : {tmp = MALLOC (struct X3D_HAnimMotionOrientation *, size = sizeof (struct X3D_HAnimMotionOrientation)); break;}
+		case NODE_HAnimMotionInterpolator : {tmp = MALLOC (struct X3D_HAnimMotionInterpolator *, size = sizeof (struct X3D_HAnimMotionInterpolator)); break;}
 		case NODE_HAnimMotionPlay : {tmp = MALLOC (struct X3D_HAnimMotionPlay *, size = sizeof (struct X3D_HAnimMotionPlay)); break;}
 		case NODE_HAnimPermuter : {tmp = MALLOC (struct X3D_HAnimPermuter *, size = sizeof (struct X3D_HAnimPermuter)); break;}
 		case NODE_HAnimSegment : {tmp = MALLOC (struct X3D_HAnimSegment *, size = sizeof (struct X3D_HAnimSegment)); break;}
@@ -13843,6 +13845,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->weight = 0.0f;
 			tmp2->metadata = NULL;
 			tmp2->description = newASCIIString("");
+			tmp2->_dindex = 0;
 			tmp2->_defaultContainer = 0;
 		break;
 		}
@@ -14039,9 +14042,9 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->_defaultContainer = 0;
 		break;
 		}
-		case NODE_HAnimMotionOrientation : {
-			struct X3D_HAnimMotionOrientation * tmp2;
-			tmp2 = (struct X3D_HAnimMotionOrientation *) tmp;
+		case NODE_HAnimMotionInterpolator : {
+			struct X3D_HAnimMotionInterpolator * tmp2;
+			tmp2 = (struct X3D_HAnimMotionInterpolator *) tmp;
 			tmp2->metadata = NULL;
 			tmp2->description = newASCIIString("");
 			tmp2->transitionWeight = 0.0f;
@@ -20802,9 +20805,9 @@ void dump_scene (FILE *fp, int level, struct X3D_Node* node) {
 			for (i=0; i<tmp->url.n; i++) { spacer fprintf (fp,"			%d: \t%s\n",i,tmp->url.p[i]->strptr); }
 		    break;
 		}
-		case NODE_HAnimMotionOrientation : {
-			struct X3D_HAnimMotionOrientation *tmp;
-			tmp = (struct X3D_HAnimMotionOrientation *) node;
+		case NODE_HAnimMotionInterpolator : {
+			struct X3D_HAnimMotionInterpolator *tmp;
+			tmp = (struct X3D_HAnimMotionInterpolator *) node;
 			UNUSED(tmp); // compiler warning mitigation
 		    if(allFields) {
 			spacer fprintf (fp," metadata (SFNode):\n"); dump_scene(fp,level+1,tmp->metadata); 
@@ -24998,7 +25001,7 @@ int getSAI_X3DNodeType (int FreeWRLNodeType) {
 	case NODE_HAnimMotionClip: return X3DMotionDataNode; break;
 	case NODE_HAnimMotionData: return X3DMotionDataNode; break;
 	case NODE_HAnimMotionDataFile: return X3DMotionDataNode; break;
-	case NODE_HAnimMotionOrientation: return X3DMotionNode; break;
+	case NODE_HAnimMotionInterpolator: return X3DMotionNode; break;
 	case NODE_HAnimMotionPlay: return X3DMotionNode; break;
 	case NODE_HAnimPermuter: return X3DChildNode; break;
 	case NODE_HAnimSegment: return X3DChildNode; break;

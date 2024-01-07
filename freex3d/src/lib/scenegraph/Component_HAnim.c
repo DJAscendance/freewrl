@@ -42,6 +42,7 @@ X3D H-Anim Component
 #include "Children.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "Polyrep.h"
+#include "Component_Shape.h"
 #include "../opengl/Frustum.h"
 #include "LinearAlgebra.h"
 
@@ -413,6 +414,7 @@ void compile_HAnimJoint (struct X3D_HAnimJoint *node){
 	MARK_NODE_COMPILED
 
 }
+void update_displacerWeightFromMotion(struct X3D_Node* HMnode, char* jname, float* weight);
 
 void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 
@@ -463,6 +465,11 @@ void prep_HAnimJoint (struct X3D_HAnimJoint *node) {
 
 						FW_GL_SETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 						//printmatrix(jointMatrix.mat);
+					}
+					for (int j = 0; j < node->displacers.n; j++) {
+						struct X3D_HAnimDisplacer* dp = (struct X3D_HAnimDisplacer*)node->displacers.p[j];
+						char* name = dp->name->strptr;
+						update_displacerWeightFromMotion(X3D_NODE(HM), name, &dp->weight);
 					}
 				}
 			}
@@ -679,6 +686,10 @@ static int vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
 int vertexTransformMethod() {
 	return vertex_transform_method;
 }
+void fwl_set_skinning(char tf) {
+	if (tf == 'F' || tf == 'f') vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
+	else vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
+}
 char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
 
 void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
@@ -793,44 +804,149 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 		}
 	
 		//step 4: add on any Displacer displacements
-		if(HH->skinCoord && node->displacers.n ){
-			int ni, i;
-			float *psc, *pdp;
-			int *ci;
-			struct X3D_Coordinate *nc = (struct X3D_Coordinate*)HH->skinCoord;
-			psc = (float*)nc->point.p;
-			// nsc = nc->point.n;
-			for(i=0;i<node->displacers.n;i++){
-				int index, j;
-				float *point, weight, wdisp[3];
-				struct X3D_HAnimDisplacer *dp = (struct X3D_HAnimDisplacer *)node->displacers.p[i];
-				
-				weight = dp->weight;
-				//printf(" %f ",weight);
-				pdp = (float*)dp->displacements.p;
-				// ndp = dp->displacements.n;
+		if (HH->skinCoord && node->displacers.n) {
+			if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+					int ni, i;
+				float* psc, * pdp;
+				int* ci;
+				struct X3D_Coordinate* nc = (struct X3D_Coordinate*)HH->skinCoord;
+				psc = (float*)nc->point.p;
+				// nsc = nc->point.n;
+				for (i = 0; i < node->displacers.n; i++) {
+					int index, j;
+					float* point, weight, wdisp[3];
+					struct X3D_HAnimDisplacer* dp = (struct X3D_HAnimDisplacer*)node->displacers.p[i];
+					weight = dp->weight; //updated from MotionInterpolator in prep_HAnimJoint
+					//printf(" %f ",weight);
+					pdp = (float*)dp->displacements.p;
+					// ndp = dp->displacements.n;
 
-				ni = dp->coordIndex.n;
-				ci = dp->coordIndex.p;
-				for(j=0;j<ni;j++){
-					index = ci[j];
-					point = &psc[index*3];
-					vecscale3f(wdisp,&pdp[j*3],weight);
-					vecadd3f(point,point,wdisp);
+					ni = dp->coordIndex.n;
+					ci = dp->coordIndex.p;
+					for (j = 0; j < ni; j++) {
+						index = ci[j];
+						point = &psc[index * 3];
+						vecscale3f(wdisp, &pdp[j * 3], weight);
+						vecadd3f(point, point, wdisp);
+					}
+				}
+				if (0) { //this is done in child_HAnimHumanoid for the skinCoord parents
+					//force HAnimSegment.children[] shape nodes using segment->coord to recompile
+					int k;
+					Stack* parents;
+					HH->skinCoord->_change++;
+					parents = HH->skinCoord->_parentVector;
+					for (k = 0; k < vectorSize(parents); k++) {
+						struct X3D_Node* parent = vector_get(struct X3D_Node*, parents, k);
+						parent->_change++;
+					}
+				}
+
+			}
+			else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+				/* Displacements are summed on CPU side and put in a 'packed' array of size
+				   vec3 x number of unique vertexes being displaced
+				   This is because usually a small % of all humanoid.skinCoord coordinates
+				   are displaced, for example small facial features or clothing
+				   And the displacements are sent to GPU on every frame, so the smaller 
+				   the better. To index into this paced array, a displacer index dindex [] array 
+				   is prepared early in the scene and sent once to GPU. In the GPU:
+				   vertex_object += displace[dindex[cindex]];
+				   where cindex (fw_Cindex) is the index of the vertex in the original (not streamed)
+				   humanoid.skinCoord, and is an attribute in the vertex shader.
+				   This method avoids indefinite length loops in GPU shader which stall parallel threads,
+				   and avoids sending the whole updated coordinate array to GPU.
+				   So if it doesn't speed up displacers, why are we doing it?
+				   Because when we do the skinning coordinate transforms on the GPU shader we
+				   send the coordinates once early, so they would miss out on displacements
+				   if we didn't do ths.
+				*/
+				if (!hr->dindex_done) {
+					if (!hr->dindex_lookup) {
+						// lookup tuple (cindex,dindex)
+						// does 2 things 1) stores cindex (index of coordinate) so
+						// we know if it's already been used once by another displacer 
+						// 2) records the dindex into the packed array for that cindex 
+						hr->dindex_lookup = newStack(ivec2);
+						// reserve the first row of packed displace array for 0,0,0
+						// so when a coordinate has no dindex (dindex == 0) it gets
+						// a default displacement of 0,0,0 in the shader.
+						ivec2 cindin = { -1,0 };
+						hr->ND = 1;
+						stack_push(ivec2, hr->dindex_lookup, cindin); 
+					}
+					for (i = 0; i < node->displacers.n; i++) {
+						int index, * dindex, j;
+						float* point, weight, wdisp[3];
+						struct X3D_HAnimDisplacer* dp = (struct X3D_HAnimDisplacer*)node->displacers.p[i];
+						//we add a local dindex once to displacer node
+						// so on subsequent summing passes we don't need to do a lookup
+
+						int ni = dp->coordIndex.n;
+						int* ci = dp->coordIndex.p;
+						if (!dp->_dindex) dp->_dindex = malloc(sizeof(int) * ni);
+						dindex = (int*)dp->_dindex;
+
+						//we want the unique ones, because we only add once in vertex shader
+						for (j = 0; j < ni; j++) {
+							int found = FALSE;
+							for (int k = 0; k < hr->ND; k++) {
+								ivec2 cindin = vector_get(ivec2, hr->dindex_lookup, k);
+								if (cindin.X == ci[j]) {
+									found = TRUE;
+									index = cindin.Y;
+								}
+							}
+							if (!found) {
+								// add to humanoid (cindex,dindex) lookup 
+								ivec2 cindin;
+								index = cindin.Y = hr->ND; hr->ND++;
+								cindin.X = ci[j];
+								stack_push(ivec2, hr->dindex_lookup, cindin);
+								// add to humanoid dindex
+								if (!hr->dindex) {
+									//humanoid doesn't know if there are displacers
+									// so we allocate on-demand
+									int nc = X3D_COORDINATE(HH->skinCoord)->point.n;
+									hr->dindex = malloc(sizeof(int) * nc );
+									memset(hr->dindex, 0, sizeof(int)* nc);
+								}
+								hr->dindex[ci[j]] = index;
+							}
+							// add to displacer node dindex
+							dindex[j] = index;
+						}
+					}
+					hr->joint_displacer_count += node->displacers.n;
+				}
+				else {
+					//summing pass on every frame
+					// - just add weighted displacements on packed displace array
+					//whole hr->_displace[] vector is zeroed outside in child_HAnimHumanoid
+					//weighted-sum diplacements
+					if(hr->displace)
+					for (i = 0; i < node->displacers.n; i++) {
+						int index, *dindex, j;
+						float* point, weight, wdisp[3];
+						struct X3D_HAnimDisplacer* dp = (struct X3D_HAnimDisplacer*)node->displacers.p[i];
+						weight = dp->weight;
+						if (weight > 0.0f) {
+							//printf(" %f ",weight);
+							float* pdp = (float*)dp->displacements.p;
+							// ndp = dp->displacements.n;
+							int ni = dp->coordIndex.n;
+							int* ci = dp->coordIndex.p;
+							dindex = dp->_dindex;
+							for (j = 0; j < ni; j++) {
+								index = dindex[j];
+								float* displace = &hr->displace[index * 4];
+								vecscale3f(wdisp, &pdp[j * 3], weight);
+								vecadd3f(displace, displace, wdisp);
+							}
+						}
+					}
 				}
 			}
-			if(0){ //this is done in child_HAnimHumanoid for the skinCoord parents
-				//force HAnimSegment.children[] shape nodes using segment->coord to recompile
-				int k;
-				Stack *parents;
-				HH->skinCoord->_change++;
-				parents = HH->skinCoord->_parentVector;
-				for(k=0;k<vectorSize(parents);k++){
-					struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
-					parent->_change++;
-				}
-			}
-
 		}
 	} //if HH
 
@@ -853,7 +969,14 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 		}
 	struct X3D_HanimRep* hr = (struct X3D_HanimRep*)node->_intern;
 	hr->itype = 9; 
-
+	static int oncegpu = 0;
+	if (!oncegpu) {
+		char* smeth = "GPU";
+		if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU)
+			smeth = "CPU";
+		printf("Skinning Method: %s\n", smeth);
+		oncegpu++;
+	}
 	push_humanoid(node);
 	if (node->motions.n) {
 		if (node->motions.n > node->motionsEnabled.n) {
@@ -1080,6 +1203,16 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				}
 			}
 		}
+		else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+			//we clear the displacer sum table on every frame before 
+			// rendering skeleton, where joint displacements will be sum = weight x displacment
+			if (hr->ND) {
+				if(!hr->displace)
+					hr->displace = malloc(hr->ND * 4 * sizeof(float));
+				hr->dindex_done = TRUE; //only do the dindex once
+				memset(hr->displace, 0, hr->ND * 4 * sizeof(float));
+			}
+		}
 
 	}
 
@@ -1185,7 +1318,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 		}
 		else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
 			if (renderstate()->render_blend || renderstate()->render_geom){// == (node->_renderFlags & VF_Blend)) {
-				//push shader flaga with += SKINNING (later in Shape or render_polyrep)
+				//push shader flaga with += SKINNING (later in child_Shape when we filter the skin shapes by Coordinate node == humanoid.coord)
 				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
 					push_humanoid_skinCoord(node->skinCoord);
 					//#define USING_IMAGEBUFFER 1
@@ -1249,6 +1382,71 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 8");
 						}
+						if (hr->dindex) {
+							//displacers, send dindex[nc] once
+							static int dionce = 0; //0;
+							if (dionce == 0) {
+								for (int kk = 0; kk < hr->NV; kk++)
+								{
+									if (hr->dindex[kk]) {
+										printf("[%d %d]\n", kk, hr->dindex[kk]);
+									}
+								}
+								dionce++;
+							}
+
+							if (hr->bo_dindex == 0)
+								glGenBuffers(1, &hr->bo_dindex);
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_dindex);
+							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 9");
+							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int), hr->dindex, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
+							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 10");
+							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, hr->bo_dindex);
+							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 11");
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 12");
+						}
+
+					}
+					if (hr->ND && hr->displace) {
+						//send every frame (unless a flag says non of the displacers are weighted, 
+						// and sent 0s once already)
+						if (!hr->bo_displace) {
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 0");
+							glGenBuffers(1, &hr->bo_displace);
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 13");
+							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->ND * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 14");
+							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 15");
+						}
+						else {
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 16");
+							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 17");
+						}
+						static int donce = 0; //0;
+						if (donce % 1000 == 0) {
+							printf("\nND %d\n", hr->ND);
+							for (int kk = 0; kk < hr->ND; kk++)
+							{
+								float* v4 = &hr->displace[kk * 4];
+								printf("[%d %f %f %f]\n", kk, v4[0], v4[1],v4[2]);
+							}
+							//donce++;
+						}
+						donce++;
+						//float* dd = hr->displace;
+						//vecset3f(dd, .01, 0.0); //test
+						void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+						PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
+						memcpy(bdata, hr->displace, hr->ND * 4 * sizeof(float));
+						glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+						PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
+						glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 
 					}
 					if (vectorSize(hr->JT)) {
@@ -1411,6 +1609,7 @@ void sendSkinningInfo() {
 		struct X3D_HAnimHumanoid* HH = peek_humanoid();
 		struct X3D_HanimRep* hr = (struct X3D_HanimRep*)HH->_intern;
 		PRINT_GL_ERROR_IF_ANY("Hanim SENd 0");
+
 		if(1)
 		{
 			//JT_SSBO
@@ -1435,14 +1634,33 @@ void sendSkinningInfo() {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
 		}
-
+		//the SKINNING_SHADER flag is added conditionally in child_Shape()
+		if (hr->bo_dindex) {
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_dindex);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, hr->bo_dindex);
+			if (hr->bo_displace) {
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
+				PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO SENd 3");
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
+				PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO SENd 4");
+			}
+			//shaderflagsstruct shaderflags = getShaderFlags();
+			//shaderflags.base |= DISPLACER_SHADER;
+			//pushShaderFlags(shaderflags);
+		}
 	}
 }
 void clearSkinningInfo() {
 	if (1) {
+		//struct X3D_HAnimHumanoid* HH = peek_humanoid();
+		//struct X3D_HanimRep* hr = (struct X3D_HanimRep*)HH->_intern;
+
 		PRINT_GL_ERROR_IF_ANY("Hanim CLEAR 0");
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 		PRINT_GL_ERROR_IF_ANY("Hanim SSBO CLEAR 1");
+		//if (hr->bo_dindex) {
+		//	popShaderFlags(); //DISPLACER_SHADER
+		//}
 	}
 }
 void child_HAnimJoint(struct X3D_HAnimJoint *node) {
@@ -1995,7 +2213,37 @@ struct joint_frame_motion * jointFrameMotion(struct X3D_HAnimMotion *node, char 
 	}
 	return jm;
 }
+void update_displacerWeightFromMotion(struct X3D_Node* HMnode, char* jname, float *weight) {
+	if (HMnode && (HMnode->_nodeType == NODE_HAnimMotion || HMnode->_nodeType == NODE_HAnimMotionPlay)) {
+		//in theory adding a new channel type "WT" would allow mixing
+		//  of displacer weights and POS, ROT channels in same Motion data
+	}
+	else if (HMnode && (HMnode->_nodeType == NODE_HAnimMotionInterpolator)) {
+		struct X3D_HAnimMotionInterpolator* HMO = (struct X3D_HAnimMotionInterpolator*)HMnode;
+		struct Vector* jointnames = HMO->_jointnames;
 
+		if (jointnames && vectorSize(jointnames)) {
+			int n = vectorSize(jointnames);
+			for (int i = 0; i < n; i++) {
+				char* hmoname = vector_get(char*, jointnames, i);
+				//printf("(%s,%s)", jname, hmoname);
+				if (!strcmp(jname, hmoname) && strcmp(jname, "IGNORE")) {
+					//printf(" %s",jname);
+					if (i < HMO->children.n) {
+						struct X3D_Node* inode = HMO->children.p[i];
+						if (inode->_nodeType == NODE_ScalarInterpolator) {
+							struct X3D_ScalarInterpolator* onode = (struct X3D_ScalarInterpolator*)inode;
+							//printf(" %d(%f %f %f %f)", i,onode->value_changed.c[0], onode->value_changed.c[1], onode->value_changed.c[2], onode->value_changed.c[3]);
+							float wt = onode->value_changed;
+							//printf("[%f,%f]", wt, onode->set_fraction);
+							*weight = wt; //overwrite ?
+						}
+					}
+				}
+			}
+		}
+	}
+}
 void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* jmatrix0) {
 	struct X3D_HAnimMotion* HM = (struct X3D_HAnimMotion*)HMnode;
 	if (HM && (HM->_nodeType == NODE_HAnimMotion || HM->_nodeType == NODE_HAnimMotionPlay)) {
@@ -2148,9 +2396,9 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			//printf("\n");
 		}
 	}
-	else if (HM && (HM->_nodeType == NODE_HAnimMotionOrientation)) {
+	else if (HM && (HM->_nodeType == NODE_HAnimMotionInterpolator)) {
 		//printf("update from orientation ");
-		struct X3D_HAnimMotionOrientation *HMO = (struct X3D_HAnimMotionOrientation*)HM;
+		struct X3D_HAnimMotionInterpolator *HMO = (struct X3D_HAnimMotionInterpolator*)HM;
 		struct Vector* jointnames = HMO->_jointnames;
 		float weight = HMO->transitionWeight;
 
@@ -2754,13 +3002,13 @@ void child_HAnimPermuter(struct X3D_HAnimPermuter* node){
 	//child_HAnimHumanoid(HH); // node->humanoid);
 
 }
-void compile_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation* node) {
+void compile_HAnimMotionInterpolator(struct X3D_HAnimMotionInterpolator* node) {
 	struct Vector* jnames = parse_joint_names(X3D_NODE(node), node->joints->strptr);
 	node->_jointnames = jnames;
 	//printf("_jointnames size %d", vectorSize(jnames));
 	MARK_NODE_COMPILED
 }
-void render_HAnimMotionOrientation(struct X3D_HAnimMotionOrientation* node) {
+void render_HAnimMotionInterpolator(struct X3D_HAnimMotionInterpolator* node) {
 	//we can expose something here -- a string of eulers
 	// or let the update_joint function do the work
 	COMPILE_IF_REQUIRED

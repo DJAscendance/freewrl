@@ -1869,17 +1869,17 @@ FIELD(HAnimMotionDataFile,legAngle,sffloat,legAngle,FIELDTYPE_SFFloat,0)
 FIELD(HAnimMotionDataFile,armAngle,sffloat,armAngle,FIELDTYPE_SFFloat,0)
 END_NODE(HAnimMotionDataFile)
 
-/* HAnimMotionOrientation node */
-BEGIN_NODE(HAnimMotionOrientation)
-EXPOSED_FIELD(HAnimMotionOrientation,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionOrientation,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
-FIELD(HAnimMotionOrientation,transitionWeight,sffloat,transitionWeight,FIELDTYPE_SFFloat,0)
-FIELD(HAnimMotionOrientation,transitionStart,sftime,transitionStart,FIELDTYPE_SFTime,0)
-EXPOSED_FIELD(HAnimMotionOrientation,channelsEnabled,mfbool,channelsEnabled,FIELDTYPE_MFBool,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionOrientation,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionOrientation,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
-EXPOSED_FIELD(HAnimMotionOrientation,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
-END_NODE(HAnimMotionOrientation)
+/* HAnimMotionInterpolator node */
+BEGIN_NODE(HAnimMotionInterpolator)
+EXPOSED_FIELD(HAnimMotionInterpolator,metadata,sfnode,metadata,FIELDTYPE_SFNode,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionInterpolator,description,sfstring,description,FIELDTYPE_SFString,UNCA_NONE)
+FIELD(HAnimMotionInterpolator,transitionWeight,sffloat,transitionWeight,FIELDTYPE_SFFloat,0)
+FIELD(HAnimMotionInterpolator,transitionStart,sftime,transitionStart,FIELDTYPE_SFTime,0)
+EXPOSED_FIELD(HAnimMotionInterpolator,channelsEnabled,mfbool,channelsEnabled,FIELDTYPE_MFBool,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionInterpolator,enabled,sfbool,enabled,FIELDTYPE_SFBool,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionInterpolator,joints,sfstring,joints,FIELDTYPE_SFString,UNCA_NONE)
+EXPOSED_FIELD(HAnimMotionInterpolator,children,mfnode,children,FIELDTYPE_MFNode,UNCA_NONE)
+END_NODE(HAnimMotionInterpolator)
 
 /* HAnimMotionPlay node */
 BEGIN_NODE(HAnimMotionPlay)
