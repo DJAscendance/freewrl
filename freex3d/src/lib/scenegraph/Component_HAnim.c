@@ -962,11 +962,11 @@ int vecsametol3f(float *a, float *b, float tol){
 void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	//printf("compile_HAnimHumanoid\n");
 	//check if the coordinate count is the same
-	INITIALIZE_EXTENT
-		if (!node->_intern) {
-			node->_intern = malloc(sizeof(struct X3D_HanimRep));
-			memset(node->_intern, 0, sizeof(struct X3D_HanimRep));
-		}
+	INITIALIZE_EXTENT;
+	if (!node->_intern) {
+		node->_intern = malloc(sizeof(struct X3D_HanimRep));
+		memset(node->_intern, 0, sizeof(struct X3D_HanimRep));
+	}
 	struct X3D_HanimRep* hr = (struct X3D_HanimRep*)node->_intern;
 	hr->itype = 9; 
 	static int oncegpu = 0;
@@ -1017,32 +1017,36 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 			ionce = 1;
 		}
 		else {
-			//printf("^"); //a hint we are recompiling, for testing in Dec 2023
+			printf("^"); //a hint we are recompiling, for testing in Dec 2023
 		}
-		psc = (float*)nc->point.p;
-		node->_origCoords = realloc(node->_origCoords, nsc * 3 * sizeof(float));
-		memcpy(node->_origCoords, psc, nsc * 3 * sizeof(float));
-		if (0) {
-			//find a few coordinates in skinCoord I hacked, by xyz, and give me their index, for making a displacer
-			float myfind[9] = { -0.030000f, -0.070000f, 1.777000f,  -0.070000f, 1.777000f, 0.130000f,  1.777000f, 0.130000f, 0.070000f };
-			int i, j;
-			for (i = 0; i < nsc; i++) {
-				for (j = 0; j < 3; j++)
-					if (vecsametol3f(&psc[i * 3], &myfind[j * 3], .001f)) {
-						printf("%d %f %f %f\n", i, myfind[j * 3 + 0], myfind[j * 3 + 1], myfind[j * 3 + 2]);
-					}
+		if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+			psc = (float*)nc->point.p;
+			node->_origCoords = realloc(node->_origCoords, nsc * 3 * sizeof(float));
+			memcpy(node->_origCoords, psc, nsc * 3 * sizeof(float));
+			if (0) {
+				//find a few coordinates in skinCoord I hacked, by xyz, and give me their index, for making a displacer
+				float myfind[9] = { -0.030000f, -0.070000f, 1.777000f,  -0.070000f, 1.777000f, 0.130000f,  1.777000f, 0.130000f, 0.070000f };
+				int i, j;
+				for (i = 0; i < nsc; i++) {
+					for (j = 0; j < 3; j++)
+						if (vecsametol3f(&psc[i * 3], &myfind[j * 3], .001f)) {
+							printf("%d %f %f %f\n", i, myfind[j * 3 + 0], myfind[j * 3 + 1], myfind[j * 3 + 2]);
+						}
+				}
 			}
+			//extent6f_from_box3fn(ee,nc->point.p->c, nc->point.n);
+			//setExtent(ee[0],ee[1],ee[2],ee[3],ee[4],ee[5],X3D_NODE(node));
 		}
-		//extent6f_from_box3fn(ee,nc->point.p->c, nc->point.n);
-		//setExtent(ee[0],ee[1],ee[2],ee[3],ee[4],ee[5],X3D_NODE(node));
 	}
 	if (node->skinNormal && node->skinNormal->_nodeType == NODE_Normal) {
 		struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal;
 		//Assuming 1 normal per coord, coord 1:1 normal
 		nsn = nn->vector.n;
-		psn = (float*)nn->vector.p;
-		node->_origNorms = realloc(node->_origNorms, nsn * 3 * sizeof(float));
-		memcpy(node->_origNorms, psn, nsn * 3 * sizeof(float));
+		if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+			psn = (float*)nn->vector.p;
+			node->_origNorms = realloc(node->_origNorms, nsn * 3 * sizeof(float));
+			memcpy(node->_origNorms, psn, nsn * 3 * sizeof(float));
+		}
 	}
 	if (!node->skeleton.n && node->joints.n) {
 		//find name='humanoid_root' or 'root' and put in skeleton
@@ -1066,6 +1070,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 		hr->PVW = realloc(hr->PVW, nsc * 4 * sizeof(float)); //weights, up to 4 joints per skinCoord
 		hr->NV = nsc;
 	}
+
 	//allocate the transform array
 	if (hr->JT == NULL) {
 		hr->JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
@@ -1220,8 +1225,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	//push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
 	//pop_joint_center();
-
-	if(node->skin.n){
+	int renderpass = renderstate()->render_geom && !renderstate()->render_sensitive;
+	if(node->skin.n && renderpass){
 		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//save original coordinates
 			//transform each vertex and its normal using weighted transform
@@ -1325,7 +1330,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 					//bind skin weights and joint indexes to SSBO once if not done yet
 					// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
-					if ((TRUE || hr->joint_changed == TRUE) && hr->PVset) {
+					if ((hr->joint_changed == TRUE) && hr->PVset) {
 						hr->joint_changed = FALSE;
 						//OGLPG 4.5 Chapter 11 Memory example 11.6 Creating a Buffer and Using It for Shader Storage
 						if (1) {
@@ -1392,7 +1397,7 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 										printf("[%d %d]\n", kk, hr->dindex[kk]);
 									}
 								}
-								dionce++;
+								//dionce++;
 							}
 
 							if (hr->bo_dindex == 0)
@@ -1427,17 +1432,24 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
 							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 17");
 						}
-						static int donce = 0; //0;
-						if (donce % 1000 == 0) {
+						static int donce = 1; //0;
+						if (donce == 0) {
 							printf("\nND %d\n", hr->ND);
+							int nz = 0;
 							for (int kk = 0; kk < hr->ND; kk++)
 							{
 								float* v4 = &hr->displace[kk * 4];
+								if (v4[0] == v4[1] == v4[2] == 0.0f) nz++;
 								printf("[%d %f %f %f]\n", kk, v4[0], v4[1],v4[2]);
 							}
-							//donce++;
+							if (nz > 1) {
+								printf("nz=%d ", nz - 1);
+							}
+							//printf("rs %d %d %o\n", renderstate()->render_blend, renderstate()->render_geom, renderstate()->rwhat);
+							rwhat_printf(renderstate()->rwhat);
+							donce++;
 						}
-						donce++;
+						//donce++;
 						//float* dd = hr->displace;
 						//vecset3f(dd, .01, 0.0); //test
 						void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
