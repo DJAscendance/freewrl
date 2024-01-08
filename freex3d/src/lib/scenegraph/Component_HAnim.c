@@ -1225,7 +1225,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	//push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
 	//pop_joint_center();
-	int renderpass = renderstate()->render_geom && !renderstate()->render_sensitive;
+	int renderpass = (renderstate()->render_geom || renderstate()->render_other) && !renderstate()->render_sensitive;
+	//rwhat_printf(renderstate()->rwhat);
 	if(node->skin.n && renderpass){
 		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			//save original coordinates
