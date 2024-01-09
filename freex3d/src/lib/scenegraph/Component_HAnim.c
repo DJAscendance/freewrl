@@ -1017,7 +1017,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 			ionce = 1;
 		}
 		else {
-			printf("^"); //a hint we are recompiling, for testing in Dec 2023
+			//printf("^"); //a hint we are recompiling, for testing in Dec 2023
 		}
 		if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
 			psc = (float*)nc->point.p;
