@@ -3256,10 +3256,15 @@ M       void toggle_collision()                             //"
 			sblen -= 4; //FPS chars - (9+7); //get number of chars left after touch status and vp status
 			sslen = 0;
 			{
+				char *ppss = getSensorStatus();
 				pp = get_status(); // p->buffer;
 				/* print status bar text - things like PLANESENSOR */
 				//printString2(-1.0f + xy.x*5.0f, side_bottom_f, pp);
 				sslen = strlen(pp);
+				if (!sslen) {
+					pp = ppss;
+					sslen = strlen(ppss);
+				}
 				printString2(-1.0f, side_bottom_f, pp);
 				p->hadString = 1;
 			}

@@ -8348,8 +8348,8 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 	struct SensStruct *se;
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-	if (CursorOverSensitive != NULL) //update_status(NULL);
-	//else 
+	if (CursorOverSensitive == NULL) setSensorStatus(NULL);
+	else 
 	{
 
 		ns = NULL;
@@ -8373,7 +8373,7 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 				else if (ns[0] == '\0') ns = (char *)stringNodeType(se->datanode->_nodeType);
 
 				/* send this string to the screen */
-				update_status(ns);
+				setSensorStatus(ns);
 			}
 		}
 	}

@@ -54,6 +54,8 @@ void update_status(char* msg);
 void kill_status();
 char *get_status();
 char *getMenuStatus();
+void setSensorStatus(char*);
+char* getSensorStatus();
 void showConsoleText(int on);
 int getShowConsoleText();
 void fwl_setDrawBoundingBoxes(int drawbb);

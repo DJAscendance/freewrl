@@ -61,6 +61,7 @@ typedef struct pcommon{
 	int target_frames_per_second;
 	char myMenuStatus[MAXSTAT];
 	char messagebar[MAXSTAT];
+	char SensorStatus[MAXSTAT];
 	char fpsbar[16];
 	char distbar[16];
 	char window_title[MAXTITLE];
@@ -384,6 +385,18 @@ void update_status(char* msg) {
 char *get_status(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->buffer;
+}
+void setSensorStatus(char* status) {
+	char* pp;
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+
+	pp = status;
+	if (!pp) pp = "";
+	snprintf(p->SensorStatus, MAXSTAT - 1, "%s", pp);
+
+}
+char* getSensorStatus() {
+	return ((ppcommon)gglobal()->common.prv)->SensorStatus;
 }
 void setMenuStatus3(char* status3)
 {
