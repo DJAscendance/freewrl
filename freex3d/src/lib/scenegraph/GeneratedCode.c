@@ -13879,7 +13879,7 @@ void *createNewX3DNode0 (int nt) {
 			tmp2->motions.n=0; tmp2->motions.p=0;
 			tmp2->motionsEnabled.n=0; tmp2->motionsEnabled.p=0;
 			tmp2->_lastMotionsEnabled.n=0; tmp2->_lastMotionsEnabled.p=0;
-			tmp2->transitionTime = 0;
+			tmp2->transitionTime = 0.01;
 			tmp2->loa = -1;
 			tmp2->_origCoords = 0;
 			tmp2->_origNorms = 0;

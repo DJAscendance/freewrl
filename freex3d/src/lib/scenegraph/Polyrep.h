@@ -84,6 +84,7 @@ struct X3D_HanimRep {
 	float* jn32;
 	int have_skin;
 	int joint_changed;
+	int make_joint_list; //if no humanoid.joints.p make one
 	int PVset;
 	//GPU joint displacer method: packed displace array with int displace[dindex[cindex]]
 	int joint_displacer_count;

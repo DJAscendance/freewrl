@@ -1835,10 +1835,11 @@ void rwhat_printf(int rwhat){
 	int k = 0;
 	ws = &what_strings[k];
 	while(ws->cwhat){
-		if(rwhat & ws->iwhat) printf("%s \n",ws->cwhat);
+		if(rwhat & ws->iwhat) printf("%s ",ws->cwhat);
 		k++;
 		ws = &what_strings[k];
 	}
+	if (k) printf("\n");
 
 }
 void render_headlight();

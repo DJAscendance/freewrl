@@ -744,7 +744,11 @@ void render_HAnimJoint (struct X3D_HAnimJoint * node) {
 	HH = peek_humanoid();
 	if(HH){
 		hr = (struct X3D_HanimRep*)HH->_intern;
-
+		if (hr->make_joint_list) {
+			HH->joints.n++;
+			HH->joints.p = realloc(HH->joints.p, HH->joints.n * sizeof(void*));
+			HH->joints.p[HH->joints.n - 1] = X3D_NODE(node);
+		}
 		//step 1, generate transform
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		matmultiplyAFFINE(jointMatrix.mat,modelviewMatrix,p->HHMatrix);
@@ -1053,7 +1057,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 		for (int i = 0; i < node->joints.n; i++) {
 			struct X3D_HAnimJoint* joint = (struct X3D_HAnimJoint*)node->joints.p[i];
 			char* name = joint->name->strptr;
-			if (name && !strcmp(name, "humanoid_root") || !strcmp(name, "root")){
+			if (name && !strcmp(name, "humanoid_root") || !strcmp(name, "root") || !strcmp(name, "humanoidroot")){
 
 				node->skeleton.p = malloc(sizeof(void*));
 				node->skeleton.n = 1;
@@ -1075,7 +1079,7 @@ void compile_HAnimHumanoid(struct X3D_HAnimHumanoid* node) {
 	if (hr->JT == NULL) {
 		hr->JT = newStack(JMATRIX); //we don't know how many joints there are - need to count as we go
 	}
-	node->_renderFlags |= VF_Geom; //a HAnimHumanoid is a child but also skin is geom
+//	node->_renderFlags |= VF_Geom; //a HAnimHumanoid is a child but also skin is geom
 	MARK_NODE_COMPILED
 	pop_humanoid();
 
@@ -1106,7 +1110,9 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	nc = node->joints.n + node->segments.n + node->viewpoints.n + node->sites.n +
 		node->skeleton.n + node->skin.n;
 
-	RETURN_FROM_CHILD_IF_NOT_FOR_ME 
+	RETURN_FROM_CHILD_IF_NOT_FOR_ME;
+	//rwhat_printf(renderstate()->rwhat);
+
 	push_humanoid(node);
 
 	if(renderstate()->render_vp){
@@ -1223,7 +1229,22 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 
 	float zerocenter[3];
 	//push_joint_center(vecset3f(zerocenter, 0.0f, 0.0f, 0.0f));
+	if (node->skeleton.n && !node->joints.n) {
+		//set a flag to make a joints list
+		hr->make_joint_list = TRUE;
+	}
+
 	if(1) normalChildren(node->skeleton); //render_HAnimJoint happens here
+	if (hr->make_joint_list) {
+		printf("joint names [");
+		for (int j = 0; j < node->joints.n; j++) {
+			struct X3D_HAnimJoint* jnode = (struct X3D_HAnimJoint*)node->joints.p[j];
+			printf("%s ", jnode->name->strptr);
+		}
+		printf("]");
+		hr->make_joint_list = FALSE;
+	}
+
 	//pop_joint_center();
 	int renderpass = (renderstate()->render_geom || renderstate()->render_other) && !renderstate()->render_sensitive;
 	//rwhat_printf(renderstate()->rwhat);
@@ -2436,7 +2457,16 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 							matmultiplyAFFINE(jmatrix0, mat1, jmatrix0);
 						}
 						else if (inode->_nodeType == NODE_PositionInterpolator) {
-
+							struct X3D_PositionInterpolator* pnode = (struct X3D_PositionInterpolator*)inode;
+							struct SFVec3f* sft = &pnode->value_changed;
+							float wvec[3];
+							double dvec[3];
+							vecscale3f(wvec, sft->c, weight);
+							float2double(dvec, wvec, 3);
+							//vecprint3fb("trans ", wvec, " ");
+							matidentity4d(mat1);
+							mattranslate4d(mat1, dvec);
+							matmultiplyAFFINE(jmatrix0, mat1, jmatrix0);
 						}
 					}
 				}
