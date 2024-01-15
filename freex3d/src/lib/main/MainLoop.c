@@ -8348,8 +8348,9 @@ void sendDescriptionToStatusBar(struct X3D_Node *CursorOverSensitive) {
 	struct SensStruct *se;
 	ppMainloop p = (ppMainloop)gglobal()->Mainloop.prv;
 
-	if (CursorOverSensitive == NULL) update_status(NULL);
-	else {
+	if (CursorOverSensitive != NULL) //update_status(NULL);
+	//else 
+	{
 
 		ns = NULL;
 		for (tmp=0; tmp<vectorSize(p->SensorEvents); tmp++) {
