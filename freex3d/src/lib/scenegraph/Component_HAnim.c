@@ -261,6 +261,79 @@ Decided to try #2 by making Cindex (already used for collision) into a VBO
 - optionally for accelerating displacers, it can index back to a sum-of-displacements buffer
 Dec 30, 2023
 - have SSBOs (joint weights,indexes, and joint matrices) working a bit for GPU skinning
+
+SUMMARY OF GPU SKINNING METHOD ADOPTION
+HANIM SPEEDUP VIA GPU SKINNING
+There are multiple ways to speed up skinning with GPU including GPU programs, and various ways to send data to Shader.including UBO uniform buffer object, SSBO shader storage buffer object, buffer-backed textures.
+For freeWRL --a bit tardy adding GPU skinning-- I chose to use SSBO shader storage buffer objects to send extra data to Vertex Shader, it happened to be the first thing I got working.
+Speedup for Gramps (a scene with humanoid skinCoord 224,000 vertices) rendering from 2 FPS with CPU, to 20-40 FPS with GPU skinning.
+
+
+more detail:
+My experience implementing GPU SKINNING in freeWRL
+CPU method (slow):
+a) once / early:
+-- saves original skinCoordinates
+-- records per-vertex joint indexes and weights
+b) on each frame
+-- copy from saved coordinates to skinCoord Coordinates
+-- traverse skeleton
+--- record Joint transform matrix and normal matrix, apply Joint Displacer to skinCoord
+-- apply joint matrix and normal transforms to skinCoord using joint indexes and weights
+-- recompile / re-stream mesh (duplicating normals and vertices) and resends vertices with attributes to shader
+GPU method (fast):
+a) once / early
+-- save original skinCoord index 'cindex' as vertex attribute in VBO vertex buffer object
+-- compile/stream mesh (duplicating normals and vertices) and sends vertices with attributes including cindex to shader
+-- traverse skeleton:
+--- record per-vertex skinCoord indexes ad weights and sends to GPU as SSBO shader storage buffer objects and send to GPU
+--- record per-vertex joint displacer packed displace array indexes 'dindex'
+---- a) in Displacer local dindex
+---- b) as per-humanoid dindex SSBO and send to GPU
+b) on each frame
+-- zero joint displace packed array
+-- traverses skeleton:
+--- recording Joint transform matrix and normal matrix, send to GPU as SSBO
+--- update joint displacer weights
+--- sum joint displacements onto packed displace array, send packed displace array to GPU
+c) in shader
+vertex = in_vertex;
+//apply displacer displacements or 0,0,0 if dindex is 0
+vertex.xyz += displace[dindex[cindex]].xyz;
+//apply joint matrix transforms to vertex or 0 if weight is 0
+newvertex += jointmatrix[jindex.x[cindex]]*weight.x[cindex]*vertex;
+newvertex += jointmatrix[jindex.y[cindex]]*weight.y[cindex]*vertex;
+newvertex += jointmatrix[jindex.z[cindex]]*weight.z[cindex]*vertex;
+newvertex += jointmatrix[jindex.w[cindex]]*weight.w[cindex]*vertex;
+vertex = newvertex;
+The vertex transforms should apply to mesh and lines, but web3d has no IndexedPointSet so they only way a skin can show points is with PointSet which shows all the skinCoord as points, a rare use-case In freeWRL I didn't implement Points in GPU skinning, and have a Launcher / commandline parameter for thunking / reverting to CPU skinning for those cases.
+
+PACKED JOINT DISPLACE ARRAY
+a) assumptions:
+-- segment displacers don't refer to humanoid skinCoord -- they refer to Segment-local Shape geometry, and are applied directly to those local Coordinates, and don't need to coordinate with GPU skinning, so no change for their method
+-- joint displacers are applied to humanoid skinCoord, so need to be applied in shader when using GPU skinning
+-- joint displacers are not good candidates for DEF/USE between multiple humanoids or LOD level of detail humanoids, because they list specific skinCoord indexes, and the weights when routed to would apply to all humanoids sharing, so would apply to marching army scene only - a rare use case that can be done other ways by DEF/USEing the whole humanoid. Therefore Displacers can hold humanoid-specific state variables.
+-- a small % of skin vertices are involved in joint displacers, so no need to send entire skinCoord coords on each frame
+-- the summing of weighted joint displacements isn't compute intensive and can be done on CPU side
+b) method
+- a lookup table is created and used to record joint displacer coordinate indexes, with each humanoid-unique joint displacer-index being entered once and given a row in a packed displace sum.xyzw array[], with the first 0th row reserved for 0,0,0,0., and length of array = number of unique vertex indexes referred to by all joint displacers in the humanoid
+- on an early pass / once, when traversing the skeleton, displacer indexes are checked against the lookup table, and entered in table if not already and given an int index called dindex into the packed displace sum array, and a int dindex[] array is created once for each joint displacer to twin the index[] field and hold the dindex into the packed array, and entered in a humanoid-dindex array to be sent once via SSBO to GPU
+- on each frame the packed displace array is zeroed, skeleton is traversed, and joint displacer weights are updated, and wieghted displacements summed onto packed displace array rows displace[dindex[cindex]].xyz += displacement[ci].xyz*weight;
+- once per frame the summed displace array is sent to GPU via SSBO
+- in vertex shader
+vertex.xyz += displace[dindex[cindex]].xyz
+
+https://freewrl.sourceforge.io/tests/26_Humanoid_Animation/BoxmanBVH_displacer_playlib.x3d
+- Boxman humanoid scene with Joint Displacer weight controlled with upper left slidebar (bvh motion controlled with lower right slidebar)
+https://freewrl.sourceforge.io/tests/26_Humanoid_Animation/BoxmanBVH_displacer_playlib.mp4
+- video showing GPU displacer applied during GPU skinning in freewrl version 6.5.0
+https://sourceforge.net/projects/freewrl/files/freewrl-win32/6.0/
+- 650.msi has the GPU skinning and GPU joint displacers
+https://sourceforge.net/p/freewrl/git/ci/develop/tree/freex3d/src/lib/scenegraph/Component_HAnim.c
+- CPU-side code for HAnim
+https://sourceforge.net/p/freewrl/git/ci/develop/tree/freex3d/src/lib/opengl/Compositing_Shaders.c
+- GPU-side shader code search SKINNING - about line 521 and line 926
+
 */
 typedef struct {
 	float head[3];
