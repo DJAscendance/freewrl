@@ -95,6 +95,7 @@ struct X3D_HanimRep {
 	GLuint bo_displace;
 	float* displace; //[4*(ND+1)] - 0th is 0,0,0 
 	int ND; //number of unique-vertex displacements
+	int render_count; //skin GL_LINES shape bombed on 1,2 rennder, but not 3+
 };
 struct X3D_TextureRep {
 	int itype; //0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep

@@ -760,8 +760,10 @@ int vertexTransformMethod() {
 	return vertex_transform_method;
 }
 void fwl_set_skinning(char tf) {
-	if (tf == 'F' || tf == 'f') vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
-	else vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
+	if (tf == 'F' || tf == 'f') 
+		vertex_transform_method = VERTEXTRANSFORMMETHOD_CPU;
+	else 
+		vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
 }
 char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
 
@@ -1663,7 +1665,8 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 				}
 			}
 		}
-		if(1) normalChildren(node->skin);
+		hr->render_count++; //mysterious shader crash with GL_LINES on early render passes
+		if(hr->render_count > 2) normalChildren(node->skin);
 		if(0) for (int j = 0; j < node->skin.n; j++) {
 			printf("skin[%d] extent: ", j);
 			for (int i = 0; i < 6; i++) printf("%4.3f ", node->skin.p[j]->_extent[i]);
