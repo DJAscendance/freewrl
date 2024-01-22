@@ -1483,13 +1483,16 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						vecnormalize3f(pnode->_angularVelocity.c,axis);
 						pnode->_angularVelocity.c[3] = angle;
 					}
-
+					if (disverbose() && pdu->padding == TAG_AVATAR) {
+						printf("Avatar S%2d A%2d T %lf\r", espdu->entityID.site, espdu->entityID.application,TickTime());
+					}
 				}else{
 					//non-geosystem scene. Apr 22, 2018 we aren't using this now
 					// -- everything goes through geosystem code above
 					// -- but keeping this until we benchmark against Brutzman
 					//translation - assumes companion scenes will have same parent transform stack
 					//(x, -z, y).
+					
 					pnode->translation.c[0] = espdu->entityLocation.x;
 					pnode->translation.c[1] = espdu->entityLocation.z;
 					pnode->translation.c[2] = -espdu->entityLocation.y; 
@@ -2449,7 +2452,10 @@ struct dis_sensor {
 	float posn3[3], norm3[3];
 };
 static struct Vector* sensor_send_queue = NULL; //reset .n to 0 after pdu2buf
-
+static int dis_verbose = FALSE; // TRUE; //just for a receiver, not for sender
+int disverbose() {
+	return dis_verbose;
+}
 struct Vector* dis_sensors2pdus() {
 // 2023 multiplayer experiment: sensor event sharing
 	//converts queued sensor events into a CommentPdu for sending
@@ -2555,11 +2561,19 @@ int dis_pdus2sensors(struct Vector* pdus) {
 				if (cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application == fwl_get_DISapplication()
 					&& cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site == fwl_get_DISsite()) {
 					pdu->padding = TAG_SAME_PROGRAM;
+					//if (disverbose()) printf("SNDR ");
 					ihit++;
 					break;
 				}
+				if (disverbose()) {
+					printf("%s ", "COM");
+					printf("A%2d ", cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application);
+					printf("S%2d ", cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site);
+				}
+
 				//find matching sensor
 				struct VariableDatum* vr = cpdu->variableDatums;
+				if (disverbose()) printf("ND%2d ", cpdu->numberOfVariableDatumRecords);
 				//printf("vd count %d\n", cpdu->numberOfVariableDatumRecords);
 				for (int j = 0; j < cpdu->numberOfVariableDatumRecords; j++) {
 					struct dis_sensor* ds = (struct dis_sensor*)vr[j].variableDatums;
@@ -2567,25 +2581,28 @@ int dis_pdus2sensors(struct Vector* pdus) {
 
 					int nsensor = getSensorCount();
 					//printf("nsensor %d\n", nsensor);
+					if (disverbose()) printf("NS%2d ", nsensor);
 					for (int k = 0; k < nsensor; k++) {
 						struct X3D_Node* fromnode, * datanode;
 						getSensor(k, &fromnode, &datanode);
 						//rather than sending and receiving null terminted DEF strings, we'll use 32 bit int hash values
-						const char* def = getNodeName(fromnode);
+						const char *deff, *defd;
+						deff = getNodeName(fromnode);
 						int fromNode, dataNode, OK;
 						OK = TRUE;
-						if (!def) OK = FALSE;
-						else fromNode = hash37(def);
+						if (!deff) OK = FALSE;
+						else fromNode = hash37(deff);
 						//printf("recv fromnode def %s hash %d ", def, fromNode);
-						def = getNodeName(datanode);
-						if (!def) OK = FALSE;
-						else dataNode = hash37(def);
+						defd = getNodeName(datanode);
+						if (!defd) OK = FALSE;
+						else dataNode = hash37(defd);
 
 						//printf("recv datanode def %s hash %d\n", def, dataNode);
 						int match = OK && ds->fromNode == fromNode && ds->dataNode == dataNode;
 						if (match) {
 							dis_recv_sensor(k, ds->ev, ds->butStatus2, ds->status, ds->posn3, ds->norm3);
 							//printf("recvmatch+");
+							if(disverbose()) printf("F %s D %s B%d S%d ", deff, defd,ds->butStatus2,ds->status);
 							break;
 						}
 					}
@@ -2593,6 +2610,7 @@ int dis_pdus2sensors(struct Vector* pdus) {
 				pdu->padding = TAG_SENSOR;
 				ihit++;
 				//printf("recv+");
+				if (disverbose()) printf("\n");
 				break;
 			}
 			default:
@@ -2603,6 +2621,7 @@ int dis_pdus2sensors(struct Vector* pdus) {
 }
 static double last_avatar_position[3] = { 0,0,0 };
 static double last_avatar_orientation[4] = { 0,0,0,0 };
+static double avatar_writeInterval = 4.0;
 struct Vector* dis_avatar2pdus() {
 	// 2023 multiplayer experiment: sensor event sharing
 	struct Vector* pdus = NULL;
@@ -2622,16 +2641,25 @@ struct Vector* dis_avatar2pdus() {
 		int changed = veclengthd(vecdifd(diff, pointd, last_avatar_position)) > .001 ? 1 : 0;
 		changed = changed || veclengthd(vecdifd(diff, xyza, last_avatar_orientation)) > .001 ? 1 : 0;
 		changed = changed || abs(xyza[3] - last_avatar_orientation[3] > .001) ? 1 : 0;
-		if (!changed) {
+		static double last_time = 0.0;
+		if (last_time == 0.0) last_time = TickTime() - avatar_writeInterval;
+		double this_time = TickTime();
+		int heartbeat = FALSE;
+		if (this_time - last_time > avatar_writeInterval) heartbeat = TRUE;
+		if (!changed && ! heartbeat) {
 			return pdus;
 		}
+		last_time = this_time;
+
 		veccopyd(last_avatar_position, pointd);
 		veccopyd(last_avatar_orientation, xyza);
 		last_avatar_orientation[3] = xyza[3];
 		pdus = newVector(struct Pdu*, 6);
 		struct EntityStatePdu* espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
-		if(0) printf("Pdu->type = %d\n", ((struct Pdu*)(espdu))->pduType);
+		static int icount = 0;
+		if(0) printf("Pdu->type = %d i %d\n", ((struct Pdu*)(espdu))->pduType,icount);
+		icount++;
 		//entity
 		espdu->entityType.category = 77; //SPECIAL CATEGORY 77 FOR AVATARS
 		espdu->entityID.entity = fwl_get_DISapplication(); // application 1:1 avatar, entity = f(application)
@@ -2689,7 +2717,7 @@ void dis_sendloop(){
 				//if(!isHeartbeat && node_only_transform_changed(node)){
 				//	if(transform_within_DeadReckoningTolerance(node,dtime)) continue;
 				//}
-				printf(".");
+				printf(".\n");
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				if(j==0) {
@@ -3587,7 +3615,7 @@ void dis_open_socket(struct dis_socket* dsock){
 	}
 
 }
-void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
+void * dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
 		int multicastRelayPort,
 		char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval){
 	void *preg; //something to store in the node, to say which socket its registerd in
