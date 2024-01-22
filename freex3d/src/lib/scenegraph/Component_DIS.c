@@ -2437,7 +2437,7 @@ unsigned int hash37(const char* str)
 	h = 0;
 	for (p = (unsigned char*)str; *p != '\0'; p++)
 		h = MULTIPLIER * h + *p;
-	return h; // or, h % ARRAY_SIZE;
+	return h; // or, h % ARRAY_SIZE; in our case we want it spread over long int 4B so no/rare collisions
 }
 const char* getNodeName(struct X3D_Node* node);
 
@@ -2499,14 +2499,23 @@ void dis_send_sensor(struct X3D_Node* fromNode, struct X3D_Node* dataNode, int e
 		//so we rely on DEF name
 		//but DEF name can be a medium long string, not good for pdu transmission
 		//so we convert to 4 byte int with a hash function
+		int OK = TRUE;
 		const char* def = getNodeName(fromNode);
-		ds.fromNode = hash37(def == NULL ? "" : def);
+		if (!def) {
+			printf("No DEF name for from nodetype %s", stringNodeType(fromNode->_nodeType));
+			OK = FALSE;
+		}else
+			ds.fromNode = hash37(def == NULL ? "" : def);
 		//printf("send_fromnode def %s has %d ", def, ds.fromNode);
 		def = getNodeName(dataNode);
-		ds.dataNode = hash37(def);
+		if (!def) {
+			printf("No DEF name for data nodetype %s", stringNodeType(fromNode->_nodeType));
+			OK = FALSE;
+		}else
+			ds.dataNode = hash37(def);
 		//printf("send_datanode def %s has %d \n", def, ds.dataNode);
-
-		stack_push(struct dis_sensor, sensor_send_queue, ds);
+		if(OK)
+			stack_push(struct dis_sensor, sensor_send_queue, ds);
 	}
 }
 
@@ -2563,12 +2572,17 @@ int dis_pdus2sensors(struct Vector* pdus) {
 						getSensor(k, &fromnode, &datanode);
 						//rather than sending and receiving null terminted DEF strings, we'll use 32 bit int hash values
 						const char* def = getNodeName(fromnode);
-						int fromNode = hash37(def);
+						int fromNode, dataNode, OK;
+						OK = TRUE;
+						if (!def) OK = FALSE;
+						else fromNode = hash37(def);
 						//printf("recv fromnode def %s hash %d ", def, fromNode);
 						def = getNodeName(datanode);
-						int dataNode = hash37(def);
+						if (!def) OK = FALSE;
+						else dataNode = hash37(def);
+
 						//printf("recv datanode def %s hash %d\n", def, dataNode);
-						int match = ds->fromNode == fromNode && ds->dataNode == dataNode;
+						int match = OK && ds->fromNode == fromNode && ds->dataNode == dataNode;
 						if (match) {
 							dis_recv_sensor(k, ds->ev, ds->butStatus2, ds->status, ds->posn3, ds->norm3);
 							//printf("recvmatch+");
