@@ -3571,28 +3571,38 @@ void dis_recvloop(){
 				}
 				if(sockem) break;
 			}
-			for(j=0;j<dsock->registered->n;j++){
+			for (j = 0; j < dsock->registered->n; j++) {
 				//update isActive
-				double readinterval, writeinterval, lasttime;
-				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
-				dis_get_node_lasttime(node,&lasttime,&readinterval,&writeinterval);
-				if(thistime - lasttime > RETIRE_TIME) {
-					 //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
-					dis_set_isActive(node,FALSE);
-				}
-				//if its been several (?) heartbeat increments since we last heard from an entity
-				// the DIS specs talk about removing (opposite of adding by 'entity discovery')
-				if(thistime - lasttime > (RETIRE_TIME * 3) ){
-					//if in entitymanager state.entities, removeChildren
-					int ihit = 0;
-					if(sockem && node->_nodeType == NODE_EspduTransform ){
-						ihit = dis_entity_retire(sockem,node);
+				struct X3D_Node* node = vector_get(struct X3D_Node*, dsock->registered, j);
+				if (node->_nodeType != NODE_DISEntityManager) {
+					double readinterval, writeinterval, lasttime;
+					dis_get_node_lasttime(node, &lasttime, &readinterval, &writeinterval);
+					//printf("%d %s %lf %lf %lf %lf setting isActive false\n", j, stringNodeType(node->_nodeType), readinterval, writeinterval, lasttime, thistime);
+					double timeout = RETIRE_TIME;
+					if (node->_nodeType == NODE_EspduTransform) {
+						struct X3D_EspduTransform* espdu = (struct X3D_EspduTransform*)node;
+						if (!espdu->isNetworkWriter) {
+							timeout = 5.0;
+						}
 					}
-					if(ihit == 1) {
-						printf(" retired one\n");
-						//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+					if (thistime - lasttime > timeout) {
+						//5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
+						dis_set_isActive(node, FALSE);
 					}
-					//if(ihit == -1) printf(" cetiree not in EM list\n");
+					//if its been several (?) heartbeat increments since we last heard from an entity
+					// the DIS specs talk about removing (opposite of adding by 'entity discovery')
+					if (thistime - lasttime > (timeout * 3)) {
+						//if in entitymanager state.entities, removeChildren
+						int ihit = 0;
+						if (sockem && node->_nodeType == NODE_EspduTransform) {
+							ihit = dis_entity_retire(sockem, node);
+						}
+						if (ihit == 1) {
+							printf(" retired one\n");
+							//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+						}
+						//if(ihit == -1) printf(" cetiree not in EM list\n");
+					}
 				}
 			}
 			if(sockem && sockem->removedEntities.n) {
