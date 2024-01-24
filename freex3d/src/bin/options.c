@@ -103,6 +103,7 @@ void fv_usage()
 		"     --DISport <int>        DIS default port 1000 - 99999\n"
 		"     --DISsite <int>        DIS default site ID (facility / room ID) 1-255\n"
 		"     --DISapp <int>         DIS application instance ID 1-255\n"
+		"     --DISverbose           DIS console display of received pdus\n"
 		"  -S|--set <int> testing set default 0, added to port number for DIS\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
@@ -192,6 +193,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"DISsite",required_argument,0,130},
 	{"DISapp",required_argument,0,131},
 	{"skinGPU",required_argument,0,132},
+	{"DISverbose",no_argument,0,133},
 	{0, 0, 0, 0}
     };
 
@@ -445,6 +447,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 131: /* --DISapp <int 1-255> */
 		sscanf(optarg, "%d", &itmp);
 		fwl_set_DISapplication(itmp);
+		break;
+
+	case 133: /* --DISverbose no param */
+		fwl_set_DISverbose(TRUE);
 		break;
 
 	case 132: /* --skinGPU T/F */

@@ -253,6 +253,10 @@ void fwl_set_DISsite(int site) {
 void fwl_set_DISapplication(int app) {
 	DISapplication = app;
 }
+static int dis_verbose = FALSE; // TRUE; //just for a receiver, not for sender
+void fwl_set_DISverbose(int verbose) {
+	dis_verbose = verbose;
+}
 
 int fwl_get_allow_DIS(){
 	return allow_DIS;
@@ -1360,7 +1364,6 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 				pdu->padding = avatar ? TAG_AVATAR : TAG_ESPDU;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
-
 				if(pnode->__geoSystem){
 					Quaternion qgc2tcs, qtcs2body, qgc2body;
 					struct SFVec3d gd, gc, translate;
@@ -1484,7 +1487,7 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						pnode->_angularVelocity.c[3] = angle;
 					}
 					if (disverbose() && pdu->padding == TAG_AVATAR) {
-						printf("Avatar S%2d A%2d T %lf\r", espdu->entityID.site, espdu->entityID.application,TickTime());
+						printf("Avatar S%2d A%2d T %lf\n", espdu->entityID.site, espdu->entityID.application,TickTime());
 					}
 				}else{
 					//non-geosystem scene. Apr 22, 2018 we aren't using this now
@@ -2452,7 +2455,7 @@ struct dis_sensor {
 	float posn3[3], norm3[3];
 };
 static struct Vector* sensor_send_queue = NULL; //reset .n to 0 after pdu2buf
-static int dis_verbose = FALSE; // TRUE; //just for a receiver, not for sender
+
 int disverbose() {
 	return dis_verbose;
 }

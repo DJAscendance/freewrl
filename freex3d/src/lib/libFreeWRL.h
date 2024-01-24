@@ -449,7 +449,11 @@ void fwl_init_DIS();
 void fwl_set_testset(int iset);
 int fwl_get_allow_DIS();
 void fwl_set_allow_DIS(int allow);
-
+void fwl_set_DISverbose(int verbose);
+void fwl_set_DISaddress(char* address);
+void fwl_set_DISport(int port);
+void fwl_set_DISsite(int site);
+void fwl_set_DISapplication(int app);
 
 int file2blob(void *res);
 #ifdef SSR_SERVER
