@@ -2200,7 +2200,8 @@ SFNodeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 		#endif
 		if(SM_method() == 2){
 			ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
-			if(ifound){
+			if(ifound && value){
+				// script and proto inputOnly won't be readable
 				valueChanged = &node->_change; //if a regular node field changes, we (re-) compile_Node 
 				// ... (but have no way to detect which field, so routes can't be done later in freewrl system :{
 				if(node->_nodeType == NODE_Script){
@@ -2386,7 +2387,7 @@ SFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 		fieldname = _id_c;
 		node = lhs->v->sfnode;
 		ifound = getFieldFromNodeAndName(node,fieldname,&type,&kind,&iifield,&value);
-		if(ifound){
+		if(ifound) {
 			valueChanged = &node->_change;
 			if(node->_nodeType == NODE_Script){
 				//need one more thing - valueChanged

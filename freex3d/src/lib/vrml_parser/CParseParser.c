@@ -6226,7 +6226,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				if(!strcmp(fieldName,fieldname)){
 					*type = pfield->type;
 					*kind = pfield->mode;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+	//				if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					*iifield = k;
 					*builtIn = FALSE;
@@ -6479,7 +6479,7 @@ int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **
 					*type = pfield->type;
 					*kind = pfield->mode;
 					*builtIn = FALSE;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+//					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					iret = 1;
 					return iret;

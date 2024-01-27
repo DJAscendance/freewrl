@@ -1426,6 +1426,7 @@ int SFNode_Setter0(FWType fwt, int index, void *ec, void *fwn, FWval fwval, int 
 	nr = FALSE;
 	ihave = getFieldFromNodeAndIterator(node, index, &name, &ftype, &kind, &value, &builtIn);
 	if(ihave){
+		//value would be null for script and proto inputOnly, outputOnly fields
 		//copy W type or primative type, depending on ftype
 		switch(fwval->itype){
 		case 'B':
