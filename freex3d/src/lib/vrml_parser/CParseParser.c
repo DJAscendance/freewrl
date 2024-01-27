@@ -6580,7 +6580,7 @@ int getFieldFromNodeAndIndexSource(struct X3D_Node* node, int ifield, int builtI
 					*fieldname = pfield->cname;
 					*type = pfield->type;
 					*kind = pfield->mode;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+//					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					iret = 1;
 				}
