@@ -1323,343 +1323,345 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 	//pop_joint_center();
 	int renderpass = (renderstate()->render_geom || renderstate()->render_other) && !renderstate()->render_sensitive;
 	//rwhat_printf(renderstate()->rwhat);
-	if(node->skin.n && renderpass){
-		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
-			//save original coordinates
-			//transform each vertex and its normal using weighted transform
-			int i,j,nsc = 0;
-			// int  nsn = 0;
-			float *psc = NULL, *psn = NULL;
-			if(node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate){
-				float ee[6];
-				struct X3D_Coordinate * nc = (struct X3D_Coordinate * )node->skinCoord;
-				struct X3D_Normal *nn = (struct X3D_Normal *)node->skinNormal; //might be NULL 
-				nsc = nc->point.n;
-				psc = (float*)nc->point.p[0].c;
-				//memcpy(psc,node->_origCoords,3*nsc*sizeof(float));
-				if(nn){
-					// nsn = nn->vector.n;
-					psn = (float *)nn->vector.p;
-					//memcpy(psn,node->_origNorms,3*nsn*sizeof(float));
-				}
+	if(node->skin.n){
+		if (renderpass) {
+			if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+				//save original coordinates
+				//transform each vertex and its normal using weighted transform
+				int i, j, nsc = 0;
+				// int  nsn = 0;
+				float* psc = NULL, * psn = NULL;
+				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+					float ee[6];
+					struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
+					struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal; //might be NULL 
+					nsc = nc->point.n;
+					psc = (float*)nc->point.p[0].c;
+					//memcpy(psc,node->_origCoords,3*nsc*sizeof(float));
+					if (nn) {
+						// nsn = nn->vector.n;
+						psn = (float*)nn->vector.p;
+						//memcpy(psn,node->_origNorms,3*nsn*sizeof(float));
+					}
 
-				for(i=0;i<nsc;i++){
-					float totalWeight;
-					float *point, *norm; 
-					float newpoint[3], newnorm[3];
-					float* PVW;
-					int *PVI;
+					for (i = 0; i < nsc; i++) {
+						float totalWeight;
+						float* point, * norm;
+						float newpoint[3], newnorm[3];
+						float* PVW;
+						int* PVI;
 
-					point = &psc[i*3];
-					norm = NULL;
-					if(nn) norm = &psn[i*3];
-					PVW = hr->PVW;
-					PVI = hr->PVI;
+						point = &psc[i * 3];
+						norm = NULL;
+						if (nn) norm = &psn[i * 3];
+						PVW = hr->PVW;
+						PVI = hr->PVI;
 
-					memset(newpoint,0,3*sizeof(float));
-					memset(newnorm,0,3*sizeof(float));
-					totalWeight = 0.0f;
-					for(j=0;j<4;j++){
-						int jointTransformIndex = PVI[i*4 + j];
-						float wt = PVW[i*4 + j];
-						if(jointTransformIndex > 0){
-							float tpoint[3], tnorm[3];
-							JMATRIX jointMatrix;
-							jointMatrix = vector_get(JMATRIX,hr->JT,jointTransformIndex -1);
-							transformf(tpoint,point,jointMatrix.mat);
-							vecscale3f(tpoint,tpoint,wt);
-							vecadd3f(newpoint,newpoint,tpoint);
-							if(nn){
-								transform3x3f(tnorm,norm,jointMatrix.normat);
-								vecnormalize3f(tnorm,tnorm); 
-								vecscale3f(tnorm,tnorm,wt);
-								vecadd3f(newnorm,newnorm,tnorm);
+						memset(newpoint, 0, 3 * sizeof(float));
+						memset(newnorm, 0, 3 * sizeof(float));
+						totalWeight = 0.0f;
+						for (j = 0; j < 4; j++) {
+							int jointTransformIndex = PVI[i * 4 + j];
+							float wt = PVW[i * 4 + j];
+							if (jointTransformIndex > 0) {
+								float tpoint[3], tnorm[3];
+								JMATRIX jointMatrix;
+								jointMatrix = vector_get(JMATRIX, hr->JT, jointTransformIndex - 1);
+								transformf(tpoint, point, jointMatrix.mat);
+								vecscale3f(tpoint, tpoint, wt);
+								vecadd3f(newpoint, newpoint, tpoint);
+								if (nn) {
+									transform3x3f(tnorm, norm, jointMatrix.normat);
+									vecnormalize3f(tnorm, tnorm);
+									vecscale3f(tnorm, tnorm, wt);
+									vecadd3f(newnorm, newnorm, tnorm);
+								}
+								totalWeight += wt;
 							}
-							totalWeight += wt;
+						}
+						if (totalWeight > 0.0f) {
+							vecscale3f(newpoint, newpoint, 1.0f / totalWeight);
+							veccopy3f(point, newpoint);
+							if (nn) {
+								vecscale3f(newnorm, newnorm, 1.0f / totalWeight);
+								vecnormalize3f(norm, newnorm);
+							}
 						}
 					}
-					if(totalWeight > 0.0f){
-						vecscale3f(newpoint,newpoint,1.0f/totalWeight);
-						veccopy3f(point,newpoint);
-						if(nn){
-							vecscale3f(newnorm,newnorm,1.0f/totalWeight);
-							vecnormalize3f(norm,newnorm);
+					if (0) {
+						//print out before and after coords
+						float* osc = node->_origCoords;
+						for (i = 0; i < nsc; i++) {
+							printf("%d ", i);
+							for (j = 0; j < 3; j++) printf("%f ", psc[i * 3 + j]);
+							printf("/ ");
+							for (j = 0; j < 3; j++) printf("%f ", osc[i * 3 + j]);
+							printf("\n");
 						}
-					}
-				}
-				if(0){
-					//print out before and after coords
-					float *osc = node->_origCoords;
-					for(i=0;i<nsc;i++){
-						printf("%d ",i);
-						for(j=0;j<3;j++) printf("%f ",psc[i*3 +j]);
-						printf("/ ");
-						for(j=0;j<3;j++) printf("%f ",osc[i*3 +j]);
 						printf("\n");
 					}
-					printf("\n");
-				}
 
-				//trigger recompile of skin->shapes when rendering skin
-				//Nov 6, 2016: recompiling a shape / polyrep on each frame eats memory 
-				//NODE_NEEDS_COMPILING
-				if(1){
-					int k;
-					Stack *parents;
-					node->skinCoord->_change++;
-					parents = node->skinCoord->_parentVector;
-					for(k=0;k<vectorSize(parents);k++){
-						struct X3D_Node *parent = vector_get(struct X3D_Node*,parents,k);
-						parent->_change++;
+					//trigger recompile of skin->shapes when rendering skin
+					//Nov 6, 2016: recompiling a shape / polyrep on each frame eats memory 
+					//NODE_NEEDS_COMPILING
+					if (1) {
+						int k;
+						Stack* parents;
+						node->skinCoord->_change++;
+						parents = node->skinCoord->_parentVector;
+						for (k = 0; k < vectorSize(parents); k++) {
+							struct X3D_Node* parent = vector_get(struct X3D_Node*, parents, k);
+							parent->_change++;
+						}
 					}
-				}
-				//extent6f_from_box3fn(ee, psc, nsc);
-				//setExtent(ee[0], ee[1], ee[2], ee[3], ee[4], ee[5], X3D_NODE(node));
+					//extent6f_from_box3fn(ee, psc, nsc);
+					//setExtent(ee[0], ee[1], ee[2], ee[3], ee[4], ee[5], X3D_NODE(node));
 
+				}
 			}
-		}
-		else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
-			if (renderstate()->render_blend || renderstate()->render_geom){// == (node->_renderFlags & VF_Blend)) {
-				//push shader flaga with += SKINNING (later in child_Shape when we filter the skin shapes by Coordinate node == humanoid.coord)
-				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
-					push_humanoid_skinCoord(node->skinCoord);
-					//#define USING_IMAGEBUFFER 1
+			else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+				if (renderstate()->render_blend || renderstate()->render_geom) {// == (node->_renderFlags & VF_Blend)) {
+					//push shader flaga with += SKINNING (later in child_Shape when we filter the skin shapes by Coordinate node == humanoid.coord)
+					if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+						push_humanoid_skinCoord(node->skinCoord);
+						//#define USING_IMAGEBUFFER 1
 
-					//bind skin weights and joint indexes to SSBO once if not done yet
-					// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
-					if ((hr->joint_changed == TRUE) && hr->PVset) {
-						hr->joint_changed = FALSE;
-						//OGLPG 4.5 Chapter 11 Memory example 11.6 Creating a Buffer and Using It for Shader Storage
-						if (1) {
-							//skin weights PVW
-							static int pvwonce = 1;// 0;
-							if (pvwonce == 0) {
-								for (int kk = 0; kk < hr->NV; kk++)
-								{
-									printf("[");
-									for (int jj = 0; jj < 4; jj++) {
-										printf("%f ", hr->PVW[kk * 4 + jj]);
+						//bind skin weights and joint indexes to SSBO once if not done yet
+						// https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object 
+						if ((hr->joint_changed == TRUE) && hr->PVset) {
+							hr->joint_changed = FALSE;
+							//OGLPG 4.5 Chapter 11 Memory example 11.6 Creating a Buffer and Using It for Shader Storage
+							if (1) {
+								//skin weights PVW
+								static int pvwonce = 1;// 0;
+								if (pvwonce == 0) {
+									for (int kk = 0; kk < hr->NV; kk++)
+									{
+										printf("[");
+										for (int jj = 0; jj < 4; jj++) {
+											printf("%f ", hr->PVW[kk * 4 + jj]);
+										}
+										printf("]");
 									}
-									printf("]");
+									pvwonce++;
 								}
-								pvwonce++;
-							}
-							if (hr->bo_PVW == 0) {
-								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 0");
-								glGenBuffers(1, &hr->bo_PVW);
-							}
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 1");
-							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(float) * 4, hr->PVW, GL_STATIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 2");
+								if (hr->bo_PVW == 0) {
+									PRINT_GL_ERROR_IF_ANY("Hanim SSBO 0");
+									glGenBuffers(1, &hr->bo_PVW);
+								}
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVW);
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 1");
+								glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(float) * 4, hr->PVW, GL_STATIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 2");
 
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW); //GL 3+
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 3");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, hr->bo_PVW); //GL 3+
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 3");
 
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 4");
-						}
-						if (1) {
-							//skin joint_matrix indexes
-							static int pvionce = 1; //0;
-							if (pvionce == 0) {
-								for (int kk = 0; kk < hr->NV; kk++)
-								{
-									printf("[");
-									for (int jj = 0; jj < 4; jj++) {
-										printf("%d ", hr->PVI[kk * 4 + jj]);
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 4");
+							}
+							if (1) {
+								//skin joint_matrix indexes
+								static int pvionce = 1; //0;
+								if (pvionce == 0) {
+									for (int kk = 0; kk < hr->NV; kk++)
+									{
+										printf("[");
+										for (int jj = 0; jj < 4; jj++) {
+											printf("%d ", hr->PVI[kk * 4 + jj]);
+										}
+										printf("]");
 									}
-									printf("]");
+									pvionce++;
 								}
-								pvionce++;
+								if (hr->bo_PVI == 0)
+									glGenBuffers(1, &hr->bo_PVI);
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 5");
+								glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int) * 4, hr->PVI, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 6");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 7");
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 8");
 							}
-							if(hr->bo_PVI == 0)
-								glGenBuffers(1, &hr->bo_PVI);
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_PVI);
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 5");
-							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int) * 4, hr->PVI, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 6");
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, hr->bo_PVI);
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 7");
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 8");
-						}
-						if (hr->dindex) {
-							//displacers, send dindex[nc] once
-							static int dionce = 0; //0;
-							if (dionce == 0) {
-								for (int kk = 0; kk < hr->NV; kk++)
-								{
-									if (hr->dindex[kk]) {
-										printf("[%d %d]\n", kk, hr->dindex[kk]);
+							if (hr->dindex) {
+								//displacers, send dindex[nc] once
+								static int dionce = 0; //0;
+								if (dionce == 0) {
+									for (int kk = 0; kk < hr->NV; kk++)
+									{
+										if (hr->dindex[kk]) {
+											printf("[%d %d]\n", kk, hr->dindex[kk]);
+										}
 									}
+									//dionce++;
 								}
-								//dionce++;
+
+								if (hr->bo_dindex == 0)
+									glGenBuffers(1, &hr->bo_dindex);
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_dindex);
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 9");
+								glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int), hr->dindex, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 10");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, hr->bo_dindex);
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 11");
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+								PRINT_GL_ERROR_IF_ANY("Hanim SSBO 12");
 							}
 
-							if (hr->bo_dindex == 0)
-								glGenBuffers(1, &hr->bo_dindex);
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_dindex);
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 9");
-							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->NV * sizeof(int), hr->dindex, GL_STATIC_DRAW); //GL 2+ sizeof(data) only works for statically sized C/C++ arrays.
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 10");
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, hr->bo_dindex);
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 11");
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
-							PRINT_GL_ERROR_IF_ANY("Hanim SSBO 12");
 						}
-
-					}
-					if (hr->ND && hr->displace) {
-						//send every frame (unless a flag says non of the displacers are weighted, 
-						// and sent 0s once already)
-						if (!hr->bo_displace) {
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 0");
-							glGenBuffers(1, &hr->bo_displace);
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 13");
-							glBufferData(GL_SHADER_STORAGE_BUFFER, hr->ND * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 14");
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 15");
-						}
-						else {
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 16");
-							glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
-							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 17");
-						}
-						static int donce = 1; //0;
-						if (donce == 0) {
-							printf("\nND %d\n", hr->ND);
-							int nz = 0;
-							for (int kk = 0; kk < hr->ND; kk++)
-							{
-								float* v4 = &hr->displace[kk * 4];
-								if (v4[0] == v4[1] == v4[2] == 0.0f) nz++;
-								printf("[%d %f %f %f]\n", kk, v4[0], v4[1],v4[2]);
+						if (hr->ND && hr->displace) {
+							//send every frame (unless a flag says non of the displacers are weighted, 
+							// and sent 0s once already)
+							if (!hr->bo_displace) {
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 0");
+								glGenBuffers(1, &hr->bo_displace);
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 13");
+								glBufferData(GL_SHADER_STORAGE_BUFFER, hr->ND * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 14");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 15");
 							}
-							if (nz > 1) {
-								printf("nz=%d ", nz - 1);
+							else {
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_displace);
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 16");
+								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, hr->bo_displace);
+								PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 17");
 							}
-							//printf("rs %d %d %o\n", renderstate()->render_blend, renderstate()->render_geom, renderstate()->rwhat);
-							rwhat_printf(renderstate()->rwhat);
-							donce++;
-						}
-						//donce++;
-						//float* dd = hr->displace;
-						//vecset3f(dd, .01, 0.0); //test
-						void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
-						PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
-						memcpy(bdata, hr->displace, hr->ND * 4 * sizeof(float));
-						glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-						PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
-						glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+							static int donce = 1; //0;
+							if (donce == 0) {
+								printf("\nND %d\n", hr->ND);
+								int nz = 0;
+								for (int kk = 0; kk < hr->ND; kk++)
+								{
+									float* v4 = &hr->displace[kk * 4];
+									if (v4[0] == v4[1] == v4[2] == 0.0f) nz++;
+									printf("[%d %f %f %f]\n", kk, v4[0], v4[1], v4[2]);
+								}
+								if (nz > 1) {
+									printf("nz=%d ", nz - 1);
+								}
+								//printf("rs %d %d %o\n", renderstate()->render_blend, renderstate()->render_geom, renderstate()->rwhat);
+								rwhat_printf(renderstate()->rwhat);
+								donce++;
+							}
+							//donce++;
+							//float* dd = hr->displace;
+							//vecset3f(dd, .01, 0.0); //test
+							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
+							memcpy(bdata, hr->displace, hr->ND * 4 * sizeof(float));
+							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+							PRINT_GL_ERROR_IF_ANY("Hanim ND_SSBO 18");
+							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-					}
-					if (vectorSize(hr->JT)) {
-						// skin joint_matrix - send every frame
-						//# joints LAO1 18 LOA2 71 LOA3 94 LOA4 144 
-						// uniform blocks limited to 64k bytes
-						// SSBO no limit on size
-						//convert joint transforms to float32
-						int normatsize = 12; //mat3 is 12, mat4 is 16
-						int nmat = vectorSize(hr->JT);
-						if (hr->jt32 == NULL)
-							hr->jt32 = malloc(nmat * 16 * sizeof(float));
-						if (hr->jn32 == NULL) {
-							hr->jn32 = malloc(nmat * normatsize * sizeof(float));
-							memset(hr->jn32, 0, nmat * normatsize * sizeof(float));
 						}
-						for (int i = 0; i < nmat; i++) {
-							JMATRIX* jm = vector_get_ptr(JMATRIX, hr->JT, i);
-							double2float(&hr->jt32[i * 16], jm->mat, 16);
-							//if (HH->skinNormal) {
-								//GLSL needs N4 alignment
-								// .. a mat3 needs a padding on every row, so 3 rows of 4 floats
+						if (vectorSize(hr->JT)) {
+							// skin joint_matrix - send every frame
+							//# joints LAO1 18 LOA2 71 LOA3 94 LOA4 144 
+							// uniform blocks limited to 64k bytes
+							// SSBO no limit on size
+							//convert joint transforms to float32
+							int normatsize = 12; //mat3 is 12, mat4 is 16
+							int nmat = vectorSize(hr->JT);
+							if (hr->jt32 == NULL)
+								hr->jt32 = malloc(nmat * 16 * sizeof(float));
+							if (hr->jn32 == NULL) {
+								hr->jn32 = malloc(nmat * normatsize * sizeof(float));
+								memset(hr->jn32, 0, nmat * normatsize * sizeof(float));
+							}
+							for (int i = 0; i < nmat; i++) {
+								JMATRIX* jm = vector_get_ptr(JMATRIX, hr->JT, i);
+								double2float(&hr->jt32[i * 16], jm->mat, 16);
+								//if (HH->skinNormal) {
+									//GLSL needs N4 alignment
+									// .. a mat3 needs a padding on every row, so 3 rows of 4 floats
 								for (int k = 0; k < 3; k++)
 									veccopy3f(&hr->jn32[i * normatsize + k * 4], &jm->normat[k * 3]);
-								if(normatsize == 16) hr->jn32[i * normatsize + 15] = 1.0f;
-							//}
-						}
+								if (normatsize == 16) hr->jn32[i * normatsize + 15] = 1.0f;
+								//}
+							}
 
-						if(1){
-							static int mat_once = 0;
-							if (0 && mat_once == 30) {
-								int nrow = 4;
-								for (int kk = 0; kk < nmat; kk++) {
-									printf("%d\n", kk);
-									for (int jj = 0; jj < 4; jj++) {
-										for (int ii = 0; ii < 4; ii++)
-											printf("%f ", hr->jt32[(kk * nrow + jj) * 4 + ii]);
-										printf("\n");
+							if (1) {
+								static int mat_once = 0;
+								if (0 && mat_once == 30) {
+									int nrow = 4;
+									for (int kk = 0; kk < nmat; kk++) {
+										printf("%d\n", kk);
+										for (int jj = 0; jj < 4; jj++) {
+											for (int ii = 0; ii < 4; ii++)
+												printf("%f ", hr->jt32[(kk * nrow + jj) * 4 + ii]);
+											printf("\n");
+										}
 									}
 								}
-							}
-							mat_once++;
+								mat_once++;
 
-							if (!hr->bo_JT) {
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 0");
-								glGenBuffers(1, &hr->bo_JT);
-								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 1");
-								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 2");
-								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 3");
-							}
-							else {
-								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 4");
-								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
-								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 5");
-							}
-							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
-							PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 6");
-							memcpy(bdata, hr->jt32, nmat * 16 * sizeof(float));
-							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-							PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 7");
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+								if (!hr->bo_JT) {
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 0");
+									glGenBuffers(1, &hr->bo_JT);
+									glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JT);
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 1");
+									glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * 16 * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 2");
+									glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 3");
+								}
+								else {
+									glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JT);
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 4");
+									glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, hr->bo_JT);
+									PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 5");
+								}
+								void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 6");
+								memcpy(bdata, hr->jt32, nmat * 16 * sizeof(float));
+								glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+								PRINT_GL_ERROR_IF_ANY("Hanim JT_SSBO 7");
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-						}
-						if (1) { //&& HH->skinNormal) {
-							static int normat_once = 0;
-							if (0 && normat_once == 30) {
-								int nrow = normatsize == 12 ? 3 : 4;
-								for (int kk = 0; kk < nmat; kk++) {
-									printf("%d\n", kk);
-									for (int jj = 0; jj < 4; jj++) {
-										for (int ii = 0; ii < 4; ii++)
-											printf("%f ", hr->jn32[(kk * nrow + jj) * 4 + ii]);
-										printf("\n");
+							}
+							if (1) { //&& HH->skinNormal) {
+								static int normat_once = 0;
+								if (0 && normat_once == 30) {
+									int nrow = normatsize == 12 ? 3 : 4;
+									for (int kk = 0; kk < nmat; kk++) {
+										printf("%d\n", kk);
+										for (int jj = 0; jj < 4; jj++) {
+											for (int ii = 0; ii < 4; ii++)
+												printf("%f ", hr->jn32[(kk * nrow + jj) * 4 + ii]);
+											printf("\n");
+										}
 									}
 								}
-							}
-							normat_once++;
-							if (!hr->bo_JN) {
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 0");
-								glGenBuffers(1, &hr->bo_JN);
-								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 1");
-								glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * normatsize * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 2");
-								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 3");
-							}
-							else {
-								glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 4");
-								glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
-								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 5");
-							}
-							void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
-							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 6");
-							memcpy(bdata, hr->jn32, nmat * normatsize * sizeof(float));
-							glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-							PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 7");
-							glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+								normat_once++;
+								if (!hr->bo_JN) {
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 0");
+									glGenBuffers(1, &hr->bo_JN);
+									glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 1");
+									glBufferData(GL_SHADER_STORAGE_BUFFER, nmat * normatsize * sizeof(float), NULL, GL_DYNAMIC_DRAW); //sizeof(data) only works for statically sized C/C++ arrays.
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 2");
+									glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 3");
+								}
+								else {
+									glBindBuffer(GL_SHADER_STORAGE_BUFFER, hr->bo_JN);
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 4");
+									glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, hr->bo_JN);
+									PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 5");
+								}
+								void* bdata = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY); //GL 2+ access modes Table 3.4 in Opengl Programmers Guide 4.5 location 3708
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 6");
+								memcpy(bdata, hr->jn32, nmat * normatsize * sizeof(float));
+								glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+								PRINT_GL_ERROR_IF_ANY("Hanim JN_SSBO 7");
+								glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+							}
 						}
 					}
 				}
@@ -1672,30 +1674,32 @@ printf ("hanimHumanoid, segment counts joints %d segs %d sites %d skeleton %d sk
 			for (int i = 0; i < 6; i++) printf("%4.3f ", node->skin.p[j]->_extent[i]);
 			printf("\n");
 		}
-
-		if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
-			//pop shader flags
-			if (renderstate()->render_blend || renderstate()->render_geom){ //} == (node->_renderFlags & VF_Blend)) {
-				//push shader flaga with += SKINNING (later in Shape or render_polyrep)
-				if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
-					//unbind joint matrices UBO
-					//unbind skin weights SSBO
-					pop_humanoid_skinCoord();
+		if (renderpass) {
+			if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_GPU) {
+				//pop shader flags
+				if (renderstate()->render_blend || renderstate()->render_geom) { //} == (node->_renderFlags & VF_Blend)) {
+					//push shader flaga with += SKINNING (later in Shape or render_polyrep)
+					if (node->skinCoord && node->skinCoord->_nodeType == NODE_Coordinate) {
+						//unbind joint matrices UBO
+						//unbind skin weights SSBO
+						pop_humanoid_skinCoord();
+					}
 				}
 			}
-		} else if(vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
-			//restore original coordinates 
-			int nsc, nsn;
-			float *psc, *psn;
-			struct X3D_Coordinate * nc = (struct X3D_Coordinate * )node->skinCoord;
-			struct X3D_Normal * nn = (struct X3D_Normal * )node->skinNormal;
-			nsc = nc->point.n;
-			psc = (float*)nc->point.p;
-			memcpy(psc,node->_origCoords,3*nsc*sizeof(float));
-			if(nn){
-				nsn = nn->vector.n;
-				psn = (float*)nn->vector.p;
-				memcpy(psn,node->_origNorms,3*nsn*sizeof(float));
+			else if (vertexTransformMethod() == VERTEXTRANSFORMMETHOD_CPU) {
+				//restore original coordinates 
+				int nsc, nsn;
+				float* psc, * psn;
+				struct X3D_Coordinate* nc = (struct X3D_Coordinate*)node->skinCoord;
+				struct X3D_Normal* nn = (struct X3D_Normal*)node->skinNormal;
+				nsc = nc->point.n;
+				psc = (float*)nc->point.p;
+				memcpy(psc, node->_origCoords, 3 * nsc * sizeof(float));
+				if (nn) {
+					nsn = nn->vector.n;
+					psn = (float*)nn->vector.p;
+					memcpy(psn, node->_origNorms, 3 * nsn * sizeof(float));
+				}
 			}
 		}
 	} //if skin
