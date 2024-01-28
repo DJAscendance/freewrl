@@ -3015,7 +3015,7 @@ int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
 				//if( p->screenHeight - mouseYY > 0 ){
 				if(overMenubar(p,mouseY)){
 					//setArrowCursor();
-					if(showAction(p, ACTION_HELP)){
+					if(TRUE || showAction(p, ACTION_HELP)) {
 						int ib_over;
 						ib_over = handleButtonOver(mouseX,mouseYY);
 						if(ib_over > -1)
