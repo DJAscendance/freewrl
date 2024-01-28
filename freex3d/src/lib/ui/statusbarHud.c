@@ -3031,6 +3031,7 @@ int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
 			else
 			{
 				p->showButtons = p->menubar_pinned;
+				update_status(NULL);
 			}
 		}
 		//if(p->showOptions)
