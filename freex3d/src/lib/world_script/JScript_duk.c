@@ -1547,7 +1547,7 @@ int fwval_duk_push(duk_context *ctx, FWval fwretval, int *valueChanged){
 			case FIELDTYPE_SFTime:
 				duk_push_number(ctx,fwretval->_web3dval.anyvrml->sfdouble); break;
 			case FIELDTYPE_SFString:
-				if(fwretval->_web3dval.anyvrml->sfstring->strptr)
+				if(fwretval->_web3dval.anyvrml->sfstring && fwretval->_web3dval.anyvrml->sfstring->strptr)
 					duk_push_string(ctx,fwretval->_web3dval.anyvrml->sfstring->strptr);
 				else
 					duk_push_string(ctx,"");
