@@ -518,11 +518,12 @@ void X3D_ECMA_TO_JS(JSContext *cx, void *Data, int datalen, int dataType, jsval 
 
 		case FIELDTYPE_SFString: {
 			struct Uni_String *ms;
-
+			//memset(&ms, 0, sizeof(struct Uni_String));
 			/* datalen will be ROUTING_SFSTRING here; or at least should be! We
 			   copy over the data, which is a UniString pointer, and use the pointer
 			   value here */
-			memcpy((void *) &ms,Data, sizeof(void *));
+			//memcpy((void *) &ms,Data, sizeof(void *));
+			ms = (struct Uni_String*)Data;
 			*newval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,ms->strptr));
 			break;
 		}
