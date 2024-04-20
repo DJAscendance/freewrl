@@ -12664,7 +12664,7 @@ struct X3D_Shape {
 	int visible;
 	int bboxDisplay;
 	int castShadow;
-	int _shaderflags_base;
+	double _shaderflags_base;
 	int _shaderflags_effects;
 	int _shaderflags_usershaders;
 	int __visible;

@@ -9420,7 +9420,7 @@ const int OFFSETS_Shape[] = {
 	(int) FIELDNAMES_visible, (int) offsetof (struct X3D_Shape, visible),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_bboxDisplay, (int) offsetof (struct X3D_Shape, bboxDisplay),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
 	(int) FIELDNAMES_castShadow, (int) offsetof (struct X3D_Shape, castShadow),  (int) FIELDTYPE_SFBool, (int) KW_inputOutput, (int) (SPEC_X3D40), (int) UNCA_NONE,
-	(int) FIELDNAMES__shaderflags_base, (int) offsetof (struct X3D_Shape, _shaderflags_base),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
+	(int) FIELDNAMES__shaderflags_base, (int) offsetof (struct X3D_Shape, _shaderflags_base),  (int) FIELDTYPE_SFDouble, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__shaderflags_effects, (int) offsetof (struct X3D_Shape, _shaderflags_effects),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES__shaderflags_usershaders, (int) offsetof (struct X3D_Shape, _shaderflags_usershaders),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,
 	(int) FIELDNAMES___visible, (int) offsetof (struct X3D_Shape, __visible),  (int) FIELDTYPE_SFInt32, (int) KW_initializeOnly, (int) 0, (int) 0,

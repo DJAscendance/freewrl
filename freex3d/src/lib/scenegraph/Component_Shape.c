@@ -601,12 +601,12 @@ void compile_material_if_required(struct X3D_Node *node){
 	COMPILE_IF_REQUIRED(node);
 }
 
-static int getAppearanceShader (struct X3D_Node *myApp) {
+static long long getAppearanceShader (struct X3D_Node *myApp) {
 	struct X3D_Appearance *realAppearanceNode;
 	struct X3D_Node *realMaterialNode, *realBackMaterialNode;
 
 
-	int retval = NOTHING;
+	long long retval = NOTHING;
 
 	/* if there is no appearance node... */
 	if (myApp == NULL) return retval;
@@ -1766,12 +1766,12 @@ void child_Shape (struct X3D_Shape *node) {
 }
 
 void compile_Shape (struct X3D_Shape *node) {
-	int whichAppearanceShader = 0;
-	int whichShapeColorShader = 0;
-	int whichShapeFogShader = 0;
+	long long whichAppearanceShader = 0;
+	long long whichShapeColorShader = 0;
+	long long whichShapeFogShader = 0;
 	bool isUnlitGeometry = false;
 	int hasTextureCoordinateGenerator = 0;
-	int whichUnlitGeometry = 0;
+	long long whichUnlitGeometry = 0;
 	struct X3D_Node *tmpN = NULL;
 	struct X3D_Node *tmpG = NULL;
 	// struct X3D_Appearance *appearance = NULL;

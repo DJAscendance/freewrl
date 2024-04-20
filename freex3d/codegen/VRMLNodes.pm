@@ -768,7 +768,7 @@ our %Nodes = (
 		visible => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		bboxDisplay => ["SFBool", "FALSE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
 		castShadow => ["SFBool", "TRUE", "inputOutput", "(SPEC_X3D40)","UNCA_NONE"],#ff
-		_shaderflags_base =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
+		_shaderflags_base =>["SFDouble",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_effects =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		_shaderflags_usershaders =>["SFInt32",0,"initializeOnly",0,0],#ff # shaders
 		# shape-specific:
