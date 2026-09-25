@@ -43,7 +43,7 @@ xcodebuild -project FreeWRL.xcodeproj -scheme FreeWRL -configuration Release ARC
 - `freex3d/src_aqua/fwVersion.c` is committed and takes its version from `freex3d/src/buildversion.h` (`FW_BUILD_VERSION_STR`), which is also what `libFreeWRL_get_version` in `ui/common.c` returns on AQUA. `freex3d/versions/*` is stale on `develop` (says 5.0.0).
 - New `.c` files added upstream must also be added to `FreeWRL.xcodeproj`, or linking fails with undefined symbols. Compare against `projectfiles_2022/lib/libFreeWRL.vcxproj`, which upstream keeps current.
 - Upstream builds only with MSVC, so clang rejects some `develop` code: implicit function declarations (hard errors in modern clang), taking the address of a cast. Add the missing prototype or include rather than turning the error off: an implicit declaration truncates pointer returns on arm64.
-- **This branch does not build yet.** `develop`'s renderer needs desktop GL 3.2+ (GLSL `330 core` and `450 core` shaders, `glVertexAttribIPointer`, GL 4.3 shader storage buffers in HAnim, GL 4.5 `glBindTextureUnit`). The Mac app creates a legacy GL 2.1 context, and macOS stops at GL 4.1 core. See `MACOS-STATUS.md`.
+- macOS runs a 4.1 core profile (`FW_GL_CORE_PROFILE`, `opengl/GLCoreCompat.c`): client arrays streamed to VBOs, a default VAO, sampler units kept apart per type, legacy texture formats swizzled, GL 4.3/4.5 calls emulated. HAnim uses CPU skinning (no shader storage buffers). New GL code must work on a 4.1 core context; see `MACOS-STATUS.md`.
 
 ## Code generation (important)
 
