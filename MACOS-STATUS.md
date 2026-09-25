@@ -46,7 +46,7 @@ Every emulated call, what it replaces and what happens when it can't be done. Ev
 | ✅ | Release arm64, clean | `xcodebuild -project OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj -scheme FreeWRL -configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- -derivedDataPath <dir> clean build` → exit 0 |
 | ✅ | Debug arm64, clean | same with `-configuration Debug` → exit 0 |
 | ✅ | Homebrew dylibs (build time) | ode, freealut, imlib2, freetype (and openal-soft headers); see [Standalone packaging](#standalone-packaging) for the runtime closure |
-| ✅ | Self-contained app | `tools/macos-package/package.sh`; runs with Homebrew and the source tree unreadable. Requires macOS 27.0 (the embedded Homebrew bottles are built for 27.0). Not notarized; no downloadable package. See [Standalone packaging](#standalone-packaging) |
+| ✅ | Self-contained app | `tools/macos-package/package.sh`; runs with Homebrew and the source tree unreadable. Requires macOS 27.0 (the embedded Homebrew bottles are built for 27.0). A notarized local QA candidate exists; no downloadable package. See [Standalone packaging](#standalone-packaging) |
 | ✅ | ffmpeg no longer linked | it was linked but no symbol was imported (`MOVIETEXTURE_FFMPEG` is off); removed with the 11 other dylibs only it needed |
 
 ### Warnings (clean Release build)
@@ -150,8 +150,8 @@ Branch `macos/standalone-packaging` from `develop` @ `22257dc57`. `tools/macos-p
 | ⛔ | Minimum macOS | every embedded Homebrew binary is `minos 27.0` (`zstd` 26.0), so the bundle requires **macOS 27.0**; `package.sh` sets `LSMinimumSystemVersion` to that. The executable itself is built for 13.0. Supporting 13 means rebuilding about 18 libraries (ode, libccd, freealut, imlib2 and its X11 and image-format libraries, freetype, libpng) for 13.0: a separate project, not started |
 | ✅ | Ad-hoc signing | inside out: 20 dylibs, 18 loaders, then the app; `codesign --verify --deep --strict` passes |
 | ✅ | Hardened runtime | with a Developer ID signature and **no entitlements**: all of the above pass. No JIT or writable-executable memory (Duktape interprets; no `mprotect`/`MAP_JIT` in FreeWRL's source or in ode, freetype, freealut, Imlib2 and its loaders), no `DYLD_` variables, no libraries signed by others. Ad-hoc + hardened runtime cannot start: library validation rejects the ad-hoc dylibs ("different Team IDs") |
-| ✅ | Developer ID | local test candidate signed `Developer ID Application` (team `PV35EC2TRY`), timestamped. `spctl`: rejected, `source=Unnotarized Developer ID` |
-| ⛔ | Notarization | not attempted: no notarytool credentials configured |
+| ✅ | Developer ID | local test candidate signed `Developer ID Application` (team `PV35EC2TRY`), timestamped |
+| ✅ | Notarization | `notarytool submit` (App Store Connect API key): Accepted, 0 issues in the log (submission `c1c6a8b6-9bc6-4d78-a1c5-c83cfa8989bd`); ticket stapled, `stapler validate` passes; `spctl`: accepted, `source=Notarized Developer ID`. A copy with a quarantine attribute, launched with `open`, ran from an App Translocation path, rendered `text_fonts.wrl` and mapped only the bundle's libraries and fonts; quit by Apple Event cleanly. Local QA only: not published |
 | ✅ | Visual harness, packaged (Developer ID, launched with `open`) | tests/1 0.9948, 16 0.9194, `texture_formats` 0.9665, `route_dotted` 0.9985, `hanim_skin` 0.9920, Cybertown 002 0.9659: all PASS, same scores as the Homebrew-linked build. `text_fonts` 0.6603: X_ITE draws other fonts (and FreeWRL's sRGB output lightens the background), not a defect |
 | 🟡 | Licenses | `Contents/Resources/ThirdPartyLicenses/` holds each package's own license files plus `MANIFEST.tsv`. Gap: Homebrew's freetype keg has `LICENSE.TXT`, which points to `docs/FTL.TXT`, but not FTL.TXT itself |
 
@@ -183,11 +183,12 @@ Runtime links removed: ffmpeg's five libraries and the 11 dylibs only they neede
 
 ### Release blockers
 
-1. Notarization credentials (`notarytool store-credentials` profile).
-2. macOS 27.0 minimum unless the libraries are rebuilt for an older target.
-3. FreeType `FTL.TXT` (from the 2.14.3 source) in `ThirdPartyLicenses/freetype`.
-4. A decision on redistribution notices for the LGPL libraries (freealut; ode is dual-licensed).
-5. Independent QA on a Mac that has never had Homebrew.
+1. macOS 27.0 minimum unless the libraries are rebuilt for an older target.
+2. FreeType `FTL.TXT` (from the 2.14.3 source) in `ThirdPartyLicenses/freetype`.
+3. A decision on redistribution notices for the LGPL libraries (freealut; ode is dual-licensed).
+4. Notarization is not part of `package.sh` yet (done by hand with `notarytool`/`stapler`).
+5. The early clean exit above.
+6. Independent QA on a Mac that has never had Homebrew.
 
 ## Fixed on this branch (upstream bugs, all platforms)
 
@@ -208,5 +209,5 @@ Runtime links removed: ffmpeg's five libraries and the 11 dylibs only they neede
 - [ ] Directional light shadows outside the shadow map (upstream)
 - [x] Bundle dylibs, sign (Developer ID + hardened runtime test candidate); see [Standalone packaging](#standalone-packaging)
 - [ ] Rebuild the embedded libraries for an older macOS (they require 27.0)
-- [ ] Notarize (needs notarytool credentials)
+- [x] Notarize the local QA candidate (by hand; not yet in `package.sh`)
 - [ ] Port `MPEG_Utils_ffmpeg.c` to ffmpeg 5+ (MovieTexture)
