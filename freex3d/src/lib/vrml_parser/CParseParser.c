@@ -2555,6 +2555,14 @@ static void stuffSFintoMF(struct Multi_Node *outMF, vrmlNodeT *inSF, int type) {
                 stuffDEFUSE(ret, RCX, FIELDTYPE_MF##type); \
                 return TRUE; \
         } \
+        /* MFNode NULL: not in the VRML97 grammar, but common in blaxxun-era */ \
+        /* content (e.g. "exposedField MFNode avatars NULL"); treat as [] */ \
+        else if (FIELDTYPE_MF##type == FIELDTYPE_MFNode && lexer_keyword(me->lexer, KW_NULL)) { \
+                rv = (struct Multi_##type*) ret; \
+                rv->n = 0; \
+                rv->p = NULL; \
+                return TRUE; \
+        } \
  }\
 \
 /* printf ("step 2... curID :%s:\n", me->lexer->curID); */ \
