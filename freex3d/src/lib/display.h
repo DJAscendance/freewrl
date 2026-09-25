@@ -999,6 +999,9 @@ void fw_core_glEnable(GLenum cap);
 void fw_core_glDisable(GLenum cap);
 #define glEnable fw_core_glEnable
 #define glDisable fw_core_glDisable
+/* a core profile has no wide lines: widths above the driver range are clamped, see GLCoreCompat.c */
+void fw_core_glLineWidth(GLfloat width);
+#define glLineWidth fw_core_glLineWidth
 
 /* above GL 4.1 */
 #ifndef GL_TEXTURE_TARGET

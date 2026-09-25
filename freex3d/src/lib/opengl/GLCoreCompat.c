@@ -22,6 +22,13 @@
 
 #define FW_CORE_MAX_ATTRIBS 16
 
+/* state checks that cost a glGet (a pipeline sync on macOS): Debug builds only */
+#ifdef DEBUG
+#define core_check(cond) assert(cond)
+#else
+#define core_check(cond) ((void)0)
+#endif
+
 typedef struct {
 	const void *pointer; /* client memory, or NULL when the attribute is sourced from a VBO */
 	GLint size;
@@ -179,7 +186,11 @@ static int is_sampler(GLenum type){
 static program_samplers *samplers_of(GLuint program){
 	for(int i=0;i<nsampler_cache;i++)
 		if(sampler_cache[i].program == program) return &sampler_cache[i];
-	if(nsampler_cache == FW_CORE_MAX_PROGRAMS) return NULL;
+	if(nsampler_cache == FW_CORE_MAX_PROGRAMS){
+		static int warned = 0;
+		if(!warned++) fprintf(stderr, "GLCoreCompat: more than %d shader programs, samplers of the rest are not parked (draws may fail)\n", FW_CORE_MAX_PROGRAMS);
+		return NULL;
+	}
 	program_samplers *ps = &sampler_cache[nsampler_cache++];
 	GLenum types[16]; int ntypes = 0;
 	GLint nuniforms = 0, maxunits = 16;
@@ -196,6 +207,10 @@ static program_samplers *samplers_of(GLuint program){
 		if(t == ntypes && ntypes < 16) types[ntypes++] = type;
 		char *bracket = strchr(name, '[');
 		if(bracket) *bracket = 0;
+		if(ps->n + size > FW_CORE_MAX_SAMPLERS){
+			static int warned = 0;
+			if(!warned++) fprintf(stderr, "GLCoreCompat: program %u has more than %d samplers, the rest are not parked\n", program, FW_CORE_MAX_SAMPLERS);
+		}
 		for(GLint e=0;e<size && ps->n<FW_CORE_MAX_SAMPLERS;e++){
 			char elem[300];
 			if(size > 1) snprintf(elem, sizeof(elem), "%s[%d]", name, e);
@@ -237,6 +252,32 @@ void fw_core_glDisable(GLenum cap){
 	if(!fixed_function_cap(cap)) glDisable(cap);
 }
 
+/* LineProperties asks for widths above 1 (linewidthScaleFactor, and 10 for its patterned
+   line types, whose shader discards fragments to shape the line). A core profile only
+   guarantees width 1 and raises GL_INVALID_VALUE above its range, so clamp to what the
+   driver reports: lines draw 1 pixel wide and keep their pattern. Warn once. */
+void fw_core_glLineWidth(GLfloat width){
+	static GLfloat range[2] = { 0.0f, 0.0f };
+	static int warned = 0;
+	if(range[1] <= 0.0f){
+		GLint flags = 0;
+		glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, range);
+		/* a forward-compatible context (macOS core is one) rejects any width above 1,
+		   whatever range it reports */
+		glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+		if(flags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) range[1] = 1.0f;
+		if(range[1] < 1.0f) range[1] = 1.0f;
+		if(range[0] <= 0.0f || range[0] > 1.0f) range[0] = 1.0f;
+	}
+	if(width > range[1]){
+		if(!warned++) fprintf(stderr, "GLCoreCompat: line width %g requested, this OpenGL core context supports up to %g; wide lines draw at %g\n", width, range[1], range[1]);
+		width = range[1];
+	}else if(width < range[0]){
+		width = range[0];
+	}
+	glLineWidth(width);
+}
+
 /* GL 4.5 glBindTextureUnit(unit, 0): unbind every target on the unit, active unit unchanged.
    The library only calls it with 0 and binds only 2D, cube map and 3D textures. A non-zero
    texture would need its target, which GL 4.1 cannot query, so that is not supported. */
@@ -249,19 +290,28 @@ void fw_core_glBindTextureUnit(GLuint unit, GLuint texture){
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	glBindTexture(GL_TEXTURE_3D, 0);
 	glActiveTexture(prev);
+	core_check(bound(GL_ACTIVE_TEXTURE) == (GLuint)prev);
 }
-/* GL 4.5; the library uses it only inside if(0) debug prints */
+/* GL 4.5 direct-state query. GL 4.1 cannot ask a texture name for its target, so this is
+   not implementable in general. The library only calls it inside if(0) debug prints; if a
+   caller ever becomes live, say so instead of silently answering. */
 void fw_core_glGetTextureParameteriv(GLuint texture, GLenum pname, GLint *params){
-	(void)texture; (void)pname;
+	static int warned = 0;
+	if(!warned++) fprintf(stderr, "GLCoreCompat: glGetTextureParameteriv(%u, 0x%x) is GL 4.5, unsupported on macOS\n", texture, pname);
+	core_check(!"glGetTextureParameteriv reached on a GL 4.1 core context");
 	*params = 0;
 }
-/* GL 4.5: check an FBO without disturbing the current binding */
+/* GL 4.5: check an FBO without disturbing the current bindings. GL_FRAMEBUFFER binds both
+   the draw and the read framebuffer, so both are put back. */
 GLenum fw_core_glCheckNamedFramebufferStatus(GLuint framebuffer, GLenum target){
-	GLuint prev = bound(GL_FRAMEBUFFER_BINDING);
+	GLuint prev_draw = bound(GL_DRAW_FRAMEBUFFER_BINDING);
+	GLuint prev_read = bound(GL_READ_FRAMEBUFFER_BINDING);
 	GLenum status;
 	glBindFramebuffer(target, framebuffer);
 	status = glCheckFramebufferStatus(target);
-	glBindFramebuffer(target, prev);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_draw);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, prev_read);
+	core_check(bound(GL_DRAW_FRAMEBUFFER_BINDING) == prev_draw && bound(GL_READ_FRAMEBUFFER_BINDING) == prev_read);
 	return status;
 }
 /* GL 4.3; invalidation is a hint, so doing nothing is a valid implementation.
@@ -280,14 +330,20 @@ void fw_core_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsi
 	static const GLint sw_alpha[4] = { GL_ZERO, GL_ZERO, GL_ZERO, GL_RED };
 	static const GLint sw_lum[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
 	static const GLint sw_lumalpha[4] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-	const GLint *swizzle = NULL;
+	static const GLint sw_identity[4] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+	const GLint *swizzle = sw_identity;
+	GLenum swizzle_target = 0;
 	switch(format){
 	case FW_LEGACY_ALPHA:           swizzle = sw_alpha;    internalformat = GL_R8;  format = GL_RED; break;
 	case FW_LEGACY_LUMINANCE:       swizzle = sw_lum;      internalformat = GL_R8;  format = GL_RED; break;
 	case FW_LEGACY_LUMINANCE_ALPHA: swizzle = sw_lumalpha; internalformat = GL_RG8; format = GL_RG;  break;
 	}
 	glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
-	if(swizzle && target == GL_TEXTURE_2D)
-		glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+	/* the swizzle is texture-object state: set it on every level-0 upload, identity for
+	   normal formats, so a texture name reused for RGBA data does not keep a legacy swizzle */
+	if(target == GL_TEXTURE_2D) swizzle_target = GL_TEXTURE_2D;
+	else if(target >= GL_TEXTURE_CUBE_MAP_POSITIVE_X && target <= GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) swizzle_target = GL_TEXTURE_CUBE_MAP;
+	if(swizzle_target && level == 0)
+		glTexParameteriv(swizzle_target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 }
 #endif /* AQUA && !IPHONE */
