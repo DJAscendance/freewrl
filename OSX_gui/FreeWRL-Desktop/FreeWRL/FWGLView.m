@@ -48,6 +48,18 @@ mainBundle = [NSBundle mainBundle];
 	myFontPath = [mainBundle pathForResource:@"VeraMono" ofType:@"ttf" inDirectory:@"fonts"];
 	//the backend will detect and strip /VeraMono.ttf off the path
 }
+// Retina: GL surface is in backing pixels, Cocoa events are in points
+static CGFloat backingScale = 1.0;
+static void fwMouseScaled(int mouseAction, int mouseButton, float x, float y){
+	if(!fwctx) return;
+	dllFreeWRL_onMouse(fwctx, mouseAction, mouseButton, (int)(x*backingScale), (int)(y*backingScale));
+}
+
+void fwg_register_consolemessage_callback(void(*callback)(char *));
+static void consoleToStderr(char *msg){
+	fputs(msg, stderr);
+}
+
 // ===================================
 // get the initial URL in, and load'er up!
 
@@ -81,8 +93,13 @@ void initialize_freewrl(){
 		
 		getfontfolder();
 		dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
+
+		// mirror library ConsoleMessages (parse errors etc) to stderr, not just the HUD
+		if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__))
+			fwg_register_consolemessage_callback(consoleToStderr);
+		fwl_clearCurrentHandle();
 	}
-	
+
 }
 
 
@@ -203,7 +220,13 @@ void initialize_freewrl(){
 // a window dimension update, reseting of viewport and an update of the projection matrix
 - (void) resizeGL
 {
-	NSRect rectView = [self bounds];
+	NSRect rectView = [self convertRectToBacking:[self bounds]];
+	CGFloat scale = [[self window] backingScaleFactor];
+	if(scale != backingScale && fwctx){
+		// scale the HUD (status bar, menu buttons, text) to match the display
+		dllFreeWRL_setDensityFactor(fwctx, (float)scale);
+	}
+	backingScale = scale;
 	if(!usingCdllFreewrl)
 		fwl_setScreenDim(rectView.size.width,rectView.size.height);
 	else
@@ -294,7 +317,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 	
     
@@ -326,7 +349,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+		fwMouseScaled(ButtonPress, button, xcoor, ycoor);
 	}
 
     SET_CURSOR_FOR_ME
@@ -356,7 +379,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 	
 }
@@ -385,7 +408,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+		fwMouseScaled(ButtonRelease, button, xcoor, ycoor);
 	}
 
 
@@ -407,7 +430,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+		fwMouseScaled(ButtonPress, button, xcoor, ycoor);
 	}
 
 }
@@ -426,7 +449,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+		fwMouseScaled(ButtonRelease, button, xcoor, ycoor);
 	}
 
 }
@@ -444,7 +467,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 
 }
@@ -513,7 +536,9 @@ mouseDisplaySensitive = mouseOverSensitive; \
 		}
 	}
     [[self openGLContext] makeCurrentContext];
-    
+	// the animation timer can fire before prepareOpenGL has created the library instance
+	if(usingCdllFreewrl && !fwctx) return;
+
     //printf ("drawRect am thread %p\n",pthread_self());
 
 	// setup viewport and prespective
@@ -521,7 +546,13 @@ mouseDisplaySensitive = mouseOverSensitive; \
     if(!usingCdllFreewrl)
 		fwl_RenderSceneUpdateScene();
 	else
-		dllFreeWRL_onDraw(fwctx);
+		if(!dllFreeWRL_onDraw(fwctx)){
+			// library has shut down (e.g. 'q' key): its instance is freed, so stop calling in and exit
+			fwctx = NULL;
+			[timer invalidate];
+			[NSApp terminate:nil];
+			return;
+		}
     // display the Bounding Box, if requested
 	/*
     if (displayBoundingBox) {
