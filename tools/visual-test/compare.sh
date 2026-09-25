@@ -12,7 +12,11 @@
 # Unlike SSIM it isn't inflated by large empty backgrounds; SSIM is reported too.
 # Animated worlds are captured at different moments and won't match.
 # Writes per world: freewrl.png, xite.png, diff.png, side.png, freewrl.log,
-# xite.log; plus summary.tsv and index.html. Exit status 1 if any world fails.
+# xite.log; plus summary.tsv and index.html.
+# Results: PASS, REGRESSION (below threshold), CRASH (no FreeWRL window),
+# NO_REFERENCE (X_ITE produced no image), and for worlds listed in known.tsv
+# REFERENCE_INVALID / NONDETERMINISTIC instead of REGRESSION. Exit status 1 on
+# any REGRESSION or CRASH.
 set -eu
 H=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$H/../../freewrl/tests" && pwd)
@@ -41,7 +45,7 @@ sleep 1
 
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
-printf 'world\tmatch\tssim\tresult\n' > "$OUT/summary.tsv"
+printf 'world\tmatch\tssim\tresult\twhy\n' > "$OUT/summary.tsv"
 FAILED=0
 
 label() { # image title -> labelled half-size image on stdout
@@ -55,12 +59,12 @@ for WORLD in "$@"; do
 	mkdir -p "$D"
 	echo "== $WORLD"
 	if ! "$H/shoot_freewrl.sh" "$BASE$WORLD" "$D/freewrl.png" >/dev/null 2>&1; then
-		printf '%s\t-\t-\tCRASH\n' "$WORLD" >> "$OUT/summary.tsv"
+		printf '%s\t-\t-\tCRASH\t\n' "$WORLD" >> "$OUT/summary.tsv"
 		echo "   FreeWRL: no window (crash?)"; FAILED=1; continue
 	fi
 	SIZE=$(magick identify -format '%w %h' "$D/freewrl.png")
 	if ! "$H/shoot_xite.sh" "$BASE" "$WORLD" "$D/xite.png" $SIZE >/dev/null; then
-		printf '%s\t-\t-\tNOREF\n' "$WORLD" >> "$OUT/summary.tsv"
+		printf '%s\t-\t-\tNO_REFERENCE\t\n' "$WORLD" >> "$OUT/summary.tsv"
 		echo "   X_ITE: no reference image (see $D/xite.log)"; continue
 	fi
 	# X_ITE output can be off by a pixel from rounding; force identical geometry
@@ -81,9 +85,15 @@ for WORLD in "$@"; do
 	{ label "$D/freewrl.png" FreeWRL; label "$D/xite.png" 'X_ITE (reference)'; label "$D/diff.png" difference; } |
 		magick miff:- +append "$D/side.png"
 
-	if awk "BEGIN{exit !($MATCH >= $THRESH)}"; then R=PASS; else R=FAIL; FAILED=1; fi
-	printf '%s\t%s\t%s\t%s\n' "$WORLD" "$MATCH" "$SSIM" "$R" >> "$OUT/summary.tsv"
-	echo "   match $MATCH  (ssim $SSIM)  $R"
+	WHY=
+	if awk "BEGIN{exit !($MATCH >= $THRESH)}"; then R=PASS
+	else
+		KNOWN=$(awk -F'\t' -v w="$WORLD" '$1==w{print $2 "\t" $3; exit}' "$H/known.tsv")
+		if [ -n "$KNOWN" ]; then R=${KNOWN%%	*}; WHY=${KNOWN#*	}
+		else R=REGRESSION; FAILED=1; fi
+	fi
+	printf '%s\t%s\t%s\t%s\t%s\n' "$WORLD" "$MATCH" "$SSIM" "$R" "$WHY" >> "$OUT/summary.tsv"
+	echo "   match $MATCH  (ssim $SSIM)  $R${WHY:+ ($WHY)}"
 	N=$(grep -ciE "error|fail|expected|unrecognized|not found" "$D/freewrl.log" || true)
 	[ "$N" = 0 ] || echo "   FreeWRL log: $N error-looking lines"
 	N=$(grep -ciE "error|warn|fail" "$D/xite.log" 2>/dev/null || true)
@@ -92,12 +102,12 @@ done
 
 {
 	echo '<!doctype html><meta charset=utf-8><title>FreeWRL vs X_ITE</title>'
-	echo '<style>body{font:14px system-ui;background:#111;color:#ddd;margin:16px}a{color:#8af}img{max-width:100%}.FAIL,.CRASH,.NOREF{color:#f66}.PASS{color:#6c6}</style>'
+	echo '<style>body{font:14px system-ui;background:#111;color:#ddd;margin:16px}a{color:#8af}img{max-width:100%}.REGRESSION,.CRASH{color:#f66}.PASS{color:#6c6}.REFERENCE_INVALID,.NONDETERMINISTIC,.NO_REFERENCE{color:#db6}</style>'
 	echo "<h1>FreeWRL vs X_ITE</h1><p>pass: match (normalized cross-correlation) ≥ $THRESH</p>"
-	tail -n +2 "$OUT/summary.tsv" | while IFS="$(printf '\t')" read -r W M S RES; do
+	tail -n +2 "$OUT/summary.tsv" | while IFS="$(printf '\t')" read -r W M S RES WHY; do
 		DIR=$(echo "${W#/}" | tr '/' '_')
-		echo "<h2>$W <span class=$RES>$RES</span></h2><p>match $M · ssim $S · logs: <a href=\"$DIR/freewrl.log\">FreeWRL</a> <a href=\"$DIR/xite.log\">X_ITE</a></p>"
-		[ "$RES" = CRASH ] || [ "$RES" = NOREF ] || echo "<img src=\"$DIR/side.png\">"
+		echo "<h2>$W <span class=$RES>$RES</span></h2><p>${WHY:+$WHY · }match $M · ssim $S · logs: <a href=\"$DIR/freewrl.log\">FreeWRL</a> <a href=\"$DIR/xite.log\">X_ITE</a></p>"
+		[ "$RES" = CRASH ] || [ "$RES" = NO_REFERENCE ] || echo "<img src=\"$DIR/side.png\">"
 	done
 } > "$OUT/index.html"
 echo "report: $OUT/index.html"

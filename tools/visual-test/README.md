@@ -17,7 +17,7 @@ build; point `XITE` at a local `dist` URL to run offline.
 
 The output directory holds, per world: `freewrl.png`, `xite.png`, `diff.png`,
 `side.png` (all three side by side), `freewrl.log`, `xite.log` (browser console);
-plus `summary.tsv` and `index.html`. Exit status is 1 if any world fails or crashes.
+plus `summary.tsv` and `index.html`. Exit status is 1 on any `REGRESSION` or `CRASH`.
 
 ## Scoring
 
@@ -26,6 +26,20 @@ plus `summary.tsv` and `index.html`. Exit status is 1 if any world fails or cras
 but it's dominated by empty background: two completely different renders on black
 can still score 0.8.
 
+Results:
+
+| result | meaning |
+| --- | --- |
+| `PASS` | match at or above the threshold |
+| `REGRESSION` | below the threshold, and not a known reference limit |
+| `REFERENCE_INVALID` | below the threshold; `known.tsv` says X_ITE renders this world wrongly |
+| `NONDETERMINISTIC` | below the threshold; `known.tsv` says the world is animated |
+| `NO_REFERENCE` | X_ITE produced no image |
+| `CRASH` | FreeWRL showed no window |
+
+The score is kept for every result. Add a world to `known.tsv` only after looking at
+its `side.png`.
+
 Differences are not automatically FreeWRL bugs. X_ITE has its own gaps (for
 example, it draws `tests/2.wrl` without its MultiTexture), so read `side.png`
 before acting on a failure.
@@ -33,7 +47,9 @@ before acting on a failure.
 Known limits:
 - Animated worlds (e.g. `tests/6.wrl`) are captured at different moments and won't match.
 - Only the initial viewpoint is compared.
-- FreeWRL crop offsets (`CROP_TOP`, `CROP_BOTTOM`) assume a Retina display.
+- `CROP_TOP` assumes a Retina display. `CROP_BOTTOM` (the HUD) is measured from the
+  capture: FreeWRL 6.x's HUD wraps onto more rows in narrow windows, and the 3D view
+  stops above it. It falls back to 32 px (master's one-row status bar).
 
 ## Pieces
 

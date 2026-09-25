@@ -1,0 +1,9 @@
+# worlds whose X_ITE reference can't be compared, as <world path>\t<label>\t<why>
+# label: REFERENCE_INVALID (X_ITE renders it wrongly) or NONDETERMINISTIC (animated, frames differ)
+# A world listed here that scores below the threshold is reported with this label instead of
+# REGRESSION. The score is still recorded; a pass is still PASS.
+/2.wrl	REFERENCE_INVALID	X_ITE rejects MultiTexture in a VRML97 file, so its reference is untextured
+/3.wrl	REFERENCE_INVALID	X_ITE rejects TextureCoordinateGenerator
+/6.wrl	NONDETERMINISTIC	animated; the two renders are captured at different moments
+/7.wrl	NONDETERMINISTIC	animated; the two renders are captured at different moments
+/49.wrl	NONDETERMINISTIC	animated: a looping TimeSensor cycles the text strings and fonts
