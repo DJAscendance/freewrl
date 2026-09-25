@@ -277,16 +277,18 @@ DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 	}
 	fwl_clearCurrentHandle();
 }
-DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
+DLLFREEWRL_API int dllFreeWRL_onDraw(void *fwctx)
 {
+	int more = 1;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 #ifndef FRONTEND_GETS_FILES
 		//build with desktop.c? but frontend does displaythread? then you need the queue processor
 		frontend_dequeue_get_enqueue(fwctx);
 #endif //FRONTEND_GETS_FILES
-		fwl_draw();
+		more = fwl_draw();
 	}
 	fwl_clearCurrentHandle();
+	return more;
 }
 
 DLLFREEWRL_API int dllFreeWRL_getUpdatedCursorStyle(void *fwctx)
