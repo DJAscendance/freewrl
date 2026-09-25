@@ -54,3 +54,4 @@ freex3d/src/sound/freewrl_snd
 freex3d/src/sound/internal_version.c
 #macOS
 .DS_Store
+visual-test-out/

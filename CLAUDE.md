@@ -28,7 +28,7 @@ Key configure options: `--with-target` (x11, motif, aqua, win32), `--with-javasc
 
 Every source file must be listed in the relevant `Makefile.am` / `Makefile.sources`; `check_sources.sh` (run from a build dir like `src/lib`) reports source files not referenced. When adding a `.c` file, also add it to the Xcode and VS project files if those platforms need it.
 
-There is no automated test suite. Test manually by loading a world: `freewrl ../freewrl/tests/1.wrl` (or any URL).
+There is no unit test suite. Test manually by loading a world: `freewrl ../freewrl/tests/1.wrl` (or any URL). On macOS, `tools/visual-test/compare.sh` renders worlds in FreeWRL and X_ITE and scores the difference (see its README). Mac port status and the verified/unverified checklist live in `MACOS-STATUS.md`; keep it current.
 
 ## Build (macOS / Xcode, Apple Silicon + Homebrew)
 
