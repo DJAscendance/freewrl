@@ -2,9 +2,7 @@
 // File:		FWGLView.h
 //
 
-#import <OpenGL/gl.h>
-#import <OpenGL/glext.h>
-#import <OpenGL/glu.h>
+#import <OpenGL/gl3.h> //4.1 core profile context, see basicPixelFormat
 
 // this is the inital file to open. We keep it global so that the loading thread
 // can easily see it.

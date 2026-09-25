@@ -222,4 +222,6 @@ void fw_gluPerspectiveTextureLookAt(GLDOUBLE ex, GLDOUBLE ey, GLDOUBLE ez,
 				  GLDOUBLE cx, GLDOUBLE cy, GLDOUBLE cz, 
                   GLDOUBLE ux,GLDOUBLE uy,GLDOUBLE uz);
 
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
+
 #endif /* __FREEWRL_OPENGL_UTILS_H__ */

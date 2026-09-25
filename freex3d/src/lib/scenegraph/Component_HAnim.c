@@ -37,6 +37,7 @@ X3D H-Anim Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../ui/common.h"
 #include "../opengl/Material.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "Children.h"
@@ -757,6 +758,9 @@ enum {
 };
 static int vertex_transform_method = VERTEXTRANSFORMMETHOD_GPU;
 int vertexTransformMethod() {
+	//GPU skinning reads skin weights and joint matrices from shader storage buffers (GL 4.3)
+	if (vertex_transform_method == VERTEXTRANSFORMMETHOD_GPU && !rdr_caps_av_ssbo())
+		return VERTEXTRANSFORMMETHOD_CPU;
 	return vertex_transform_method;
 }
 void fwl_set_skinning(char tf) {
@@ -767,6 +771,12 @@ void fwl_set_skinning(char tf) {
 }
 char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
 
+//fixed-function matrix debugging in update_jointMatrix (igl), no fixed function in core / GLES2
+#if defined(FW_GL_CORE_PROFILE) || defined(GL_ES_VERSION_2_0)
+#define IGL(call)
+#else
+#define IGL(call) if (igl) call
+#endif
 void render_HAnimHumanoid (struct X3D_HAnimHumanoid *node) {
 	/* save the skinCoords and skinNormals for use in following HAnimJoints */
 	//printf ("rendering HAnimHumanoid DEF %s type %s\n", lookup_brotoDefname(X3D_PROTO(node->_executionContext), X3D_NODE(node)), stringNodeType(node->_nodeType));
@@ -2372,8 +2382,8 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			if(debug) printmatrix(jmatrix0);
 			matidentity4d(jmatrix);
 			int igl = FALSE;
-			if (igl) glPushMatrix();
-			if (igl) glLoadIdentity();
+			IGL(glPushMatrix());
+			IGL(glLoadIdentity());
 			if(debug || debug2) 
 				printf("%s ",jname);
 			
@@ -2389,7 +2399,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 				switch(jm->ichan[i]){
 					case 1:
 						matrixFromAxisAngle4d(mat1, -(double)value, 1.0, 0.0,0.0);
-						if (igl) glRotatef(value*DEGREES_PER_RADIAN, 1, 0, 0);
+						IGL(glRotatef(value*DEGREES_PER_RADIAN, 1, 0, 0));
 						if (debug2) printf("xr %f ", value*DEGREES_PER_RADIAN);
 						if(ir) matmultiplyAFFINE(jmatrix,jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
@@ -2402,7 +2412,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 					case 2: 
 						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 1.0, 0.0);
-						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 1, 0);
+						IGL(glRotatef(value * DEGREES_PER_RADIAN, 0, 1, 0));
 						if (debug2) printf("yr %f ", value * DEGREES_PER_RADIAN);
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
@@ -2415,7 +2425,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 					case 3:
 						matrixFromAxisAngle4d(mat1, -(double)value, 0.0, 0.0, 1.0);
-						if (igl) glRotatef(value * DEGREES_PER_RADIAN, 0, 0, 1);
+						IGL(glRotatef(value * DEGREES_PER_RADIAN, 0, 0, 1));
 						if (debug2) printf("zr %f ", value * DEGREES_PER_RADIAN);
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
@@ -2428,7 +2438,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 					case 4:
 						mattranslate4d(mat1,vecsetd(xyz,(double)value,0.0,0.0));
-						if (igl) glTranslatef(value,0,0);
+						IGL(glTranslatef(value,0,0));
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -2440,7 +2450,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 					case 5:
 						mattranslate4d(mat1,vecsetd(xyz,0.0,(double)value,0.0));
-						if (igl) glTranslatef(0, value, 0);
+						IGL(glTranslatef(0, value, 0));
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -2452,7 +2462,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 						break;
 					case 6:
 						mattranslate4d(mat1,vecsetd(xyz,0.0,0.0,(double)value));
-						if (igl) glTranslatef(0, 0, value);
+						IGL(glTranslatef(0, 0, value));
 						if (ir) matmultiplyAFFINE(jmatrix, jmatrix, mat1);
 						else matmultiplyAFFINE(jmatrix, mat1, jmatrix);
 						if(debug){
@@ -2505,7 +2515,7 @@ void update_jointMatrixFromMotion(struct X3D_Node* HMnode, char* jname, double* 
 			}
 			//matinverseAFFINE(mat1,jmatrix);
 			matmultiplyAFFINE(jmatrix0,jmatrix,jmatrix0);
-			if (igl) glPopMatrix();
+			IGL(glPopMatrix());
 			//if(debug)
 			//printf("\n");
 		}

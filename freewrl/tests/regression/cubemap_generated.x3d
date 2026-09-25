@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "http://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile='Immersive' version='3.3'>
+  <head>
+    <component name='CubeMapTexturing' level='3'/>
+    <meta name='description' content='GeneratedCubeMapTexture. A mirror sphere surrounded by a red, a green, a blue and a yellow box. Pass: the sphere reflects the coloured boxes (not black, not a flat colour); the boxes render normally; no GL errors.'/>
+  </head>
+  <Scene>
+    <Background skyColor='0.3 0.3 0.35'/>
+    <Viewpoint position='0 0 7' description='front'/>
+    <Shape>
+      <Appearance>
+        <Material diffuseColor='0 0 0' specularColor='0.3 0.3 0.3'/>
+        <GeneratedCubeMapTexture update='ALWAYS' size='128'/>
+      </Appearance>
+      <Sphere radius='1'/>
+    </Shape>
+    <Transform translation='-2.5 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'/></Appearance><Box size='1 1 1'/></Shape></Transform>
+    <Transform translation='2.5 0 0'><Shape><Appearance><Material diffuseColor='0 1 0'/></Appearance><Box size='1 1 1'/></Shape></Transform>
+    <Transform translation='0 2.2 0'><Shape><Appearance><Material diffuseColor='0 0 1'/></Appearance><Box size='1 1 1'/></Shape></Transform>
+    <Transform translation='0 -2.2 0'><Shape><Appearance><Material diffuseColor='1 1 0'/></Appearance><Box size='1 1 1'/></Shape></Transform>
+  </Scene>
+</X3D>

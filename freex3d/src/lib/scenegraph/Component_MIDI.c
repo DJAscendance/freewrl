@@ -776,6 +776,9 @@ int MIDITransport() {
 }
 #else //HAVE_LIBREMIDI
 //stubs
+void compile_MIDIFileSource(struct X3D_MIDIFileSource* node) {}
+void render_MIDIPrintDestination(struct X3D_MIDIPrintDestination* node) {}
+void set_MIDITransport(int method) {}
 void render_MIDIPortSource(struct X3D_MIDIPortSource* node) {}
 void render_MIDIFileSource(struct X3D_MIDIFileSource* node) {}
 void render_MIDIPortDestination(struct X3D_MIDIPortDestination* node) {}

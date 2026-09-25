@@ -37,6 +37,7 @@ X3D Grouping Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../ui/common.h"
 
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Frustum.h"

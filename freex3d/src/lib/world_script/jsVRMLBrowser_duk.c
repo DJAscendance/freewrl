@@ -1937,7 +1937,25 @@ struct FWTYPE X3DRouteArrayType = {
 //SFNode destinationNode;
 //String destinationField;
 //}
+#ifndef JAVASCRIPT_SM
+//jsVRMLBrowser_sm.cpp defines this when SpiderMonkey is built alongside duktape (Windows);
+//duktape-only builds (macOS) need their own copy
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node) {
+	int n = vectorSize(ec->__DEFnames);
+	char* name = NULL;
+	struct brotoDefpair def;
+	for (int i = 0; i < n; i++) {
+		def = vector_get(struct brotoDefpair, ec->__DEFnames, i);
+		if (def.node == node) {
+			name = def.name;
+			break;
+		}
+	}
+	return name;
+}
+#else
 char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
+#endif
 int X3DRouteToString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
 	int nr = 0;
 	char* value;

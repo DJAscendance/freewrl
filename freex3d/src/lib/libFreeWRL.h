@@ -200,6 +200,8 @@ char *fwg_get_last_message();
 void fwl_set_logfile(char *);
 void fwl_set_nameTest(char *);
 void fwl_set_skinning(char);
+void fwl_setShowViewpoints(int show); //defined in ui/common.c, used by bin/options.c
+void fwl_setDrawRig(int draw);
 
 #if defined(_ANDROID)
 int DROIDDEBUG( const char*pFmtStr, ...);

@@ -299,6 +299,13 @@ PM_NONE = 0,  //reserve 0 for render_PointSet to thunk to opengl GL_POINTS when 
 PM_SCREEN = 1,
 PM_OBJECT = 2,
 PM_FANCY = 3,
-} pointproperties_pointmethod;
+}; //pointproperties_pointmethod: constants only (a named variable here is defined in every file that includes this)
+
+/* Component_Shape.c */
+void clear_materialparameters_per_draw_counts();
+void initialize_front_and_back_material_params();
+/* RenderFuncs.c */
+void pushShaderFlags(shaderflagsstruct flags);
+void popShaderFlags();
 
 #endif /* __FREEWRL_SCENEGRAPH_SHAPE_H__ */

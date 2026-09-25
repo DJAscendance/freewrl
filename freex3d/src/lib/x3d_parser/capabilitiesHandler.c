@@ -290,8 +290,9 @@ void handleMetaDataStringString(void *ectx, char *name, char *content) {
 
 			struct Vector* metalist = (struct Vector*)ec->__META;
 			struct metarecord mr;
-			mr.name = strdup(name);
-			mr.content = strdup(content);
+			//<meta> attributes are optional
+			mr.name = strdup(name ? name : "");
+			mr.content = strdup(content ? content : "");
 			vector_pushBack(struct metarecord, metalist, mr);
 		}
 	}

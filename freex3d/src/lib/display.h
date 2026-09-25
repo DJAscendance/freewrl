@@ -73,8 +73,14 @@ Functions:
  
  #include <OpenGL/OpenGL.h>
  #include <OpenGL/CGLTypes.h>
+ #include <OpenGL/gl3.h> /* 4.1 core profile; legacy-only tokens are declared at the end of this file */
+ #include <OpenGL/gl3ext.h>
+ #define FW_GL_CORE_PROFILE 1 /* the frontend creates a 4.1 core context, see opengl/GLCoreCompat.c */
  
- #include <AGL/AGL.h> 
+ /* AGL was removed from modern macOS SDKs (and is unused); it used to pull these in */
+ #include <sys/types.h>
+ #include <pthread.h>
+ #include <signal.h>
  #endif /* defined IPHONE */
 #endif /* defined TARGET_AQUA  */
 
@@ -554,6 +560,7 @@ typedef struct {
 	bool av_npot_texture; /* Non power of 2 textures available ? */
 	bool av_texture_rect; /* Rectangle textures available ? */
 	bool av_occlusion_q;  /* Occlusion query available ? */
+	bool av_ssbo;         /* shader storage buffer objects (GL 4.3) - HAnim GPU skinning */
 	
 	int texture_units;
 	int runtime_max_texture_size;
@@ -567,6 +574,7 @@ typedef struct {
 // JAS extern s_renderer_capabilities_t rdr_caps;
 
 bool initialize_rdr_caps();
+bool rdr_caps_av_ssbo();
 void initialize_rdr_functions();
 void rdr_caps_dump(s_renderer_capabilities_t *rdr_caps);
 
@@ -935,4 +943,96 @@ void resetGeometry();
 	#define FW_GL_LISTBASE(aaa) glListBase(aaa)
 	#define FW_GL_DRAWPIXELS(aaa,bbb,ccc,ddd,eee) glDrawPixels(aaa,bbb,ccc,ddd,eee)
 	
+#ifdef FW_GL_CORE_PROFILE
+/* OpenGL core profile (macOS 4.1). See opengl/GLCoreCompat.c. */
+
+/* Tokens only used for the library's own state, never passed to GL: the software
+   matrix stack (fw_glMatrixMode etc), multitexture modes, GL error names. GLES2 builds
+   define the same ones above. */
+#define GL_MODELVIEW                   0x1700
+#define GL_MODELVIEW_MATRIX            0x0BA6
+#define GL_PROJECTION                  0x1701
+#define GL_PROJECTION_MATRIX           0x0BA7
+#define GL_TEXTURE_MATRIX              0x0BA8
+#define GL_TEXTURE_STACK_DEPTH         0x0BA5
+#define GL_MODULATE                    0x2100
+#define GL_ADD                         0x0104
+#define GL_STACK_OVERFLOW              0x0503
+#define GL_STACK_UNDERFLOW             0x0504
+#define GL_TABLE_TOO_LARGE             0x8031
+#define GL_CONTEXT_LOST                0x0507
+/* X3D TextureProperties boundaryMode "CLAMP": GL_CLAMP is gone, nearest core mode */
+#define GL_CLAMP                       GL_CLAMP_TO_EDGE
+/* Fixed-function fog: only render_Fog_OLD (no callers) uses it; fog is done in the shaders */
+#define GL_FOG_COLOR                   0x0B66
+#define GL_FOG_DENSITY                 0x0B62
+#define GL_FOG_START                   0x0B63
+#define GL_FOG_END                     0x0B64
+#define GL_FOG_MODE                    0x0B65
+#define GL_EXP                         0x0800
+#undef FW_GL_FOGFV
+#undef FW_GL_FOGF
+#undef FW_GL_FOGI
+#define FW_GL_FOGFV(aaa, bbb)
+#define FW_GL_FOGF(aaa, bbb)
+#define FW_GL_FOGI(aaa, bbb)
+
+/* client-memory vertex/index arrays, streamed into buffer objects at draw time */
+void fw_core_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+void fw_core_glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer);
+void fw_core_glEnableVertexAttribArray(GLuint index);
+void fw_core_glDisableVertexAttribArray(GLuint index);
+void fw_core_glDrawArrays(GLenum mode, GLint first, GLsizei count);
+void fw_core_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices);
+#define glVertexAttribPointer fw_core_glVertexAttribPointer
+#define glVertexAttribIPointer fw_core_glVertexAttribIPointer
+#define glEnableVertexAttribArray fw_core_glEnableVertexAttribArray
+#define glDisableVertexAttribArray fw_core_glDisableVertexAttribArray
+#define glDrawArrays fw_core_glDrawArrays
+#define glDrawElements fw_core_glDrawElements
+
+/* fixed-function enables (GL_TEXTURE_2D, GL_FOG, texgen) are ignored, see GLCoreCompat.c */
+#define GL_TEXTURE_GEN_S               0x0C60
+#define GL_TEXTURE_GEN_T               0x0C61
+#define GL_TEXTURE_GEN_R               0x0C62
+void fw_core_glEnable(GLenum cap);
+void fw_core_glDisable(GLenum cap);
+#define glEnable fw_core_glEnable
+#define glDisable fw_core_glDisable
+/* a core profile has no wide lines: widths above the driver range are clamped, see GLCoreCompat.c */
+void fw_core_glLineWidth(GLfloat width);
+#define glLineWidth fw_core_glLineWidth
+
+/* above GL 4.1 */
+#ifndef GL_TEXTURE_TARGET
+#define GL_TEXTURE_TARGET              0x1006
+#endif
+#ifndef GL_TEXTURE_2D_ARRAY
+#define GL_TEXTURE_2D_ARRAY            0x8C1A
+#endif
+/* GL 4.3 shader storage buffers: only HAnim GPU skinning uses them, and it switches to
+   CPU skinning when rdr_caps_av_ssbo() is false (always, on macOS) */
+#ifndef GL_SHADER_STORAGE_BUFFER
+#define GL_SHADER_STORAGE_BUFFER       0x90D2
+#endif
+void fw_core_glBindTextureUnit(GLuint unit, GLuint texture);
+void fw_core_glGetTextureParameteriv(GLuint texture, GLenum pname, GLint *params);
+GLenum fw_core_glCheckNamedFramebufferStatus(GLuint framebuffer, GLenum target);
+void fw_core_glInvalidateBufferData(GLuint buffer);
+#define glBindTextureUnit fw_core_glBindTextureUnit
+#define glGetTextureParameteriv fw_core_glGetTextureParameteriv
+#define glCheckNamedFramebufferStatus fw_core_glCheckNamedFramebufferStatus
+#define glInvalidateBufferData fw_core_glInvalidateBufferData
+
+/* per shape: keep samplers of different types off each other's texture units */
+void fw_core_park_samplers(void);
+
+/* legacy texture formats (GL_ALPHA, GL_LUMINANCE, GL_LUMINANCE_ALPHA), see GLCoreCompat.c */
+#define GL_LUMINANCE                   0x1909
+#define GL_LUMINANCE_ALPHA             0x190A
+void fw_core_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
+	GLint border, GLenum format, GLenum type, const void *pixels);
+#define glTexImage2D fw_core_glTexImage2D
+#endif /* FW_GL_CORE_PROFILE */
+
 #endif /* __LIBFREEWRL_DISPLAY_H__ */
