@@ -82,10 +82,10 @@ Fixtures are in `freewrl/tests/regression/` (see its README); each states what a
 | ✅ | Image formats | `texture_formats.wrl`: JPEG, PNG and GIF textures all show |
 | ✅ | `.wrl`, `.x3d`, HTTP, Inline | tests/1.wrl and 1.x3d from disk; all harness worlds over HTTP; Inline in tests/16.wrl |
 | ✅ | HUD layout | one row of 21 buttons at: Retina, 672-pt window (was two rows); Retina, 1200×800-pt window (full-size buttons, room to spare); non-Retina (app copy with `NSHighResolutionCapable` off), 672-px window |
-| 🟡 | HUD hit targets | drawing and hit testing now use the same per-frame geometry; not exercised with real clicks yet |
+| ✅ | HUD hit targets | drawing and hit testing use the same per-frame geometry; left, centre and right HUD buttons respond to real clicks on Retina, no hit offset (targeted QA on `32caaa36a`) |
 | ✅ | Quit from the app menu / Apple event | clean exit, no crash report |
-| 🟡 | `q` key quit | the Cocoa bridge sent `keyDown:` as `KEYDOWN` only, so no `KEYPRESS` reached the hotkey switch (found by manual QA). Fixed: `keyDown:` now sends `KEYDOWN` then `KEYPRESS` (not for Command chords or arrow/function keys), as on Win32/X11. A synthetic `q` (System Events) quit cleanly; a physical key press is still to be verified |
-| 🟡 | Mouse picking and navigation on Retina, click tests 8 and 10 | not verified: synthetic input needs Accessibility permission for the terminal running the tests |
+| ✅ | `q` key quit | the Cocoa bridge sent `keyDown:` as `KEYDOWN` only, so no `KEYPRESS` reached the hotkey switch (found by manual QA). Fixed: `keyDown:` now sends `KEYDOWN` then `KEYPRESS` (not for Command chords or arrow/function keys), as on Win32/X11. Physical `q` quit cleanly 3/3 times; `v`, `h`, `e`/`w` run once per press; Command+Q quits and Command+N triggers no hotkey (targeted QA on `32caaa36a`) |
+| ✅ | Mouse picking and navigation on Retina, click tests 8 and 10 | picking lands on the visible object (no 2× offset); held-key navigation starts, holds and stops cleanly; test 8 TouchSensor and test 10 drag work (targeted QA on `32caaa36a`) |
 | 🟡 | Sound | tests/50.wrl loads; audio output not verified |
 | ✅ | Brightness vs master | explained, upstream; see below |
 | 🟡 | HAnimHumanoid translation/rotation/scale | not applied: the node has no prep/fin render functions upstream (all platforms, both skinning methods). The fixtures place the viewpoint instead |
@@ -147,7 +147,7 @@ Two REGRESSION rows remain on purpose: they are real differences from the refere
 
 ## Next up
 
-- [ ] Grant the test terminal Accessibility permission and verify `q`, picking, navigation, HUD clicks and tests 8/10 on Retina
+- [x] Verify `q`, picking, navigation, HUD clicks and tests 8/10 on Retina (targeted QA on `32caaa36a`, token `FREEWRL_6_7_MACOS_ARM64_GL41_KEYBOARD_AND_INTERACTION_QA_PASS`)
 - [ ] GeneratedCubeMapTexture: find why the generated faces sample black
 - [ ] Directional light shadows outside the shadow map (upstream)
 - [ ] Port `MPEG_Utils_ffmpeg.c` to ffmpeg 5+; bundle dylibs, fix the deployment target, sign

@@ -31,16 +31,17 @@ this fork belong on this repository.
 
 | Branch | What it is |
 | --- | --- |
-| `develop` | Exact mirror of upstream SourceForge `develop` at `b3254b11e` ("Version 6.7", 2024-04-20). |
+| `develop` | Upstream SourceForge `develop` at `b3254b11e` ("Version 6.7", 2024-04-20) plus this fork's merged work, including native Apple Silicon macOS support. |
 | `master` | Exact mirror of upstream `master` at `e99ab4a00` (2020-02-21), the older stable line. |
-| `macos-arm64-develop-port` | The Apple Silicon port of FreeWRL 6.7. Under review as a pull request into `develop`; not merged. |
+| `macos-arm64-develop-port` | The Apple Silicon port of FreeWRL 6.7, merged into `develop` through [pull request #2](https://github.com/DJAscendance/freewrl/pull/2). |
 | `macos-arm64` | An earlier Mac port of the 2020 `master` line, kept for reference. |
 
 ## Version
 
-The fork's `develop` branch is FreeWRL 6.7:
+The fork's `develop` branch is based on FreeWRL 6.7:
 
-- SourceForge `develop` commit `b3254b11e` is titled `Version 6.7`.
+- SourceForge `develop` commit `b3254b11e`, the base of this fork's
+  `develop`, is titled `Version 6.7`.
 - `freex3d/src/buildversion.h` reports version `6.7.0`.
 - `freex3d/versions/FREEWRL` is stale and still reports `5.0.0`.
 
@@ -55,23 +56,31 @@ The fork's `develop` branch is FreeWRL 6.7:
 
 ## macOS Apple Silicon status
 
-**The Apple Silicon port is under review.** It lives on the
-`macos-arm64-develop-port` branch and has not been merged into `develop`.
+**Native Apple Silicon macOS source support is available on this fork's
+`develop` branch.** It was reviewed and merged through
+[pull request #2](https://github.com/DJAscendance/freewrl/pull/2).
 
-- It builds natively for arm64 with Xcode and Homebrew libraries.
-- It runs on an OpenGL 4.1 core context (the highest version macOS offers).
+- Release and Debug arm64 builds pass with Xcode and Homebrew libraries.
+- FreeWRL runs on an OpenGL 4.1 core context on Apple Silicon (the highest
+  version macOS offers). Rendering still uses OpenGL; there is no Metal
+  renderer.
+- Retina interaction has been tested: keyboard hotkeys including `q` quit,
+  held-key navigation, mouse picking, HUD clicks, and sensor drag.
+- VRML97 and X3D rendering tests and the Cybertown tests passed.
 - There is **no standalone downloadable Mac package yet.** The app still links
-  Homebrew dylibs, so it only runs on a Mac with those libraries installed.
-- Some interactive checks (keyboard quit, Retina mouse picking and
-  navigation, HUD clicks) are still waiting on a manual pass before any
-  binary release; see
-  [`docs/MANUAL-INTERACTION-CHECKLIST.md`](docs/MANUAL-INTERACTION-CHECKLIST.md).
+  Homebrew runtime dylibs, so it only runs on a Mac with those libraries
+  installed.
 
-Review: [pull request #2](https://github.com/DJAscendance/freewrl/pull/2).
+Current QA: the final tested Mac candidate is
+`32caaa36a845fc668c9fd36cd2cfd8b047c46733`, with interaction QA token
+`FREEWRL_6_7_MACOS_ARM64_GL41_KEYBOARD_AND_INTERACTION_QA_PASS`. The manual
+checks are recorded in
+[`docs/MANUAL-INTERACTION-CHECKLIST.md`](docs/MANUAL-INTERACTION-CHECKLIST.md),
+and the full review history is on
+[pull request #2](https://github.com/DJAscendance/freewrl/pull/2).
+
 Detailed engineering status, per-feature evidence, and the OpenGL
-compatibility layer are in
-[`MACOS-STATUS.md` on the `macos-arm64-develop-port` branch](https://github.com/DJAscendance/freewrl/blob/macos-arm64-develop-port/MACOS-STATUS.md);
-that file is part of the Apple Silicon review branch until it merges.
+compatibility layer are in [`MACOS-STATUS.md`](MACOS-STATUS.md).
 
 ## Build instructions
 
@@ -90,14 +99,13 @@ Useful options include `--with-target` (`x11`, `motif`), `--with-javascript`
 (`duk` for the bundled duktape, `sm` for SpiderMonkey, `stub` for none),
 `--enable-libeai`, and `--enable-debug`.
 
-### macOS (Apple Silicon, from the port branch)
+### macOS (Apple Silicon)
 
-The Xcode project in `OSX_gui/` only builds on current macOS with the
-changes on `macos-arm64-develop-port`.
+Build from `develop`:
 
 ```sh
 brew install freetype imlib2 openal-soft freealut ode ffmpeg libxml2
-git checkout macos-arm64-develop-port
+git checkout develop
 cd OSX_gui/FreeWRL-Desktop
 xcodebuild -project FreeWRL.xcodeproj -scheme FreeWRL \
   -configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- build
