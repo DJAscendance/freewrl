@@ -1,7 +1,9 @@
 #VRML V2.0 utf8
-# Text in each FontStyle family and style. Pass: six lines of text, each in its
-# own face (serif, sans, typewriter; plain, bold, italic, bold italic), and no
-# "no font library or directory found" message in the log. Only VeraMono is
+# Text in each FontStyle family and style. Pass: six lines of text in serif,
+# sans and typewriter faces, plain, bold and italic, and no "no font library or
+# directory found" message in the log. Bitstream Vera has no serif italic, so
+# SERIF BOLDITALIC is drawn in Vera Serif Bold. X_ITE uses other fonts, so it
+# scores below the harness threshold by design. Only VeraMono is
 # compiled into FreeWRL; every other face is read from the font directory
 # (Contents/Resources/fonts in the Mac app), so this also shows that the
 # directory was found.

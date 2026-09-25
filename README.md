@@ -67,9 +67,10 @@ The fork's `develop` branch is based on FreeWRL 6.7:
 - Retina interaction has been tested: keyboard hotkeys including `q` quit,
   held-key navigation, mouse picking, HUD clicks, and sensor drag.
 - VRML97 and X3D rendering tests and the Cybertown tests passed.
-- There is **no standalone downloadable Mac package yet.** The app still links
-  Homebrew runtime dylibs, so it only runs on a Mac with those libraries
-  installed.
+- There is **no downloadable Mac package yet.** The Xcode build links Homebrew
+  libraries; `tools/macos-package/package.sh` (on branch
+  `macos/standalone-packaging`) builds a self-contained app that runs without
+  Homebrew, but it requires macOS 27 and is not notarized.
 
 Current QA: the final tested Mac candidate is
 `32caaa36a845fc668c9fd36cd2cfd8b047c46733`, with interaction QA token
@@ -162,7 +163,8 @@ On macOS:
 - OpenGL stops at version 4.1, and Apple has deprecated OpenGL.
 - HAnim uses CPU skinning; GPU skinning needs features newer than GL 4.1.
 - Lines are always drawn one pixel wide.
-- The app depends on Homebrew libraries and is not yet a distributable bundle.
+- The Xcode build depends on Homebrew libraries; the self-contained app from
+  `tools/macos-package` requires macOS 27 and is not notarized.
 
 Known FreeWRL 6.7 defects, present upstream and not introduced by the port:
 

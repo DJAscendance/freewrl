@@ -45,9 +45,9 @@ Every emulated call, what it replaces and what happens when it can't be done. Ev
 | --- | --- | --- |
 | ✅ | Release arm64, clean | `xcodebuild -project OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj -scheme FreeWRL -configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- -derivedDataPath <dir> clean build` → exit 0 |
 | ✅ | Debug arm64, clean | same with `-configuration Debug` → exit 0 |
-| ✅ | Homebrew dylibs | ode, ffmpeg (avcodec 63, avformat 63, avutil 61, swscale 10, swresample 7), openal-soft, freealut, imlib2, freetype |
-| ❌ | Standalone / distributable app | links `/opt/homebrew`; the dylibs are built for macOS 27 while the app targets 13.0 (10 `ld` warnings); needs bundling, a matching deployment target and signing |
-| ❔ | ffmpeg linked but unused | `MOVIETEXTURE_FFMPEG` is off |
+| ✅ | Homebrew dylibs (build time) | ode, freealut, imlib2, freetype (and openal-soft headers); see [Standalone packaging](#standalone-packaging) for the runtime closure |
+| ✅ | Self-contained app | `tools/macos-package/package.sh`; runs with Homebrew and the source tree unreadable. Requires macOS 27.0 (the embedded Homebrew bottles are built for 27.0). Not notarized; no downloadable package. See [Standalone packaging](#standalone-packaging) |
+| ✅ | ffmpeg no longer linked | it was linked but no symbol was imported (`MOVIETEXTURE_FFMPEG` is off); removed with the 11 other dylibs only it needed |
 
 ### Warnings (clean Release build)
 
@@ -86,7 +86,7 @@ Fixtures are in `freewrl/tests/regression/` (see its README); each states what a
 | ✅ | Quit from the app menu / Apple event | clean exit, no crash report |
 | ✅ | `q` key quit | the Cocoa bridge sent `keyDown:` as `KEYDOWN` only, so no `KEYPRESS` reached the hotkey switch (found by manual QA). Fixed: `keyDown:` now sends `KEYDOWN` then `KEYPRESS` (not for Command chords or arrow/function keys), as on Win32/X11. Physical `q` quit cleanly 3/3 times; `v`, `h`, `e`/`w` run once per press; Command+Q quits and Command+N triggers no hotkey (targeted QA on `32caaa36a`) |
 | ✅ | Mouse picking and navigation on Retina, click tests 8 and 10 | picking lands on the visible object (no 2× offset); held-key navigation starts, holds and stops cleanly; test 8 TouchSensor and test 10 drag work (targeted QA on `32caaa36a`) |
-| 🟡 | Sound | tests/50.wrl loads; audio output not verified |
+| 🟡 | Sound | tests/50.wrl: the AudioClip buffer loads and `alSourcePlay` runs on the "MacBook Pro Speakers" device (lldb). Before this, Homebrew freealut used Apple's OpenAL while FreeWRL used openal-soft, so every clip failed with "no current AL context"; FreeWRL now links `OpenAL.framework`. Audible output not verified by ear |
 | ✅ | Brightness vs master | explained, upstream; see below |
 | 🟡 | HAnimHumanoid translation/rotation/scale | not applied: the node has no prep/fin render functions upstream (all platforms, both skinning methods). The fixtures place the viewpoint instead |
 
@@ -133,6 +133,62 @@ Clean Release build vs X_ITE (`tools/visual-test/compare.sh`); match = normalize
 
 Two REGRESSION rows remain on purpose: they are real differences from the reference, explained above, and not relabelled.
 
+## Standalone packaging
+
+Branch `macos/standalone-packaging` from `develop` @ `22257dc57`. `tools/macos-package/package.sh` builds the Release app, embeds its libraries, signs and checks it (see its README). Measured 2026-09-25 on the machine above.
+
+| | item | evidence |
+| --- | --- | --- |
+| ✅ | Self-contained bundle | `verify.py`: 39 Mach-O files, every non-system dependency resolves inside the bundle; no install name, dependency or run path names Homebrew, `/usr/local`, MacPorts, the source tree or a temporary directory. The gate fails (8 errors) on the unpackaged build |
+| ✅ | No Homebrew at run time | launched under `sandbox-exec` with reads of `/opt/homebrew`, `/usr/local`, `/opt/local` and `~/Projects` denied (nothing on the system changed). Negative control: the unpackaged build aborts, `Library not loaded: /opt/homebrew/opt/ode/lib/libode.8.dylib (blocked by sandbox)`. Packaged, ad-hoc: dyld loaded 14 images from the app (39 once textures load the Imlib2 loaders), none outside Apple's and the app's. Packaged, Developer ID: `lsof` shows the same 14/39 app files mapped and nothing from Homebrew |
+| ✅ | Functional, packaged, in the sandbox | tests 1, 16, `texture_formats.wrl` (JPEG/PNG/GIF), `text_fonts.wrl` (six faces), `route_dotted.wrl` (`ROUTE_OK`), `hanim_skin.x3d` (`Skinning Method: CPU`, bar bent), tests/50.wrl (AL device opened), Cybertown 002 over HTTP. Test 8: a click on an arrow moves the box (HUD shows `TouchSensor`). Test 10: dragging the yellow arrow moves the sum, cross and difference vectors. Synthetic HID events, not a physical keyboard/mouse |
+| ✅ | Launch / `q` quit | `q` (after a click in the 3D view) exits with status 0; 3 of 3 cycles ad-hoc and 3 of 3 Developer ID, no crash reports. At launch the URL field has keyboard focus, so `q` typed before clicking the view goes into the field |
+| ❔ | Early clean exit | 4 of about 60 launches (packaged and unpackaged, Debug and Release) exited by themselves through the library's normal shutdown before the window was captured; no crash report. 0 of 12 under lldb with breakpoints on `fwl_doQuit` and `-[NSApplication terminate:]`. Not caused by packaging; cause not found |
+| ✅ | Fonts | `Contents/Resources/fonts` (Bitstream Vera), found by `FWGLView.m` through `NSBundle`. `FONTS_DIR` (`/Applications/FreeWRL/fonts`) is only a fallback and doesn't exist; with the source tree unreadable all six faces in `text_fonts.wrl` render |
+| ✅ | Resources | Info.plist, `MainMenu.nib`, icon, `Credits.rtf`, fonts, `ThirdPartyLicenses/`. Shaders are compiled in; no scripts or config files are read. Removed: `Makefile.am`, `Makefile.sources`, `libFreeWRL.pc.in`, libtess `alg-outline`/`README` (copied in by mistake) |
+| 🟡 | Embedded path strings | not load commands, nothing opens them: Imlib2's `/opt/homebrew/.../imlib2` default loader dir (overridden), libX11's locale/XErrorDB dirs (X11 is never opened), xpm.so's `rgb.txt`, and 63 `__FILE__` source paths in FreeWRL's assert messages |
+| ⛔ | Minimum macOS | every embedded Homebrew binary is `minos 27.0` (`zstd` 26.0), so the bundle requires **macOS 27.0**; `package.sh` sets `LSMinimumSystemVersion` to that. The executable itself is built for 13.0. Supporting 13 means rebuilding about 18 libraries (ode, libccd, freealut, imlib2 and its X11 and image-format libraries, freetype, libpng) for 13.0: a separate project, not started |
+| ✅ | Ad-hoc signing | inside out: 20 dylibs, 18 loaders, then the app; `codesign --verify --deep --strict` passes |
+| ✅ | Hardened runtime | with a Developer ID signature and **no entitlements**: all of the above pass. No JIT or writable-executable memory (Duktape interprets; no `mprotect`/`MAP_JIT` in FreeWRL's source or in ode, freetype, freealut, Imlib2 and its loaders), no `DYLD_` variables, no libraries signed by others. Ad-hoc + hardened runtime cannot start: library validation rejects the ad-hoc dylibs ("different Team IDs") |
+| ✅ | Developer ID | local test candidate signed `Developer ID Application` (team `PV35EC2TRY`), timestamped. `spctl`: rejected, `source=Unnotarized Developer ID` |
+| ⛔ | Notarization | not attempted: no notarytool credentials configured |
+| ✅ | Visual harness, packaged (Developer ID, launched with `open`) | tests/1 0.9948, 16 0.9194, `texture_formats` 0.9665, `route_dotted` 0.9985, `hanim_skin` 0.9920, Cybertown 002 0.9659: all PASS, same scores as the Homebrew-linked build. `text_fonts` 0.6603: X_ITE draws other fonts (and FreeWRL's sRGB output lightens the background), not a defect |
+| 🟡 | Licenses | `Contents/Resources/ThirdPartyLicenses/` holds each package's own license files plus `MANIFEST.tsv`. Gap: Homebrew's freetype keg has `LICENSE.TXT`, which points to `docs/FTL.TXT`, but not FTL.TXT itself |
+
+### Embedded libraries
+
+| library | package | version | license (Homebrew) | evidence file |
+| --- | --- | --- | --- | --- |
+| libode.8 | ode | 0.16.6 | LGPL-2.1-or-later OR BSD-3-Clause | COPYING, LICENSE.TXT, LICENSE-BSD.TXT |
+| libccd.2 | libccd | 2.1_1 | BSD-3-Clause | share/doc/ccd/BSD-LICENSE |
+| libalut.0 | freealut | 1.1.0 | LGPL-2.0-only | COPYING |
+| libImlib2.1 + 18 loaders | imlib2 | 1.12.7 | Imlib2 | COPYING, COPYING-PLAIN |
+| libfreetype.6 | freetype | 2.14.3 | FTL | LICENSE.TXT (FTL.TXT missing) |
+| libpng16.16 | libpng | 1.6.58 | libpng-2.0 | LICENSE |
+| libX11.6, libX11-xcb.1 | libx11 | 1.8.13 | MIT | COPYING |
+| libXext.6 | libxext | 1.3.7 | MIT | COPYING |
+| libxcb.1, libxcb-shm.0 | libxcb | 1.17.0 | MIT | COPYING |
+| libXau.6 | libxau | 1.0.12 | MIT | COPYING |
+| libXdmcp.6 | libxdmcp | 1.1.5 | MIT | COPYING |
+| libgif | giflib | 6.1.3 | MIT | COPYING |
+| libjpeg.8 | jpeg-turbo | 3.2.0 | IJG AND Zlib AND BSD-3-Clause | LICENSE.md |
+| libtiff.6 | libtiff | 4.7.2 | libtiff | LICENSE.md |
+| libwebp.7, libsharpyuv.0 | webp | 1.6.0 | BSD-3-Clause | COPYING |
+| libzstd.1 | zstd | 1.5.7_1 | BSD-3-Clause OR GPL-2.0-only | LICENSE, COPYING |
+| liblzma.5 | xz | 5.8.4 | 0BSD (liblzma, per COPYING) | COPYING |
+
+Compiled into FreeWRL: Duktape 2.0.0 (MIT, license text from `duktape.c`), libtess (SGI Free Software License B, from `tess.c`). FreeWRL itself: `freex3d/COPYING`, `COPYING.LESSER`. Apple system libraries and frameworks (OpenGL, OpenAL, libcurl, libxml2, libz, Cocoa) are not copied. The X11 libraries come in only because Homebrew's Imlib2 is built with X11 support; FreeWRL calls no X11 function.
+
+Runtime links removed: ffmpeg's five libraries and the 11 dylibs only they needed (x264, x265, libvpx, dav1d, SvtAv1Enc, mp3lame, mpg123, opus, libssl, libcrypto, liblzma), `OpenCL.framework` (no symbol used), openal-soft (replaced by `OpenAL.framework`). Linked non-system closure: 30 → 13 dylibs. The bundle embeds 20: those 13 plus 7 needed only by the Imlib2 loaders (giflib, jpeg, tiff, webp, sharpyuv, zstd, lzma), which `dlopen` hid from `otool`.
+
+### Release blockers
+
+1. Notarization credentials (`notarytool store-credentials` profile).
+2. macOS 27.0 minimum unless the libraries are rebuilt for an older target.
+3. FreeType `FTL.TXT` (from the 2.14.3 source) in `ThirdPartyLicenses/freetype`.
+4. A decision on redistribution notices for the LGPL libraries (freealut; ode is dual-licensed).
+5. Independent QA on a Mac that has never had Homebrew.
+
 ## Fixed on this branch (upstream bugs, all platforms)
 
 - ROUTE parsing: since `7615eadcd` (Feb 2024) `node.field` lexed as one identifier, so every classic VRML ROUTE failed, and the error path aborted the parse thread (freeing uninitialized pointers).
@@ -150,4 +206,7 @@ Two REGRESSION rows remain on purpose: they are real differences from the refere
 - [x] Verify `q`, picking, navigation, HUD clicks and tests 8/10 on Retina (targeted QA on `32caaa36a`, token `FREEWRL_6_7_MACOS_ARM64_GL41_KEYBOARD_AND_INTERACTION_QA_PASS`)
 - [ ] GeneratedCubeMapTexture: find why the generated faces sample black
 - [ ] Directional light shadows outside the shadow map (upstream)
-- [ ] Port `MPEG_Utils_ffmpeg.c` to ffmpeg 5+; bundle dylibs, fix the deployment target, sign
+- [x] Bundle dylibs, sign (Developer ID + hardened runtime test candidate); see [Standalone packaging](#standalone-packaging)
+- [ ] Rebuild the embedded libraries for an older macOS (they require 27.0)
+- [ ] Notarize (needs notarytool credentials)
+- [ ] Port `MPEG_Utils_ffmpeg.c` to ffmpeg 5+ (MovieTexture)
