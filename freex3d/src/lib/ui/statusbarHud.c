@@ -386,7 +386,6 @@ typedef struct {
 	pmenuItem_t *item;   //holds icon specifics, and meaning: Action
 	GLfloat vert[12];	//bar designed coordinates
 	int action; //over-ride of the menuitem action if needed
-	int butrect[4];
 } barItem;
 
 typedef struct {
@@ -2110,13 +2109,7 @@ void initButtons()
 			int j, k, mi, mv, kv;
 			GLfloat dx;
 			FXY xyxy[2];
-			int bz = p->buttonSize;
-		
-			//pixel coord boxes, for mouse picking of buttons
-			p->pmenu.bitems[i].butrect[0] = 5+(i*bz);	/* lower left  x */
-			p->pmenu.bitems[i].butrect[1] = 0;			/* lower left  y */
-			p->pmenu.bitems[i].butrect[2] = 5+(i*bz)+bz;/* upper right x */
-			p->pmenu.bitems[i].butrect[3] = bz;			/* upper right y */
+			//screen position and mouse picking come from the current layout, see updateButtonVertices() and menubarButtonAt()
 
 			mv = i*3*4;
 			mi = i*3*2;
@@ -2394,13 +2387,34 @@ void updateConsoleStatus()
 	}
 }
 
+/* Menu bar geometry, shared by drawing and hit testing so the two always agree.
+   Buttons are square, p->buttonSize pixels, laid out left to right from x=0; with two rows
+   the first (bottom) row holds the first (n+1)/2 buttons. */
+static int menubarRowLength(ppstatusbar p){
+	return p->buttonRows > 1 ? (p->pmenu.nbitems + 1)/p->buttonRows : p->pmenu.nbitems;
+}
+static void menubarCell(ppstatusbar p, int i, int *col, int *row){
+	int rowlen = menubarRowLength(p);
+	*row = rowlen > 0 ? i / rowlen : 0;
+	*col = i - *row * rowlen;
+}
+/* index of the button under menu bar pixel (x, y), y up from the bar's bottom edge, or -1 */
+static int menubarButtonAt(ppstatusbar p, int x, int y){
+	int bz = p->buttonSize, rowlen = menubarRowLength(p), col, row, i;
+	if(bz <= 0 || x < 0 || y < 0) return -1;
+	col = x / bz;
+	row = y / bz;
+	if(row >= p->buttonRows || col >= rowlen) return -1;
+	i = row * rowlen + col;
+	return i < p->pmenu.nbitems ? i : -1;
+}
 
 int handleButtonOver(int mouseX, int mouseY)
 {
 	/* called from mainloop > fwl_handle_aqua to
 	a) detect a button over and
 	b) highlight underneath the button*/
-	int i, x, y, ihalf;
+	int x, y;
 	ppstatusbar p;
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
@@ -2415,27 +2429,7 @@ int handleButtonOver(int mouseX, int mouseY)
 	else
 		y = mouseY - p->pmenu.yoffset;
 
-	p->isOver = -1;
-
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
-	for(i=0;i<p->pmenu.nbitems;i++)
-	{
-		int j,xx,yy,butrect[4];
-		for(j=0;j<4;j++) butrect[j] = p->pmenu.bitems[i].butrect[j];
-		xx = x;
-		yy = y;
-		if(i >= ihalf){
-			xx = x + ihalf * p->buttonSize;
-			yy = y - p->buttonSize; 
-		}
-		if(xx > butrect[0] && xx < butrect[2]
-		&& yy > butrect[1] && yy < butrect[3] )
-		{
-			/* printf("%d",i); */  /* is over */
-			p->isOver = i;
-			break;
-		}
-	}
+	p->isOver = menubarButtonAt(p, x, y);
 	return p->isOver; // == -1 ? 0 : 1;
 }
 char *frontend_pick_URL(void);
@@ -2470,7 +2464,7 @@ int handleButtonRelease(int mouseX, int mouseY)
 	b) toggle the button icon and
 	c) set the related option
 	*/
-	int i,x,y,ihit,iaction,ihalf;
+	int i,x,y,ihit,iaction,hit;
     //int j, oldval;
 	ppstatusbar p;
 	ttglobal tg = gglobal();
@@ -2485,20 +2479,11 @@ int handleButtonRelease(int mouseX, int mouseY)
 		y = p->vport.H - mouseY;
 	else
 		y = mouseY - p->pmenu.yoffset;
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
+	hit = menubarButtonAt(p, x, y);
 	ihit = -1;
 	for(i=0;i<p->pmenu.nbitems;i++)
 	{
-		int j,xx,yy,butrect[4];
-		for(j=0;j<4;j++) butrect[j] = p->pmenu.bitems[i].butrect[j];
-		xx = x;
-		yy = y;
-		if(i >= ihalf){
-			xx = x + ihalf * p->buttonSize;
-			yy = y - p->buttonSize; 
-		}
-		if(xx > butrect[0] && xx < butrect[2]
-		&& yy > butrect[1] && yy < butrect[3] )
+		if(i == hit)
 		{
 			ihit = i;
 			iaction = p->pmenu.bitems[i].item->action;
@@ -2625,7 +2610,7 @@ int handleButtonRelease(int mouseX, int mouseY)
 }
 void updateButtonVertices()
 {
-	int i,j,k,kv,mv,ihalf;
+	int i,j,k,kv,mv,bz;
 	float xx,yy;
     //int zz;
 	FXY xy;
@@ -2636,23 +2621,19 @@ void updateButtonVertices()
 	//p->pmenu.yoffset = (float) yoff_button; //0.0f;
 	if(p->pmenu.top) p->pmenu.yoffset = (p->vport.H - p->buttonSize - p->pmenu.yoffset); //32.0f;
 
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
+	//the button size changes with the window width (see updateSBHRows), so lay out every frame
+	bz = p->buttonSize;
 	for(i=0;i<p->pmenu.nbitems;i++)
 	{
-		int button_xoff, button_yoff;
+		int col, row;
 		kv = 0;
-		button_yoff = button_xoff = 0;
-		if(i >= ihalf){
-			//for phones / narrow / portrait stack 2 rows of buttons
-			button_yoff = p->buttonSize; 
-			button_xoff = -(ihalf * p->buttonSize);
-		}
+		menubarCell(p, i, &col, &row); //narrow / portrait windows stack 2 rows of buttons
 		for(j=0;j<2;j++)
 			for(k=0;k<2;k++)
 			{
-				xx = p->pmenu.bitems[i].vert[kv +0];
-				yy = p->pmenu.bitems[i].vert[kv +1];
-				xy = screen2normalizedScreen(xx + button_xoff,yy + p->pmenu.yoffset + button_yoff + p->side_bottom);
+				xx = (float)((col + j) * bz);
+				yy = (float)((row + k) * bz);
+				xy = screen2normalizedScreen(xx,yy + p->pmenu.yoffset + p->side_bottom);
 				mv = i*3*4;
 				p->pmenu.vert[mv+kv +0] = xy.x;
 				p->pmenu.vert[mv+kv +1] = xy.y;
@@ -2919,13 +2900,20 @@ void updateSBHRows(){
 	ppstatusbar p;
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
-	//I think there's a 5 pixel lead gap, 2x=10
-	if(p->vport.W < ((p->buttonSize * p->pmenu.nbitems) + 10)){ 
-		p->buttonRows = 2;
-		p->statusBarRows = 1; //not sure I need 2
-	}else{
+	//called after update_density() set the nominal button size.
+	//Keep one row of buttons, shrunk to fit the window width down to 3/4 of the nominal size;
+	//narrower windows (phones, portrait) stack two rows, shrunk if needed to fit.
+	int n = p->pmenu.nbitems;
+	int nominal = p->buttonSize;
+	p->statusBarRows = 1;
+	if(n <= 0 || p->vport.W >= nominal * n){
 		p->buttonRows = 1;
-		p->statusBarRows = 1;
+	}else if(p->vport.W / n >= (nominal * 3) / 4){
+		p->buttonRows = 1;
+		p->buttonSize = p->vport.W / n;
+	}else{
+		p->buttonRows = 2;
+		p->buttonSize = min(nominal, p->vport.W / ((n + 1) / 2));
 	}
 }
 int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
