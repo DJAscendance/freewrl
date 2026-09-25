@@ -52,3 +52,5 @@ freex3d/src/message/freewrl_msg
 freex3d/src/message/internal_version.c
 freex3d/src/sound/freewrl_snd
 freex3d/src/sound/internal_version.c
+#macOS
+.DS_Store

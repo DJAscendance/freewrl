@@ -74,7 +74,10 @@ Functions:
  #include <OpenGL/OpenGL.h>
  #include <OpenGL/CGLTypes.h>
  
- #include <AGL/AGL.h> 
+ /* AGL was removed from modern macOS SDKs (and is unused); it used to pull these in */
+ #include <sys/types.h>
+ #include <pthread.h>
+ #include <signal.h>
  #endif /* defined IPHONE */
 #endif /* defined TARGET_AQUA  */
 

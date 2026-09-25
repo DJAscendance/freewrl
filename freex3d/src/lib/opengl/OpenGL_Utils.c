@@ -2441,7 +2441,7 @@ static int getSpecificShaderSourceOriginal (const GLchar *vertexSource[vertexEnd
 			fragmentSource[fragmentTexCoordDeclare] = varyingTexCoord;
 			fragmentSource[fragmentTex0Declare] = fragTex0Dec;
 			/*
-				//ÀÌºÎºÐÀ» °Çµå¸®¸éµÊ
+				//ï¿½ÌºÎºï¿½ï¿½ï¿½ ï¿½Çµå¸®ï¿½ï¿½ï¿½
 
 				vertexSource[vertexProjValDec] = vertProjValDec;
 				vertexSource[vertexProjCalTexCoord] = vertProjCalTexCoord;
@@ -3666,6 +3666,7 @@ void clear_shader_table()
 /**
  *   fwl_initializa_GL: initialize GLEW (->rdr caps) and OpenGL initial state
  */
+#ifdef DEBUG_OPENGL
  void GLAPIENTRY MessageCallback( GLenum source,
                  GLenum type,
                  GLuint id,
@@ -3683,6 +3684,7 @@ void clear_shader_table()
 		getchar();
 	}
 }
+#endif //DEBUG_OPENGL
 
 bool fwl_initialize_GL()
 {

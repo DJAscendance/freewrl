@@ -48,6 +48,8 @@ along with FreeWRL/FreeX3D.  If not, see <http://www.gnu.org/licenses/>.
 #include "Children.h"
 #include <stdlib.h>
 
+void pushShaderFlags(shaderflagsstruct flags);
+void popShaderFlags();
 
 //we'll share VF_globalLight render pass with global lights
 // this filter will allow global=true on the VF_globalLight render_hier pass
