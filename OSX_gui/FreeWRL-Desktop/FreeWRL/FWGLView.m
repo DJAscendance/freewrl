@@ -3,6 +3,7 @@
 //#import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
 #import "../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h"
+#import "FWKeyEvents.h"
 // ==================================
 
 
@@ -48,6 +49,18 @@ mainBundle = [NSBundle mainBundle];
 	myFontPath = [mainBundle pathForResource:@"VeraMono" ofType:@"ttf" inDirectory:@"fonts"];
 	//the backend will detect and strip /VeraMono.ttf off the path
 }
+// Retina: GL surface is in backing pixels, Cocoa events are in points
+static CGFloat backingScale = 1.0;
+static void fwMouseScaled(int mouseAction, int mouseButton, float x, float y){
+	if(!fwctx) return;
+	dllFreeWRL_onMouse(fwctx, mouseAction, mouseButton, (int)(x*backingScale), (int)(y*backingScale));
+}
+
+void fwg_register_consolemessage_callback(void(*callback)(char *));
+static void consoleToStderr(char *msg){
+	fputs(msg, stderr);
+}
+
 // ===================================
 // get the initial URL in, and load'er up!
 
@@ -81,8 +94,13 @@ void initialize_freewrl(){
 		
 		getfontfolder();
 		dllFreeWRL_setFontFolder(fwctx, (char *)[myFontPath UTF8String]);
+
+		// mirror library ConsoleMessages (parse errors etc) to stderr, not just the HUD
+		if(fwl_setCurrentHandle(fwctx, __FILE__, __LINE__))
+			fwg_register_consolemessage_callback(consoleToStderr);
+		fwl_clearCurrentHandle();
 	}
-	
+
 }
 
 
@@ -181,16 +199,17 @@ void initialize_freewrl(){
 // pixel format definition
 + (NSOpenGLPixelFormat*) basicPixelFormat
 {
+    // FreeWRL 6.x renders with GLSL 330+ shaders: ask for the newest profile macOS has, 4.1 core
+    // (the default is the legacy 2.1 profile). Core has no accumulation buffer, NSOpenGLPFAWindow is obsolete.
     NSOpenGLPixelFormatAttribute attributes [] = {
+            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
             NSOpenGLPFANoRecovery,
             NSOpenGLPFADoubleBuffer,
-            NSOpenGLPFAWindow,
             NSOpenGLPFAAccelerated,
             NSOpenGLPFAColorSize, 24,
             NSOpenGLPFAAlphaSize, 8,
             NSOpenGLPFADepthSize, 24,
             NSOpenGLPFAStencilSize, 8,
-            NSOpenGLPFAAccumSize, 0,
             0
     };
     return [[[NSOpenGLPixelFormat alloc] initWithAttributes:attributes] autorelease];
@@ -203,7 +222,13 @@ void initialize_freewrl(){
 // a window dimension update, reseting of viewport and an update of the projection matrix
 - (void) resizeGL
 {
-	NSRect rectView = [self bounds];
+	NSRect rectView = [self convertRectToBacking:[self bounds]];
+	CGFloat scale = [[self window] backingScaleFactor];
+	if(scale != backingScale && fwctx){
+		// scale the HUD (status bar, menu buttons, text) to match the display
+		dllFreeWRL_setDensityFactor(fwctx, (float)scale);
+	}
+	backingScale = scale;
 	if(!usingCdllFreewrl)
 		fwl_setScreenDim(rectView.size.width,rectView.size.height);
 	else
@@ -252,8 +277,6 @@ void initialize_freewrl(){
 
 #pragma mark ---- Method Overrides ----
 
-#define KeyPress        2
-#define KeyRelease      3
 #define ButtonPress     4
 #define ButtonRelease   5
 #define MotionNotify    6
@@ -294,7 +317,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 	
     
@@ -326,7 +349,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+		fwMouseScaled(ButtonPress, button, xcoor, ycoor);
 	}
 
     SET_CURSOR_FOR_ME
@@ -356,7 +379,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 	
 }
@@ -385,7 +408,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+		fwMouseScaled(ButtonRelease, button, xcoor, ycoor);
 	}
 
 
@@ -407,7 +430,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonPress);
     fwl_handle_mouse(ButtonPress, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonPress, button, xcoor, ycoor);
+		fwMouseScaled(ButtonPress, button, xcoor, ycoor);
 	}
 
 }
@@ -426,7 +449,7 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(ButtonRelease);
     fwl_handle_mouse(ButtonRelease, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, ButtonRelease, button, xcoor, ycoor);
+		fwMouseScaled(ButtonRelease, button, xcoor, ycoor);
 	}
 
 }
@@ -444,40 +467,41 @@ mouseDisplaySensitive = mouseOverSensitive; \
     //fwl_setLastMouseEvent(MotionNotify);
     fwl_handle_mouse(MotionNotify, button, xcoor, ycoor,0);
 	}else{
-		dllFreeWRL_onMouse(fwctx, MotionNotify, button, xcoor, ycoor);
+		fwMouseScaled(MotionNotify, button, xcoor, ycoor);
 	}
 
 }
-- (void) keyUp: (NSEvent*) theEvent
+- (void) sendKeyEvent: (NSEvent*) theEvent isKeyUp: (int) isKeyUp
 {
     NS_DURING
     NSString* character = [theEvent characters];
+    unichar uc;
     char ks;
-    ks = (char) [character characterAtIndex: 0];
+    int actions[FW_MAX_KEY_ACTIONS];
+    int i, n;
+    uc = [character characterAtIndex: 0];
+    ks = (char) uc;
+    n = fw_cocoa_key_actions(isKeyUp,
+            ([theEvent modifierFlags] & NSEventModifierFlagCommand) != 0,
+            uc, actions);
+    for (i = 0; i < n; i++) {
 	if(!usingCdllFreewrl){
-    fwl_do_keyPress(ks, KeyRelease);
+    fwl_do_keyPress(ks, actions[i]);
 	}else{
-		dllFreeWRL_onKey(fwctx,KeyRelease,ks);
+		dllFreeWRL_onKey(fwctx,actions[i],ks);
 	}
+    }
     NS_HANDLER
     return;
     NS_ENDHANDLER
 }
+- (void) keyUp: (NSEvent*) theEvent
+{
+    [self sendKeyEvent: theEvent isKeyUp: 1];
+}
 - (void) keyDown: (NSEvent*) theEvent
 {
-    NS_DURING
-    NSString* character = [theEvent characters];
-    char ks;
-    ks = (char) [character characterAtIndex: 0];
-    //NSLog(@"got char down: ll%cll\n", ks);
-	if(!usingCdllFreewrl){
-    fwl_do_keyPress(ks, KeyPress);
-	}else{
-		dllFreeWRL_onKey(fwctx,KeyPress,ks);
-	}
-    NS_HANDLER
-    return;
-    NS_ENDHANDLER
+    [self sendKeyEvent: theEvent isKeyUp: 0];
 }
 
 // ---------------------------------
@@ -513,7 +537,9 @@ mouseDisplaySensitive = mouseOverSensitive; \
 		}
 	}
     [[self openGLContext] makeCurrentContext];
-    
+	// the animation timer can fire before prepareOpenGL has created the library instance
+	if(usingCdllFreewrl && !fwctx) return;
+
     //printf ("drawRect am thread %p\n",pthread_self());
 
 	// setup viewport and prespective
@@ -521,7 +547,13 @@ mouseDisplaySensitive = mouseOverSensitive; \
     if(!usingCdllFreewrl)
 		fwl_RenderSceneUpdateScene();
 	else
-		dllFreeWRL_onDraw(fwctx);
+		if(!dllFreeWRL_onDraw(fwctx)){
+			// library has shut down (e.g. 'q' key): its instance is freed, so stop calling in and exit
+			fwctx = NULL;
+			[timer invalidate];
+			[NSApp terminate:nil];
+			return;
+		}
     // display the Bounding Box, if requested
 	/*
     if (displayBoundingBox) {
@@ -587,6 +619,12 @@ mouseDisplaySensitive = mouseOverSensitive; \
 - (void) prepareOpenGL
 {
     GLint swapInt = 1;
+
+    [super prepareOpenGL];
+
+    fprintf(stderr, "GL_VERSION %s\nGL_SHADING_LANGUAGE_VERSION %s\nGL_RENDERER %s\n",
+        (const char *)glGetString(GL_VERSION), (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION),
+        (const char *)glGetString(GL_RENDERER));
     
     //NSLog(@"calling fwl_init_instance");
     //if (!initialized) {

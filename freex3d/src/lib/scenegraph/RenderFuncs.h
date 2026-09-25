@@ -59,6 +59,8 @@ void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
 void sendElementsToGPU0 (int mode, int count, int type, void *indices);
 void saveElementsForGPU0(int mode, int count, int type, void* indices);
+void saveArraysForGPU(int mode, int first, int count);
+void reallyDrawOnce();
 void render_hier(struct X3D_Node *p, int rwhat);
 void restoreGlobalShader();
 
@@ -112,4 +114,19 @@ void multiply_transform_local(double *mat);
 struct X3D_Node* get_executionContext();
 void push_executionContext(struct X3D_Node* broto);
 void pop_executionContext();
+void clearDraw();
+void push_globalRenderFlags();
+void pop_globalRenderFlags();
+void render_hier2(struct X3D_Node* g, int rwhat);
+void rwhat_printf(int rwhat);
+void sendElementsToGPU(int mode, int count, int *indices);
+/* Component_Lighting.c */
+void lightTable_clear();
+int make_or_get_depth_buffer(int index, struct X3D_Node* node);
+double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix);
+void set_debug_quad(int which_debug_shader, int textureID);
+void set_debug_quad_near_farplane(float nearplane, float farplane);
+/* Component_HAnim.c */
+void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node);
+
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

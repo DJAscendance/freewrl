@@ -1,0 +1,30 @@
+#VRML V2.0 utf8
+# Regression: classic VRML ROUTE node.field TO node.field.
+# FreeWRL 6.7 (develop 7615eadcd) lexed "timer.fraction_changed" as one identifier, so every
+# ROUTE below failed to parse and the parser aborted.
+# Pass: the box turns from red to green and moves right of centre; the Script prints
+# "ROUTE_OK" once to the console.
+Viewpoint { position 0 0 6 description "front" }
+NavigationInfo { headlight TRUE }
+DEF T TimeSensor { cycleInterval 1 loop TRUE }
+DEF C ColorInterpolator { key [ 0 1 ] keyValue [ 0 1 0, 0 1 0 ] }
+DEF P PositionInterpolator { key [ 0 1 ] keyValue [ 1 0 0, 1 0 0 ] }
+DEF X Transform {
+	children Shape {
+		appearance Appearance { material DEF M Material { diffuseColor 1 0 0 } }
+		geometry Box { size 1.5 1.5 1.5 }
+	}
+}
+DEF S Script {
+	eventIn SFColor set_color
+	field SFBool done FALSE
+	url "javascript:
+		function set_color(v, t) {
+			if (!done && v.g > 0.5) { print('ROUTE_OK color=' + v.r + ' ' + v.g + ' ' + v.b); done = true; }
+		}"
+}
+ROUTE T.fraction_changed TO C.set_fraction
+ROUTE T.fraction_changed TO P.set_fraction
+ROUTE C.value_changed TO M.set_diffuseColor
+ROUTE P.value_changed TO X.set_translation
+ROUTE C.value_changed TO S.set_color

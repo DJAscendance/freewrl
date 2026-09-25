@@ -131,4 +131,13 @@ ALT,CTRL,SHIFT true/false
 #define JSENGINE_DUK 1
 #define JSENGINE_SM 2
 
+/* recording / playback (.fwplay) */
+int fwl_get_modeRecord();
+void record_mouse(int mev, int butnum, int mouseX, int mouseY, int windex);
+void record_rawkeypress(int key, int type);
+void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex);
+#ifdef _MSC_VER
+void updateCursorStyle0(int cstyle); /* fwWindow32.c; other frontends poll getCursorStyle() */
+#endif
+
 #endif /* __LIBFREEWRL_UI_COMMON_H__ */

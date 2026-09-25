@@ -2643,6 +2643,14 @@ static void stuffSFintoMF(struct Multi_Node *outMF, vrmlNodeT *inSF, int type) {
                 stuffDEFUSE(ret, RCX, FIELDTYPE_MF##type); \
                 return TRUE; \
         } \
+        /* MFNode NULL: not in the VRML97 grammar, but common in blaxxun-era */ \
+        /* content (e.g. "exposedField MFNode avatars NULL"); treat as [] */ \
+        else if (FIELDTYPE_MF##type == FIELDTYPE_MFNode && lexer_keyword(me->lexer, KW_NULL)) { \
+                rv = (struct Multi_##type*) ret; \
+                rv->n = 0; \
+                rv->p = NULL; \
+                return TRUE; \
+        } \
  }\
 \
 /* printf ("step 2... curID :%s:\n", me->lexer->curID); */ \
@@ -4249,9 +4257,22 @@ BOOL route_parse_nodefield_B(struct VRMLParser* me, char **ssnode, char **ssfiel
 	snode = STRDUP(me->lexer->curID);
 	FREE_IF_NZ(me->lexer->curID);
 
+	/* since Feb 2024 identifiers may contain '.' (IS_ID_REST in CParse.h), so node.field
+	   usually arrives as one token: split it at the last '.' */
+	{
+		char *dot = strrchr(snode, '.');
+		if (dot && dot != snode && dot[1]) {
+			*ssfield = STRDUP(dot + 1);
+			*dot = '\0';
+			*ssnode = snode;
+			PARSER_FINALLY;
+			return TRUE;
+		}
+	}
 
 	/* The next character has to be a '.' - skip over it */ 
 	if(!lexer_point(me->lexer)) {
+		FREE_IF_NZ(snode);
 		CPARSE_ERROR_CURID("ERROR:ROUTE: Expected \".\" after the NODE name") 
 		PARSER_FINALLY;  
 		return FALSE;  
@@ -4278,8 +4299,8 @@ void QAandRegister_parsedRoute_B(struct X3D_Proto *context, char* fnode, char* f
 // this one is designed not to crash if theres an IMPORT route
 static BOOL parser_routeStatement_B(struct VRMLParser* me)
 {
-	char *sfnode, *sffield;
-	char *stnode, *stfield;
+	char *sfnode = NULL, *sffield = NULL; //freed on the error path even if never parsed
+	char *stnode = NULL, *stfield = NULL;
 	int foundfrom, foundto, gotTO;
 
 	ppCParseParser p = (ppCParseParser)gglobal()->CParseParser.prv;

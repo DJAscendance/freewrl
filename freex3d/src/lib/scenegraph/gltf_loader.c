@@ -8,6 +8,7 @@
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../main/ProdCon.h"
 
 #include "../input/EAIHeaders.h"
 #include "../input/EAIHelpers.h"
@@ -658,7 +659,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 									mat->emissiveTexture = image;
 									mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
 									if (prim->material->emissive_texture.has_transform) {
-										textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+										{ textrans[ntextrans] = add_texture_transform(prim->material->emissive_texture, ntextrans); ntextrans++; }
 									}
 								}
 							}
@@ -699,7 +700,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->baseTextureMapping = newASCIIString("one");
 								mat->baseTextureMapping = set_mat_mapping(pbr->base_color_texture, ntextrans);
 								if (pbr->base_color_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(pbr->base_color_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(pbr->base_color_texture, ntextrans); ntextrans++; }
 								}
 							}
 							if (pbr->metallic_roughness_texture.texture ) {
@@ -708,7 +709,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->metallicRoughnessTextureMapping = newASCIIString("one");
 								mat->metallicRoughnessTextureMapping = set_mat_mapping(pbr->metallic_roughness_texture, ntextrans);
 								if (pbr->metallic_roughness_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(pbr->metallic_roughness_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(pbr->metallic_roughness_texture, ntextrans); ntextrans++; }
 								}
 							}
 							if (prim->material->emissive_texture.texture ) {
@@ -717,7 +718,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
 								mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
 								if (prim->material->emissive_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->emissive_texture, ntextrans); ntextrans++; }
 								}
 							}
 							if (prim->material->normal_texture.texture ) {
@@ -726,7 +727,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
 								mat->normalTextureMapping = set_mat_mapping(prim->material->normal_texture, ntextrans);
 								if (prim->material->normal_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->normal_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->normal_texture, ntextrans); ntextrans++; }
 								}
 							}
 							if (prim->material->occlusion_texture.texture) {
@@ -735,7 +736,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
 								mat->occlusionTextureMapping = set_mat_mapping(prim->material->occlusion_texture, ntextrans);
 								if (prim->material->occlusion_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->occlusion_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->occlusion_texture, ntextrans); ntextrans++; }
 								}
 							}
 						}
@@ -777,7 +778,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								mat->specularTextureMapping = set_mat_mapping(pbr->specular_glossiness_texture, ntextrans);
 								mat->shininessTextureMapping = set_mat_mapping(pbr->specular_glossiness_texture, ntextrans);
 								if (pbr->specular_glossiness_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(pbr->specular_glossiness_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(pbr->specular_glossiness_texture, ntextrans); ntextrans++; }
 								}
 
 							}
@@ -788,7 +789,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->diffuseTextureMapping = newASCIIString("one");
 								mat->diffuseTextureMapping = set_mat_mapping(pbr->diffuse_texture, ntextrans);
 								if (pbr->diffuse_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(pbr->diffuse_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(pbr->diffuse_texture, ntextrans); ntextrans++; }
 								}
 							}
 
@@ -798,7 +799,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->emissiveTextureMapping = newASCIIString("one");
 								mat->emissiveTextureMapping = set_mat_mapping(prim->material->emissive_texture, ntextrans);
 								if (prim->material->emissive_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->emissive_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->emissive_texture, ntextrans); ntextrans++; }
 								}
 							}
 
@@ -808,7 +809,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->normalTextureMapping = newASCIIString("one");
 								mat->normalTextureMapping = set_mat_mapping(prim->material->normal_texture, ntextrans);
 								if (prim->material->normal_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->normal_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->normal_texture, ntextrans); ntextrans++; }
 								}
 							}
 
@@ -818,7 +819,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 								//if (do_mapping) mat->occlusionTextureMapping = newASCIIString("one");
 								mat->occlusionTextureMapping = set_mat_mapping(prim->material->occlusion_texture, ntextrans);
 								if (prim->material->occlusion_texture.has_transform) {
-									textrans[ntextrans++] = add_texture_transform(prim->material->occlusion_texture, ntextrans);
+									{ textrans[ntextrans] = add_texture_transform(prim->material->occlusion_texture, ntextrans); ntextrans++; }
 								}
 							}
 						}
@@ -996,7 +997,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				}
 				//printf("adding shape to mesh group\n");
 				//vector_pushBack(void *, &gr->children, sn);
-				AddRemoveChildren(X3D_NODE(gr), offsetPointer_deref(void*, gr, offsetof(struct X3D_Group, children)), &X3D_NODE(sn), 1, 1, __FILE__, __LINE__);
+				AddRemoveChildren(X3D_NODE(gr), offsetPointer_deref(void*, gr, offsetof(struct X3D_Group, children)), (struct X3D_Node **)&sn, 1, 1, __FILE__, __LINE__);
 			}
 		}
 		//printf("adding mesh\n");

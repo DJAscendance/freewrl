@@ -1022,7 +1022,7 @@ static void parseMeta(void* ud, char **atts) {
 		/* printf("parseMeta field:%s=%s\n", atts[i], atts[i + 1]); */
 		if (!strcmp(atts[i], "name"))
 			name = atts[i + 1];
-		if (!strcmp(atts[i], "category"))
+		if (!strcmp(atts[i], "content"))
 			content = atts[i + 1];
 	}
 	handleMetaDataStringString((void*)ec, name, content);

@@ -32,6 +32,7 @@ X3D Layering Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "LinearAlgebra.h"
 
 #include "../x3d_parser/Bindable.h"
 #include "Children.h"

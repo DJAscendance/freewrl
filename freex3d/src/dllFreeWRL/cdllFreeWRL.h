@@ -47,7 +47,7 @@ DLLFREEWRL_API void dllFreeWRL_onGyro(void *fwctx, float rx, float ry, float rz)
 DLLFREEWRL_API void dllFreeWRL_onAccelerometer(void *fwctx, float ax, float ay, float az);
 DLLFREEWRL_API void dllFreeWRL_onMagnetic(void *fwctx, float azimuth, float pitch, float roll);
 DLLFREEWRL_API void dllFreeWRL_onKey(void *fwctx, int keyAction,int keyValue);
-DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx); //use when FRONTEND_HANDLES_DISPLAY_THREAD
+DLLFREEWRL_API int dllFreeWRL_onDraw(void *fwctx); //use when FRONTEND_HANDLES_DISPLAY_THREAD. returns 0 once the instance has quit
 DLLFREEWRL_API void dllFreeWRL_onClose(void *fwctx);
 DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str);
 DLLFREEWRL_API void dllFreeWRL_setTempFolder(void *fwctx, char *tmpFolder);

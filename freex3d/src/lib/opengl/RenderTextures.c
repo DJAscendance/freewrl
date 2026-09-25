@@ -194,6 +194,9 @@ void clear_textureUnit_used(){
 		//glBindTextureUnit(i, checkerboard_textureCube);
 	}
 	p->textureUnit_used = 0;  //start at 1 and leave TEXTURE0 for debugging?
+#ifdef FW_GL_CORE_PROFILE
+	fw_core_park_samplers();
+#endif
 }
 int next_textureUnit(){
 	ppRenderTextures p;

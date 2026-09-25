@@ -35,6 +35,7 @@ Bindable nodes - Background, TextureBackground, Fog, NavigationInfo, Viewpoint, 
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../opengl/Textures.h"
 #include "../vrml_parser/CParseGeneral.h"
 #include "../scenegraph/Vector.h"
 #include "../vrml_parser/CFieldDecls.h"

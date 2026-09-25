@@ -257,4 +257,6 @@ struct metarecord {
 	char* content;
 };
 void add_empty_proto_vectors(struct X3D_Node* node);
+void load_externProtoDeclare (struct X3D_Proto *node);
+
 #endif /* __FREEWRL_CPARSE_PARSER_H__ */

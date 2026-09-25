@@ -36,6 +36,8 @@ X3D Volume Rendering Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../opengl/Frustum.h"
+#include "Component_Grouping.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"

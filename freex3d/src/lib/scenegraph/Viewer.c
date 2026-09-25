@@ -37,6 +37,7 @@ CProto ???
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Frustum.h"
 #include "../main/headers.h"
+#include "../main/MainLoop.h"
 
 #include "LinearAlgebra.h"
 #include "quaternion.h"

@@ -826,11 +826,13 @@ void renderQuad()
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	}
+	GLint prevVAO = 0;
+	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &prevVAO); //core profile draws need the default VAO back afterwards
 	glBindVertexArray(quadVAO);
 	PRINT_GL_ERROR_IF_ANY("render_quad before glDrawArrays");
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	PRINT_GL_ERROR_IF_ANY("render_quad after glDrawArrays");
-	glBindVertexArray(0);
+	glBindVertexArray(prevVAO);
 }
 static struct debug_quad {
 	int textureID; // opengl texture, -1 for no texture

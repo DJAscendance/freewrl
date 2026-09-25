@@ -277,16 +277,18 @@ DLLFREEWRL_API void dllFreeWRL_print(void *fwctx, char *str)
 	}
 	fwl_clearCurrentHandle();
 }
-DLLFREEWRL_API void dllFreeWRL_onDraw(void *fwctx)
+DLLFREEWRL_API int dllFreeWRL_onDraw(void *fwctx)
 {
+	int more = 1;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 #ifndef FRONTEND_GETS_FILES
 		//build with desktop.c? but frontend does displaythread? then you need the queue processor
 		frontend_dequeue_get_enqueue(fwctx);
 #endif //FRONTEND_GETS_FILES
-		fwl_draw();
+		more = fwl_draw();
 	}
 	fwl_clearCurrentHandle();
+	return more;
 }
 
 DLLFREEWRL_API int dllFreeWRL_getUpdatedCursorStyle(void *fwctx)
@@ -319,7 +321,7 @@ DLLFREEWRL_API char* dllFreeWRL_resitem_getURL(void *fwctx, void *res){
 	return url;
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getStatus(void *fwctx, void *res){
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		status = fwl_resitem_getStatus(res);
 	}
@@ -334,7 +336,7 @@ DLLFREEWRL_API void dllFreeWRL_resitem_setStatus(void *fwctx, void *res, int sta
 
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		status = fwl_resitem_getType(res);
 	}
@@ -342,7 +344,7 @@ DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
 	return status;
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getMediaType(void *fwctx, void *res) {
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
 		status = fwl_resitem_getMediaType(res);
 	}

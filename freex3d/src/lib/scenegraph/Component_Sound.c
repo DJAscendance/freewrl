@@ -105,6 +105,10 @@ void fwCloseAL(void *alctx)
 #include "../../libsound/libsound.h"
 //libsound is our /src/libsound C wrapper lib over 
 // LabSound https://github.com/LabSound/LabSound 
+#else
+//libsound.h declares these; the audio stacks below use them with or without libsound
+typedef struct icset { int p; int d; int ld; int n; int s; int ls; } icset;
+typedef struct ivec2 { int x; int y; } ivec2;
 #endif //HAVE_LIBSOUND
 
 typedef struct pComponent_Sound{
@@ -448,7 +452,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 	/* is this audio wavelet initialized yet? */
 	if (node->__loadstatus != LOAD_STABLE) {
-		locateAudioSource(node);
+		locateAudioSource((struct X3D_AudioBuffer*)node); //downcast to share resource loading code
 	}
 	if (node->__loadstatus != LOAD_STABLE) return;
 	/* is this audio ok? if so, the sourceNumber will range
@@ -1620,4 +1624,6 @@ void render_Gain(struct X3D_Gain* node) {}
 void render_ListenerPointSource(struct X3D_ListenerPointSource* node) {}
 void render_MicrophoneSource(struct X3D_MicrophoneSource* node) {}
 void render_SpatialSound(struct X3D_SpatialSound* node) {}
+void render_AudioBuffer(struct X3D_AudioBuffer* node) {}
+void render_ListenerPoint(struct X3D_ListenerPoint* node) {}
 #endif //HAVE_LIBSOUND

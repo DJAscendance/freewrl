@@ -5409,6 +5409,8 @@ void prep_EspduTransform(struct X3D_EspduTransform *node){}
 void fin_EspduTransform(struct X3D_EspduTransform *node){}
 void child_EspduTransform(struct X3D_EspduTransform *node){}
 void dis_initialize() {}
+void dis_send_sensor(struct X3D_Node* fromNode, struct X3D_Node* dataNode, int ev, int butStatus2,
+	int status, float* posn3, float* norm3) {}
 #endif //WITH_DIS
 
 void fwl_sendreceive_DIS(){
