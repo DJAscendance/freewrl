@@ -1211,6 +1211,7 @@
 					/opt/homebrew/opt/openal-soft/include/,
 				);
 				INFOPLIST_FILE = "FreeWRL/FreeWRL-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../freex3d/src/lib",
 					"$(SRCROOT)/../../freex3d/src/lib/DIS",
@@ -1266,6 +1267,7 @@
 					/opt/homebrew/opt/openal-soft/include/,
 				);
 				INFOPLIST_FILE = "FreeWRL/FreeWRL-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../freex3d/src/lib",
 					"$(SRCROOT)/../../freex3d/src/lib/DIS",
