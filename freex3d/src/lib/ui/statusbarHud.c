@@ -105,7 +105,23 @@ GLuint esLoadShader ( GLenum type, const char *shaderSrc )
    	return 0;
 
    // Load the shader source
+#ifdef FW_GL_CORE_PROFILE
+   {
+      // these sources are GLSL ES 1.00 / GLSL 1.10 (no #version); a core profile needs 1.40+
+      // gl_FragColor is renamed in place (same length) because redefining gl_ names is reserved
+      static const char *vs_prelude = "#version 410 core\n#define attribute in\n#define varying out\n";
+      static const char *fs_prelude = "#version 410 core\n#define varying in\n#define texture2D texture\nout vec4 fw_FragColor;\n";
+      const char *srcs[2];
+      char *body = STRDUP(shaderSrc), *fc;
+      while ((fc = strstr(body, "gl_FragColor"))) memcpy(fc, "fw_FragColor", 12);
+      srcs[0] = type == GL_VERTEX_SHADER ? vs_prelude : fs_prelude;
+      srcs[1] = body;
+      glShaderSource ( shader, 2, srcs, NULL );
+      FREE(body);
+   }
+#else
    glShaderSource ( shader, 1, &shaderSrc, NULL );
+#endif
    
    // Compile the shader
    glCompileShader ( shader );

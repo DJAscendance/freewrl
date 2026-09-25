@@ -121,6 +121,7 @@ typedef GLDOUBLE MATRIX4[MATRIX_SIZE];
 
 
 typedef struct pOpenGL_Utils{
+	GLuint defaultVAO; //core profile: vertex attribute state must live in a bound VAO
 	// list of all X3D nodes in this system.
 	// scene graph is tree-structured. this is a linear list.
 	struct Vector *linearNodeTable;
@@ -3760,6 +3761,15 @@ bool fwl_initialize_GL()
 #endif //DEBUG_OPENGL
 	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL start 4");
 
+#if defined(AQUA) && !defined(IPHONE)
+	// macOS 4.1 core profile has no default vertex array object; without one bound
+	// every glVertexAttribPointer / glDraw* fails with GL_INVALID_OPERATION.
+	// The library sets attributes per draw, so one VAO bound for the context is enough.
+	if (!p->defaultVAO) glGenVertexArrays(1, &p->defaultVAO);
+	glBindVertexArray(p->defaultVAO);
+	PRINT_GL_ERROR_IF_ANY("fwl_initialize_GL default VAO");
+#endif
+
 	FW_GL_MATRIX_MODE(GL_PROJECTION);
 	FW_GL_LOAD_IDENTITY();
 	FW_GL_MATRIX_MODE(GL_MODELVIEW);
@@ -6748,7 +6758,7 @@ static void fw_glLoadMatrixd(GLDOUBLE *val) {
 #endif
 	//hypothesis this is for old fix-function pipeline and isn't used?
 	/* printf ("loading matrix...\n"); */
-	#ifndef GL_ES_VERSION_2_0
+	#if !defined(GL_ES_VERSION_2_0) && !defined(FW_GL_CORE_PROFILE) //shaders get matrices as uniforms
 	glLoadMatrixd(val);
 	#endif
 }

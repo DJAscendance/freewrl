@@ -2277,7 +2277,9 @@ contenttype *new_contenttype_stagefbo(int width, int height){
 		useMip = 0;
 		if(useMip){
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+#ifdef GL_GENERATE_MIPMAP
 			glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+#endif
 		}else{
 			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 		}

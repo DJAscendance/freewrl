@@ -64,6 +64,7 @@
 		52DA6AE91577D31A00130065 /* Component_NURBS.c in Sources */ = {isa = PBXBuildFile; fileRef = 52DA6A3E1577D31900130065 /* Component_NURBS.c */; };
 		52DA6AEA1577D31A00130065 /* Component_Picking.c in Sources */ = {isa = PBXBuildFile; fileRef = 52DA6A3F1577D31900130065 /* Component_Picking.c */; };
 		A1B2C3D4E5F6000000000002 /* Component_TextureProjector.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000001 /* Component_TextureProjector.c */; };
+		A1B2C3D4E5F600000000001A /* GLCoreCompat.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000019 /* GLCoreCompat.c */; };
 		A1B2C3D4E5F6000000000018 /* Decompose.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000017 /* Decompose.c */; };
 		A1B2C3D4E5F6000000000016 /* Component_MIDI.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000015 /* Component_MIDI.c */; };
 		A1B2C3D4E5F6000000000014 /* BVHreader.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000013 /* BVHreader.c */; };
@@ -270,6 +271,7 @@
 		52DA6A3E1577D31900130065 /* Component_NURBS.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_NURBS.c; sourceTree = "<group>"; };
 		52DA6A3F1577D31900130065 /* Component_Picking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_Picking.c; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000001 /* Component_TextureProjector.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_TextureProjector.c; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000019 /* GLCoreCompat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = GLCoreCompat.c; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000017 /* Decompose.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Decompose.c; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000015 /* Component_MIDI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Component_MIDI.c; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000013 /* BVHreader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BVHreader.c; sourceTree = "<group>"; };
@@ -595,6 +597,7 @@
 				52DA6A101577D31900130065 /* Material.c */,
 				52DA6A111577D31900130065 /* Material.h */,
 				52DA6A121577D31900130065 /* OpenGL_Utils.c */,
+				A1B2C3D4E5F6000000000019 /* GLCoreCompat.c */,
 				52DA6A131577D31900130065 /* OpenGL_Utils.h */,
 				52DA6A141577D31900130065 /* OSX_miniglew.c */,
 				52DA6A151577D31900130065 /* OSX_miniglew.h */,
@@ -1050,6 +1053,7 @@
 				52DA6AE91577D31A00130065 /* Component_NURBS.c in Sources */,
 				52DA6AEA1577D31A00130065 /* Component_Picking.c in Sources */,
 				A1B2C3D4E5F6000000000002 /* Component_TextureProjector.c in Sources */,
+				A1B2C3D4E5F600000000001A /* GLCoreCompat.c in Sources */,
 				A1B2C3D4E5F6000000000018 /* Decompose.c in Sources */,
 				A1B2C3D4E5F6000000000016 /* Component_MIDI.c in Sources */,
 				A1B2C3D4E5F6000000000014 /* BVHreader.c in Sources */,
@@ -1240,7 +1244,6 @@
 					/usr/include/malloc/,
 					/opt/homebrew/opt/openal-soft/include/,
 				);
-				"HEADER_SEARCH_PATHS[sdk=macosx*]" = /opt/homebrew/include/;
 				INFOPLIST_FILE = "FreeWRL/FreeWRL-Info.plist";
 				USER_HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../freex3d/src/lib",
@@ -1272,7 +1275,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				New_Setting = "";
-				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "freewrl.sf.net.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;

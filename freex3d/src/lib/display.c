@@ -437,6 +437,11 @@ void fwl_updateScreenDim(int wi, int he)
  * In any case we setup the rdr_capabilities struct.
  */
  int get_GLSL_max_version();
+bool rdr_caps_av_ssbo()
+{
+	ppdisplay p = (ppdisplay)gglobal()->display.prv;
+	return p->rdr_caps.av_ssbo;
+}
 bool initialize_rdr_caps()
 {
 	//s_renderer_capabilities_t *rdr_caps;
@@ -463,7 +468,11 @@ bool initialize_rdr_caps()
         p->rdr_caps.renderer   = (char *) FW_GL_GETSTRING(GL_RENDERER);
         p->rdr_caps.version    = (char *) FW_GL_GETSTRING(GL_VERSION);
         p->rdr_caps.vendor     = (char *) FW_GL_GETSTRING(GL_VENDOR);
+#ifdef FW_GL_CORE_PROFILE
+	p->rdr_caps.extensions = NULL; //core profile: glGetStringi(GL_EXTENSIONS, i) only
+#else
 	p->rdr_caps.extensions = (char *) FW_GL_GETSTRING(GL_EXTENSIONS);
+#endif
     FW_GL_GETBOOLEANV(GL_STEREO,&(p->rdr_caps.quadBuffer));
     //if (rdr_caps.quadBuffer) ConsoleMessage("INIT HAVE QUADBUFFER"); else ConsoleMessage("INIT_ NO QUADBUFFER");
     ConsoleMessage("openGL version %s\n",p->rdr_caps.version);
@@ -511,6 +520,10 @@ bool initialize_rdr_caps()
     p->rdr_caps.have_GL_VERSION_2_0 = p->rdr_caps.versionf >= 2.0f;
     p->rdr_caps.have_GL_VERSION_2_1 = p->rdr_caps.versionf >= 2.1f;
     p->rdr_caps.have_GL_VERSION_3_0 = p->rdr_caps.versionf >= 3.0f;
+	/* GL_EXTENSIONS is not queryable this way in a core profile, so rely on the version there */
+	p->rdr_caps.av_ssbo = p->rdr_caps.versionf >= 4.3f ||
+		(p->rdr_caps.extensions && strstr(p->rdr_caps.extensions, "GL_ARB_shader_storage_buffer_object"));
+	ConsoleMessage("shader storage buffers %s\n", p->rdr_caps.av_ssbo ? "available" : "not available (HAnim uses CPU skinning)");
 
 
 	/* Initialize renderer capabilities without GLEW */
@@ -585,7 +598,11 @@ bool initialize_rdr_caps()
 	}
 	if(1){
 		int actualbits;
+#ifdef FW_GL_CORE_PROFILE
+		glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &actualbits);
+#else
 		glGetIntegerv(GL_DEPTH_BITS, &actualbits);
+#endif
 		ConsoleMessage("depth bits %d\n",actualbits);
 	}
 	/* print some debug infos */
