@@ -11,4 +11,5 @@ lineproperties.x3d     LineProperties widths and a dashed line type
 cubemap_generated.x3d  GeneratedCubeMapTexture (framebuffer + cube map render)
 shadows_*.x3d          light shadows TRUE: directional and spot (2D depth map), point (cube depth map)
 texture_formats.wrl    JPEG, PNG and GIF ImageTexture
+text_fonts.wrl         Text in every FontStyle family/style (fonts read from the font directory)
 x3d_meta.x3d           X3D <meta> tags in <head> (6.7 parser crash, all platforms)
