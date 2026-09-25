@@ -36,8 +36,8 @@ OLD_IPHONE_AQUA #include <system_threads.h>
 OLD_IPHONE_AQUA #endif
 */
 
-#ifdef _MSC_VER
-#include <system_threads.h>
+#if defined(_MSC_VER) || defined(AQUA)
+#include <system_threads.h> //_THREAD_NULL_ for generated node initializers
 #endif
 
 #ifdef _ANDROID

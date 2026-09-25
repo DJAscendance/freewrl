@@ -37,6 +37,7 @@ X3D Geospatial Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "Component_Grouping.h"
 
 #include "../world_script/fieldSet.h"
 #include "../x3d_parser/Bindable.h"

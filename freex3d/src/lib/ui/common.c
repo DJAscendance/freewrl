@@ -26,6 +26,7 @@
 #include <libFreeWRL.h>
 #include <iglobal.h>
 #include "../ui/common.h"
+#include "../main/MainLoop.h"
 #include <scenegraph/Vector.h>
 
 // OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (AQUA)  || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
@@ -242,7 +243,9 @@ void _playbackthread(ttglobal tglobal) {
 			mouseY = (int)((fmouseY + 1.0)/scale + .5f);
 			mouseX = (int)((fmouseX + 1.0)/scale + .5f);
 			cstyle = fwl_handle_mouse0(mev, butnum, mouseX, mouseY, windex);
-			updateCursorStyle0(cstyle);
+#ifdef _MSC_VER
+			updateCursorStyle0(cstyle); //other frontends poll getCursorStyle()
+#endif
 			break;
 		case 'T':
 			sscanf(line, "%c,%d,%u,%f,%f,%d,%lf\n", &cc, &mev, &ID, &fmouseX, &fmouseY, &windex, &dtime);
@@ -255,7 +258,9 @@ void _playbackthread(ttglobal tglobal) {
 			mouseY = (int)(fmouseY + 1.0) / scale;
 			mouseX = (int)(fmouseX + 1.0) / scale;
 			cstyle = fwl_handle_touch0(mev, ID, mouseX, mouseY, windex);
-			updateCursorStyle0(cstyle);
+#ifdef _MSC_VER
+			updateCursorStyle0(cstyle); //other frontends poll getCursorStyle()
+#endif
 			break;
 		case 'K':
 			sscanf(line, "%c,%d,%d,%lf\n", &cc, &key, &type, &dtime);

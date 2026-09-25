@@ -37,6 +37,7 @@ X3D Environmental Sensors Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../ui/common.h"
 
 #include "LinearAlgebra.h"
 #include "Component_Geospatial.h"

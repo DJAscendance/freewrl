@@ -23,6 +23,7 @@ void render_GeneratedCubeMapTexture(struct X3D_GeneratedCubeMapTexture *node);
 void render_ImageCubeMapTexture(struct X3D_ImageCubeMapTexture *node);
 
 void unpackImageCubeMap (textureTableIndexStruct_s* me);
+void printFramebufferStatusIfNotComplete(int status);
 int textureIsDDS(textureTableIndexStruct_s* this_tex, char *filename);
 
 

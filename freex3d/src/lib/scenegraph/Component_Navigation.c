@@ -36,6 +36,7 @@ X3D Navigation Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../ui/common.h"
 
 #include "../x3d_parser/Bindable.h"
 #include "LinearAlgebra.h"

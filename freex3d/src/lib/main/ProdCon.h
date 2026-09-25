@@ -38,4 +38,7 @@ void resitem_queue_exit();
 void resitem_enqueue_tg(s_list_t *item, void* tg);
 bool parser_process_res_VRML_X3D(resource_item_t *res);
 
+int parser_do_parse_gltf(const char *input, const int len, struct X3D_Node *ectx, struct X3D_Node *myParent); /* gltf_loader.c */
+void process_mocap(resource_item_t *res); /* Component_HAnim.c */
+
 #endif /* __FREEWRL_PRODCON_MAIN_H__ */

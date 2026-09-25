@@ -28,6 +28,7 @@
 
 #include "../vrml_parser/Structs.h"
 #include "main/headers.h"
+#include "opengl/Frustum.h"
 #include "vrml_parser/Structs.h"
 #include "scenegraph/Viewer.h"
 #include "scenegraph/Component_Shape.h"

@@ -35,6 +35,7 @@ X3D Particle Systems Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../opengl/LoadTextures.h"
 
 #include "../world_script/fieldSet.h"
 #include "../x3d_parser/Bindable.h"
@@ -1386,8 +1387,10 @@ void display_imagedata4(unsigned char* texdata, int width, int height, int image
 		sprintf(namebuf, "C:\\tmp\\sinkmap%d.web3dit", imageIndex);
 		saveImage_web3dit(&tts, namebuf);
 	}
+#if !defined(FRONTEND_DOES_SNAPSHOTS) //Snapshot.c is compiled out when the frontend does snapshots
 	sprintf(namebuf, "C:\\tmp\\sinkmap%d.bmp", imageIndex);
 	saveSnapshotBMP(namebuf, tts.texdata, tts.channels, tts.x, tts.y);
+#endif
 
 	// popup image doesn't render here (but cubemap use does work)
 	//glActiveTexture(GL_TEXTURE0);

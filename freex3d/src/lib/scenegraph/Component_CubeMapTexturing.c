@@ -34,6 +34,7 @@ X3D Cubemap Texturing Component
 #include <libFreeWRL.h>
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../scenegraph/RenderFuncs.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"

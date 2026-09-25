@@ -36,6 +36,7 @@ X3D Shape Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "Component_Grouping.h"
 #include "../opengl/Frustum.h"
 #include "../opengl/Material.h"
 #include "../opengl/OpenGL_Utils.h"

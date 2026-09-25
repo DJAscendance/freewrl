@@ -38,4 +38,11 @@ void fwl_replaceWorldNeededRes(resource_item_t *multiResWithParent);
 
 void fwl_gotoCurrentViewPoint();
 
+char* fwl_currentBoundVPname();
+void fwl_do_keyPress0(int key, int type);
+int fwl_handle_mouse0(int mev, int butnum, int mouseX, int mouseY, int windex);
+int fwl_handle_touch0(int mev, unsigned int ID, int mouseX, int mouseY, int windex);
+void pushnset_framebuffer(int ibuffer);
+void popnset_framebuffer();
+
 #endif /* __FREEWRL_MAINLOOP_MAIN_H__ */
