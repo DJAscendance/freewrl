@@ -15,9 +15,11 @@ and mobile platform targets.
 
 - **Original project.** FreeWRL is the original open-source VRML97/X3D
   browser hosted on SourceForge: <https://sourceforge.net/projects/freewrl/>.
-  Its authors and contributors wrote FreeWRL and hold its copyrights.
+  FreeWRL was written by its original authors and contributors, who retain
+  their copyrights.
 - **This repository.** This GitHub repository is Ryan Bundy's
-  (DJAscendance) fork and development mirror of that project.
+  (DJAscendance) fork and development mirror of that project. It is not the
+  official upstream.
 - **Current modernization.** The fork is restoring modern platform support,
   starting with native Apple Silicon macOS support for the FreeWRL 6.7 code
   line.
@@ -33,6 +35,14 @@ this fork belong on this repository.
 | `master` | Exact mirror of upstream `master` at `e99ab4a00` (2020-02-21), the older stable line. |
 | `macos-arm64-develop-port` | The Apple Silicon port of FreeWRL 6.7. Under review as a pull request into `develop`; not merged. |
 | `macos-arm64` | An earlier Mac port of the 2020 `master` line, kept for reference. |
+
+## Version
+
+The fork's `develop` branch is FreeWRL 6.7:
+
+- SourceForge `develop` commit `b3254b11e` is titled `Version 6.7`.
+- `freex3d/src/buildversion.h` reports version `6.7.0`.
+- `freex3d/versions/FREEWRL` is stale and still reports `5.0.0`.
 
 ## Supported formats
 
@@ -50,17 +60,18 @@ this fork belong on this repository.
 
 - It builds natively for arm64 with Xcode and Homebrew libraries.
 - It runs on an OpenGL 4.1 core context (the highest version macOS offers).
-- There is **no downloadable standalone Mac build yet.** The app still links
+- There is **no standalone downloadable Mac package yet.** The app still links
   Homebrew dylibs, so it only runs on a Mac with those libraries installed.
 - Some interactive checks (keyboard quit, Retina mouse picking and
   navigation, HUD clicks) are still waiting on a manual pass before any
   binary release; see
   [`docs/MANUAL-INTERACTION-CHECKLIST.md`](docs/MANUAL-INTERACTION-CHECKLIST.md).
 
+Review: [pull request #2](https://github.com/DJAscendance/freewrl/pull/2).
 Detailed engineering status, per-feature evidence, and the OpenGL
-compatibility layer are documented in
-[`MACOS-STATUS.md`](https://github.com/DJAscendance/freewrl/blob/macos-arm64-develop-port/MACOS-STATUS.md)
-on the port branch.
+compatibility layer are in
+[`MACOS-STATUS.md` on the `macos-arm64-develop-port` branch](https://github.com/DJAscendance/freewrl/blob/macos-arm64-develop-port/MACOS-STATUS.md);
+that file is part of the Apple Silicon review branch until it merges.
 
 ## Build instructions
 
@@ -168,10 +179,16 @@ Known FreeWRL 6.7 defects, present upstream and not introduced by the port:
 ## License and attribution
 
 FreeWRL was written by its original authors and the FreeWRL/FreeX3D
-contributors. Portions are copyright CRC Canada and others, as noted in the
-source headers. It is distributed under the GNU Lesser General Public License
-version 3 (see `freex3d/COPYING.LESSER` and `freex3d/COPYING`). Bundled
-third-party libraries in `freex3d/src/` carry their own licenses.
+contributors, who retain their copyrights. Most source files carry the
+notice "Copyright 2009 CRC Canada"; some files name other copyright holders.
+
+The source headers license FreeWRL under the GNU Lesser General Public
+License, version 3 or (at your option) any later version. The repository
+ships the LGPL v3 text in `freex3d/COPYING.LESSER` and the GNU GPL v3 text,
+which the LGPL builds on, in `freex3d/COPYING`. The header boilerplate also
+refers to the GPL in its warranty and "copy of the license" lines. Bundled
+third-party code (for example SpiderMonkey in `freewrl/JS/`, duktape, libtess,
+minizip) keeps its own license.
 
 This fork's changes are offered under the same license. The FreeWRL logo is
 the project's own artwork; see [`docs/assets/README.md`](docs/assets/README.md).
