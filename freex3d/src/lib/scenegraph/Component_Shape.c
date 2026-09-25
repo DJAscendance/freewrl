@@ -1442,6 +1442,9 @@ void child_Shape (struct X3D_Shape *node) {
 	if((renderstate()->render_collision) || (renderstate()->render_sensitive) || (renderstate()->render_other) || (renderstate()->render_depth)) {
 		/* only need to forward the call to the child */
 		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *,node->geometry,tmpNG);
+		//this Shape wraps the geometry: without it render_node() takes the geometry for a naked
+		//one and wraps it in a new Shape (wrap_Shape), which comes back here - endless recursion
+		push_shape(node);
 		if (renderstate()->render_depth) {
 			if (node->castShadow) {
 				PRINT_GL_ERROR_IF_ANY("child_shape depth start");
@@ -1466,6 +1469,7 @@ void child_Shape (struct X3D_Shape *node) {
 		else {
 			render_node(tmpNG);
 		}
+		pop_shape();
 		return;
 	}
 	if ((renderstate()->render_cube) && hasGeneratedCubeMapTexture((struct X3D_Appearance*)node->appearance))
