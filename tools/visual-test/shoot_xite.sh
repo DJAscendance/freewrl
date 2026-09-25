@@ -13,7 +13,7 @@ CW=$((W / 2)) CH=$((HT / 2))
 PROFILE=$(mktemp -d -t freewrl-vt-chrome)
 RAWLOG="$PROFILE.log"
 PID=
-cleanup() { [ -n "$PID" ] && kill $PID 2>/dev/null; rm -rf "$PROFILE" "$RAWLOG"; }
+cleanup() { [ -z "$PID" ] || kill $PID 2>/dev/null || true; rm -rf "$PROFILE" "$RAWLOG"; }
 # sh skips the EXIT trap when killed by a signal: clean up (and stop Chrome) on those too
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT TERM
