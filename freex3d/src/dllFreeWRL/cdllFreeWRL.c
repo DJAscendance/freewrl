@@ -321,7 +321,7 @@ DLLFREEWRL_API char* dllFreeWRL_resitem_getURL(void *fwctx, void *res){
 	return url;
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getStatus(void *fwctx, void *res){
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		status = fwl_resitem_getStatus(res);
 	}
@@ -336,7 +336,7 @@ DLLFREEWRL_API void dllFreeWRL_resitem_setStatus(void *fwctx, void *res, int sta
 
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)){
 		status = fwl_resitem_getType(res);
 	}
@@ -344,7 +344,7 @@ DLLFREEWRL_API int dllFreeWRL_resitem_getType(void *fwctx, void *res){
 	return status;
 }
 DLLFREEWRL_API int dllFreeWRL_resitem_getMediaType(void *fwctx, void *res) {
-	int status;
+	int status = 0;
 	if (fwl_setCurrentHandle(fwctx, __FILE__, __LINE__)) {
 		status = fwl_resitem_getMediaType(res);
 	}

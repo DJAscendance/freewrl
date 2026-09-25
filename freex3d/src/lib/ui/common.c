@@ -228,7 +228,7 @@ void _playbackthread(ttglobal tglobal) {
 	strcat(name, ".fwplay");
 	FILE *fplay = fopen(name, "r+");
 	run_time = Time1970sec();
-	while (fscanf(fplay, "%s", &line)>0) {
+	while (fscanf(fplay, "%s", line)>0) {
 		//printf("%s\n",line);
 		switch (line[0]) {
 		case 'M':

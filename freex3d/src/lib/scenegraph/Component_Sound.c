@@ -452,7 +452,7 @@ void render_AudioClip(struct X3D_AudioClip* node) {
 
 	/* is this audio wavelet initialized yet? */
 	if (node->__loadstatus != LOAD_STABLE) {
-		locateAudioSource(node);
+		locateAudioSource((struct X3D_AudioBuffer*)node); //downcast to share resource loading code
 	}
 	if (node->__loadstatus != LOAD_STABLE) return;
 	/* is this audio ok? if so, the sourceNumber will range

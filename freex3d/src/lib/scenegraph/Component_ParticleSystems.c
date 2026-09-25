@@ -1825,7 +1825,7 @@ void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp)
 	float rgbaf[4], rgbac[4], rgba[4], fraclife;
 	found = FALSE;
 	fraclife = pp->age / pp->lifespan;
-	for(j=0;j<node->colorKey.n;j++){
+	for(j=0;j<node->colorKey.n-1;j++){ //reads key j+1
 		if(node->colorKey.p[j] <= fraclife && node->colorKey.p[j+1] > fraclife){
 			ifloor = j;
 			iceil = j+1;
@@ -1837,9 +1837,10 @@ void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp)
 		float spread, fraction;
 		struct SFColorRGBA * crgba = NULL;
 		struct SFColor *crgb = NULL;
-		struct X3D_Node* color_ramp;
+		struct X3D_Node* color_ramp = NULL;
 		if (node->colorRamp) color_ramp = node->colorRamp;
 		else if (node->color) color_ramp = node->color;
+		if (!color_ramp) return;
 		switch(color_ramp->_nodeType){
 			case NODE_ColorRGBA: crgba = ((struct X3D_ColorRGBA *)color_ramp)->color.p; break;
 			case NODE_Color: crgb = ((struct X3D_Color *)color_ramp)->color.p; break;
@@ -1870,6 +1871,7 @@ void updateTexCoordRamp(struct X3D_ParticleSystem *node, particle *pp, float *te
 	float fraclife, fracKey;
 
 	ifloor = 0; 
+	found = FALSE;
 	fraclife = pp->age / pp->lifespan;
 	fracKey = 1.0f / (float)(node->texCoordKey.n); 
 	//if(node->_geometryType != GEOM_LINE)

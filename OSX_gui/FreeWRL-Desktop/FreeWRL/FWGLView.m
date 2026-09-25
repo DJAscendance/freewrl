@@ -620,6 +620,8 @@ mouseDisplaySensitive = mouseOverSensitive; \
 {
     GLint swapInt = 1;
 
+    [super prepareOpenGL];
+
     fprintf(stderr, "GL_VERSION %s\nGL_SHADING_LANGUAGE_VERSION %s\nGL_RENDERER %s\n",
         (const char *)glGetString(GL_VERSION), (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION),
         (const char *)glGetString(GL_RENDERER));
