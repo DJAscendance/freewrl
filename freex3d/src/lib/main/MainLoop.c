@@ -7363,8 +7363,8 @@ void fwl_doQuit(char *fl, int ln)
 {
 	ttglobal tg = gglobal();
 	tg->threads.MainLoopQuit = max(1,tg->threads.MainLoopQuit); //make sure we don't go backwards in the quit process with a double 'q'
-	// printf ("fwl_doQuit - setting MainLoopQuit to %d from file %s:%d\n", tg->threads.MainLoopQuit,
-	// fl,ln);
+	fprintf (stderr,"fwl_doQuit - setting MainLoopQuit to %d from file %s:%d\n", tg->threads.MainLoopQuit,
+	fl,ln);
 }
 
 void fwl_doQuitAndWait(){

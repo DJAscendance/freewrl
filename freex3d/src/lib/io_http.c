@@ -265,6 +265,11 @@ char* download_url_curl(char *parsed_request, char *temp_dir)
 	return NULL;	
     }   
 
+	// curl_global_init is not thread-safe and downloads run on several threads at once
+	{
+		static pthread_once_t curl_once = PTHREAD_ONCE_INIT;
+		pthread_once(&curl_once, init_curl);
+	}
 	// https://curl.haxx.se/libcurl/c/threadsafe.html
 	//https://curl.haxx.se/libcurl/c/multithread.html
 	//- we need a separate handle for each thread which we do with url2file_tactic_spawn in desktop.c
@@ -296,6 +301,13 @@ char* download_url_curl(char *parsed_request, char *temp_dir)
 			curl_easy_cleanup(curl_h);
 			return temp;
 		}
+	}
+	if (success != CURLE_OK) {
+		fprintf(stderr, "download_url_curl: %s: %s\n", safe_url, curl_easy_strerror(success));
+	} else {
+		long code = 0;
+		curl_easy_getinfo(curl_h, CURLINFO_RESPONSE_CODE, &code);
+		fprintf(stderr, "download_url_curl: %s: HTTP %ld\n", safe_url, code);
 	}
 	//else if (success != CURLE_OK) or response == 404
 	//if (success != CURLE_OK) fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(success));
