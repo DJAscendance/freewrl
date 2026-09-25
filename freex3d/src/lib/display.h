@@ -74,7 +74,10 @@ Functions:
  #include <OpenGL/OpenGL.h>
  #include <OpenGL/CGLTypes.h>
  
- #include <AGL/AGL.h> 
+ /* AGL was removed from modern macOS SDKs (and is unused); it used to pull these in */
+ #include <sys/types.h>
+ #include <pthread.h>
+ #include <signal.h>
  #endif /* defined IPHONE */
 #endif /* defined TARGET_AQUA  */
 
@@ -935,4 +938,31 @@ void resetGeometry();
 	#define FW_GL_LISTBASE(aaa) glListBase(aaa)
 	#define FW_GL_DRAWPIXELS(aaa,bbb,ccc,ddd,eee) glDrawPixels(aaa,bbb,ccc,ddd,eee)
 	
+#if defined(AQUA) && !defined(IPHONE)
+/* macOS OpenGL stops at 4.1: no GL 4.5 direct state access. Emulate what the library calls. */
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#ifndef GL_TEXTURE_TARGET
+#define GL_TEXTURE_TARGET 0x1006
+#endif
+#ifndef GL_TEXTURE_2D_ARRAY
+#define GL_TEXTURE_2D_ARRAY 0x8C1A
+#endif
+static inline void fw_glBindTextureUnit(GLuint unit, GLuint texture){
+	/* only ever called with texture 0: unbind every target on the unit, keep the active unit */
+	GLint prev;
+	glGetIntegerv(GL_ACTIVE_TEXTURE, &prev);
+	glActiveTexture(GL_TEXTURE0 + unit);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+	glBindTexture(GL_TEXTURE_3D, texture);
+	glActiveTexture(prev);
+}
+#define glBindTextureUnit fw_glBindTextureUnit
+static inline void fw_glGetTextureParameteriv(GLuint texture, GLenum pname, GLint *params){
+	(void)texture; (void)pname; *params = 0; /* debug-print use only */
+}
+#define glGetTextureParameteriv fw_glGetTextureParameteriv
+#endif /* AQUA && !IPHONE */
+
 #endif /* __LIBFREEWRL_DISPLAY_H__ */

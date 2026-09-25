@@ -90,6 +90,7 @@ ecma primitive instead of one of the above, and never generate a new one of thes
 */
 
 int type2SF(int itype);
+void deleteMallocedFieldValue(int type,union anyVrml *fieldPtr); //in CParseParser.c
 
 
 int SFFloat_valueOf(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval)

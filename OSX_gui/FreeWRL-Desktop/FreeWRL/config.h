@@ -26,6 +26,23 @@
 #define HAVE_STDINT_H 1
 #define HAVE_STDBOOL_H 1
 #define HAVE_UNISTD_H 1
+//standard headers: older SDKs pulled these in transitively (e.g. via AGL), modern ones do not
+#define STDC_HEADERS 1
+#define HAVE_SYS_TYPES_H 1
+#define HAVE_CTYPE_H 1
+#define HAVE_STRING_H 1
+#define HAVE_LIMITS_H 1
+#define HAVE_MATH_H 1
+#define HAVE_SYS_STAT_H 1
+#define HAVE_SYS_TIME_H 1
+#define HAVE_TIME_H 1
+#define HAVE_FCNTL_H 1
+#define HAVE_STDLIB_H 1
+#define HAVE_INTTYPES_H 1
+#define HAVE_SCHED_H 1
+#define HAVE_SYS_SOCKET_H 1
+#define HAVE_STRNLEN 1
+#define HAVE_STRNDUP 1
 #define HAVE_SYS_WAIT_H 1
 #define HAVE_PTHREAD 1
 #define HAVE_GETOPT_H 1
@@ -41,15 +58,17 @@
 //duktape js engine is compiled into freewrl project, nothing to download or install
 #define JAVASCRIPT_DUK 1
 //macports: sudo port -t install alut (will also install openal)
+//image loading (jpg/png/gif textures): brew install imlib2
+#define HAVE_IMLIB2 1
 #define HAVE_ALUT 1
 #define HAVE_OPENAL 1
 //macports: sudo port -t install ffmpeg
-#define MOVIETEXTURE_FFMPEG 1
+//#define MOVIETEXTURE_FFMPEG 1 //Homebrew ffmpeg 8 lacks the ffmpeg-4 APIs MPEG_Utils_ffmpeg.c uses
 //macports: sudo port -t install ode
 #define WITH_RBP 1
 //nurbs is part of glu in osx opengl, just define
 #define NURBS_LIB 1
 //spidermonkey aka mozjs17 via macports -on commandline can switch to duk with -J duk (or to SM with -J sm2)
-#define JAVASCRIPT_SM 1
+//#define JAVASCRIPT_SM 1 //no mozjs17 in Homebrew; use bundled duktape
 #define JAVASCRIPT_ENGINE_VARIANT 1 //1 = SM1 2 = SM2 - (default in libfreewrl is 2, mozjs17 not GCing so SM1 is better on mac
 

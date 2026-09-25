@@ -59,6 +59,8 @@ void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
 void sendElementsToGPU0 (int mode, int count, int type, void *indices);
 void saveElementsForGPU0(int mode, int count, int type, void* indices);
+void saveArraysForGPU(int mode, int first, int count);
+void reallyDrawOnce();
 void render_hier(struct X3D_Node *p, int rwhat);
 void restoreGlobalShader();
 

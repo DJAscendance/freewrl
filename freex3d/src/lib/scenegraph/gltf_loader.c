@@ -8,6 +8,7 @@
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../main/ProdCon.h"
 
 #include "../input/EAIHeaders.h"
 #include "../input/EAIHelpers.h"
@@ -996,7 +997,7 @@ int parse_gltf_node(struct X3D_Node *ectx, struct X3D_Node **spot, cgltf_data * 
 				}
 				//printf("adding shape to mesh group\n");
 				//vector_pushBack(void *, &gr->children, sn);
-				AddRemoveChildren(X3D_NODE(gr), offsetPointer_deref(void*, gr, offsetof(struct X3D_Group, children)), &X3D_NODE(sn), 1, 1, __FILE__, __LINE__);
+				AddRemoveChildren(X3D_NODE(gr), offsetPointer_deref(void*, gr, offsetof(struct X3D_Group, children)), (struct X3D_Node **)&sn, 1, 1, __FILE__, __LINE__);
 			}
 		}
 		//printf("adding mesh\n");

@@ -3708,6 +3708,7 @@ void clear_shader_table()
 /**
  *   fwl_initializa_GL: initialize GLEW (->rdr caps) and OpenGL initial state
  */
+#ifdef DEBUG_OPENGL
  void GLAPIENTRY MessageCallback( GLenum source,
                  GLenum type,
                  GLuint id,
@@ -3725,6 +3726,7 @@ void clear_shader_table()
 		getchar();
 	}
 }
+#endif //DEBUG_OPENGL
 
 bool fwl_initialize_GL()
 {

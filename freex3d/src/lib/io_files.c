@@ -62,6 +62,7 @@
 #endif
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
 #if defined (INCLUDE_STL_FILES)
 #include "input/convertSTL.h"
 #endif //INCLUDE_STL_FILES
