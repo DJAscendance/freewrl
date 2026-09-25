@@ -4,6 +4,7 @@
 # window, crops to the 3D view, and quits it. Log goes to <out>.log,
 # the uncropped window to <out>.window.png.
 #   FREEWRL_APP  app bundle (default ~/Applications/FreeWRL.app)
+#   FREEWRL_ARGS extra FreeWRL options before the world, e.g. "--shadingStyle 1"
 #   CROP_TOP     title + URL bar to remove, in pixels (Retina default)
 #   CROP_BOTTOM  HUD bar to remove, in pixels; default: measured from the capture
 #                (FreeWRL 6.x's HUD wraps to one or more rows depending on window width)
@@ -19,10 +20,12 @@ RAW="${OUT%.png}.window.png"
 pkill -f "FreeWRL.app/Contents/MacOS/FreeWRL" 2>/dev/null || true
 sleep 1
 : > "$LOG"
-open -g -n --stdout "$LOG" --stderr "$LOG" -a "$APP" --args "$1"
+# shellcheck disable=SC2086
+open -g -n --stdout "$LOG" --stderr "$LOG" -a "$APP" --args ${FREEWRL_ARGS:-} "$1"
 sleep "${3:-12}"
 WID=$("$H/.bin/winid" FreeWRL || true)
 if [ -z "$WID" ]; then
+	pkill -f "FreeWRL.app/Contents/MacOS/FreeWRL" 2>/dev/null || true # don't leave it running
 	echo "no FreeWRL window (crashed? see $LOG and ~/Library/Logs/DiagnosticReports)" >&2
 	exit 1
 fi

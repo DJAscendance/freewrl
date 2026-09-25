@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "http://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile='Immersive' version='3.3'>
+  <head>
+    <component name='HAnim' level='1'/>
+    <meta name='description' content='HAnim CPU skinning, static. Pass: the upper half of the orange bar is bent to the left about the joint at the bar middle (rotation 0.9 rad). An unskinned (straight) bar means skinning did not run.'/>
+  </head>
+  <Scene>
+    <Background skyColor='0.2 0.2 0.3'/>
+    <Viewpoint position='0 0 5' description='front'/>
+    <HAnimHumanoid DEF='Humanoid' name='fixture' translation='0 -1 0'>
+      <HAnimJoint containerField='skeleton' DEF='RootJoint' name='humanoid_root'
+          skinCoordIndex='0 1 2 3' skinCoordWeight='1 1 1 1'>
+        <HAnimJoint DEF='UpperJoint' name='vl5' center='0 1 0' rotation='0 0 1 0.9'
+            skinCoordIndex='4 5' skinCoordWeight='1 1'/>
+      </HAnimJoint>
+      <HAnimJoint USE='RootJoint' containerField='joints'/>
+      <HAnimJoint USE='UpperJoint' containerField='joints'/>
+      <Coordinate DEF='SkinCoord' containerField='skinCoord'
+          point='-0.3 0 0  0.3 0 0  -0.3 1 0  0.3 1 0  -0.3 2 0  0.3 2 0'/>
+      <Shape containerField='skin'>
+        <Appearance><Material diffuseColor='1 0.6 0.1'/></Appearance>
+        <IndexedFaceSet solid='false' coordIndex='0 1 3 2 -1 2 3 5 4 -1'>
+          <Coordinate USE='SkinCoord'/>
+        </IndexedFaceSet>
+      </Shape>
+    </HAnimHumanoid>
+  </Scene>
+</X3D>
