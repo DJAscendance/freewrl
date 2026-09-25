@@ -84,7 +84,8 @@ Fixtures are in `freewrl/tests/regression/` (see its README); each states what a
 | ✅ | HUD layout | one row of 21 buttons at: Retina, 672-pt window (was two rows); Retina, 1200×800-pt window (full-size buttons, room to spare); non-Retina (app copy with `NSHighResolutionCapable` off), 672-px window |
 | 🟡 | HUD hit targets | drawing and hit testing now use the same per-frame geometry; not exercised with real clicks yet |
 | ✅ | Quit from the app menu / Apple event | clean exit, no crash report |
-| 🟡 | `q` key quit, mouse picking and navigation on Retina, click tests 8 and 10 | not verified: synthetic input needs Accessibility permission for the terminal running the tests |
+| 🟡 | `q` key quit | the Cocoa bridge sent `keyDown:` as `KEYDOWN` only, so no `KEYPRESS` reached the hotkey switch (found by manual QA). Fixed: `keyDown:` now sends `KEYDOWN` then `KEYPRESS` (not for Command chords or arrow/function keys), as on Win32/X11. A synthetic `q` (System Events) quit cleanly; a physical key press is still to be verified |
+| 🟡 | Mouse picking and navigation on Retina, click tests 8 and 10 | not verified: synthetic input needs Accessibility permission for the terminal running the tests |
 | 🟡 | Sound | tests/50.wrl loads; audio output not verified |
 | ✅ | Brightness vs master | explained, upstream; see below |
 | 🟡 | HAnimHumanoid translation/rotation/scale | not applied: the node has no prep/fin render functions upstream (all platforms, both skinning methods). The fixtures place the viewpoint instead |
@@ -139,6 +140,10 @@ Two REGRESSION rows remain on purpose: they are real differences from the refere
 - Shadows: since `304e78bfc` (2023-12) every Shape rendered into a shadow map recursed until the stack overflowed.
 - Missing prototypes, including four pointer-returning functions that an implicit declaration truncates on 64-bit targets.
 - A variable defined in `Component_Shape.h` (duplicate symbol under clang's default `-fno-common`).
+
+## Fixed on this branch (macOS frontend)
+
+- Keyboard: `FWGLView` sent every key as `KEYDOWN` (a local `#define KeyPress 2`), never `KEYPRESS`, so every one-shot hotkey (`q`, viewer modes, `v`/`b` viewpoints, `h` headlight, `c` collision, the `:` command line, ...) and StringSensor did nothing. The mapping is in `FWKeyEvents.h`; `tools/key-events-test/run.sh` tests it.
 
 ## Next up
 

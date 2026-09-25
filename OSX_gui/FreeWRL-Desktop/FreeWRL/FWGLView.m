@@ -3,6 +3,7 @@
 //#import "UrlDownloader.h"
 #import "../../../freex3d/src/lib/libFreeWRL.h"
 #import "../../../freex3d/src/dllFreeWRL/cdllFreeWRL.h"
+#import "FWKeyEvents.h"
 // ==================================
 
 
@@ -276,8 +277,6 @@ void initialize_freewrl(){
 
 #pragma mark ---- Method Overrides ----
 
-#define KeyPress        2
-#define KeyRelease      3
 #define ButtonPress     4
 #define ButtonRelease   5
 #define MotionNotify    6
@@ -472,36 +471,37 @@ mouseDisplaySensitive = mouseOverSensitive; \
 	}
 
 }
-- (void) keyUp: (NSEvent*) theEvent
+- (void) sendKeyEvent: (NSEvent*) theEvent isKeyUp: (int) isKeyUp
 {
     NS_DURING
     NSString* character = [theEvent characters];
+    unichar uc;
     char ks;
-    ks = (char) [character characterAtIndex: 0];
+    int actions[FW_MAX_KEY_ACTIONS];
+    int i, n;
+    uc = [character characterAtIndex: 0];
+    ks = (char) uc;
+    n = fw_cocoa_key_actions(isKeyUp,
+            ([theEvent modifierFlags] & NSEventModifierFlagCommand) != 0,
+            uc, actions);
+    for (i = 0; i < n; i++) {
 	if(!usingCdllFreewrl){
-    fwl_do_keyPress(ks, KeyRelease);
+    fwl_do_keyPress(ks, actions[i]);
 	}else{
-		dllFreeWRL_onKey(fwctx,KeyRelease,ks);
+		dllFreeWRL_onKey(fwctx,actions[i],ks);
 	}
+    }
     NS_HANDLER
     return;
     NS_ENDHANDLER
 }
+- (void) keyUp: (NSEvent*) theEvent
+{
+    [self sendKeyEvent: theEvent isKeyUp: 1];
+}
 - (void) keyDown: (NSEvent*) theEvent
 {
-    NS_DURING
-    NSString* character = [theEvent characters];
-    char ks;
-    ks = (char) [character characterAtIndex: 0];
-    //NSLog(@"got char down: ll%cll\n", ks);
-	if(!usingCdllFreewrl){
-    fwl_do_keyPress(ks, KeyPress);
-	}else{
-		dllFreeWRL_onKey(fwctx,KeyPress,ks);
-	}
-    NS_HANDLER
-    return;
-    NS_ENDHANDLER
+    [self sendKeyEvent: theEvent isKeyUp: 0];
 }
 
 // ---------------------------------
