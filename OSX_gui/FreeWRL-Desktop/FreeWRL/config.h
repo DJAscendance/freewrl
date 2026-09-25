@@ -26,6 +26,8 @@
 #define HAVE_STDINT_H 1
 #define HAVE_STDBOOL_H 1
 #define HAVE_UNISTD_H 1
+//Apple deprecated OpenGL in 10.14 but still ships 4.1 core; FreeWRL uses it knowingly
+#define GL_SILENCE_DEPRECATION 1
 //standard headers: older SDKs pulled these in transitively (e.g. via AGL), modern ones do not
 #define STDC_HEADERS 1
 #define HAVE_SYS_TYPES_H 1

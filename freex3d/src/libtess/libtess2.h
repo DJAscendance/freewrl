@@ -39,7 +39,7 @@
 	#define GLdouble double
 #else
 #ifdef AQUA
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h> //macOS: 4.1 core profile
 #else
     #include <GL/gl.h>
 #endif

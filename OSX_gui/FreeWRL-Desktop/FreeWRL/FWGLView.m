@@ -198,16 +198,17 @@ void initialize_freewrl(){
 // pixel format definition
 + (NSOpenGLPixelFormat*) basicPixelFormat
 {
+    // FreeWRL 6.x renders with GLSL 330+ shaders: ask for the newest profile macOS has, 4.1 core
+    // (the default is the legacy 2.1 profile). Core has no accumulation buffer, NSOpenGLPFAWindow is obsolete.
     NSOpenGLPixelFormatAttribute attributes [] = {
+            NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
             NSOpenGLPFANoRecovery,
             NSOpenGLPFADoubleBuffer,
-            NSOpenGLPFAWindow,
             NSOpenGLPFAAccelerated,
             NSOpenGLPFAColorSize, 24,
             NSOpenGLPFAAlphaSize, 8,
             NSOpenGLPFADepthSize, 24,
             NSOpenGLPFAStencilSize, 8,
-            NSOpenGLPFAAccumSize, 0,
             0
     };
     return [[[NSOpenGLPixelFormat alloc] initWithAttributes:attributes] autorelease];
@@ -618,6 +619,10 @@ mouseDisplaySensitive = mouseOverSensitive; \
 - (void) prepareOpenGL
 {
     GLint swapInt = 1;
+
+    fprintf(stderr, "GL_VERSION %s\nGL_SHADING_LANGUAGE_VERSION %s\nGL_RENDERER %s\n",
+        (const char *)glGetString(GL_VERSION), (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION),
+        (const char *)glGetString(GL_RENDERER));
     
     //NSLog(@"calling fwl_init_instance");
     //if (!initialized) {
