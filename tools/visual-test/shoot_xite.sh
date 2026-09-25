@@ -12,7 +12,11 @@ CW=$((W / 2)) CH=$((HT / 2))
 # own throwaway profile: sharing the default one with a running Chrome blocks/hands off
 PROFILE=$(mktemp -d -t freewrl-vt-chrome)
 RAWLOG="$PROFILE.log"
-trap 'rm -rf "$PROFILE" "$RAWLOG"' EXIT
+PID=
+cleanup() { [ -n "$PID" ] && kill $PID 2>/dev/null; rm -rf "$PROFILE" "$RAWLOG"; }
+# sh skips the EXIT trap when killed by a signal: clean up (and stop Chrome) on those too
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
 URL="$BASE/__vt/viewer.html?world=$WORLD&w=$CW&h=$CH&hold=$HOLD${XITE:+&xite=$XITE}"
 rm -f "$OUT"
 "$CHROME" --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader \

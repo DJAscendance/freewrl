@@ -7,8 +7,8 @@
   </head>
   <Scene>
     <Background skyColor='0.2 0.2 0.3'/>
-    <Viewpoint position='0 0 5' description='front'/>
-    <HAnimHumanoid DEF='Humanoid' name='fixture' translation='0 -1 0'>
+    <Viewpoint position='0 1 5' description='front'/>
+    <HAnimHumanoid DEF='Humanoid' name='fixture'>
       <HAnimJoint containerField='skeleton' DEF='RootJoint' name='humanoid_root'
           skinCoordIndex='0 1 2 3' skinCoordWeight='1 1 1 1'>
         <HAnimJoint DEF='UpperJoint' name='vl5' center='0 1 0' rotation='0 0 1 0'
