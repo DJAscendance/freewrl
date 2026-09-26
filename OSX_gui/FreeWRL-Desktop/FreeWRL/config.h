@@ -60,8 +60,8 @@
 //duktape js engine is compiled into freewrl project, nothing to download or install
 #define JAVASCRIPT_DUK 1
 //macports: sudo port -t install alut (will also install openal)
-//image loading (jpg/png/gif textures): brew install imlib2
-#define HAVE_IMLIB2 1
+//image loading (jpg/png/gif textures): the bundled stb_image (opengl/stb_image.h); no Imlib2
+//#define HAVE_IMLIB2 1
 #define HAVE_ALUT 1
 #define HAVE_OPENAL 1
 //macports: sudo port -t install ffmpeg
