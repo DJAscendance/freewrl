@@ -3840,7 +3840,10 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	//return NULL; //no scenegraph node created, or more precisely: nothing to link in to parent's children
 	
 	//create a ProtoDeclare
-    proto = createNewX3DNode(NODE_Proto);
+	//not registered in the node table (createNewX3DNode0), like ExternProtoDeclare and the X3D parser's ProtoDeclare:
+	//gc_broto_instance() frees __protoDeclares without unregistering them, which left a dangling pointer
+	//for startOfLoopNodeUpdates() to read and free after a world was replaced
+    proto = createNewX3DNode0(NODE_Proto);
 	//add it to the current context's list of declared protos
 	if(X3D_NODE(me->ectx)->_nodeType != NODE_Proto && X3D_NODE(me->ectx)->_nodeType != NODE_Inline )
 		printf("ouch trying to caste node type %d to proto\n",X3D_NODE(me->ectx)->_nodeType);
