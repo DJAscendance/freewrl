@@ -7500,7 +7500,9 @@ int gc_broto_instance(struct X3D_Proto* node){
 			if(!(flagExtern && !flagInstance)) //don't delete library protos - we'll get them when we delete the library
 			for(i=0;i<vectorSize(node->__protoDeclares);i++){
 				subctx = vector_get(struct X3D_Proto*,node->__protoDeclares,i);
-				//
+				//brotoInstance() copies the prototype's declarations into each instance:
+				//only the context that declared one (its __parentProto) frees it
+				if(subctx->__parentProto != X3D_NODE(node)) continue;
 				gc_broto_instance(subctx);
 				freeMallocedNodeFields(X3D_NODE(subctx));
 				FREE_IF_NZ(subctx);
@@ -7519,6 +7521,7 @@ int gc_broto_instance(struct X3D_Proto* node){
 				//Those persist beyond the coming and going of scenes and inlines and protoinstances
 				//A. externProto is a local scene proxy for a libraryscene protodeclare
 				subctx = vector_get(struct X3D_Proto*,node->__externProtoDeclares,i);
+				if(subctx->__parentProto != X3D_NODE(node)) continue; //copied into an instance, see above
 				gc_broto_instance(subctx);
 				freeMallocedNodeFields(X3D_NODE(subctx));
 				FREE_IF_NZ(subctx);

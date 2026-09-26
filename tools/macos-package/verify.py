@@ -9,7 +9,8 @@ Fails (exit 1) if any Mach-O in the bundle
     MacPorts, the source tree, a temporary directory or a home directory,
   - is not arm64, not for macOS, or needs a newer macOS than
     LSMinimumSystemVersion claims,
-or if an expected runtime file (Imlib2 loaders, fonts, licenses) is missing, or a
+or if LSMinimumSystemVersion is newer than --macos (the oldest macOS the package must
+run on), an expected runtime file (fonts, licenses) is missing, or a
 package in MANIFEST.tsv or a component compiled into FreeWRL has no license file
 recorded in LICENSES.tsv.
 Paths that only appear as strings inside binaries are listed as warnings.
@@ -27,9 +28,6 @@ FORBIDDEN = ["/opt/homebrew/", "/usr/local/", "/opt/local/", "/sw/", "/tmp/", "/
              "/var/folders/", "/Users/", "/Volumes/"]
 # files FreeWRL itself opens at runtime
 EXPECTED = [
-    "Contents/PlugIns/imlib2/loaders/jpeg.so",   # JPEG, PNG, GIF: the X3D image formats
-    "Contents/PlugIns/imlib2/loaders/png.so",
-    "Contents/PlugIns/imlib2/loaders/gif.so",
     "Contents/Resources/fonts/VeraMono.ttf",     # FWGLView.m locates fonts/ by this file
     "Contents/Resources/fonts/Vera.ttf",
     "Contents/Resources/fonts/VeraBd.ttf",
@@ -46,7 +44,7 @@ EXPECTED = [
     "Contents/Resources/ThirdPartyLicenses/freetype/FTL.TXT",
 ]
 # license files of code compiled into FreeWRL (package.sh)
-COMPILED_IN = ["FreeWRL", "duktape", "libtess"]
+COMPILED_IN = ["FreeWRL", "duktape", "libtess", "stb_image"]
 
 
 def read_tsv(path):
@@ -79,6 +77,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--source-root", action="append", default=[],
                     help="also forbid paths under this directory (repeatable)")
+    ap.add_argument("--macos", help="oldest macOS the package must run on, e.g. 13.0")
     ap.add_argument("app")
     a = ap.parse_args()
     app = os.path.abspath(a.app)
@@ -138,6 +137,8 @@ def main():
         if hits:
             warnings.append("%s: %d embedded path string(s), e.g. %s" % (rel, len(hits), hits[0]))
 
+    if a.macos and version_tuple(claimed) > version_tuple(a.macos):
+        errors.append("LSMinimumSystemVersion %s is newer than --macos %s" % (claimed, a.macos))
     for e in EXPECTED:
         if not os.path.isfile(os.path.join(app, e)):
             errors.append("missing %s" % e)

@@ -167,7 +167,7 @@ static int sniffImageFileHeader(char *filename) {
 	if(!strncmp(&header[1],"PNG",3))
 		iret = IMAGETYPE_PNG;
 
-	if(!strncmp(header,"ÿØÿ",3)) //JPEG
+	if(!strncmp(header,"ï¿½ï¿½ï¿½",3)) //JPEG
 		iret = IMAGETYPE_JPEG;
 
 	if(!strncmp(header,"GIF",3))
@@ -206,7 +206,7 @@ static int sniffImageHeader(char* header) {
 	if (!strncmp(&header[1], "PNG", 3))
 		iret = IMAGETYPE_PNG;
 
-	if (!strncmp(header, "ÿØÿ", 3)) //JPEG
+	if (!strncmp(header, "ï¿½ï¿½ï¿½", 3)) //JPEG
 		iret = IMAGETYPE_JPEG;
 
 	if (!strncmp(header, "GIF", 3))
@@ -2371,7 +2371,7 @@ static void __reallyloadImageTexture(textureTableIndexStruct_s* this_tex, char *
 		loadImageTexture_png(this_tex, filename);
 #endif
 #ifdef HAVE_LIBJPEG_H
-	if(!strncmp(header,"ÿØÿ",3))
+	if(!strncmp(header,"ï¿½ï¿½ï¿½",3))
 		loadImageTexture_jpeg(this_tex, filename);
 #endif
 #ifdef HAVE_LIBGIF_H
@@ -2697,6 +2697,57 @@ ConsoleMessage(me);}
 			texture_swap_B_R(this_tex); 
 			//this_tex->data should now be RGBA. (if not comment above line)
 			break;
+	}
+
+	FREE(fname);
+	return (ret);
+
+#else //HAVE_IMLIB2
+	/* no Imlib2 (the macOS app): decode with stb_image, as texture_load_from_buffer() does.
+	   JPEG, PNG, GIF (first frame), BMP, TGA, PSD, HDR and PNM; not TIFF or WebP */
+	char *fname;
+	int ret, imtype;
+
+	fname = STRDUP(filename);
+	imtype = sniffImageFileHeader(fname);
+	ret = FALSE;
+
+	switch(imtype){
+		case IMAGETYPE_DDS:
+			ret = textureIsDDS(this_tex, fname); break;
+		case IMAGETYPE_WEB3DIT:
+			ret = loadImage_web3dit(this_tex,fname); break;
+		case IMAGETYPE_NRRD:
+			ret = loadImage_nrrd(this_tex,fname); break;
+		case IMAGETYPE_VOL:
+			ret = loadImage3DVol(this_tex, fname); break;
+		case IMAGETYPE_PNG:
+		case IMAGETYPE_JPEG:
+		case IMAGETYPE_GIF:
+		case IMAGETYPE_UNKNOWN:
+		default:
+		{
+			unsigned char *data;
+			int x, y, nchannels;
+			/* bottom row first, 4 bytes per pixel (RGBA) whatever the file has, like the Imlib2 path */
+			stbi_set_flip_vertically_on_load(TRUE);
+			data = stbi_load(filename, &x, &y, &nchannels, 4);
+			if (!data) {
+				ERROR_MSG("load_texture_from_file: failed to load image: %s (%s)\n", filename, stbi_failure_reason());
+				FREE(fname);
+				return FALSE;
+			}
+			DEBUG_TEX("load_texture_from_file: stb_image loaded image: %s\n", filename);
+			this_tex->filename = filename;
+			this_tex->channels = nchannels;
+			this_tex->hasAlpha = (nchannels == 2 || nchannels == 4);
+			this_tex->frames = 1;
+			this_tex->x = x;
+			this_tex->y = y;
+			this_tex->texdata = data;
+			ret = TRUE;
+			break;
+		}
 	}
 
 	FREE(fname);

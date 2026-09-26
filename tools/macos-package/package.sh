@@ -1,7 +1,11 @@
 #!/bin/sh
 # Build a self-contained FreeWRL.app (Apple Silicon) that runs without Homebrew.
 #
-# usage: package.sh [-a FreeWRL.app] [-o outdir] [-s identity] [-r] [-e entitlements.plist] [-z] [-n]
+# usage: package.sh [-t macos] [-D deps-prefix] [-a FreeWRL.app] [-o outdir] [-s identity] [-r]
+#                   [-e entitlements.plist] [-z] [-n]
+#   -t  oldest macOS the package runs on        (default: 13.0)
+#   -D  libraries built by tools/macos-deps/build.sh for that macOS
+#                                               (default: build them into <outdir>/deps)
 #   -a  package this Release build instead of building one
 #   -o  output directory                        (default: ./macos-package-out)
 #   -s  code-signing identity                   (default: - , ad-hoc)
@@ -11,12 +15,11 @@
 #   -n, --notarize  notarize with notarytool, staple, check with Gatekeeper, then zip
 #       (implies -z; needs a Developer ID identity with -s and -r; credentials below)
 #
-# Steps: build (xcodebuild, Release, arm64) -> copy the app -> embed its non-system
-# dylibs and Imlib2's loaders, rewrite install names to @rpath (bundle.py) -> copy
-# license files -> sign inside out -> check the result (verify.py, codesign)
-# [-> notarize, staple, stapler validate, spctl] [-> zip].
-# Needs the Homebrew libraries the Xcode project links (see MACOS-STATUS.md) at
-# packaging time only; the packaged app does not use them.
+# Steps: build FreeType, ODE and freealut for that macOS (tools/macos-deps) -> build the app
+# against them (xcodebuild, Release, arm64) -> copy the app -> embed its non-system dylibs,
+# rewrite install names to @rpath (bundle.py) -> copy license files -> sign inside out ->
+# check the result (verify.py --macos, codesign) [-> notarize, staple, stapler validate,
+# spctl] [-> zip]. Homebrew is not used: its bottles only run on the macOS they were built for.
 #
 # Notarization credentials, from the environment (never printed):
 #   NOTARY_KEYCHAIN_PROFILE  a profile saved with `xcrun notarytool store-credentials`, or
@@ -28,13 +31,15 @@
 set -eu
 H=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$H/../.." && pwd)
-APP_IN= OUT=macos-package-out IDENTITY=- RUNTIME= ENTITLEMENTS= ZIP= NOTARIZE=
+APP_IN= OUT=macos-package-out IDENTITY=- RUNTIME= ENTITLEMENTS= ZIP= NOTARIZE= TARGET=13.0 DEPS=
 for arg; do
 	shift
 	case $arg in --notarize) set -- "$@" -n ;; *) set -- "$@" "$arg" ;; esac
 done
-while getopts "a:o:s:re:zn" opt; do
+while getopts "t:D:a:o:s:re:zn" opt; do
 	case $opt in
+	t) TARGET=$OPTARG ;;
+	D) DEPS=$(cd "$OPTARG" && pwd) ;;
 	a) APP_IN=$OPTARG ;;
 	o) OUT=$OPTARG ;;
 	s) IDENTITY=$OPTARG ;;
@@ -74,9 +79,15 @@ mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
 
 if [ -z "$APP_IN" ]; then
-	echo "== build (Release, arm64)"
+	if [ -z "$DEPS" ]; then
+		echo "== libraries for macOS $TARGET (tools/macos-deps)"
+		"$REPO/tools/macos-deps/build.sh" -t "$TARGET" -p "$OUT/deps" -c "$OUT/deps-sources"
+		DEPS=$OUT/deps
+	fi
+	echo "== build (Release, arm64, macOS $TARGET)"
 	xcodebuild -project "$REPO/OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj" -scheme FreeWRL \
 		-configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- \
+		FW_DEPS="$DEPS" MACOSX_DEPLOYMENT_TARGET="$TARGET" \
 		-derivedDataPath "$OUT/DerivedData" build > "$OUT/build.log" 2>&1 ||
 		{ tail -20 "$OUT/build.log"; echo "build failed, see $OUT/build.log" >&2; exit 1; }
 	APP_IN=$OUT/DerivedData/Build/Products/Release/FreeWRL.app
@@ -96,7 +107,7 @@ python3 "$H/bundle.py" "$APP"
 
 echo "== licenses of code compiled into FreeWRL"
 L=$APP/Contents/Resources/ThirdPartyLicenses
-mkdir -p "$L/FreeWRL" "$L/duktape" "$L/libtess"
+mkdir -p "$L/FreeWRL" "$L/duktape" "$L/libtess" "$L/stb_image"
 cp "$REPO/freex3d/COPYING" "$REPO/freex3d/COPYING.LESSER" "$L/FreeWRL/"
 # verbatim license comments from the vendored sources
 extract() { # file first-line-pattern last-line-pattern out
@@ -105,16 +116,19 @@ extract() { # file first-line-pattern last-line-pattern out
 }
 extract "$REPO/freex3d/src/lib/world_script/duktape/duktape.c" '^\/\* LICENSE.txt \*\/' '^\*\/' "$L/duktape/LICENSE.txt"
 extract "$REPO/freex3d/src/libtess/tess.c" 'SGI FREE SOFTWARE LICENSE B' '^ \*\/' "$L/libtess/LICENSE"
+extract "$REPO/freex3d/src/lib/opengl/stb_image.h" '^This software is available under 2 licenses' '^\*\/' "$L/stb_image/LICENSE"
 chmod 644 "$L"/*/*
 REV=$(git -C "$REPO" rev-parse --short=9 HEAD 2>/dev/null || echo unknown)
 git -C "$REPO" diff --quiet HEAD 2>/dev/null || REV="$REV (modified)"
 DUK=$(sed -n 's/^#define DUK_VERSION  *\([0-9]*\)L$/\1/p' "$REPO/freex3d/src/lib/world_script/duktape/duktape.h")
 DUK=$((DUK / 10000)).$((DUK / 100 % 100)).$((DUK % 100))
+STB=$(sed -n '1s/.*stb_image - v\([0-9.]*\) .*/\1/p' "$REPO/freex3d/src/lib/opengl/stb_image.h")
 printf '%s\n' \
 	"FreeWRL	source $REV	COPYING	freex3d/COPYING" \
 	"FreeWRL	source $REV	COPYING.LESSER	freex3d/COPYING.LESSER" \
 	"duktape	$DUK	LICENSE.txt	license comment in freex3d/src/lib/world_script/duktape/duktape.c" \
-	"libtess	vendored	LICENSE	license comment in freex3d/src/libtess/tess.c" >> "$L/LICENSES.tsv"
+	"libtess	vendored	LICENSE	license comment in freex3d/src/libtess/tess.c" \
+	"stb_image	$STB	LICENSE	license comment in freex3d/src/lib/opengl/stb_image.h" >> "$L/LICENSES.tsv"
 
 echo "== sign ($IDENTITY${RUNTIME:+, hardened runtime})"
 # (a function, so "$@" keeps the notarytool credentials)
@@ -134,7 +148,7 @@ sign() {
 sign
 
 echo "== verify"
-python3 "$H/verify.py" --source-root "$REPO" "$APP"
+python3 "$H/verify.py" --source-root "$REPO" --macos "$TARGET" "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
 if [ -n "$NOTARIZE" ]; then

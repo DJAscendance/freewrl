@@ -212,7 +212,24 @@ void initialize_freewrl(){
             NSOpenGLPFAStencilSize, 8,
             0
     };
-    return [[[NSOpenGLPixelFormat alloc] initWithAttributes:attributes] autorelease];
+    NSOpenGLPixelFormat *pf = [[[NSOpenGLPixelFormat alloc] initWithAttributes:attributes] autorelease];
+    if (pf == nil) {
+        // no accelerated renderer (a virtual machine, for one): Apple's software renderer also
+        // has 4.1 core. Without a pixel format NSOpenGLView gives a legacy 2.1 context, whose
+        // GLSL 1.20 compiles none of FreeWRL's shaders.
+        NSOpenGLPixelFormatAttribute software [] = {
+                NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
+                NSOpenGLPFADoubleBuffer,
+                NSOpenGLPFAColorSize, 24,
+                NSOpenGLPFAAlphaSize, 8,
+                NSOpenGLPFADepthSize, 24,
+                NSOpenGLPFAStencilSize, 8,
+                0
+        };
+        pf = [[[NSOpenGLPixelFormat alloc] initWithAttributes:software] autorelease];
+        NSLog(@"no accelerated OpenGL 4.1 core renderer; %@", pf ? @"using the software renderer" : @"no 4.1 core renderer at all");
+    }
+    return pf;
 }
 
 
