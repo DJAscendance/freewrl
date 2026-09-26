@@ -93,7 +93,7 @@ Code is heavily `#ifdef`-ed by platform and feature (`_MSC_VER`, `AQUA`, `_ANDRO
 - `upstream` = the original FreeWRL project on SourceForge, `https://git.code.sf.net/p/freewrl/git` (browse at https://sourceforge.net/p/freewrl/git/ci/develop/tree/). We only read from it. It has two lines:
   - `master` @ `e99ab4a00` (2020-02-21, "Merge branch 'develop'"): the older stable line, FreeWRL 4.4.0. It has not moved since 2020.
   - `develop`: the active line. The maintainer said in 2025 that development happens here. At the time of the 2026-09 audit its head was `b3254b11e` (2024-04-20, "Version 6.7"), 951 commits ahead of `master`, with `master` fully contained in it. That commit is FreeWRL 6.7.0 (`freex3d/src/buildversion.h`).
-- `origin` = https://github.com/Ascendance3D/freewrl: the Ascendance Open Worlds modernization fork on GitHub, where we push. Its `master` mirrors upstream `master`. The first Mac port (`macos-arm64`, PR #1) is based on that `master`, and we keep it unchanged as a reference.
+- `origin` = https://github.com/Ascendance3D/freewrl: the Ascendance Open Worlds modernization fork on GitHub, where we push. Its `master` is the maintained FreeWRL 6.7 modernization line, promoted from `develop` in 2026-09; before that promotion `master` mirrored upstream `master` at `e99ab4a00` (2020-02-21), which is now the historical baseline. `develop` remains the integration branch for active work before promotion to `master`. The first Mac port (`macos-arm64`, PR #1) is based on the old 2020 `master`, and we keep it unchanged as a reference.
 - `sourceforge` = the fork's SourceForge mirror (`/u/djascendance/freewrl`).
 - `macos-arm64-develop-port`: the candidate port of the Mac work onto upstream `develop` (6.7).
 
