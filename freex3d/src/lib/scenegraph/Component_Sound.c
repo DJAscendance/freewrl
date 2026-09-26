@@ -46,9 +46,15 @@ X3D Sound Component
 #undef HAVE_OPENAL
 #endif //HAVE_LIBSOUND
 #ifdef HAVE_OPENAL
+#ifdef __APPLE__
+/* Apple's OpenAL.framework, which the macOS app links (it has no alext.h; nothing from it is used) */
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <AL/alext.h>
+#endif
 #ifdef HAVE_ALUT
 #include <AL/alut.h>
 #endif //HAVE_ALUT
@@ -204,7 +210,7 @@ int SoundEngineInit(void)
 			if(FALSE) //meters)
 				alSpeedOfSound(345.0f); //alDopplerVelocity(34.0f); //m/s
 			else //feet
-				alSpeedOfSound(1132.0f); //alDopplerVelocity(1132.0f); // using feet/second – change propagation velocity 
+				alSpeedOfSound(1132.0f); //alDopplerVelocity(1132.0f); // using feet/second ï¿½ change propagation velocity 
 			alDopplerFactor(1.0f); // exaggerate pitch shift by 20% 
 			//if ((error = alGetError()) != AL_NO_ERROR) DisplayALError("alDopplerX : ", error);
 		}

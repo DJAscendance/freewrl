@@ -5,11 +5,15 @@ install name to @rpath, and record what was embedded.
 
 usage: bundle.py <FreeWRL.app>
 
-Writes Contents/Resources/ThirdPartyLicenses/ (license files of each embedded
-Homebrew package, plus any from licenses/<package>/<version>/; MANIFEST.tsv maps
-binaries to packages, LICENSES.tsv license files to their source) and sets LSMinimumSystemVersion to the
-highest minimum macOS of any Mach-O in the bundle. Leaves code unsigned:
-package.sh signs afterwards.
+Libraries come from a prefix built by tools/macos-deps/build.sh (its
+share/freewrl-deps/packages.tsv names each library's package, version and source, and
+share/freewrl-deps/licenses/ holds the license files), or from Homebrew kegs.
+
+Writes Contents/Resources/ThirdPartyLicenses/ (license files of each embedded package,
+plus any from licenses/<package>/<version>/ for Homebrew; MANIFEST.tsv maps binaries to
+packages, LICENSES.tsv license files to their source) and sets LSMinimumSystemVersion to
+the highest minimum macOS of any Mach-O in the bundle. Leaves code unsigned: package.sh
+signs afterwards.
 """
 import filecmp
 import glob
@@ -47,6 +51,21 @@ def keg_of(path):
     """/opt/homebrew/Cellar/<name>/<version>/... -> (name, version, keg dir)"""
     m = re.match(r"^(.*/Cellar/([^/]+)/([^/]+))/", path)
     return (m.group(2), m.group(3), m.group(1)) if m else (None, None, None)
+
+
+def deps_prefix_of(path):
+    """a library in <prefix>/lib of a tools/macos-deps prefix -> (package row, metadata dir)"""
+    meta = os.path.join(os.path.dirname(os.path.dirname(path)), "share", "freewrl-deps")
+    table = os.path.join(meta, "packages.tsv")
+    if not os.path.isfile(table):
+        return None, None
+    with open(table) as f:
+        rows = [line.rstrip("\n").split("\t") for line in f][1:]
+    libdir = os.path.dirname(path)
+    for pkg, ver, libs, url, sha in rows:
+        if any(os.path.realpath(os.path.join(libdir, l)) == os.path.realpath(path) for l in libs.split()):
+            return (pkg, ver, url, sha), meta
+    die("%s: not listed in %s" % (path, table))
 
 
 def main():
@@ -138,10 +157,17 @@ def main():
     os.makedirs(licdir)
     rows = []
     kegs = {}
+    built = {}  # package -> (version, url, sha256, metadata dir), from a tools/macos-deps prefix
     for real, name in sorted(bundled.items(), key=lambda kv: kv[1]):
+        row, meta = deps_prefix_of(real)
+        if row:
+            pkg, ver, url, sha = row
+            built[pkg] = (ver, url, sha, meta)
+            rows.append((name, "Frameworks", pkg, ver))
+            continue
         pkg, ver, keg = keg_of(real)
         if not pkg:
-            die("%s is not from a Homebrew keg; add its license by hand" % real)
+            die("%s is neither from a tools/macos-deps prefix nor a Homebrew keg; add its license by hand" % real)
         kegs[pkg] = (ver, keg)
         rows.append((name, "Frameworks", pkg, ver))
     for d in sorted(source):
@@ -149,6 +175,20 @@ def main():
             pkg, ver, keg = keg_of(source[d])
             rows.append((os.path.relpath(d, plugdir), "PlugIns", pkg, ver))
     lics = []  # (package, version, license file, where it came from)
+    for pkg, (ver, url, sha, meta) in sorted(built.items()):
+        src = os.path.join(meta, "licenses", pkg)
+        files = sorted(os.listdir(src)) if os.path.isdir(src) else []
+        if not files:
+            die("%s %s: no license files in %s" % (pkg, ver, src))
+        os.makedirs(os.path.join(licdir, pkg))
+        for n in files:
+            d = os.path.join(licdir, pkg, n)
+            shutil.copyfile(os.path.join(src, n), d)
+            os.chmod(d, 0o644)
+            lics.append((pkg, ver, n, "source archive %s (sha256 %s)" % (url, sha)))
+        for n in REQUIRED_LICENSES.get(pkg, []):
+            if not os.path.isfile(os.path.join(licdir, pkg, n)):
+                die("%s %s: %s missing from %s" % (pkg, ver, n, src))
     for pkg, (ver, keg) in sorted(kegs.items()):
         # Homebrew puts a package's license files in the keg root, a few in share/doc/<name>/
         files = [os.path.join(d, p) for d in [keg] + sorted(glob.glob(os.path.join(keg, "share/doc/*")))
@@ -183,7 +223,7 @@ def main():
                 die("%s %s: %s missing; add it from the %s source to %s"
                     % (pkg, ver, n, ver, os.path.relpath(extra, os.path.dirname(EXTRA_LICENSES))))
     with open(os.path.join(licdir, "MANIFEST.tsv"), "w") as f:
-        f.write("file\tlocation\thomebrew package\tversion\n")
+        f.write("file\tlocation\tpackage\tversion\n")
         for r in rows:
             f.write("\t".join(r) + "\n")
     # package.sh appends the code compiled into FreeWRL
@@ -200,7 +240,7 @@ def main():
         plistlib.dump(info, f)
 
     print("embedded %d libraries, %d plugins from %d packages; LSMinimumSystemVersion %s"
-          % (len(bundled), sum(1 for r in rows if r[1] == "PlugIns"), len(kegs), need))
+          % (len(bundled), sum(1 for r in rows if r[1] == "PlugIns"), len(kegs) + len(built), need))
 
 
 if __name__ == "__main__":
