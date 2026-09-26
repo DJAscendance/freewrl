@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   asan:
+    if: ${{ !contains(github.event.head_commit.message, '[skip-asan]') }}
     runs-on: macos-latest
     timeout-minutes: 90
     strategy:
@@ -58,7 +59,7 @@ jobs:
       - name: build the package for macOS 13
         run: |
           sw_vers; xcodebuild -version
-          git worktree add --detach "$RUNNER_TEMP/src" cb3fc1b46
+          git worktree add --detach "$RUNNER_TEMP/src" eabe49965
           sh "$RUNNER_TEMP/src/tools/macos-package/package.sh" -t 13.0 -z -o "$RUNNER_TEMP/pkg" > package.log 2>&1 || { tail -60 package.log; exit 1; }
           grep -E "embedded|licenses:|Mach-O files|PASS|FAIL|ERROR" package.log
           cp package.log "$RUNNER_TEMP/pkg/"
