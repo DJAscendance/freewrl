@@ -3,7 +3,7 @@
 #
 # usage: package.sh [-t macos] [-D deps-prefix] [-a FreeWRL.app] [-o outdir] [-s identity] [-r]
 #                   [-e entitlements.plist] [-z] [-n]
-#   -t  oldest macOS the package runs on        (default: 13.0)
+#   -t  oldest macOS the package runs on        (default: 14.0)
 #   -D  libraries built by tools/macos-deps/build.sh for that macOS
 #                                               (default: build them into <outdir>/deps)
 #   -a  package this Release build instead of building one
@@ -31,7 +31,7 @@
 set -eu
 H=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$H/../.." && pwd)
-APP_IN= OUT=macos-package-out IDENTITY=- RUNTIME= ENTITLEMENTS= ZIP= NOTARIZE= TARGET=13.0 DEPS=
+APP_IN= OUT=macos-package-out IDENTITY=- RUNTIME= ENTITLEMENTS= ZIP= NOTARIZE= TARGET=14.0 DEPS=
 for arg; do
 	shift
 	case $arg in --notarize) set -- "$@" -n ;; *) set -- "$@" "$arg" ;; esac
@@ -137,7 +137,8 @@ sign() {
 	[ -n "$RUNTIME" ] && set -- "$@" --options runtime
 	[ "$IDENTITY" != - ] && set -- "$@" --timestamp
 	# nested code first (dylibs, plugins), then the app, which seals everything else
-	find "$APP/Contents/Frameworks" "$APP/Contents/PlugIns" -type f \( -name '*.dylib' -o -name '*.so' \) |
+	for d in Frameworks PlugIns; do [ -d "$APP/Contents/$d" ] && echo "$APP/Contents/$d"; done |
+		xargs -I{} find {} -type f \( -name '*.dylib' -o -name '*.so' \) |
 		sort | while read -r f; do codesign "$@" "$f" || exit 1; done
 	if [ -n "$ENTITLEMENTS" ]; then
 		codesign "$@" --entitlements "$ENTITLEMENTS" "$APP"
