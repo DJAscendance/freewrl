@@ -990,6 +990,15 @@ void fw_core_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void 
 #define glDisableVertexAttribArray fw_core_glDisableVertexAttribArray
 #define glDrawArrays fw_core_glDrawArrays
 #define glDrawElements fw_core_glDrawElements
+/* each draw enables only the arrays its program reads: track programs and the VAO */
+void fw_core_glUseProgram(GLuint program);
+void fw_core_glLinkProgram(GLuint program);
+void fw_core_glDeleteProgram(GLuint program);
+void fw_core_glBindVertexArray(GLuint vao);
+#define glUseProgram fw_core_glUseProgram
+#define glLinkProgram fw_core_glLinkProgram
+#define glDeleteProgram fw_core_glDeleteProgram
+#define glBindVertexArray fw_core_glBindVertexArray
 
 /* fixed-function enables (GL_TEXTURE_2D, GL_FOG, texgen) are ignored, see GLCoreCompat.c */
 #define GL_TEXTURE_GEN_S               0x0C60
