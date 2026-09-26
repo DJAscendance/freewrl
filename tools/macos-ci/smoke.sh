@@ -48,6 +48,8 @@ run gzip_proto "$G/gzip_proto.wrl" -
 run t8 "$T/8.wrl" -
 run t10 "$T/10.wrl" -
 run t50 "$T/50.wrl" -
+# GLCoreCompat attribute arrays left enabled across draws (fix/glcore-client-attrib-oob)
+[ -f "$G/glcore_stale_attribs.wrl" ] && run glcore_stale "$G/glcore_stale_attribs.wrl" -
 # test 50: audio initialisation (a hosted runner may have no output device; reported, not gated)
 if grep -qh "initAL failed" "$OUT/smoke-t50.out" "$OUT/smoke-t50.err"; then
 	echo "INFO t50 audio: initAL failed (no usable OpenAL device on this machine)"
