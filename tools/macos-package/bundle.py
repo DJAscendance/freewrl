@@ -146,8 +146,8 @@ def main():
                 args += ["-delete_rpath", rp]
         if want not in m.rpaths:
             args += ["-add_rpath", want]
-        if f != exe:
-            subprocess.run(["codesign", "--remove-signature", f], check=True)
+        # no codesign --remove-signature first: on a linker-signed dylib it can leave a gap in
+        # __LINKEDIT that older install_name_tools refuse; package.sh re-signs everything
         if args:
             run("install_name_tool", *args, f)
 
