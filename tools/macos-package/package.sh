@@ -63,6 +63,15 @@ extract() { # file first-line-pattern last-line-pattern out
 extract "$REPO/freex3d/src/lib/world_script/duktape/duktape.c" '^\/\* LICENSE.txt \*\/' '^\*\/' "$L/duktape/LICENSE.txt"
 extract "$REPO/freex3d/src/libtess/tess.c" 'SGI FREE SOFTWARE LICENSE B' '^ \*\/' "$L/libtess/LICENSE"
 chmod 644 "$L"/*/*
+REV=$(git -C "$REPO" rev-parse --short=9 HEAD 2>/dev/null || echo unknown)
+git -C "$REPO" diff --quiet HEAD 2>/dev/null || REV="$REV (modified)"
+DUK=$(sed -n 's/^#define DUK_VERSION  *\([0-9]*\)L$/\1/p' "$REPO/freex3d/src/lib/world_script/duktape/duktape.h")
+DUK=$((DUK / 10000)).$((DUK / 100 % 100)).$((DUK % 100))
+printf '%s\n' \
+	"FreeWRL	source $REV	COPYING	freex3d/COPYING" \
+	"FreeWRL	source $REV	COPYING.LESSER	freex3d/COPYING.LESSER" \
+	"duktape	$DUK	LICENSE.txt	license comment in freex3d/src/lib/world_script/duktape/duktape.c" \
+	"libtess	vendored	LICENSE	license comment in freex3d/src/libtess/tess.c" >> "$L/LICENSES.tsv"
 
 echo "== sign ($IDENTITY${RUNTIME:+, hardened runtime})"
 set -- --force --sign "$IDENTITY"

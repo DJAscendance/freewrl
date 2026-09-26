@@ -9,7 +9,9 @@ Fails (exit 1) if any Mach-O in the bundle
     MacPorts, the source tree, a temporary directory or a home directory,
   - is not arm64, not for macOS, or needs a newer macOS than
     LSMinimumSystemVersion claims,
-or if an expected runtime file (Imlib2 loaders, fonts, licenses) is missing.
+or if an expected runtime file (Imlib2 loaders, fonts, licenses) is missing, or a
+package in MANIFEST.tsv or a component compiled into FreeWRL has no license file
+recorded in LICENSES.tsv.
 Paths that only appear as strings inside binaries are listed as warnings.
 """
 import argparse
@@ -39,7 +41,38 @@ EXPECTED = [
     "Contents/Resources/fonts/VeraMoIt.ttf",
     "Contents/Resources/fonts/VeraMoBI.ttf",
     "Contents/Resources/ThirdPartyLicenses/MANIFEST.tsv",
+    "Contents/Resources/ThirdPartyLicenses/LICENSES.tsv",
+    "Contents/Resources/ThirdPartyLicenses/freetype/LICENSE.TXT",  # refers to FTL.TXT
+    "Contents/Resources/ThirdPartyLicenses/freetype/FTL.TXT",
 ]
+# license files of code compiled into FreeWRL (package.sh)
+COMPILED_IN = ["FreeWRL", "duktape", "libtess"]
+
+
+def read_tsv(path):
+    with open(path) as f:
+        return [line.rstrip("\n").split("\t") for line in f][1:]
+
+
+def check_licenses(licdir):
+    """Every embedded package and compiled-in component has license files, and
+    every file LICENSES.tsv lists is there."""
+    try:
+        packages = {r[2] for r in read_tsv(os.path.join(licdir, "MANIFEST.tsv"))}
+        rows = read_tsv(os.path.join(licdir, "LICENSES.tsv"))
+    except OSError:
+        return []  # reported as missing above
+    errors = []
+    for r in rows:
+        if len(r) != 4 or not all(r):
+            errors.append("LICENSES.tsv: bad row %r" % (r,))
+        elif not os.path.isfile(os.path.join(licdir, r[0], r[2])):
+            errors.append("LICENSES.tsv lists %s/%s, not in the bundle" % (r[0], r[2]))
+    for pkg in sorted(packages | set(COMPILED_IN)):
+        if not any(r[0] == pkg for r in rows):
+            errors.append("no license file recorded for %s" % pkg)
+    print("licenses: %d files for %d packages" % (len(rows), len({r[0] for r in rows})))
+    return errors
 
 
 def main():
@@ -108,6 +141,7 @@ def main():
     for e in EXPECTED:
         if not os.path.isfile(os.path.join(app, e)):
             errors.append("missing %s" % e)
+    errors += check_licenses(os.path.join(contents, "Resources", "ThirdPartyLicenses"))
 
     print("\n%d Mach-O files; newest minimum macOS %s; LSMinimumSystemVersion %s" % (len(machos), newest, claimed))
     for w in warnings:

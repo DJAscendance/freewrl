@@ -28,7 +28,10 @@ imlib2, freetype and what they depend on). The packaged app doesn't.
    (executable), `@loader_path` (Frameworks) and `@loader_path/../../../Frameworks`
    (loaders). `main.m` points `IMLIB2_LOADER_PATH` at the bundled loaders.
    Copies each Homebrew package's license files to
-   `Contents/Resources/ThirdPartyLicenses/` with a `MANIFEST.tsv`, and sets
+   `Contents/Resources/ThirdPartyLicenses/`, plus license files a keg lacks from
+   `licenses/<package>/<version>/` (FreeType's `FTL.TXT`; `SOURCE` says where
+   each came from), writes `MANIFEST.tsv` (binary → package, version) and
+   `LICENSES.tsv` (license file → package, version, source), and sets
    `LSMinimumSystemVersion` to the newest minimum macOS of any binary in the
    bundle.
 3. License texts of code compiled into FreeWRL (FreeWRL, Duktape, libtess),
@@ -36,16 +39,21 @@ imlib2, freetype and what they depend on). The packaged app doesn't.
 4. Signs inside out: each dylib and loader, then the app.
 5. `verify.py` and `codesign --verify --deep --strict`.
 
+See [THIRD-PARTY.md](THIRD-PARTY.md) for the embedded libraries and their licenses.
+
 ## verify.py
 
 Fails if any Mach-O in the bundle has a dependency, install name or run path
 that points outside the bundle (other than Apple's `/usr/lib` and
 `/System/Library`) or at Homebrew, `/usr/local`, MacPorts, the source tree, a
 temporary or home directory; if a binary isn't arm64/macOS or needs a newer
-macOS than `LSMinimumSystemVersion`; or if the loaders, fonts or license
-manifest are missing. Paths that only appear as strings inside a binary are
-warnings (Imlib2's and libX11's compiled-in data directories, `__FILE__` names
-in FreeWRL's asserts); nothing opens them at run time.
+macOS than `LSMinimumSystemVersion`; if the loaders, fonts, license manifests or
+FreeType's `LICENSE.TXT`/`FTL.TXT` are missing; or if an embedded package or a
+component compiled into FreeWRL has no license file in `LICENSES.tsv`, or
+`LICENSES.tsv` lists a file that isn't there. Paths that only appear as strings
+inside a binary are warnings (Imlib2's and libX11's compiled-in data
+directories, `__FILE__` names in FreeWRL's asserts); nothing opens them at run
+time.
 
 ## Hardened runtime
 

@@ -6,10 +6,12 @@ install name to @rpath, and record what was embedded.
 usage: bundle.py <FreeWRL.app>
 
 Writes Contents/Resources/ThirdPartyLicenses/ (license files of each embedded
-Homebrew package plus MANIFEST.tsv) and sets LSMinimumSystemVersion to the
+Homebrew package, plus any from licenses/<package>/<version>/; MANIFEST.tsv maps
+binaries to packages, LICENSES.tsv license files to their source) and sets LSMinimumSystemVersion to the
 highest minimum macOS of any Mach-O in the bundle. Leaves code unsigned:
 package.sh signs afterwards.
 """
+import filecmp
 import glob
 import os
 import plistlib
@@ -28,6 +30,13 @@ PLUGIN_DIRS = {
     "libImlib2.1.dylib": ("imlib2/loaders", "imlib2/loaders"),
 }
 LICENSE_RE = re.compile(r"^(COPYING|COPYRIGHT|LICEN[CS]E|NOTICE|PATENTS)|-LICEN[CS]E$", re.I)
+# licenses/<package>/<version>/: license files a keg doesn't have, with their SOURCE
+EXTRA_LICENSES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "licenses")
+# files that must end up in ThirdPartyLicenses/<package>/ (freetype's LICENSE.TXT
+# says the license is docs/FTL.TXT or docs/GPLv2.TXT; Homebrew installs neither)
+REQUIRED_LICENSES = {
+    "freetype": ["LICENSE.TXT", "FTL.TXT"],
+}
 
 
 def die(msg):
@@ -139,6 +148,7 @@ def main():
         if d.startswith(plugdir + "/"):
             pkg, ver, keg = keg_of(source[d])
             rows.append((os.path.relpath(d, plugdir), "PlugIns", pkg, ver))
+    lics = []  # (package, version, license file, where it came from)
     for pkg, (ver, keg) in sorted(kegs.items()):
         # Homebrew puts a package's license files in the keg root, a few in share/doc/<name>/
         files = [os.path.join(d, p) for d in [keg] + sorted(glob.glob(os.path.join(keg, "share/doc/*")))
@@ -149,11 +159,37 @@ def main():
         os.makedirs(os.path.join(licdir, pkg))
         for p in files:
             d = os.path.join(licdir, pkg, os.path.basename(p))
+            if os.path.exists(d):  # same name in the keg root and share/doc
+                if not filecmp.cmp(p, d, shallow=False):
+                    die("%s %s: two different %s" % (pkg, ver, os.path.basename(p)))
+                continue
             shutil.copy2(p, d)
             os.chmod(d, 0o644)
+            lics.append((pkg, ver, os.path.basename(p),
+                         "Homebrew keg " + os.path.relpath(p, os.path.dirname(os.path.dirname(keg)))))
+        # license files the keg lacks, taken from the package's source archive (see SOURCE)
+        extra = os.path.join(EXTRA_LICENSES, pkg, ver)
+        if os.path.isdir(extra):
+            with open(os.path.join(extra, "SOURCE")) as f:
+                origin = f.readline().strip().rstrip(":")
+            for n in sorted(os.listdir(extra)):
+                if n != "SOURCE":
+                    d = os.path.join(licdir, pkg, n)
+                    shutil.copyfile(os.path.join(extra, n), d)
+                    os.chmod(d, 0o644)
+                    lics.append((pkg, ver, n, origin))
+        for n in REQUIRED_LICENSES.get(pkg, []):
+            if not os.path.isfile(os.path.join(licdir, pkg, n)):
+                die("%s %s: %s missing; add it from the %s source to %s"
+                    % (pkg, ver, n, ver, os.path.relpath(extra, os.path.dirname(EXTRA_LICENSES))))
     with open(os.path.join(licdir, "MANIFEST.tsv"), "w") as f:
         f.write("file\tlocation\thomebrew package\tversion\n")
         for r in rows:
+            f.write("\t".join(r) + "\n")
+    # package.sh appends the code compiled into FreeWRL
+    with open(os.path.join(licdir, "LICENSES.tsv"), "w") as f:
+        f.write("package\tversion\tlicense file\tsource\n")
+        for r in lics:
             f.write("\t".join(r) + "\n")
 
     # the bundle can't run on a macOS older than its newest-targeted binary
