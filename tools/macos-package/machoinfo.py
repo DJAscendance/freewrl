@@ -8,7 +8,10 @@ DYLIB_CMDS = ("LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB",
 
 
 def run(*args):
-    return subprocess.run(args, check=True, capture_output=True, text=True).stdout
+    r = subprocess.run(args, capture_output=True, text=True)
+    if r.returncode:
+        raise SystemExit("%s failed (exit %d):\n%s" % (" ".join(args), r.returncode, (r.stderr or r.stdout).strip()))
+    return r.stdout
 
 
 def is_macho(path):
