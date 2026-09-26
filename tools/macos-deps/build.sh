@@ -38,7 +38,8 @@ freealut 1.1.0 https://deb.debian.org/debian/pool/main/f/freealut/freealut_1.1.0
 
 export MACOSX_DEPLOYMENT_TARGET=$TARGET
 FLAGS="-arch arm64 -mmacosx-version-min=$TARGET"
-export CC=clang CXX=clang++ CFLAGS="$FLAGS -O2" CXXFLAGS="$FLAGS -O2" LDFLAGS="$FLAGS"
+# header room for bundle.py to rewrite install names to @rpath (Homebrew adds this too)
+export CC=clang CXX=clang++ CFLAGS="$FLAGS -O2" CXXFLAGS="$FLAGS -O2" LDFLAGS="$FLAGS -Wl,-headerpad_max_install_names"
 # keep Homebrew (or any other pkg-config tree) out of the builds
 export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" PKG_CONFIG_PATH=
 NCPU=$(sysctl -n hw.ncpu)
