@@ -4,6 +4,14 @@
 
 # FreeWRL
 
+<p align="center">
+  <a href="#version"><img alt="FreeWRL 6.7" src="https://shieldcn.dev/badge/FreeWRL-6.7-green.svg"></a>
+  <a href="#supported-formats"><img alt="Standards: VRML97 / X3D" src="https://shieldcn.dev/badge/standards-VRML97_%2F_X3D-blue.svg"></a>
+  <a href="#macos-apple-silicon-status"><img alt="Platform: Apple Silicon" src="https://shieldcn.dev/badge/platform-Apple_Silicon-slate.svg"></a>
+  <a href="#license-and-attribution"><img alt="License: LGPL-3.0-or-later" src="https://shieldcn.dev/badge/license-LGPL--3.0--or--later-blue.svg"></a>
+  <a href="#fork-notice"><img alt="Ascendance Open Worlds modernization fork" src="https://shieldcn.dev/badge/fork-Ascendance_Open_Worlds-violet.svg"></a>
+</p>
+
 FreeWRL is an open-source X3D and VRML97 browser written in C. It runs as a
 standalone application, as a browser plugin, or as an embeddable library
 (`libFreeWRL`), with JavaScript Script nodes, EAI/SAI, and a mix of desktop
@@ -31,8 +39,8 @@ this fork belong on this repository.
 
 | Branch | What it is |
 | --- | --- |
-| `develop` | Upstream SourceForge `develop` at `b3254b11e` ("Version 6.7", 2024-04-20) plus this fork's merged work, including native Apple Silicon macOS support. |
-| `master` | Exact mirror of upstream `master` at `e99ab4a00` (2020-02-21), the older stable line. |
+| `master` | Primary maintained branch: the Ascendance Open Worlds FreeWRL 6.7 modernization line, including native Apple Silicon macOS support and this fork's merged work. It is the branch GitHub visitors see first. Before the 2026-09 promotion, `master` was an exact mirror of upstream `master` at `e99ab4a00` (2020-02-21); that commit remains the historical baseline and the merge base of the promotion. |
+| `develop` | Integration branch for active development before promotion to `master`. Based on upstream SourceForge `develop` at `b3254b11e` ("Version 6.7", 2024-04-20) plus this fork's merged work. |
 | `macos-arm64-develop-port` | The Apple Silicon port of FreeWRL 6.7, merged into `develop` through [pull request #2](https://github.com/DJAscendance/freewrl/pull/2). |
 | `macos-arm64` | An earlier Mac port of the 2020 `master` line, kept for reference. |
 
@@ -173,7 +181,9 @@ Known FreeWRL 6.7 defects, present upstream and not introduced by the port:
 
 ## Contributing
 
-1. Base work on `develop`, not the 2020 `master`.
+1. Base active development on `develop`. Tested integration states are
+   promoted from `develop` to `master`, the maintained public branch;
+   `master` is no longer the old 2020 line.
 2. Use a `feature-*` or `fix-*` branch and open a pull request against
    `develop`.
 3. Keep every platform compiling; much of the code is conditional on
