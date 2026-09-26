@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Portability gate for a packaged FreeWRL.app.
 
-usage: verify.py [--source-root DIR] <FreeWRL.app>
+usage: verify.py [--source-root DIR] [--macos VERSION] <FreeWRL.app>
 
 Fails (exit 1) if any Mach-O in the bundle
   - depends on a non-system library that does not resolve inside the bundle,
   - has an install name, dependency or LC_RPATH naming Homebrew, /usr/local,
     MacPorts, the source tree, a temporary directory or a home directory,
   - is not arm64, not for macOS, or needs a newer macOS than
-    LSMinimumSystemVersion claims,
-or if LSMinimumSystemVersion is newer than --macos (the oldest macOS the package must
-run on), an expected runtime file (fonts, licenses) is missing, or a
-package in MANIFEST.tsv or a component compiled into FreeWRL has no license file
-recorded in LICENSES.tsv.
+    LSMinimumSystemVersion claims or than --macos (the oldest macOS the package must
+    run on),
+or if LSMinimumSystemVersion is newer than --macos, one of the libraries FreeWRL
+links (FreeType, ODE, freealut) is not embedded, a library the macOS build no longer
+uses (Imlib2, FFmpeg, OpenAL Soft) is embedded, an expected runtime file (fonts,
+licenses) is missing, or a package in MANIFEST.tsv or a component compiled into
+FreeWRL has no license file recorded in LICENSES.tsv.
 Paths that only appear as strings inside binaries are listed as warnings.
 """
 import argparse
@@ -43,6 +45,13 @@ EXPECTED = [
     "Contents/Resources/ThirdPartyLicenses/freetype/LICENSE.TXT",  # refers to FTL.TXT
     "Contents/Resources/ThirdPartyLicenses/freetype/FTL.TXT",
 ]
+# libraries FreeWRL links that tools/macos-deps builds, which must be embedded
+EMBEDDED = ["Contents/Frameworks/libfreetype.6.dylib",
+            "Contents/Frameworks/libode.8.dylib",
+            "Contents/Frameworks/libalut.0.dylib"]
+# libraries the macOS build replaced (stb_image, Apple's OpenAL) or turned off (FFmpeg)
+UNWANTED = ["libImlib2", "libavcodec", "libavformat", "libavutil", "libavdevice",
+            "libswscale", "libswresample", "libopenal"]
 # license files of code compiled into FreeWRL (package.sh)
 COMPILED_IN = ["FreeWRL", "duktape", "libtess", "stb_image"]
 
@@ -77,7 +86,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--source-root", action="append", default=[],
                     help="also forbid paths under this directory (repeatable)")
-    ap.add_argument("--macos", help="oldest macOS the package must run on, e.g. 13.0")
+    ap.add_argument("--macos", help="oldest macOS the package must run on, e.g. 14.0")
     ap.add_argument("app")
     a = ap.parse_args()
     app = os.path.abspath(a.app)
@@ -109,6 +118,10 @@ def main():
             newest = m.minos
         if version_tuple(m.minos) > version_tuple(claimed):
             errors.append("%s: needs macOS %s, Info.plist claims %s" % (rel, m.minos, claimed))
+        if a.macos and version_tuple(m.minos) > version_tuple(a.macos):
+            errors.append("%s: needs macOS %s, newer than --macos %s" % (rel, m.minos, a.macos))
+        if any(os.path.basename(p).startswith(u) for u in UNWANTED):
+            errors.append("%s: the macOS build does not use this library" % rel)
         if m.id and (bad(m.id) or not (m.id.startswith("@rpath/") or p == exe)):
             errors.append("%s: install name %s" % (rel, m.id))
         for rp in m.rpaths:
@@ -139,6 +152,9 @@ def main():
 
     if a.macos and version_tuple(claimed) > version_tuple(a.macos):
         errors.append("LSMinimumSystemVersion %s is newer than --macos %s" % (claimed, a.macos))
+    for e in EMBEDDED:
+        if not os.path.isfile(os.path.join(app, e)):
+            errors.append("not embedded: %s" % e)
     for e in EXPECTED:
         if not os.path.isfile(os.path.join(app, e)):
             errors.append("missing %s" % e)
