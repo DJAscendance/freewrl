@@ -1,0 +1,21 @@
+#VRML V2.0 utf8
+# More stb_image formats (the macOS texture decoder). Left to right: BMP, TGA, PSD, PPM, HDR.
+# Pass: all five boxes show their image (mandrill, stripes, palm, sky, star); none is white or
+# untextured, and the console has no "failed to load" line.
+Viewpoint { position 0 0 9 description "front" }
+NavigationInfo { headlight TRUE }
+Transform { translation -4 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "images/mandrill.bmp" } }
+	geometry Box { size 1.4 1.4 1.4 } } }
+Transform { translation -2 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "images/stripes.tga" } }
+	geometry Box { size 1.4 1.4 1.4 } } }
+Transform { translation 0 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "images/palm.psd" } }
+	geometry Box { size 1.4 1.4 1.4 } } }
+Transform { translation 2 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "images/sky2.ppm" } }
+	geometry Box { size 1.4 1.4 1.4 } } }
+Transform { translation 4 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "images/star.hdr" } }
+	geometry Box { size 1.4 1.4 1.4 } } }
