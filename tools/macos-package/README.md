@@ -7,6 +7,7 @@ non-system library it needs is inside the bundle.
 tools/macos-package/package.sh                   # build Release, package, ad-hoc sign, verify
 tools/macos-package/package.sh -z                # ... and zip it (prints the SHA-256)
 tools/macos-package/package.sh -s "Developer ID Application" -r -z   # Developer ID, hardened runtime
+tools/macos-package/package.sh -s "Developer ID Application" -r --notarize  # ... notarized, stapled, zipped
 tools/macos-package/verify.py FreeWRL.app        # the portability gate on its own
 ```
 
@@ -38,8 +39,27 @@ imlib2, freetype and what they depend on). The packaged app doesn't.
    copied verbatim from the source tree.
 4. Signs inside out: each dylib and loader, then the app.
 5. `verify.py` and `codesign --verify --deep --strict`.
+6. With `--notarize` (`-n`): submits a zip of the app with `notarytool --wait`, fails
+   unless Apple answers `Accepted` (the log is saved as `notary-log.json`), staples
+   the ticket, runs `stapler validate` and `spctl --assess`, and only then writes
+   the final zip. Needs `-s` with a Developer ID Application identity and `-r`.
 
 See [THIRD-PARTY.md](THIRD-PARTY.md) for the embedded libraries and their licenses.
+
+## Notarization credentials
+
+Read from the environment, checked before the build starts, never printed:
+
+- `NOTARY_KEYCHAIN_PROFILE`: a profile saved with `xcrun notarytool store-credentials`; or
+- `NOTARY_KEY_ID` and `NOTARY_ISSUER` (or `APPLE_API_KEY_ID` and `APPLE_API_ISSUER`):
+  an App Store Connect API key, with `NOTARY_KEY` pointing to its `.p8` file
+  (default `~/.appstoreconnect/private_keys/AuthKey_<key ID>.p8`).
+- `NOTARY_ENV_FILE`: a shell file that sets any of these, read first.
+
+```sh
+NOTARY_ENV_FILE=~/.config/notary.env tools/macos-package/package.sh \
+    -s "Developer ID Application: <name> (<team>)" -r --notarize
+```
 
 ## verify.py
 
