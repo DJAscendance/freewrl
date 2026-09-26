@@ -6,6 +6,11 @@
   - vertex attribute and index data in client memory (no buffer bound): the HUD, Text,
     cursor, Box, lines, points, 2D geometry and particles still draw that way. We keep the
     client pointers and stream them into buffer objects at draw time.
+  FreeWRL enables attribute arrays and never disables them, and the locations mean
+  different things in different shader programs, so arrays left over from earlier draws stay
+  enabled: pointing at a smaller buffer, or at client memory (sometimes a stack array) that
+  is gone. Each draw therefore enables only the arrays the current program reads; the rest
+  are disabled for that draw, and their stale pointers are neither streamed nor fetched.
   - a few GL 4.3+/4.5 calls macOS does not have (it stops at 4.1).
   - GL_LUMINANCE_ALPHA textures (font and HUD atlases): uploaded as GL_RG8 with a swizzle.
 
@@ -44,6 +49,21 @@ typedef struct {
 static client_attrib attribs[FW_CORE_MAX_ATTRIBS];
 static GLuint stream_ibo = 0;
 
+/* attribute arrays enabled in GL (the default VAO), a subset of those the library enabled */
+static unsigned gl_enabled = 0;
+/* locations the current program reads (all while unknown) */
+#define ALL_ATTRIBS ((1u << FW_CORE_MAX_ATTRIBS) - 1)
+static GLuint current_program = 0;
+static unsigned current_mask = ALL_ATTRIBS;
+/* the first VAO bound is the default one (OpenGL_Utils.c); draws in another VAO (renderQuad)
+   keep their own enabled arrays and are left alone */
+static GLuint default_vao = 0;
+static int other_vao = 0;
+/* active attribute locations per program, filled on first use */
+#define FW_CORE_MAX_PROGRAMS 256
+static struct { GLuint program; unsigned mask; } programs[FW_CORE_MAX_PROGRAMS];
+static int nprograms = 0;
+
 static GLsizei type_size(GLenum type){
 	switch(type){
 	case GL_BYTE: case GL_UNSIGNED_BYTE: return 1;
@@ -59,7 +79,12 @@ static GLuint bound(GLenum binding){
 }
 
 static void set_pointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer, int integer){
-	if(index >= FW_CORE_MAX_ATTRIBS) return;
+	if(index >= FW_CORE_MAX_ATTRIBS || other_vao){
+		/* another VAO (renderQuad) sources its arrays from its own buffer */
+		if(integer) glVertexAttribIPointer(index, size, type, stride, pointer);
+		else glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+		return;
+	}
 	client_attrib *a = &attribs[index];
 	if(bound(GL_ARRAY_BUFFER_BINDING) || pointer == NULL){
 		/* a buffer object is bound: pointer is an offset, core handles it */
@@ -83,12 +108,86 @@ void fw_core_glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsiz
 	set_pointer(index, size, type, GL_FALSE, stride, pointer, 1);
 }
 void fw_core_glEnableVertexAttribArray(GLuint index){
-	if(index < FW_CORE_MAX_ATTRIBS) attribs[index].enabled = 1;
-	glEnableVertexAttribArray(index);
+	if(index >= FW_CORE_MAX_ATTRIBS || other_vao){ glEnableVertexAttribArray(index); return; }
+	/* enabled in GL at the next draw, if that draw's program reads it */
+	attribs[index].enabled = 1;
 }
 void fw_core_glDisableVertexAttribArray(GLuint index){
-	if(index < FW_CORE_MAX_ATTRIBS) attribs[index].enabled = 0;
+	if(index < FW_CORE_MAX_ATTRIBS && !other_vao){
+		attribs[index].enabled = 0;
+		gl_enabled &= ~(1u << index);
+	}
 	glDisableVertexAttribArray(index);
+}
+
+static unsigned program_mask(GLuint program){
+	GLint linked = 0, n = 0;
+	unsigned mask = 0;
+	if(program == 0) return ALL_ATTRIBS;
+	for(int i=0;i<nprograms;i++)
+		if(programs[i].program == program) return programs[i].mask;
+	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+	if(!linked) return ALL_ATTRIBS; /* nothing known yet; don't cache */
+	glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &n);
+	for(GLint i=0;i<n;i++){
+		char name[256];
+		GLint size = 0;
+		GLenum type = 0;
+		glGetActiveAttrib(program, i, sizeof name, NULL, &size, &type, name);
+		GLint loc = glGetAttribLocation(program, name);
+		if(loc < 0) continue; /* built-ins such as gl_VertexID */
+		int rows = type == GL_FLOAT_MAT2 ? 2 : type == GL_FLOAT_MAT3 ? 3 : type == GL_FLOAT_MAT4 ? 4 : 1;
+		for(int k=0;k<rows*size && loc+k<FW_CORE_MAX_ATTRIBS;k++) mask |= 1u << (loc + k);
+	}
+	if(nprograms < FW_CORE_MAX_PROGRAMS){
+		programs[nprograms].program = program;
+		programs[nprograms].mask = mask;
+		nprograms++;
+	}
+	return mask;
+}
+static void forget_program(GLuint program){
+	for(int i=0;i<nprograms;i++)
+		if(programs[i].program == program){ programs[i] = programs[--nprograms]; break; }
+}
+void fw_core_glUseProgram(GLuint program){
+	glUseProgram(program);
+	current_program = program;
+	current_mask = program_mask(program);
+}
+void fw_core_glLinkProgram(GLuint program){
+	glLinkProgram(program);
+	forget_program(program);
+	if(program == current_program) current_mask = program_mask(program);
+}
+void fw_core_glDeleteProgram(GLuint program){
+	glDeleteProgram(program);
+	forget_program(program);
+	if(program == current_program){ current_program = 0; current_mask = ALL_ATTRIBS; }
+}
+void fw_core_glBindVertexArray(GLuint vao){
+	glBindVertexArray(vao);
+	if(!default_vao) default_vao = vao;
+	other_vao = vao != default_vao;
+}
+/* before a draw: GL enables exactly the arrays the library enabled and the program reads */
+static void sync_enabled(void){
+	unsigned want = 0, diff;
+	if(other_vao) return;
+	for(int i=0;i<FW_CORE_MAX_ATTRIBS;i++)
+		if(attribs[i].enabled) want |= 1u << i;
+	want &= current_mask;
+	diff = want ^ gl_enabled;
+	for(int i=0;diff;i++,diff>>=1){
+		if(!(diff & 1)) continue;
+		if(want & (1u << i)) glEnableVertexAttribArray(i);
+		else glDisableVertexAttribArray(i);
+	}
+	gl_enabled = want;
+}
+static int streamed(int i){
+	/* in another VAO nothing is masked (its arrays are its own) */
+	return other_vao ? attribs[i].enabled : (gl_enabled >> i) & 1;
 }
 
 /* stream every enabled client-memory attribute covering vertices [0, nverts) into a VBO */
@@ -97,7 +196,7 @@ static void upload_client_attribs(GLsizei nverts){
 	int any = 0;
 	for(int i=0;i<FW_CORE_MAX_ATTRIBS;i++){
 		client_attrib *a = &attribs[i];
-		if(!a->enabled || !a->pointer || nverts <= 0) continue;
+		if(!streamed(i) || !a->pointer || nverts <= 0) continue;
 		if(!any){ prev = bound(GL_ARRAY_BUFFER_BINDING); any = 1; }
 		GLsizei elem = a->size * type_size(a->type);
 		GLsizei stride = a->stride ? a->stride : elem;
@@ -112,11 +211,12 @@ static void upload_client_attribs(GLsizei nverts){
 }
 static int have_client_attribs(void){
 	for(int i=0;i<FW_CORE_MAX_ATTRIBS;i++)
-		if(attribs[i].enabled && attribs[i].pointer) return 1;
+		if(streamed(i) && attribs[i].pointer) return 1;
 	return 0;
 }
 
 void fw_core_glDrawArrays(GLenum mode, GLint first, GLsizei count){
+	sync_enabled();
 	if(have_client_attribs()) upload_client_attribs(first + count);
 	glDrawArrays(mode, first, count);
 }
@@ -132,6 +232,7 @@ static GLuint max_index(GLenum type, const void *indices, GLsizei count){
 	return m;
 }
 void fw_core_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices){
+	sync_enabled();
 	GLuint ebo = bound(GL_ELEMENT_ARRAY_BUFFER_BINDING);
 	if(ebo){
 		/* indices already in a buffer object; client attributes need the index range */

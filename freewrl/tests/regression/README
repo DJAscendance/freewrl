@@ -19,3 +19,4 @@ gzip_route.wrl         route_dotted.wrl, gzip-compressed (gzip -n -9) but still 
                        real-world worlds are; pass: same as route_dotted.wrl (ROUTE_OK)
 gzip_proto.wrl         proto_replace.wrl, gzip-compressed; PROTO worlds read through the gunzip path
 x3d_meta.x3d           X3D <meta> tags in <head> (6.7 parser crash, all platforms)
+glcore_stale_attribs.wrl  vertex attribute arrays left enabled across draws (macOS 4.1 core; crashed on CI's software renderer)
