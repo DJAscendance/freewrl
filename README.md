@@ -46,7 +46,8 @@ this fork belong on this repository.
 
 ## Version
 
-The fork's `develop` branch is based on FreeWRL 6.7:
+This fork's maintained `master` line and `develop` integration branch are
+based on FreeWRL 6.7:
 
 - SourceForge `develop` commit `b3254b11e`, the base of this fork's
   `develop`, is titled `Version 6.7`.
@@ -65,8 +66,11 @@ The fork's `develop` branch is based on FreeWRL 6.7:
 ## macOS Apple Silicon status
 
 **Native Apple Silicon macOS source support is available on this fork's
-`develop` branch.** It was reviewed and merged through
-[pull request #2](https://github.com/DJAscendance/freewrl/pull/2).
+maintained `master` branch and is actively integrated on `develop`.** It was
+reviewed and merged into `develop` through
+[pull request #2](https://github.com/DJAscendance/freewrl/pull/2) (the original
+FreeWRL 6.7 Apple Silicon integration) and promoted to `master` through
+[pull request #7](https://github.com/DJAscendance/freewrl/pull/7).
 
 - Release and Debug arm64 builds pass with Xcode and Homebrew libraries.
 - FreeWRL runs on an OpenGL 4.1 core context on Apple Silicon (the highest
@@ -109,15 +113,18 @@ Useful options include `--with-target` (`x11`, `motif`), `--with-javascript`
 
 ### macOS (Apple Silicon)
 
-Build from `develop`:
+Build from the maintained `master` branch:
 
 ```sh
 brew install freetype imlib2 openal-soft freealut ode ffmpeg libxml2
-git checkout develop
+git checkout master
 cd OSX_gui/FreeWRL-Desktop
 xcodebuild -project FreeWRL.xcodeproj -scheme FreeWRL \
   -configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- build
 ```
+
+Contributors working on active development should build from `develop` instead
+(`git checkout develop`).
 
 ### Windows
 
