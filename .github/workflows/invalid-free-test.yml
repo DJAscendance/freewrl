@@ -1,0 +1,68 @@
+name: invalid-free test (macOS)
+# Test branch only: reproduces the startOfLoopNodeUpdates invalid free (world replacement with
+# PROTO declarations) on the pre-fix candidate and develop, and checks the fix.
+on:
+  push:
+    branches: [ci/render-loop-invalid-free-test]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [pre, dev, fix]
+        kind: [release, asan]
+        include:
+          - {variant: pre, sha: 6416b6fc8b2303f075bdab96c7d1ec9e263db7c8}
+          - {variant: dev, sha: 22257dc57a3540f7699bc8e9ecc64fb438c4f765}
+          - {variant: fix, sha: ed0bc2072}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: environment
+        run: |
+          sw_vers; uname -m; xcodebuild -version; sysctl -n hw.memsize hw.ncpu
+          sudo DevToolsSecurity -enable || true
+      - name: dependencies
+        run: |
+          brew install freetype imlib2 openal-soft freealut ode libxml2
+          if [ "${{ matrix.variant }}" = dev ]; then brew install ffmpeg; fi
+      - name: build
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/src" ${{ matrix.sha }}
+          extra=""
+          if [ "${{ matrix.kind }}" = asan ]; then
+            cfg=Debug; extra="-enableAddressSanitizer YES GCC_OPTIMIZATION_LEVEL=1"
+            xcodebuild -project "$RUNNER_TEMP/src/OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj" -scheme FreeWRL \
+              -configuration Debug ARCHS=arm64 CODE_SIGN_IDENTITY=- -derivedDataPath "$RUNNER_TEMP/dd" \
+              $extra 'OTHER_CFLAGS=$(inherited) -fsanitize-recover=address' build > build.log 2>&1 || { tail -40 build.log; exit 1; }
+          else
+            cfg=Release
+            xcodebuild -project "$RUNNER_TEMP/src/OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj" -scheme FreeWRL \
+              -configuration Release ARCHS=arm64 CODE_SIGN_IDENTITY=- -derivedDataPath "$RUNNER_TEMP/dd" \
+              build > build.log 2>&1 || { tail -40 build.log; exit 1; }
+          fi
+          echo "APP=$RUNNER_TEMP/dd/Build/Products/$cfg/FreeWRL.app" >> $GITHUB_ENV
+          git -C "$RUNNER_TEMP/src" log --oneline -1
+      - name: tests (one FreeWRL at a time)
+        run: |
+          OUT=$RUNNER_TEMP/out; mkdir -p $OUT
+          if [ "${{ matrix.variant }}-${{ matrix.kind }}" = fix-release ]; then export TEX=50 TSEC=40; fi
+          tools/ci-invalid-free/suite.sh "$APP" $OUT ${{ matrix.kind }} | tee $OUT/results.txt
+          {
+            echo "### ${{ matrix.variant }} ${{ matrix.kind }} (${{ matrix.sha }})"
+            echo '```'
+            grep -h -m1 "GL_RENDERER" $OUT/*.err $OUT/*.out 2>/dev/null | head -1
+            cat $OUT/results.txt
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+      - name: collect crash reports
+        if: always()
+        run: mkdir -p $RUNNER_TEMP/out/crash; cp ~/Library/Logs/DiagnosticReports/FreeWRL* $RUNNER_TEMP/out/crash/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.variant }}-${{ matrix.kind }}
+          path: ${{ runner.temp }}/out
