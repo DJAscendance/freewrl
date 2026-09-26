@@ -59,7 +59,7 @@ jobs:
       - name: build the package for macOS 13
         run: |
           sw_vers; xcodebuild -version
-          git worktree add --detach "$RUNNER_TEMP/src" eabe49965
+          git worktree add --detach "$RUNNER_TEMP/src" f25c78e2e
           sh "$RUNNER_TEMP/src/tools/macos-package/package.sh" -t 13.0 -z -o "$RUNNER_TEMP/pkg" > package.log 2>&1 || { tail -60 package.log; exit 1; }
           grep -E "embedded|licenses:|Mach-O files|PASS|FAIL|ERROR" package.log
           cp package.log "$RUNNER_TEMP/pkg/"
