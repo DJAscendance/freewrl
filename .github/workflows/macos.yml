@@ -51,7 +51,10 @@ jobs:
           APP=$RUNNER_TEMP/pkg/FreeWRL.app
           test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' $APP/Contents/Info.plist)" = "$MACOS_MIN"
           test "$(lipo -archs $APP/Contents/MacOS/FreeWRL)" = arm64
-          vtool -show-build $APP/Contents/MacOS/FreeWRL $APP/Contents/Frameworks/*.dylib
+          for f in $APP/Contents/MacOS/FreeWRL $APP/Contents/Frameworks/*.dylib; do
+            m=$(vtool -show-build "$f" | awk '/minos/{print $2}'); echo "$(basename $f): minos $m"
+            test "$m" = "$MACOS_MIN"
+          done
           test "$(ls $APP/Contents/Frameworks | wc -l | tr -d ' ')" = 3
           test ! -e $APP/Contents/PlugIns
           python3 tools/macos-package/verify.py --source-root "$GITHUB_WORKSPACE" --macos "$MACOS_MIN" "$APP"
