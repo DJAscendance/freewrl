@@ -12,3 +12,4 @@ cubemap_generated.x3d  GeneratedCubeMapTexture (framebuffer + cube map render)
 shadows_*.x3d          light shadows TRUE: directional and spot (2D depth map), point (cube depth map)
 texture_formats.wrl    JPEG, PNG and GIF ImageTexture
 x3d_meta.x3d           X3D <meta> tags in <head> (6.7 parser crash, all platforms)
+glcore_stale_attribs.wrl  vertex attribute arrays left enabled across draws (macOS 4.1 core; crashed on CI's software renderer)
