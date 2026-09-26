@@ -12,9 +12,9 @@ if [ "$KIND" = asan ]; then
 else
   CYC=${CYC:-5} CSEC=${CSEC:-180} TEX=${TEX:-10} TSEC=${TSEC:-60}
 fi
-for i in $(seq $CYC); do RELOAD_PERIOD=90 $H/run.sh $APP $G/texture_formats.wrl $CSEC $OUT/cycle-$i; done
+for ((i=1; i<=CYC; i++)); do RELOAD_PERIOD=90 $H/run.sh $APP $G/texture_formats.wrl $CSEC $OUT/cycle-$i; done
 unset RELOAD_PATHS
-for i in $(seq $TEX); do $H/run.sh $APP $G/texture_formats.wrl $TSEC $OUT/texture-$i; done
+for ((i=1; i<=TEX; i++)); do $H/run.sh $APP $G/texture_formats.wrl $TSEC $OUT/texture-$i; done
 if [ "$KIND" = asan ]; then
   echo "ASan reports (excluding known testVector/GLEngine noise):"
   cat $OUT/asan.* 2>/dev/null | grep '^SUMMARY' | grep -vE 'Frustum.c:20[04]|glBufferData_Exec' | sort | uniq -c
