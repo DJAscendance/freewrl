@@ -5,7 +5,7 @@
 #
 # usage: build.sh [-p prefix] [-t macos-version] [-c source-cache]
 #   -p  install prefix                         (default: ./macos-deps-out/prefix)
-#   -t  minimum macOS (MACOSX_DEPLOYMENT_TARGET) (default: 13.0)
+#   -t  minimum macOS (MACOSX_DEPLOYMENT_TARGET) (default: 14.0)
 #   -c  where downloaded sources are kept      (default: ./macos-deps-out/sources)
 #
 # Sources are the ones Homebrew's formulae use, checked against the same SHA-256.
@@ -14,7 +14,7 @@
 # which tools/macos-package/bundle.py reads. Needs only Xcode's command line tools and make.
 set -eu
 H=$(cd "$(dirname "$0")" && pwd)
-PREFIX= TARGET=13.0 CACHE=
+PREFIX= TARGET=14.0 CACHE=
 while getopts "p:t:c:" opt; do
 	case $opt in
 	p) PREFIX=$OPTARG ;;
