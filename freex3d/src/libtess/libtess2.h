@@ -39,7 +39,7 @@
 	#define GLdouble double
 #else
 #ifdef AQUA
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h> //macOS: 4.1 core profile
 #else
     #include <GL/gl.h>
 #endif
@@ -169,9 +169,12 @@ typedef GLUtesselator GLUtesselatorObj;
 typedef GLUtesselator GLUtriangulatorObj;
 
 #define GLU_TESS_MAX_COORD 1.0e150
-
+#if !defined(_MSC_VER) && !defined(ANDROIDNDK) && !defined(__APPLE__) //apple: GL/glu.h does not exist, use the typedef below as before
+#include <GL/glu.h>
+#else
 /* Internal convenience typedefs */
 typedef void (GLAPIENTRYP _GLUfuncptr)();
+#endif
 
 GLAPI void GLAPIENTRY gluBeginPolygon (GLUtesselator* tess);
 GLAPI GLboolean GLAPIENTRY gluCheckExtension (const GLubyte *extName, const GLubyte *extString);

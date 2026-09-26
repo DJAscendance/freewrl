@@ -1219,6 +1219,23 @@ extern JSClass SFVec4dClass;
 extern JSPropertySpec (SFVec4dProperties)[];
 extern JSFunctionSpec (SFVec4dFunctions)[];
 
+extern JSClass SFMatrix3fClass;
+extern JSPropertySpec(SFMatrix3fProperties)[];
+extern JSFunctionSpec(SFMatrix3fFunctions)[];
+
+extern JSClass SFMatrix4fClass;
+extern JSPropertySpec(SFMatrix4fProperties)[];
+extern JSFunctionSpec(SFMatrix4fFunctions)[];
+
+extern JSClass SFMatrix3dClass;
+extern JSPropertySpec(SFMatrix3dProperties)[];
+extern JSFunctionSpec(SFMatrix3dFunctions)[];
+
+extern JSClass SFMatrix3fClass;
+extern JSPropertySpec(SFMatrix3fProperties)[];
+extern JSFunctionSpec(SFMatrix3fFunctions)[];
+
+
 extern JSClass MFColorClass;
 extern JSFunctionSpec (MFColorFunctions)[];
 extern JSClass MFFloatClass;

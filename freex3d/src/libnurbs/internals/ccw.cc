@@ -36,6 +36,10 @@
  * ccw.c++
  *
  */
+#ifdef __unix__
+# define _glu_dprintf printf
+# include <setjmp.h>
+#endif
 
 #include "glimports.h"
 #include "mystdio.h"
@@ -75,8 +79,8 @@ Subdivider::ccwTurn_sr( Arc_ptr j1, Arc_ptr j2 ) // dir = 1
     if( v1->param[0] == v1next->param[0] && v2->param[0] == v2next->param[0] )
 	return 0;
 
-    if( v2next->param[0] < v2->param[0] || v1next->param[0] < v1->param[0] )
-	::mylongjmp( jumpbuffer, 28 );
+ //   if( v2next->param[0] < v2->param[0] || v1next->param[0] < v1->param[0] )
+	//::mylongjmp( jumpbuffer, 28 );
 
     if( v1->param[1] < v2->param[1] )
 	return 0;
@@ -189,7 +193,8 @@ Subdivider::ccwTurn_sl( Arc_ptr j1, Arc_ptr j2 ) // dir = 0
 	return 0;
 
     if( v2next->param[0] > v2->param[0] || v1next->param[0] > v1->param[0] ) 
-	::mylongjmp( jumpbuffer, 28 );
+	return 0;
+	//::mylongjmp( jumpbuffer, 28 );
 
     if( v1->param[1] < v2->param[1] )
 	return 1;
@@ -302,7 +307,8 @@ Subdivider::ccwTurn_tr( Arc_ptr j1, Arc_ptr j2 ) // dir = 1
 	return 0;
 
     if( v2next->param[1] < v2->param[1] || v1next->param[1] < v1->param[1] )
-	::mylongjmp( jumpbuffer, 28 );
+	return 0;
+	//::mylongjmp( jumpbuffer, 28 );
 
     if( v1->param[0] < v2->param[0] )
 	return 1;
@@ -415,7 +421,8 @@ Subdivider::ccwTurn_tl( Arc_ptr j1, Arc_ptr j2 )
 	return 0;
 
     if( v2next->param[1] > v2->param[1] || v1next->param[1] > v1->param[1] ) 
-	::mylongjmp( jumpbuffer, 28 );
+    return 0;
+	//::mylongjmp( jumpbuffer, 28 );
 
     if( v1->param[0] < v2->param[0] )
 	return 0;

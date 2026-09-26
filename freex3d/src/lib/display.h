@@ -73,8 +73,14 @@ Functions:
  
  #include <OpenGL/OpenGL.h>
  #include <OpenGL/CGLTypes.h>
+ #include <OpenGL/gl3.h> /* 4.1 core profile; legacy-only tokens are declared at the end of this file */
+ #include <OpenGL/gl3ext.h>
+ #define FW_GL_CORE_PROFILE 1 /* the frontend creates a 4.1 core context, see opengl/GLCoreCompat.c */
  
- #include <AGL/AGL.h> 
+ /* AGL was removed from modern macOS SDKs (and is unused); it used to pull these in */
+ #include <sys/types.h>
+ #include <pthread.h>
+ #include <signal.h>
  #endif /* defined IPHONE */
 #endif /* defined TARGET_AQUA  */
 
@@ -321,7 +327,8 @@ GLEWContext * glewGetContext();
 #define TEXTURE_VBO1 6
 #define TEXTURE_VBO2 7
 #define TEXTURE_VBO3 8
-#define VBO_COUNT 9
+#define CINDEX_VBO 9
+#define VBO_COUNT 10
 
 
 void fv_setScreenDim(int wi, int he);
@@ -346,17 +353,53 @@ typedef struct s_shader_capabilities{
 	GLint compiledOK;
 	GLuint myShaderProgram;
 
-	GLint myMaterialAmbient;
 	GLint myMaterialDiffuse;
+	GLint myMaterialEmissive;
 	GLint myMaterialSpecular;
+	GLint myMaterialAmbient;
 	GLint myMaterialShininess;
-	GLint myMaterialEmission;
+	GLint myMaterialOcclusion;
+	GLint myMaterialNormalScale;
+	GLint myMaterialTransparency;
+	GLint myMaterialBaseColor;
+	GLint myMaterialMetallic;
+	GLint myMaterialRoughness;
+	GLint myMaterialType;
+	GLint myMaterialTransdex;
+	GLint myMaterialNt;
+	GLint myMaterialTindex[10];
+	GLint myMaterialMode[10];
+	GLint myMaterialSource[10];
+	GLint myMaterialFunc[10];
+	GLint myMaterialCmap[10];
+	GLint myMaterialSampler[7];
+	GLint myMaterialTcount[7];
+	GLint myMaterialTstart[7];
+	//GLint myMaterialCindex[7];
 
-	GLint myMaterialBackAmbient;
 	GLint myMaterialBackDiffuse;
+	GLint myMaterialBackEmissive;
 	GLint myMaterialBackSpecular;
+	GLint myMaterialBackAmbient;
 	GLint myMaterialBackShininess;
-	GLint myMaterialBackEmission;
+	GLint myMaterialBackOcclusion;
+	GLint myMaterialBackNormalScale;
+	GLint myMaterialBackTransparency;
+	GLint myMaterialBackBaseColor;
+	GLint myMaterialBackMetallic;
+	GLint myMaterialBackRoughness;
+	GLint myMaterialBackType;
+	GLint myMaterialBackTransdex;
+	GLint myMaterialBackNt;
+	GLint myMaterialBackTindex[10];
+	GLint myMaterialBackMode[10];
+	GLint myMaterialBackSource[10];
+	GLint myMaterialBackFunc[10];
+	GLint myMaterialBackCmap[10];
+	GLint myMaterialBackSampler[7];
+	GLint myMaterialBackTcount[7];
+	GLint myMaterialBackTstart[7];
+	//GLint myMaterialBackCindex[7];
 
 	GLint myPointSize;
     
@@ -366,11 +409,11 @@ typedef struct s_shader_capabilities{
 	GLint lightcount;
 	//GLint lightType;
 	GLint lightType[MAX_LIGHTS];
-	GLint lightAmbient[MAX_LIGHTS];
-	GLint lightDiffuse[MAX_LIGHTS];
-	GLint lightSpecular[MAX_LIGHTS];
-	GLint lightPosition[MAX_LIGHTS];
-	GLint lightSpotDir[MAX_LIGHTS];
+	GLint lightAmbientIntensity[MAX_LIGHTS];
+	GLint lightColor[MAX_LIGHTS];
+	GLint lightIntensity[MAX_LIGHTS];
+	GLint lightLocation[MAX_LIGHTS];
+	GLint lightDirection[MAX_LIGHTS];
 	GLint lightAtten[MAX_LIGHTS];
 	//GLint lightConstAtten[MAX_LIGHTS];
 	//GLint lightLinAtten[MAX_LIGHTS];
@@ -379,28 +422,76 @@ typedef struct s_shader_capabilities{
 	GLint lightSpotBeamWidth[MAX_LIGHTS];
 	//GLint lightRadius;
 	GLint lightRadius[MAX_LIGHTS];
+	GLint lightshadows[MAX_LIGHTS];
+	GLint lightshadowIntensity[MAX_LIGHTS];
+	GLint lightdepthmap[MAX_LIGHTS];
+	GLint lightMat[MAX_LIGHTS];
 
 	GLint ModelViewMatrix;
 	GLint ProjectionMatrix;
 	GLint NormalMatrix;
 	GLint ModelViewInverseMatrix;
 	GLint TextureMatrix[MAX_MULTITEXTURE];
+
+	GLint nTexMatrix;
+	GLint tmap[MAX_MULTITEXTURE+2];
+	GLint cmap[MAX_MULTITEXTURE + 2];
+	GLint tgen[MAX_MULTITEXTURE + 2];
+	GLint parameter_n;
+	GLint parameter[7];
+
+
+	GLint ntexcombo;
 	GLint Vertices;
 	GLint Normals;
 	GLint Colours;
 	GLint TexCoords[MAX_MULTITEXTURE];
+	GLint nTexCoordChannels;
+	GLint Cindex;
+	GLint flipuv;
 	GLint FogCoords; //Aug 2016
-	
-	/* Projective Texture */
-	GLint textureUnit[4];
-	GLint projTexGenMatCam[16];
-	GLint pbackCull[16];
-	GLint ntdesc[16];
-	GLint pCount;
-	GLint tunits[16];
-	GLint modes[16];
-	GLint sources[16];
-	GLint funcs[16];
+	GLint prevVertex; //for dashed lines
+	GLint nextVertex;
+	GLint linetype;
+	GLint lineperiod;
+	GLint linewidth;
+	GLint linestrip_start_style;
+	GLint linestrip_end_style;
+	GLint screenresolution;
+	GLint linetype_uv;
+	GLint linetype_tse;
+	GLint pointSize;
+	GLint pointAttenuation;
+	GLint pointRange;
+	GLint pointColorMode;
+	GLint pointPosition;
+	GLint pointMethod;
+	GLint pointCPV;
+	GLint pointFogCoord;
+
+	//shared PTM and PBR
+	GLint textureUnit[16]; //its an array of shader addresses to sampler2D textureUnit[16]
+	GLint textureUnitCube[8]; //shared light shadow maps, anything else that needs cube texture
+
+	/* PTM Projective Texture */
+	GLint ptmCount;
+	GLint ptmGenMatCam[8];
+	GLint ptmcolor[8];
+	GLint ptmintensity[8];
+	GLint ptmbackCull[8];
+	GLint ptmshadows[8];
+	GLint ptmshadowIntensity[8];
+	GLint ptmdepthmap[8];
+	//GLint ntdesc[8];
+	GLint ptmtcount[8];
+	GLint ptmtstart[8];
+	GLint ptmtype[8];
+	GLint ptmfarDistance[8];
+	GLint tdtindex[16];
+	GLint tdmode[16];
+	GLint tdsource[16];
+	GLint tdfunc[16];
+	GLint tdsamplr[16];
 
 
 	GLint TextureUnit[MAX_MULTITEXTURE];
@@ -418,11 +509,9 @@ typedef struct s_shader_capabilities{
 
 	/* fill properties */
 	GLint hatchColour;
-	GLint hatchPercent;
-	GLint hatchScale;
 	GLint filledBool;
 	GLint hatchedBool;
-	GLint algorithm;
+	GLint hatchAlgo;
     
 	/* TextureCoordinateGenerator type */
 	GLint texCoordGenType;
@@ -471,6 +560,7 @@ typedef struct {
 	bool av_npot_texture; /* Non power of 2 textures available ? */
 	bool av_texture_rect; /* Rectangle textures available ? */
 	bool av_occlusion_q;  /* Occlusion query available ? */
+	bool av_ssbo;         /* shader storage buffer objects (GL 4.3) - HAnim GPU skinning */
 	
 	int texture_units;
 	int runtime_max_texture_size;
@@ -484,6 +574,7 @@ typedef struct {
 // JAS extern s_renderer_capabilities_t rdr_caps;
 
 bool initialize_rdr_caps();
+bool rdr_caps_av_ssbo();
 void initialize_rdr_functions();
 void rdr_caps_dump(s_renderer_capabilities_t *rdr_caps);
 
@@ -581,7 +672,7 @@ void getMotifWindowedGLwin(Window *win);
  * General : all systems
  */
 
-#if defined (FW_DEBUG)
+#if defined (FW_DEBUG_GL)
 
 	#if defined(_ANDROID)
 		#define PRINT_GL_ERROR_IF_ANY(_where) { \
@@ -604,9 +695,17 @@ void getMotifWindowedGLwin(Window *win);
 				if (_global_gl_err == GL_INVALID_ENUM) {printf ("GL_INVALID_ENUM"); } \
 				else if (_global_gl_err == GL_INVALID_VALUE) {printf ("GL_INVALID_VALUE"); } \
 				else if (_global_gl_err == GL_INVALID_OPERATION) {printf ("GL_INVALID_OPERATION"); } \
+				else if (_global_gl_err == GL_STACK_OVERFLOW) {printf ("GL_STACK_UNDERFLOW"); } \
+				else if (_global_gl_err == GL_STACK_UNDERFLOW) {printf ("GL_STACK_UNDERFLOW"); } \
 				else if (_global_gl_err == GL_OUT_OF_MEMORY) {printf ("GL_OUT_OF_MEMORY"); } \
-				else printf ("unknown error"); \
-				printf(" here: %s (%s:%d)\n", _where,__FILE__,__LINE__); \
+				else if (_global_gl_err == GL_INVALID_FRAMEBUFFER_OPERATION) {printf ("GL_INVALID_FRAMEBUFFER_OPERATION"); } \
+				else if (_global_gl_err == GL_CONTEXT_LOST) {printf ("GL_CONTEXT_LOST"); } \
+				else if (_global_gl_err == GL_TABLE_TOO_LARGE) {printf ("GL_TABLE_TOO_LARGE"); } \
+				else printf ("unknown error %d ",_global_gl_err); \
+				char* fname = strrchr(__FILE__,'\\'); \
+				if (!fname) fname = strrchr(__FILE__, '/'); \
+                if(fname) fname++; \
+				printf(" here: %s (%s:%d)\n", _where,fname,__LINE__); \
 				_global_gl_err = glGetError(); \
 			} \
 		} 
@@ -769,6 +868,7 @@ void resetGeometry();
 	#define FW_FOG_POINTER_TYPE 33888 //?? how geenerate these numbers
 	#define FW_COLOR_POINTER_TYPE 12453
 	#define FW_TEXCOORD_POINTER_TYPE 67655
+	#define FW_CINDEX_POINTER_TYPE 67644
 	//void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line);
 	//                           datasize, dataType, stride, pointer
 	#define FW_GL_VERTEX_POINTER(dataSize, dataType, stride, pointer) {sendAttribToGPU(FW_VERTEX_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
@@ -777,6 +877,8 @@ void resetGeometry();
 	#define FW_GL_NORMAL_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_NORMAL_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
 	#define FW_GL_FOG_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_FOG_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
 	#define FW_GL_TEXCOORD_POINTER(dataSize, dataType, stride, pointer, texID) {sendAttribToGPU(FW_TEXCOORD_POINTER_TYPE, dataSize, dataType, GL_FALSE, stride, pointer,texID,__FILE__,__LINE__); }
+	#define FW_GL_CINDEX_POINTER(dataType, stride, pointer) {sendAttribToGPU(FW_CINDEX_POINTER_TYPE, 0, dataType, GL_FALSE, stride, pointer,0,__FILE__,__LINE__); }
+
 	#define FW_GL_BINDBUFFER(target,buffer) {sendBindBufferToGPU(target,buffer,__FILE__,__LINE__); }
 
 
@@ -793,6 +895,7 @@ void resetGeometry();
 	#define FW_GL_BLENDFUNC(aaa,bbb) glBlendFunc(aaa,bbb);
 	#define FW_GL_LIGHTFV(aaa,bbb,ccc) fwglLightfv(aaa,bbb,ccc);
 	#define FW_GL_LIGHTF(aaa,bbb,ccc) fwglLightf(aaa,bbb,ccc);
+	#define FW_GL_LIGHTI(aaa,bbb,ccc) fwglLighti(aaa,bbb,ccc);
 	#define FW_GL_CLEAR(zzz) glClear(zzz); 
 	#define FW_GL_DEPTHFUNC(zzz) glDepthFunc(zzz); 
 	#define FW_GL_SHADEMODEL(aaa) glShadeModel(aaa);  
@@ -840,4 +943,96 @@ void resetGeometry();
 	#define FW_GL_LISTBASE(aaa) glListBase(aaa)
 	#define FW_GL_DRAWPIXELS(aaa,bbb,ccc,ddd,eee) glDrawPixels(aaa,bbb,ccc,ddd,eee)
 	
+#ifdef FW_GL_CORE_PROFILE
+/* OpenGL core profile (macOS 4.1). See opengl/GLCoreCompat.c. */
+
+/* Tokens only used for the library's own state, never passed to GL: the software
+   matrix stack (fw_glMatrixMode etc), multitexture modes, GL error names. GLES2 builds
+   define the same ones above. */
+#define GL_MODELVIEW                   0x1700
+#define GL_MODELVIEW_MATRIX            0x0BA6
+#define GL_PROJECTION                  0x1701
+#define GL_PROJECTION_MATRIX           0x0BA7
+#define GL_TEXTURE_MATRIX              0x0BA8
+#define GL_TEXTURE_STACK_DEPTH         0x0BA5
+#define GL_MODULATE                    0x2100
+#define GL_ADD                         0x0104
+#define GL_STACK_OVERFLOW              0x0503
+#define GL_STACK_UNDERFLOW             0x0504
+#define GL_TABLE_TOO_LARGE             0x8031
+#define GL_CONTEXT_LOST                0x0507
+/* X3D TextureProperties boundaryMode "CLAMP": GL_CLAMP is gone, nearest core mode */
+#define GL_CLAMP                       GL_CLAMP_TO_EDGE
+/* Fixed-function fog: only render_Fog_OLD (no callers) uses it; fog is done in the shaders */
+#define GL_FOG_COLOR                   0x0B66
+#define GL_FOG_DENSITY                 0x0B62
+#define GL_FOG_START                   0x0B63
+#define GL_FOG_END                     0x0B64
+#define GL_FOG_MODE                    0x0B65
+#define GL_EXP                         0x0800
+#undef FW_GL_FOGFV
+#undef FW_GL_FOGF
+#undef FW_GL_FOGI
+#define FW_GL_FOGFV(aaa, bbb)
+#define FW_GL_FOGF(aaa, bbb)
+#define FW_GL_FOGI(aaa, bbb)
+
+/* client-memory vertex/index arrays, streamed into buffer objects at draw time */
+void fw_core_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+void fw_core_glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer);
+void fw_core_glEnableVertexAttribArray(GLuint index);
+void fw_core_glDisableVertexAttribArray(GLuint index);
+void fw_core_glDrawArrays(GLenum mode, GLint first, GLsizei count);
+void fw_core_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices);
+#define glVertexAttribPointer fw_core_glVertexAttribPointer
+#define glVertexAttribIPointer fw_core_glVertexAttribIPointer
+#define glEnableVertexAttribArray fw_core_glEnableVertexAttribArray
+#define glDisableVertexAttribArray fw_core_glDisableVertexAttribArray
+#define glDrawArrays fw_core_glDrawArrays
+#define glDrawElements fw_core_glDrawElements
+
+/* fixed-function enables (GL_TEXTURE_2D, GL_FOG, texgen) are ignored, see GLCoreCompat.c */
+#define GL_TEXTURE_GEN_S               0x0C60
+#define GL_TEXTURE_GEN_T               0x0C61
+#define GL_TEXTURE_GEN_R               0x0C62
+void fw_core_glEnable(GLenum cap);
+void fw_core_glDisable(GLenum cap);
+#define glEnable fw_core_glEnable
+#define glDisable fw_core_glDisable
+/* a core profile has no wide lines: widths above the driver range are clamped, see GLCoreCompat.c */
+void fw_core_glLineWidth(GLfloat width);
+#define glLineWidth fw_core_glLineWidth
+
+/* above GL 4.1 */
+#ifndef GL_TEXTURE_TARGET
+#define GL_TEXTURE_TARGET              0x1006
+#endif
+#ifndef GL_TEXTURE_2D_ARRAY
+#define GL_TEXTURE_2D_ARRAY            0x8C1A
+#endif
+/* GL 4.3 shader storage buffers: only HAnim GPU skinning uses them, and it switches to
+   CPU skinning when rdr_caps_av_ssbo() is false (always, on macOS) */
+#ifndef GL_SHADER_STORAGE_BUFFER
+#define GL_SHADER_STORAGE_BUFFER       0x90D2
+#endif
+void fw_core_glBindTextureUnit(GLuint unit, GLuint texture);
+void fw_core_glGetTextureParameteriv(GLuint texture, GLenum pname, GLint *params);
+GLenum fw_core_glCheckNamedFramebufferStatus(GLuint framebuffer, GLenum target);
+void fw_core_glInvalidateBufferData(GLuint buffer);
+#define glBindTextureUnit fw_core_glBindTextureUnit
+#define glGetTextureParameteriv fw_core_glGetTextureParameteriv
+#define glCheckNamedFramebufferStatus fw_core_glCheckNamedFramebufferStatus
+#define glInvalidateBufferData fw_core_glInvalidateBufferData
+
+/* per shape: keep samplers of different types off each other's texture units */
+void fw_core_park_samplers(void);
+
+/* legacy texture formats (GL_ALPHA, GL_LUMINANCE, GL_LUMINANCE_ALPHA), see GLCoreCompat.c */
+#define GL_LUMINANCE                   0x1909
+#define GL_LUMINANCE_ALPHA             0x190A
+void fw_core_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
+	GLint border, GLenum format, GLenum type, const void *pixels);
+#define glTexImage2D fw_core_glTexImage2D
+#endif /* FW_GL_CORE_PROFILE */
+
 #endif /* __LIBFREEWRL_DISPLAY_H__ */

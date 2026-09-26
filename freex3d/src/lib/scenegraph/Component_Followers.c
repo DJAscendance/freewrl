@@ -533,6 +533,7 @@ void do_PositionChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1248,6 +1249,7 @@ void do_ColorChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1594,6 +1596,7 @@ void do_OrientationChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1900,6 +1903,7 @@ void do_CoordinateChaserTick(void * ptr){
 	if(!_node->_buffer){
 		chaser_ptrs *p = MALLOCN(node,sizeof(chaser_ptrs));
 		_node->_buffer = REALLOCN(node,_node->_buffer,Buffer_length * sizeof(struct Multi_Vec3f)); //**changes with field type
+		memset(_node->_buffer,0,Buffer_length * sizeof(struct Multi_Vec3f));
 		node->_t = &ftype_mfvec3f; //**changes with field type
 		node->_p = p;
 		p->initialDestination = &_node->initialDestination;
@@ -1910,6 +1914,7 @@ void do_CoordinateChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -1938,9 +1943,10 @@ void do_CoordinateDamperTick(void * ptr){
 	if(!node)return;
 	if(!_node->_values){
 		damper_ptrs *p = MALLOCN(node,sizeof(damper_ptrs));
-		node->_t = &ftype_sfvec3f; //**changes with field type
+		node->_t = &ftype_mfvec3f; //**changes with field type
 		node->_p = p;
 		_node->_values = REALLOCN(node,_node->_values,5 * sizeof(struct Multi_Vec3f)); //**changes with field type
+		memset(_node->_values,0,5*sizeof(struct Multi_Vec3f));
 		p->initialDestination = &_node->initialDestination;
 		p->initialValue = &_node->initialValue;
 		p->set_destination = &_node->set_destination;
@@ -2065,6 +2071,7 @@ void do_PositionChaser2DTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2213,6 +2220,7 @@ void do_ScalarChaserTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2386,6 +2394,7 @@ void do_TexCoordChaser2DTick(void * ptr){
 	if(!_node->_buffer){
 		chaser_ptrs *p = MALLOCN(node,sizeof(chaser_ptrs));
 		_node->_buffer = REALLOCN(node,_node->_buffer,Buffer_length * sizeof(struct Multi_Vec2f)); //**changes with field type
+		memset(_node->_buffer,0,Buffer_length * sizeof(struct Multi_Vec2f));
 		node->_t = &ftype_mfvec2f; //**changes with field type
 		node->_p = p;
 		p->initialDestination = &_node->initialDestination;
@@ -2396,6 +2405,7 @@ void do_TexCoordChaser2DTick(void * ptr){
 		p->_buffer = _node->_buffer;
 		p->_destination = &_node->_destination;
 		p->_previousValue = &_node->_previousvalue;
+        node->_bufferendtime= TickTime(); 
 		chaser_init(node);
 	}
 	Now = TickTime();
@@ -2424,9 +2434,10 @@ void do_TexCoordDamper2DTick(void * ptr){
 	if(!node)return;
 	if(!_node->_values){
 		damper_ptrs *p = MALLOCN(node,sizeof(damper_ptrs));
-		node->_t = &ftype_sfvec2f; //**changes with field type
+		node->_t = &ftype_mfvec2f; //**changes with field type
 		node->_p = p;
 		_node->_values = REALLOCN(node,_node->_values,5 * sizeof(struct Multi_Vec2f)); //**changes with field type
+		memset(_node->_values,0,5*sizeof(struct Multi_Vec2f));
 		p->initialDestination = &_node->initialDestination;
 		p->initialValue = &_node->initialValue;
 		p->set_destination = &_node->set_destination;

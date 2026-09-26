@@ -213,51 +213,49 @@ int  returnElementLength(int type) {
 
 int returnRoutingElementLength(int type) {
 	  switch (type) {
-		case FIELDTYPE_SFTime:	return (int) sizeof(double); break;
+		case FIELDTYPE_SFFloat:	return (int)sizeof(float); break;
 		case FIELDTYPE_SFBool:
 		case FIELDTYPE_SFInt32:	return (int) sizeof(int); break;
-		case FIELDTYPE_SFFloat:	return (int) sizeof (float); break;
+		case FIELDTYPE_SFTime:	return (int)sizeof(double); break;
+		case FIELDTYPE_SFDouble: return (int)sizeof(double); break;
+		case FIELDTYPE_SFNode:	return (int)ROUTING_SFNODE; break;
+		case FIELDTYPE_SFColor: 	return (int)sizeof(struct SFColor); break;
+		case FIELDTYPE_SFColorRGBA: return (int)sizeof(struct SFColorRGBA); break;
+		case FIELDTYPE_SFRotation:return (int)sizeof(struct SFRotation); break;
 		case FIELDTYPE_SFVec2f:	return (int) sizeof (struct SFVec2f); break;
-		case FIELDTYPE_SFVec3f:
-		case FIELDTYPE_SFColor: 	return (int) sizeof (struct SFColor); break;
+		case FIELDTYPE_SFVec3f: return (int)sizeof(struct SFVec3f); break;
+		case FIELDTYPE_SFVec4f: return (int)sizeof(struct SFVec4f); break;
+		case FIELDTYPE_SFVec2d: return (int)sizeof(struct SFVec2d); break;
 		case FIELDTYPE_SFVec3d: return (int) sizeof (struct SFVec3d); break;
-		case FIELDTYPE_SFColorRGBA:
-		case FIELDTYPE_SFRotation:return (int) sizeof (struct SFRotation); break;
-		case FIELDTYPE_SFNode:	return (int) ROUTING_SFNODE; break;
+		case FIELDTYPE_SFVec4d: return (int)sizeof(struct SFVec4d); break;
+		case FIELDTYPE_SFString: return (int)ROUTING_SFSTRING; break;
+		case FIELDTYPE_SFImage:	return (int)ROUTING_SFIMAGE; break;
+
 		case FIELDTYPE_SFMatrix3f: return (int) sizeof (struct SFMatrix3f); break;
+		case FIELDTYPE_SFMatrix4f: return (int)sizeof(struct SFMatrix4f); break;
 		case FIELDTYPE_SFMatrix3d: return (int) sizeof (struct SFMatrix3d); break;
-/* FIXME FIND DEF FOR SFVEC4F */
-// JAS - OLDCODE #ifndef REWIRE
-		case FIELDTYPE_SFVec4f: return (int) sizeof (struct SFVec4f) ; break;
-// JAS - OLDCODE #endif
-		case FIELDTYPE_SFMatrix4f: return (int) sizeof (struct SFMatrix4f); break;
-		case FIELDTYPE_SFVec2d: return (int) sizeof (struct SFVec2d); break;
-		case FIELDTYPE_SFDouble: return (int) sizeof (double); break;
-		case FIELDTYPE_SFVec4d: return (int) sizeof (struct SFVec4d); break;
+		case FIELDTYPE_SFMatrix4d: return (int)sizeof(struct SFMatrix4d); break;
 
-		case FIELDTYPE_SFString: return (int) ROUTING_SFSTRING; break;
-		case FIELDTYPE_SFImage:	return (int) ROUTING_SFIMAGE; break;
-
-		case FIELDTYPE_MFNode:	return (int) ROUTING_MFNODE; break;
-		case FIELDTYPE_MFString: 	return (int) ROUTING_MFSTRING; break;
-		case FIELDTYPE_MFFloat:	return (int) ROUTING_MFFLOAT; break;
-		case FIELDTYPE_MFColorRGBA:
-		case FIELDTYPE_MFRotation: return (int) ROUTING_MFROTATION; break;
+		case FIELDTYPE_MFFloat:	return (int)ROUTING_MFFLOAT; break;
 		case FIELDTYPE_MFBool:
-		case FIELDTYPE_MFInt32:	return (int) ROUTING_MFINT32; break;
-		case FIELDTYPE_MFColor:	return (int) ROUTING_MFCOLOR; break;
+		case FIELDTYPE_MFInt32:	return (int)ROUTING_MFINT32; break;
+		case FIELDTYPE_MFTime: return (int)ROUTING_MFDOUBLE; break;
+		case FIELDTYPE_MFDouble: return (int)ROUTING_MFDOUBLE; break;
+		case FIELDTYPE_MFNode:	return (int) ROUTING_MFNODE; break;
+		case FIELDTYPE_MFColor:	return (int)ROUTING_MFCOLOR; break;
+		case FIELDTYPE_MFColorRGBA: return (int)ROUTING_MFROTATION; break;
+		case FIELDTYPE_MFRotation: return (int)ROUTING_MFROTATION; break;
 		case FIELDTYPE_MFVec2f:	return (int) ROUTING_MFVEC2F; break;
 		case FIELDTYPE_MFVec3f:	return (int) ROUTING_MFVEC3F; break;
-		case FIELDTYPE_MFVec3d: return (int) ROUTING_MFVEC3D; break;
-		case FIELDTYPE_MFDouble: return (int) ROUTING_MFDOUBLE; break;
-		case FIELDTYPE_MFTime: return (int) ROUTING_MFDOUBLE; break;
-		case FIELDTYPE_MFMatrix4f: return (int) ROUTING_MFMATRIX4F; break;
-		case FIELDTYPE_MFMatrix4d: return (int) ROUTING_MFMATRIX4D; break;
-		case FIELDTYPE_MFVec2d: return (int) ROUTING_MFVEC2D; break;
 		case FIELDTYPE_MFVec4f: return (int) ROUTING_MFVEC4F; break;
+		case FIELDTYPE_MFVec2d: return (int)ROUTING_MFVEC2D; break;
+		case FIELDTYPE_MFVec3d: return (int)ROUTING_MFVEC3D; break;
 		case FIELDTYPE_MFVec4d: return (int) ROUTING_MFVEC4D; break;
+		case FIELDTYPE_MFString: 	return (int)ROUTING_MFSTRING; break;
 		case FIELDTYPE_MFMatrix3f: return (int) ROUTING_MFMATRIX3F; break;
 		case FIELDTYPE_MFMatrix3d: return (int) ROUTING_MFMATRIX3D; break;
+		case FIELDTYPE_MFMatrix4f: return (int)ROUTING_MFMATRIX4F; break;
+		case FIELDTYPE_MFMatrix4d: return (int)ROUTING_MFMATRIX4D; break;
 
                 default:{
 			printf ("warning - returnRoutingElementLength not a handled type, %d\n",type);
@@ -314,8 +312,8 @@ int returnElementRowSize (int type) {
 int mf2sf(int itype){
 	//luckily the fieldtype defines are consistently mf = sf+1
 	//return convertToSFType(itype); //this is more reliable -converts and sf to itself- but bulky
-	if(itype == FIELDTYPE_SFImage)
-		return FIELDTYPE_SFInt32;
+	//if(itype == FIELDTYPE_SFImage)
+	//	return FIELDTYPE_SFInt32;
 	return itype -1;
 }
 int sf2mf(int itype){
@@ -346,7 +344,7 @@ int isSForMFType(int itype){
 		case FIELDTYPE_SFTime:	
 		case FIELDTYPE_SFString: 
 		case FIELDTYPE_SFVec2f:	
-		//case FIELDTYPE_SFImage:
+		case FIELDTYPE_SFImage:
 		case FIELDTYPE_SFVec3d:	
 		case FIELDTYPE_SFDouble: 
 		case FIELDTYPE_SFMatrix3f: 
@@ -370,7 +368,7 @@ int isSForMFType(int itype){
 		case FIELDTYPE_MFTime:	
 		case FIELDTYPE_MFString: 
 		case FIELDTYPE_MFVec2f:	
-		case FIELDTYPE_SFImage: //
+		case FIELDTYPE_MFImage:
 		case FIELDTYPE_MFVec3d:	
 		case FIELDTYPE_MFDouble: 
 		case FIELDTYPE_MFMatrix3f: 
@@ -397,7 +395,7 @@ int type2SF(int itype){
 int isSFType(int itype){
 	return (isSForMFType(itype) == 0) ? 1 : 0;
 }
-#define FIELDTYPE_MFImage	43 
+
 int sizeofSForMF(int itype){
 	//goal get the offset for MF.p[i] in bytes
 	//or also this is the 'shallow size' for field copying
@@ -414,7 +412,7 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_SFTime:	iz = sizeof(double); break;
 	case FIELDTYPE_SFString: iz = sizeof(struct Uni_String *); break;  //sizeof(void *) because nodes that have a string field declare it struct Uni_String *, so when copying to a node, you copy sizeof(void*). H: if the char *string is const, then uni_string is const (they may hang out as pals for life, or char *string may outlive its uni_string pal
 	case FIELDTYPE_SFVec2f:	iz = sizeof(struct SFVec2f); break;
-	//case FIELDTYPE_SFImage:	iz = sizeof(void*); break;
+	case FIELDTYPE_SFImage:	iz = sizeof(struct SFImage); break;
 	case FIELDTYPE_SFVec3d:	iz = sizeof(struct SFVec3d); break;
 	case FIELDTYPE_SFDouble: iz = sizeof(double); break;
 	case FIELDTYPE_SFMatrix3f: iz = sizeof(struct SFMatrix3f); break;
@@ -425,7 +423,7 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_SFVec4f:	iz = sizeof(struct SFVec4f); break;
 	case FIELDTYPE_SFVec4d:	iz = sizeof(struct SFVec4d); break;
 
-	case FIELDTYPE_SFImage: //same as MFInt32
+	case FIELDTYPE_MFImage: 
 	case FIELDTYPE_MFFloat: 
 	case FIELDTYPE_MFRotation:	
 	case FIELDTYPE_MFVec3f:	
@@ -437,7 +435,6 @@ int sizeofSForMF(int itype){
 	case FIELDTYPE_MFTime:	
 	case FIELDTYPE_MFString: 
 	case FIELDTYPE_MFVec2f:	
-	case FIELDTYPE_MFImage:
 	case FIELDTYPE_MFVec3d:	
 	case FIELDTYPE_MFDouble: 
 	case FIELDTYPE_MFMatrix3f: 
@@ -857,6 +854,7 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_MF_STRUCT_ELEMENT(Matrix4f,matrix4f)
 			PST_MF_STRUCT_ELEMENT(Matrix4d,matrix4d)
 			PST_MF_STRUCT_ELEMENT(String,string)
+			PST_MF_STRUCT_ELEMENT(Image, image)
 
 			PST_SF_SIMPLE_ELEMENT(Float,float,sizeof(float))
 			PST_SF_SIMPLE_ELEMENT(Time,time,sizeof(double))
@@ -877,8 +875,11 @@ MF_TYPE(MFNode, mfnode, Node)
 			PST_SF_SIMPLE_ELEMENT(Matrix4f,matrix4f,sizeof(struct SFMatrix4f))
 			PST_SF_SIMPLE_ELEMENT(Matrix3d,matrix3d,sizeof(struct SFMatrix3d))
 			PST_SF_SIMPLE_ELEMENT(Matrix4d,matrix4d,sizeof(struct SFMatrix4d))
-			PST_SF_SIMPLE_ELEMENT(Image,image,sizeof(struct Multi_Int32))
-
+			case FIELDTYPE_SFImage:
+				printf("in case FIELDTYPE_SFImage\n");
+				//PST_SF_SIMPLE_ELEMENT(Image, image, sizeof(struct Multi_Int32))
+				memcpy(nst, &myVal.sfimage, sizeof(struct SFImage));
+				break;
 			case FIELDTYPE_SFString: {
 					//struct Uni_String *mptr;
 					memcpy(nst, &myVal.sfstring, sizeof(struct Uni_String*));

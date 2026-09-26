@@ -100,48 +100,50 @@ int parsedSuccessfully(void) {
    as the FIELDTYPE names, created from the @VRML::Fields = qw/ in
    VRMLFields.pm (which writes the FIELDTYPE* defines in 
    CFuncs/Structs.h. Currently (September, 2008) this is the list:
-   SFFloat
-   MFFloat
-   SFRotation
-   MFRotation
-   SFVec3f
-   MFVec3f
-   SFBool
-   MFBool
-   SFInt32
-   MFInt32
-   SFNode
-   MFNode
-   SFColor
-   MFColor
-   SFColorRGBA
-   MFColorRGBA
-   SFTime
-   MFTime
-   SFString
-   MFString
-   SFVec2f
-   MFVec2f
-   SFImage
-   FreeWRLPTR
-   SFVec3d
-   MFVec3d
-   SFDouble
-   MFDouble
-   SFMatrix3f
-   MFMatrix3f
-   SFMatrix3d
-   MFMatrix3d
-   SFMatrix4f
-   MFMatrix4f
-   SFMatrix4d
-   MFMatrix4d
-   SFVec2d
-   MFVec2d
-   SFVec4f
-   MFVec4f
-   SFVec4d
-   MFVec4d
+	SFFloat
+	MFFloat
+	SFBool
+	MFBool
+	SFInt32
+	MFInt32
+	SFTime
+	MFTime
+	SFDouble
+	MFDouble
+	SFNode
+	MFNode
+	SFColor
+	MFColor
+	SFColorRGBA
+	MFColorRGBA
+	SFRotation
+	MFRotation
+	SFVec2f
+	MFVec2f
+	SFVec3f
+	MFVec3f
+	SFVec4f
+	MFVec4f
+	SFVec2d
+	MFVec2d
+	SFVec3d
+	MFVec3d
+	SFVec4d
+	MFVec4d
+	SFString
+	MFString
+	SFImage
+	MFImage
+	SFMatrix3f
+	MFMatrix3f
+	SFMatrix4f
+	MFMatrix4f
+	SFMatrix3d
+	MFMatrix3d
+	SFMatrix4d
+	MFMatrix4d
+	FreeWRLPTR
+	FreeWRLThread
 */
 
 /* Parses nodes, fields and other statements. */
@@ -161,45 +163,53 @@ static BOOL parser_field(struct VRMLParser*, struct X3D_Node*);
 
 
 static BOOL parser_sffloatValue_ (struct VRMLParser *, void *);
+static BOOL parser_sfboolValue(struct VRMLParser*, void*);
 static BOOL parser_sfint32Value_ (struct VRMLParser *, void *);
 static BOOL parser_sftimeValue (struct VRMLParser *, void *);
-static BOOL parser_sfboolValue (struct VRMLParser *, void *);
+static BOOL parser_sfdoubleValue(struct VRMLParser*, void*);
 static BOOL parser_sfnodeValue (struct VRMLParser *, void *);
+static BOOL parser_sfcolorValue(struct VRMLParser*, void*);
+static BOOL parser_sfcolorrgbaValue(struct VRMLParser*, void*);
 static BOOL parser_sfrotationValue (struct VRMLParser *, void *);
-static BOOL parser_sfcolorValue (struct VRMLParser *, void *);
-static BOOL parser_sfcolorrgbaValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix3fValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix4fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec2fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec4fValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec2dValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec3dValue (struct VRMLParser *, void *);
-static BOOL parser_sfvec4dValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix3dValue (struct VRMLParser *, void *);
-static BOOL parser_sfmatrix4dValue (struct VRMLParser *, void *);
-static BOOL parser_mfboolValue(struct VRMLParser*, void*);
-static BOOL parser_mfcolorValue(struct VRMLParser*, void*);
-static BOOL parser_mfcolorrgbaValue(struct VRMLParser*, void*);
-static BOOL parser_mffloatValue(struct VRMLParser*, void*);
-static BOOL parser_mfint32Value(struct VRMLParser*, void*);
-static BOOL parser_mfnodeValue(struct VRMLParser*, void*);
-static BOOL parser_mfrotationValue(struct VRMLParser*, void*);
-static BOOL parser_mfstringValue(struct VRMLParser*, void*);
-static BOOL parser_mftimeValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec2fValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec3fValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec3dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec2fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec3fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec4fValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec3dValue(struct VRMLParser*, void*);
+static BOOL parser_sfvec4dValue(struct VRMLParser*, void*);
 static BOOL parser_sfstringValue_(struct VRMLParser*, void*);
 static BOOL parser_sfimageValue(struct VRMLParser*, void*);
-static BOOL parser_mfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_sfmatrix3fValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix4fValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix3dValue (struct VRMLParser *, void *);
+static BOOL parser_sfmatrix4dValue (struct VRMLParser *, void *);
+
+static BOOL parser_mffloatValue(struct VRMLParser*, void*);
+static BOOL parser_mfboolValue(struct VRMLParser*, void*);
+static BOOL parser_mfint32Value(struct VRMLParser*, void*);
+static BOOL parser_mftimeValue(struct VRMLParser*, void*);
+static BOOL parser_mfdoubleValue(struct VRMLParser*, void*);
+static BOOL parser_mfnodeValue(struct VRMLParser*, void*);
+static BOOL parser_mfcolorValue(struct VRMLParser*, void*);
+static BOOL parser_mfcolorrgbaValue(struct VRMLParser*, void*);
+static BOOL parser_mfrotationValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec2fValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec3fValue(struct VRMLParser*, void*);
 static BOOL parser_mfvec4fValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec2dValue(struct VRMLParser*, void*);
+static BOOL parser_mfvec3dValue(struct VRMLParser*, void*);
 static BOOL parser_mfvec4dValue(struct VRMLParser*, void*);
+static BOOL parser_mfstringValue(struct VRMLParser*, void*);
+static BOOL parser_mfimageValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix3fValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix4fValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix3dValue(struct VRMLParser*, void*);
+static BOOL parser_mfmatrix4dValue(struct VRMLParser*, void*);
 
 
 
-
-#define parser_sfvec3fValue(me, ret) \
- parser_sfcolorValue(me, ret)
+//#define parser_sfvec3fValue(me, ret) \
+// parser_sfcolorValue(me, ret)
 
 
 /* for those types not parsed yet, call this to print an error message */
@@ -208,28 +218,28 @@ static BOOL parser_fieldTypeNotParsedYet(struct VRMLParser* me, void* ret);
 /*PARSE_TYPE[] entries must be sychnronized with the FIELDTYPES values in Structs.h */
 BOOL (*PARSE_TYPE[])(struct VRMLParser*, void*)={
     &parser_sffloatValue_, &parser_mffloatValue,			// 0,1 float
-    &parser_sfrotationValue, &parser_mfrotationValue,		// 2,3 rotation
-    &parser_sfcolorValue, &parser_mfvec3fValue,				// 4,5 Vec3f
-    &parser_sfboolValue, &parser_mfboolValue,				// 6,7 Bool
-    &parser_sfint32Value_, &parser_mfint32Value,			// 8,9 Int32
-    &parser_sfnodeValue, &parser_mfnodeValue,				// 10,11 Node
-    &parser_sfcolorValue, &parser_mfcolorValue,				// 12,13 Color
-    &parser_sfcolorrgbaValue, &parser_mfcolorrgbaValue,		// 14,15 ColorRGBA
-    &parser_sftimeValue, &parser_mftimeValue,				// 16,17 Time
-    &parser_sfstringValue_, &parser_mfstringValue,			// 18,19 String
-    &parser_sfvec2fValue, &parser_mfvec2fValue,				// 20,21 Vec2f
-    &parser_fieldTypeNotParsedYet, /* FreeWRLPTR 23 */		// 22,   FREEWRL_PTR
-    &parser_sfimageValue,  /* SFImage */					//    23 SFImage
-    &parser_sfvec3dValue, &parser_mfvec3dValue,				// 24,25 Vec3d
-    &parser_sftimeValue, &parser_mftimeValue,				// 26,27 Double
-    &parser_sfmatrix3fValue, &parser_fieldTypeNotParsedYet, // 28,29 Matrix3f 
-    &parser_sfmatrix3dValue, &parser_fieldTypeNotParsedYet, // 30,31 Matrix3d 
-    &parser_sfmatrix4fValue, &parser_fieldTypeNotParsedYet, // 32,33 Matrix4f
-    &parser_sfmatrix4dValue, &parser_fieldTypeNotParsedYet, // 34,35 Matrix4d
-    &parser_sfvec2dValue, &parser_mfvec2dValue,				// 36,37 Vec2d  //&parser_fieldTypeNotParsedYet,
-    &parser_sfvec4fValue, &parser_mfvec4fValue,				// 38,39 Vec4f  //&parser_fieldTypeNotParsedYet,
-    &parser_sfvec4dValue, &parser_mfvec4dValue,				// 40,41 Vec4d  //&parser_fieldTypeNotParsedYet,
-    &parser_fieldTypeNotParsedYet,							// 42    FreeWRLThread
+	&parser_sfboolValue,&parser_mfboolValue,				// 6,7 Bool
+	&parser_sfint32Value_,&parser_mfint32Value,			    // 8,9 Int32
+	&parser_sftimeValue,&parser_mftimeValue,				// 16,17 Time
+	&parser_sfdoubleValue,&parser_mfdoubleValue,				// 26,27 Double
+	&parser_sfnodeValue,&parser_mfnodeValue,				// 10,11 Node
+	&parser_sfcolorValue,&parser_mfcolorValue,				// 12,13 Color
+	&parser_sfcolorrgbaValue,&parser_mfcolorrgbaValue,		// 14,15 ColorRGBA
+	&parser_sfrotationValue, &parser_mfrotationValue,		// 2,3 rotation
+	&parser_sfvec2fValue,& parser_mfvec2fValue,				// 20,21 Vec2f
+	&parser_sfvec3fValue, &parser_mfvec3fValue,				// 4,5 Vec3f
+	&parser_sfvec4fValue,& parser_mfvec4fValue,			// 38,39 Vec4f
+	&parser_sfvec2dValue,& parser_mfvec2dValue,				// 36,37 Vec2d  //&parser_fieldTypeNotParsedYet,
+	&parser_sfvec3dValue,& parser_mfvec3dValue,				// 24,25 Vec3d
+	&parser_sfvec4dValue,& parser_mfvec4dValue,				// 40,41 Vec4d  //&parser_fieldTypeNotParsedYet,
+	&parser_sfstringValue_, &parser_mfstringValue,			// 18,19 String
+    &parser_sfimageValue,  &parser_mfimageValue,			// Image 			
+    &parser_sfmatrix3fValue, &parser_mfmatrix3fValue, // 28,29 Matrix3f 
+	&parser_sfmatrix4fValue, &parser_mfmatrix4fValue, // 32,33 Matrix4f
+	&parser_sfmatrix3dValue, &parser_mfmatrix3dValue, // 30,31 Matrix3d 
+    &parser_sfmatrix4dValue, &parser_mfmatrix4dValue, // 34,35 Matrix4d
+	&parser_fieldTypeNotParsedYet,& parser_fieldTypeNotParsedYet,	// 22,   FREEWRL_PTR, 42    FreeWRLThread
+								
 };
 
 
@@ -415,7 +425,33 @@ BOOL isProto(struct X3D_Node *node)
 		}
 	return retval;
 }
+void add_empty_proto_vectors(struct X3D_Node* node) {
+	// javascript interface wants to do this:
+	// Browser.print('Context: number of protos='+Browser.currentScene.protos.length);
+	// and our lazy-intialization tactic makes it bomb if the protos vector is null.
+	// so we will create non-empty vectors here.
+	// perhaps I should have made these broto fields MFNode-like with .n .p built in and initialized to 0
 
+	if (!node)return;
+	if (node->_nodeType != NODE_Proto && node->_nodeType != NODE_Inline) return;
+	struct X3D_Proto* proto = (struct X3D_Proto*)node;
+	proto->__protoDeclares = newStack(struct X3D_Proto*);
+	proto->__externProtoDeclares = newStack(struct X3D_Proto*);
+	proto->__nodes = newStack(struct X3D_Node*);
+	proto->__subcontexts = newStack(struct X3D_Proto*);
+	//proto->__GC = 0;
+	//proto->__protoDef = 0;
+	//proto->__protoFlags = 0;
+	//proto->__prototype = NULL;
+	//proto->__parentProto = NULL;
+	proto->__ROUTES = newStack(struct CRStruct*);
+	proto->__EXPORTS = newStack(struct IMEXPORT*);
+	proto->__IMPORTS = newStack(struct IMEXPORT*);
+	proto->__DEFnames = newStack(struct brotoDefpair);
+	proto->__IS = newStack(struct brotoIS*);
+	proto->__scripts = newStack(struct X3D_Node*);
+
+}
 
 /* ************************************************************************** */
 /* Constructor and destructor */
@@ -1096,7 +1132,9 @@ static BOOL parser_componentStatement(struct VRMLParser* me) {
 				clevel = &cfullname[i+1];
 				break;
 			}
-			myComponent = findFieldInCOMPONENTS(cname);
+			char *cname1 = cname;
+			if(!strcmp(cname,"H-Anim")) cname1 = "HAnim";
+			myComponent = findFieldInCOMPONENTS(cname1);
 			myLevel = 0;
 			if(clevel) myLevel = atoi(clevel);
 	}
@@ -1297,7 +1335,7 @@ static BOOL parser_metaStatement(struct VRMLParser* me) {
         CPARSE_ERROR_CURID("Expected a string after a META keyword")
             }
 
-    if ((val1 != NULL) && (val2 != NULL)) { handleMetaDataStringString(val1,val2); }
+    if ((val1 != NULL) && (val2 != NULL)) { handleMetaDataStringString(me->ectx, val1->strptr,val2->strptr); }
 
     /* cleanup */
     if (val1 != NULL) {FREE_IF_NZ(val1->strptr); FREE_IF_NZ(val1);}
@@ -2305,6 +2343,7 @@ static BOOL parser_field_B(struct VRMLParser* me, struct X3D_Node* node)
 #define FTIND_mfint32   FIELDTYPE_MFInt32
 #define FTIND_mfrotation        FIELDTYPE_MFRotation
 #define FTIND_mfstring  FIELDTYPE_MFString
+#define FTIND_mfimage   FIELDTYPE_MFImage
 #define FTIND_mftime    FIELDTYPE_MFTime
 #define FTIND_mfvec2f   FIELDTYPE_MFVec2f
 #define FTIND_mfvec2d   FIELDTYPE_MFVec2d
@@ -2426,7 +2465,47 @@ static BOOL parser_field(struct VRMLParser* me, struct X3D_Node* node)
 {
 	return parser_field_B(me,node);
 }
+static union anyVrml ignore_field;
+static BOOL found_ignore_field(struct VRMLParser* me, struct X3D_Node* node)
+{
+    int mode;
+    int type;
+	int source;
+	int ifield;
+	char *nodeFieldName;
+	DECLAREUP
+	union anyVrml *targetVal;
+	void *fdecl;
 
+	//get the fieldname
+	SAVEUP //save the lexer spot so if it's not a 'fieldname <fieldValue>' we can backup
+	/* get nodeFieldName */
+	if(!lexer_setCurID(me->lexer)) return FALSE;
+	ASSERT(me->lexer->curID);
+	nodeFieldName = STRDUP(me->lexer->curID);
+		
+	FREE_IF_NZ(me->lexer->curID);
+
+	//retrieve field mode, type
+	targetVal = &ignore_field;
+	if(strcmp(nodeFieldName,"_xy")){
+		BACKUP
+		FREE_IF_NZ(nodeFieldName);
+		return FALSE; //couldn't find field in user or builtin fields anywhere
+	}
+	type = FIELDTYPE_SFVec2f;
+	if (!parseType(me, type, targetVal)) {
+		/* Invalid default value parsed.  Delete the proto or script declaration. */
+		CPARSE_ERROR_CURID("Expected default value for field!");
+		//if(pdecl) deleteProtoFieldDecl(pdecl);
+		//if(sdecl) deleteScriptFieldDecl(sdecl);
+		FREE_IF_NZ(nodeFieldName);
+		return FALSE;
+	}
+	FREEUP
+	FREE_IF_NZ(nodeFieldName);
+    return TRUE;
+}
 
 /* ************************************************************************** */
 /* MF* field values */
@@ -2448,16 +2527,25 @@ static void stuffDEFUSE(struct Multi_Node *outMF, vrmlNodeT in, int type) {
         break;
 
     case FIELDTYPE_MFFloat:
-    case FIELDTYPE_MFRotation:
-    case FIELDTYPE_MFVec3f:
-    case FIELDTYPE_MFBool:
-    case FIELDTYPE_MFInt32:
-    case FIELDTYPE_MFColor:
-    case FIELDTYPE_MFColorRGBA:
-    case FIELDTYPE_MFTime:
-    case FIELDTYPE_MFDouble:
+	case FIELDTYPE_MFBool:
+	case FIELDTYPE_MFInt32:
+	case FIELDTYPE_MFTime:
+	case FIELDTYPE_MFDouble:
+	case FIELDTYPE_MFColor:
+	case FIELDTYPE_MFColorRGBA:
+	case FIELDTYPE_MFRotation:
+	case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFVec3f:
+	case FIELDTYPE_MFVec4f:
+	case FIELDTYPE_MFVec2d:
+	case FIELDTYPE_MFVec3d:
+	case FIELDTYPE_MFVec4d:
     case FIELDTYPE_MFString:
-    case FIELDTYPE_MFVec2f:
+	case FIELDTYPE_MFImage:
+	case FIELDTYPE_MFMatrix3f:
+	case FIELDTYPE_MFMatrix4f:
+	case FIELDTYPE_MFMatrix3d:
+	case FIELDTYPE_MFMatrix4d:
     { size_t localSize;
     localSize =  returnRoutingElementLength(convertToSFType(type)); /* converts MF to equiv SF type */
     /* struct Multi_Float { int n; float  *p; }; */
@@ -2555,6 +2643,14 @@ static void stuffSFintoMF(struct Multi_Node *outMF, vrmlNodeT *inSF, int type) {
                 stuffDEFUSE(ret, RCX, FIELDTYPE_MF##type); \
                 return TRUE; \
         } \
+        /* MFNode NULL: not in the VRML97 grammar, but common in blaxxun-era */ \
+        /* content (e.g. "exposedField MFNode avatars NULL"); treat as [] */ \
+        else if (FIELDTYPE_MF##type == FIELDTYPE_MFNode && lexer_keyword(me->lexer, KW_NULL)) { \
+                rv = (struct Multi_##type*) ret; \
+                rv->n = 0; \
+                rv->p = NULL; \
+                return TRUE; \
+        } \
  }\
 \
 /* printf ("step 2... curID :%s:\n", me->lexer->curID); */ \
@@ -2627,12 +2723,18 @@ if((!lexer_openSquare(me->lexer)) && (!(me->parsingX3DfromXML))) { \
     PARSER_MFFIELD(rotation, Rotation)
     PARSER_MFFIELD(string, String)
     PARSER_MFFIELD(time, Time)
-    PARSER_MFFIELD(vec2f, Vec2f)
+	PARSER_MFFIELD(double, Double)
+	PARSER_MFFIELD(vec2f, Vec2f)
     PARSER_MFFIELD(vec3f, Vec3f)
     PARSER_MFFIELD(vec3d, Vec3d)
     PARSER_MFFIELD(vec2d, Vec2d)
     PARSER_MFFIELD(vec4f, Vec4f)
     PARSER_MFFIELD(vec4d, Vec4d)
+	PARSER_MFFIELD(image, Image)
+	PARSER_MFFIELD(matrix3f, Matrix3f)
+	PARSER_MFFIELD(matrix4f, Matrix4f)
+	PARSER_MFFIELD(matrix3d, Matrix3d)
+	PARSER_MFFIELD(matrix4d, Matrix4d)
 
 /* ************************************************************************** */
 /* SF* field values */
@@ -2787,15 +2889,16 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
 
     PARSER_FIXED_VEC(color, Color, 3)
     PARSER_FIXED_VEC(colorrgba, ColorRGBA, 4)
-    PARSER_FIXED_VEC(matrix3f, Matrix3f, 9)
-    PARSER_FIXED_VEC(matrix4f, Matrix4f, 16)
+	PARSER_FIXED_VEC(rotation, Rotation, 4)
     PARSER_FIXED_VEC(vec2f, Vec2f, 2)
-    PARSER_FIXED_VEC(vec4f, Vec4f, 4)
-    PARSER_FIXED_VEC(rotation, Rotation, 4)
+	PARSER_FIXED_VEC(vec3f, Vec3f, 3)
+	PARSER_FIXED_VEC(vec4f, Vec4f, 4)
     PARSER_FIXED_DOUBLE_VEC(vec2d, Vec2d, 2)
     PARSER_FIXED_DOUBLE_VEC(vec3d, Vec3d, 3)
     PARSER_FIXED_DOUBLE_VEC(vec4d, Vec4d, 4)
-    PARSER_FIXED_DOUBLE_VEC(matrix3d, Matrix3d, 9)
+	PARSER_FIXED_VEC(matrix3f, Matrix3f, 9)
+	PARSER_FIXED_VEC(matrix4f, Matrix4f, 16)
+	PARSER_FIXED_DOUBLE_VEC(matrix3d, Matrix3d, 9)
     PARSER_FIXED_DOUBLE_VEC(matrix4d, Matrix4d, 16)
 
 /* JAS this code assumes that the ret points to a SFInt_32 type, and just
@@ -2817,17 +2920,17 @@ static BOOL parser_sfboolValue(struct VRMLParser* me, void* ret) {
             return FALSE;
 
 
-        rv->n=3+width*height;
-        rv->p=MALLOC(int *, sizeof(int) * rv->n);
-        rv->p[0]=width;
-        rv->p[1]=height;
-        rv->p[2]=depth;
+        rv->arr.n=width*height;
+        rv->arr.p=MALLOC(int *, sizeof(int) * rv->arr.n);
+        rv->whc[0]=width;
+        rv->whc[1]=height;
+        rv->whc[2]=depth;
 
-        for(ptr=rv->p+3; ptr!=rv->p+rv->n; ++ptr)
+        for(ptr=rv->arr.p; ptr!=rv->arr.p+rv->arr.n; ++ptr)
             if(!lexer_int32(me->lexer, ptr))
             {
-                FREE_IF_NZ(rv->p);
-                rv->n=0;
+                FREE_IF_NZ(rv->arr.p);
+                rv->arr.n=0;
                 return FALSE;
             }
 
@@ -2852,7 +2955,8 @@ static BOOL parser_sfnodeValue(struct VRMLParser* me, void* ret) {
         return parser_nodeStatement(me, rv);
     } else {
         /* expect something like a number (memory pointer) to be here */
-        if (sscanf(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel], "%lu",  &tmp) != 1) {
+		// https://stackoverflow.com/questions/15610053/correct-printf-format-specifier-for-size-t-zu-or-iu 
+        if (sscanf(me->lexer->startOfStringPtr[me->lexer->lexerInputLevel], "%zu", & tmp) != 1) {
             CPARSE_ERROR_FIELDSTRING ("error finding SFNode id on line :%s:",
 			me->lexer->startOfStringPtr[me->lexer->lexerInputLevel]);
             *rv=NULL;
@@ -2870,6 +2974,13 @@ static BOOL parser_sftimeValue(struct VRMLParser* me, void* ret)
 	rv = (vrmlTimeT*)ret;
         return lexer_double(me->lexer, rv);
     }
+
+static BOOL parser_sfdoubleValue(struct VRMLParser* me, void* ret)
+{
+	vrmlDoubleT* rv;
+	rv = (vrmlDoubleT*)ret;
+	return lexer_double(me->lexer, rv);
+}
 
 
 static BOOL parser_fieldTypeNotParsedYet(struct VRMLParser* me, void* ret) {
@@ -3204,6 +3315,9 @@ static BOOL parser_node_B(struct VRMLParser* me, vrmlNodeT* ret, int ind) {
 #ifdef CPARSERVERBOSE
 			printf("parser_node: try parsing field ... \n");
 #endif
+			//if( found_ignore_field(me,node)){
+			//	continue;
+			//}
 			/* check for IS - can be any mode, and builtin or user field on builtin node or usernode/protoInstance */
 			if( found_IS_field(me,node) ){
 				continue;
@@ -3726,7 +3840,7 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	//return NULL; //no scenegraph node created, or more precisely: nothing to link in to parent's children
 	
 	//create a ProtoDeclare
-    proto = createNewX3DNode0(NODE_Proto);
+    proto = createNewX3DNode(NODE_Proto);
 	//add it to the current context's list of declared protos
 	if(X3D_NODE(me->ectx)->_nodeType != NODE_Proto && X3D_NODE(me->ectx)->_nodeType != NODE_Inline )
 		printf("ouch trying to caste node type %d to proto\n",X3D_NODE(me->ectx)->_nodeType);
@@ -3734,7 +3848,6 @@ static BOOL parser_brotoStatement(struct VRMLParser* me)
 	if(parent->__protoDeclares == NULL)
 		parent->__protoDeclares = newVector(struct X3D_Proto*,4);
 	vector_pushBack(struct X3D_Proto*,parent->__protoDeclares,proto);
-
 
 	proto->__parentProto = X3D_NODE(parent); //me->ptr; //link back to parent proto, for isAvailableProto search
 	proto->__protoFlags = parent->__protoFlags;
@@ -4144,9 +4257,22 @@ BOOL route_parse_nodefield_B(struct VRMLParser* me, char **ssnode, char **ssfiel
 	snode = STRDUP(me->lexer->curID);
 	FREE_IF_NZ(me->lexer->curID);
 
+	/* since Feb 2024 identifiers may contain '.' (IS_ID_REST in CParse.h), so node.field
+	   usually arrives as one token: split it at the last '.' */
+	{
+		char *dot = strrchr(snode, '.');
+		if (dot && dot != snode && dot[1]) {
+			*ssfield = STRDUP(dot + 1);
+			*dot = '\0';
+			*ssnode = snode;
+			PARSER_FINALLY;
+			return TRUE;
+		}
+	}
 
 	/* The next character has to be a '.' - skip over it */ 
 	if(!lexer_point(me->lexer)) {
+		FREE_IF_NZ(snode);
 		CPARSE_ERROR_CURID("ERROR:ROUTE: Expected \".\" after the NODE name") 
 		PARSER_FINALLY;  
 		return FALSE;  
@@ -4173,8 +4299,8 @@ void QAandRegister_parsedRoute_B(struct X3D_Proto *context, char* fnode, char* f
 // this one is designed not to crash if theres an IMPORT route
 static BOOL parser_routeStatement_B(struct VRMLParser* me)
 {
-	char *sfnode, *sffield;
-	char *stnode, *stfield;
+	char *sfnode = NULL, *sffield = NULL; //freed on the error path even if never parsed
+	char *stnode = NULL, *stfield = NULL;
 	int foundfrom, foundto, gotTO;
 
 	ppCParseParser p = (ppCParseParser)gglobal()->CParseParser.prv;
@@ -4498,6 +4624,7 @@ void copy_defnames2(Stack *defnames, struct X3D_Proto* target, struct Vector *p2
 		}
 	}
 }
+
 void copy_IS(Stack *istable, struct X3D_Proto* target, struct Vector *p2p);
 void copy_IStable(Stack **sourceIS, Stack** destIS);
 void copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest, struct Vector *p2p, 
@@ -4570,6 +4697,18 @@ void deep_copy_broto_body2(struct X3D_Proto** proto, struct X3D_Proto** dest)
 	copy_routes2(prototype->__ROUTES, p, p2p);
 	//2.d) copy defnames
 	copy_defnames2(prototype->__DEFnames, p, p2p);
+	//2.e) copy protodeclares
+	// copy_protodeclares2
+	struct X3D_Proto* pp;
+	for (int i = 0; i < vectorSize(prototype->__protoDeclares); i++) {
+		pp = vector_get(struct X3D_Proto*, prototype->__protoDeclares, i);
+		vector_pushBack(struct X3D_Proto*, p->__protoDeclares, pp);
+	}
+	// copy_externprotodeclares2
+	for (int i = 0; i < vectorSize(prototype->__externProtoDeclares); i++) {
+		pp = vector_get(struct X3D_Proto*, prototype->__externProtoDeclares, i);
+		vector_pushBack(struct X3D_Proto*, p->__externProtoDeclares, pp);
+	}
 
 	////3. convert IS events to backward routes - maybe not for broto3, which might use the IS table in the (yet to be developed) routing algo
 	copy_IS(p->__IS, p, p2p);
@@ -5016,7 +5155,7 @@ void deep_copy_broto_body(struct X3D_Proto** proto, struct X3D_Proto** dest, Sta
 }
 
 /* shallow_copy_field - a step beyond memcpy(anyvrml,anyvrml,len) by getting the MF elements
-   malloced and copied to, except shallow in that SFNodes aren't deep copied - just the 
+   malloced and copied too, except shallow in that SFNodes aren't deep copied - just the 
    pointers are copied
 */
 void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest)
@@ -5079,6 +5218,35 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 					}
 				}
 				break;
+			case FIELDTYPE_SFImage:
+				{
+					struct SFImage* si, * di;
+					si = &source->sfimage;
+					di = &dest->sfimage;
+					if (di == si) return; //don't copy to self
+					//we need to malloc and do more copying
+					//deleteMallocedFieldValue(typeIndex, dest);
+					FREE_IF_NZ(di->arr.p);
+					int nele = si->arr.n;
+					nele = (int)upper_power_of_two(nele);
+					if (!nele) {
+						di->arr.p = NULL;
+						di->arr.n = 0; //should be in here, always 3+
+						di->whc[0] = di->whc[1] = di->whc[2] = 0;
+					}
+					else {
+						int jsize = sizeof(int);
+						di->arr.p = MALLOC(int *, jsize * nele);
+						bzero(di->arr.p, jsize * nele);
+						di->arr.n = si->arr.n;
+						memcpy(di->arr.p, si->arr.p, jsize * si->arr.n);
+						memcpy(di->whc, si->whc, 3 * sizeof(int));
+						//printf("in shallow_copy_field SFImage: \n");
+						//for (int k = 0; k < di->n; k++) printf("%d ", di->p[k]);
+						//printf("\n");
+					}
+				}
+				break;
 			default:
 				//memcpy(dest,source,sizeof(union anyVrml));
 				memcpy(dest,source,isize);
@@ -5087,6 +5255,8 @@ void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* des
 		}
 	}
 } //return copy_field
+
+
 int PKW_from_KW(int KW_index)
 {
 	/* translates the KEYWORDS[KW_index] field mode found in the 4th column of the OFFSETS_ 
@@ -5826,7 +5996,7 @@ BOOL walk_fields(struct X3D_Node* node, BOOL (*callbackFunc)(void *callbackData,
 #endif
 //=========== find any field by name via walk_fields
 typedef struct cbDataExactName {
-	char *fname;
+	const char *fname;
 	union anyVrml* fieldValue;
 	int mode;
 	int type;
@@ -5853,7 +6023,8 @@ BOOL cbExactName(void *callbackData,struct X3D_Node* node,int jfield,union anyVr
 BOOL find_anyfield_by_name(struct VRMLLexer* lexer, struct X3D_Node* node, union anyVrml **anyptr, 
 			int *imode, int *itype, char* nodeFieldName, int *isource, void** fdecl, int *ifield)
 {
-	int found;
+	int found, prototest11_x3dv;
+	prototest11_x3dv = TRUE;
 	s_cbDataExactName cbd;
 	cbd.fname = nodeFieldName;
 	found = walk_fields(node,cbExactName,&cbd);
@@ -5863,6 +6034,42 @@ BOOL find_anyfield_by_name(struct VRMLLexer* lexer, struct X3D_Node* node, union
 		*itype = cbd.type;
 		*isource = cbd.source;
 		*ifield = cbd.jfield;
+	}else if(prototest11_x3dv){
+		int ln, hsn, hcn;
+		const char *nf;
+		nf = rootFieldName(nodeFieldName, &ln,&hcn,&hsn);
+
+		if(hsn){
+			//set_ prefix
+			cbd.fname = nf;
+			found = walk_fields(node,cbExactName,&cbd);
+			if(found){
+				*anyptr = cbd.fieldValue;
+				*imode = cbd.mode;
+				*itype = cbd.type;
+				*isource = cbd.source;
+				*ifield = cbd.jfield;
+			}
+		}
+		ln++;
+		if(hcn) {
+			//_changed suffix
+			char rootname[MAXJSVARIABLELENGTH];
+			strncpy(rootname,nodeFieldName,ln);
+			rootname[ln] = '\0';
+			cbd.fname = rootname;
+			found = walk_fields(node,cbExactName,&cbd);
+			if(found){
+				*anyptr = cbd.fieldValue;
+				*imode = cbd.mode;
+				*itype = cbd.type;
+				*isource = cbd.source;
+				*ifield = cbd.jfield;
+			}
+		}
+	}
+	if(!found){
+		//printf("didn't find exact match for field name %s\n",nodeFieldName);
 	}
 	return found;
 }
@@ -6040,7 +6247,7 @@ int getFieldFromNodeAndName0(struct X3D_Node* node,const char *fieldname, int *t
 				if(!strcmp(fieldName,fieldname)){
 					*type = pfield->type;
 					*kind = pfield->mode;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+	//				if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					*iifield = k;
 					*builtIn = FALSE;
@@ -6273,8 +6480,9 @@ int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **
 			*value = &(sfield->value);
 			*builtIn = FALSE;
 			iret = 1;
+			return iret;
 		}
-		return iret;
+		//return iret;
 	}else if(node->_nodeType == NODE_Proto ) {
 		int k; //, mode;
 		struct ProtoFieldDecl* pfield;
@@ -6292,13 +6500,14 @@ int getFieldFromNodeAndIterator(struct X3D_Node* node, int ifield, const char **
 					*type = pfield->type;
 					*kind = pfield->mode;
 					*builtIn = FALSE;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+//					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					iret = 1;
+					return iret;
 				}
 			}
 		}
-		return iret;
+		//return iret;
 	}
 	//builtins on non-script, non-proto nodes (and also builtin fields like url on Script)
 	{
@@ -6392,7 +6601,7 @@ int getFieldFromNodeAndIndexSource(struct X3D_Node* node, int ifield, int builtI
 					*fieldname = pfield->cname;
 					*type = pfield->type;
 					*kind = pfield->mode;
-					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
+//					if(pfield->mode == PKW_initializeOnly || pfield->mode == PKW_inputOutput)
 						*value = &(pfield->defaultVal);
 					iret = 1;
 				}
@@ -6956,14 +7165,12 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 									//int ifield, iprotofield;
 									is = vector_get(struct brotoIS*, istable, i);
 									if(is->pmode == PKW_inputOutput || is->pmode == PKW_initializeOnly){ 
-										if(is->mode == PKW_inputOutput || is->mode == PKW_initializeOnly){
-											ef = protoDefinition_getFieldByNum(ed, is->iprotofield);
-											pf = protoDefinition_getFieldByNum(pd, is->ifield);
-											if(ef->alreadySet ){  
-												// too shallow, crashes on exit during free: memcpy(&pf->defaultVal,&ef->defaultVal, sizeof(union anyVrml));
-												shallow_copy_field(is->type, &ef->defaultVal, &pf->defaultVal);
-												pf->alreadySet = TRUE; //in KelpForest scene, there's a CircleFish that gets its skin texture from a few levels of EPIs, and if this isn't set it doesn't go down both levels
-											}
+										ef = protoDefinition_getFieldByNum(ed, is->iprotofield);
+										pf = protoDefinition_getFieldByNum(pd, is->ifield);
+										if(ef->alreadySet ){  
+											// too shallow, crashes on exit during free: memcpy(&pf->defaultVal,&ef->defaultVal, sizeof(union anyVrml));
+											shallow_copy_field(is->type, &ef->defaultVal, &pf->defaultVal);
+											pf->alreadySet = TRUE; //in KelpForest scene, there's a CircleFish that gets its skin texture from a few levels of EPIs, and if this isn't set it doesn't go down both levels
 										}
 									}
 								}
@@ -6972,7 +7179,7 @@ void load_externProtoInstance (struct X3D_Proto *node) {
 							deep_copy_broto_body2(&pdeclare,&pinstance);
 							nnode = X3D_NODE(pinstance);
                 			AddRemoveChildren(X3D_NODE(node), &node->__children, &nnode, 1, 1,__FILE__,__LINE__);
-							add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
+							//add_parent(X3D_NODE(pinstance),X3D_NODE(node),__FILE__,__LINE__);
 							popInputResource();
 						} //if (pinstance != NULL) 
 					}
@@ -7079,8 +7286,7 @@ void remove_picksensor(struct X3D_Node * node);
 void delete_first(struct X3D_Node *node);
 void removeNodeFromKeySensorList(struct X3D_Node* node);
 int	unInitializeScript(struct X3D_Node *node);
-void delete_polyrep(struct X3D_Node *node);
-void unRegisterPolyRep(struct X3D_Node *node);
+void delete_geomrep(struct X3D_Node* node);
 void delete_glbuffers(struct X3D_Node *node);
 void unRegisterGeoElevationGrid(struct X3D_Node *node);
 
@@ -7132,7 +7338,7 @@ int unRegisterX3DAnyNode(struct X3D_Node *node){
 	unInitializeScript(node);
 
 	//only live scenery has polyreps prepared, remove the polyrep
-	delete_polyrep(node);
+	delete_geomrep(node);
 	delete_glbuffers(node);
 	return TRUE;
 }

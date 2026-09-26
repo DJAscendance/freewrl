@@ -61,25 +61,6 @@ typedef struct _SFRotationNative {
 	struct SFRotation v;
 } SFRotationNative;
 
-typedef struct _SFVec2fNative {
-	int valueChanged;
-	struct SFVec2f v;
-} SFVec2fNative;
-
-typedef struct _SFVec3fNative {
-	int valueChanged;
-	struct SFColor v;
-} SFVec3fNative;
-
-typedef struct _SFVec3dNative {
-	int valueChanged;
-	struct SFVec3d v;
-} SFVec3dNative;
-
-typedef struct _SFImageNative {
-	int valueChanged;
-} SFImageNative;
-
 typedef struct _SFColorNative {
 	int valueChanged;
 	struct SFColor v;
@@ -90,15 +71,40 @@ typedef struct _SFColorRGBANative {
 	struct SFColorRGBA v;
 } SFColorRGBANative;
 
+typedef struct _SFVec2fNative {
+	int valueChanged;
+	struct SFVec2f v;
+} SFVec2fNative;
+
+typedef struct _SFVec3fNative {
+	int valueChanged;
+	struct SFColor v;
+} SFVec3fNative;
+
 typedef struct _SFVec4fNative {
 	int valueChanged;
 	struct SFVec4f v;
 } SFVec4fNative;
 
+typedef struct _SFVec2dNative {
+	int valueChanged;
+	struct SFVec2d v;
+} SFVec2dNative;
+
+typedef struct _SFVec3dNative {
+	int valueChanged;
+	struct SFVec3d v;
+} SFVec3dNative;
+
 typedef struct _SFVec4dNative {
 	int valueChanged;
 	struct SFVec4d v;
 } SFVec4dNative;
+
+typedef struct _SFImageNative {
+	int valueChanged;
+} SFImageNative;
+
 
 /*
  * Adds additional (touchable) property to instance of a native
@@ -125,77 +131,46 @@ addSFNodeProperty(void *cx,
 extern void *AnyNativeNew(int type, union anyVrml* source, int *valueChanged);
 extern void AnyNativeAssign(void *top, void *fromp);
 
-extern void *
-SFNodeNativeNew(void);
+extern void * SFNodeNativeNew(void);
+extern JSBool SFNodeNativeAssign(void *top, void *fromp);
+//int SFNodeNativeAssign(void* top, void* fromp);
+int SFNodeNativeEquals(void* top, void* fromp);
 
-extern JSBool
-SFNodeNativeAssign(void *top, void *fromp);
+extern void *SFRotationNativeNew(void);
+extern void SFRotationNativeAssign(void *top, void *fromp);
+extern void SFRotationNativeSet(void *p, struct Uni_String *sv);
 
-extern void *
-SFRotationNativeNew(void);
 
-extern void
-SFRotationNativeAssign(void *top, void *fromp);
+extern void* SFVec2fNativeNew(void);
+extern void SFVec2fNativeAssign(void* top, void* fromp);
+extern void SFVec2fNativeSet(void* p, struct Uni_String* sv);
+extern void *SFVec3fNativeNew(void);
+extern void SFVec3fNativeAssign(void *top, void *fromp);
+extern void SFVec3fNativeSet(void *p, struct Uni_String *sv);
+extern void* SFVec4fNativeNew(void);
+extern void SFVec4fNativeAssign(void* top, void* fromp);
 
-extern void
-SFRotationNativeSet(void *p, struct Uni_String *sv);
 
-extern void *
-SFVec3fNativeNew(void);
+extern void* SFVec2dNativeNew(void);
+extern void SFVec2dNativeAssign(void* top, void* fromp);
+extern void SFVec2dNativeSet(void* p, struct Uni_String* sv);
+extern void* SFVec3dNativeNew(void);
+extern void SFVec3dNativeAssign(void* top, void* fromp);
+extern void* SFVec4dNativeNew(void);
+extern void SFVec4dNativeAssign(void* top, void* fromp);
 
-extern void
-SFVec3fNativeAssign(void *top, void *fromp);
+extern void * SFImageNativeNew(void);
+extern void SFImageNativeAssign(void *top, void *fromp);
+extern void SFImageNativeSet(void *p, struct Uni_String *sv);
 
-extern void
-SFVec3fNativeSet(void *p, struct Uni_String *sv);
+extern void *SFColorNativeNew(void);
+extern void SFColorNativeAssign(void *top, void *fromp);
+extern void SFColorNativeSet(void *p, struct Uni_String *sv);
+extern void * SFColorRGBANativeNew(void);
+extern void SFColorRGBANativeAssign(void *top, void *fromp);
 
-extern void *
-SFVec2fNativeNew(void);
-
-extern void
-SFVec2fNativeAssign(void *top, void *fromp);
-
-extern void
-SFVec2fNativeSet(void *p, struct Uni_String *sv);
-
-extern void *
-SFImageNativeNew(void);
-
-extern void
-SFImageNativeAssign(void *top, void *fromp);
-
-extern void
-SFImageNativeSet(void *p, struct Uni_String *sv);
-
-extern void *
-SFColorNativeNew(void);
-
-extern void
-SFColorNativeAssign(void *top, void *fromp);
-
-extern void
-SFColorNativeSet(void *p, struct Uni_String *sv);
-
-void * SFNodeNativeNew(void);
-int SFNodeNativeAssign(void *top, void *fromp);
-int SFNodeNativeEquals(void *top, void *fromp);
-void * SFColorRGBANativeNew(void);
-void SFColorRGBANativeAssign(void *top, void *fromp);
-void * SFColorNativeNew(void);
-void SFColorNativeAssign(void *top, void *fromp);
 void * SFImageNativeNew(void);
 void SFImageNativeAssign(void *top, void *fromp);
-void * SFRotationNativeNew(void);
-void SFRotationNativeAssign(void *top, void *fromp);
-void * SFVec2fNativeNew(void);
-void SFVec2fNativeAssign(void *top, void *fromp);
-void * SFVec3fNativeNew(void);
-void SFVec3fNativeAssign(void *top, void *fromp);
-void * SFVec3dNativeNew(void);
-void SFVec3dNativeAssign(void *top, void *fromp);
-void * SFVec4fNativeNew(void);
-void SFVec4fNativeAssign(void *top, void *fromp);
-void * SFVec4dNativeNew(void);
-void SFVec4dNativeAssign(void *top, void *fromp);
+
 
 #endif /* __FREEWRL_JS_NATIVE_H__ */

@@ -493,13 +493,14 @@ bool imagery_load(resource_item_t *res){
 	return retval;
 }
 
-
 /**
  *   resource_load: load the actual file into memory, add it to openned files list.
  */
 bool resource_load(resource_item_t *res)
 {
 	openned_file_t *of = NULL;
+//#define ERROR_MSG printf
+//#define DEBUG_MSG printf
 
 	DEBUG_RES("loading resource: %s, %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
 	
@@ -556,7 +557,10 @@ bool resource_load(resource_item_t *res)
 
 	return (of != NULL);
 }
-
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#endif //_MSC_VER
+#
 /**
  *   resource_identify_type: determine media (file) type.
  */
@@ -608,6 +612,45 @@ void resource_identify_type(resource_item_t *res)
 					res->media_type = resm_x3z;
 					return;
 				}
+				//knronos glTF and derivitives
+				if(!strcasecmp(&sourcename[strlen(sourcename)-5],".glTF")){
+					// IANA MIME model/gltf-json
+					res->media_type = resm_gltf;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".glb")){
+					// IANA MIME model/gltf-binary
+					res->media_type = resm_glb;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".bin")){
+					// MIME application.octet-stream
+					res->media_type = resm_bin;
+					return;
+				}
+				// cesium (geo) derivitives from gltf - first 4 bytes of content == their suffix
+				// tileset .json application/json
+				// tilesetStyle .json application/json
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".json")){
+					res->media_type = resm_json;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".b3dm")){
+					res->media_type = resm_b3dm;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".i3dm")){
+					res->media_type = resm_i3dm;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".pnts")){
+					res->media_type = resm_pnts;
+					return;
+				}
+				if(!strcasecmp(&sourcename[strlen(sourcename)-4],".cmpt")){
+					res->media_type = resm_cmpt;
+					return;
+				}
 			}
 			/* might this be a gzipped input file? */
 			possiblyUnzip(of);
@@ -618,6 +661,11 @@ void resource_identify_type(resource_item_t *res)
 
 
 		/* Test it */
+		// gltf?
+		if(memcmp(test_it,"glTF",4)){
+			//.glb 
+			res->media_type = resm_glb;
+		}
 		t = determineFileType(test_it,test_it_len);
 		switch (t) {
 		case IS_TYPE_VRML:
@@ -914,6 +962,8 @@ void fwl_resource_push_single_request(const char *request)
 		char* suff = NULL;
 		char* local_name = NULL;
 		splitpath_local_suffix(request, &local_name, &suff);
+		//tg->Mainloop.url  //can be http or disk file
+		//tg->Mainloop.tmpFileLocation - if downloaded, to where on disk
 		tg->Mainloop.scene_name = local_name;
 		tg->Mainloop.scene_suff = suff;
 	}
@@ -1044,10 +1094,20 @@ char *resourceMediaTypeToString (int mt) {
 		case  resm_vrml: return " resm_vrml";
 		case  resm_x3d: return " resm_x3d";
 		case  resm_image: return " resm_image";
+		case  resm_image_buffer: return " resm_image_buffer";
 		case  resm_movie: return " resm_movie";
 		case  resm_pshader: return " resm_pshader";
 		case  resm_fshader: return " resm_fshader";
+		case  resm_mocap: return " resm_mocap";
 		case  resm_x3z: return " resm_x3z";
+		case  resm_gltf: return " resm_gltf";
+		case  resm_glb: return " resm_glb";
+		case  resm_bin: return " resm_bin";
+		case  resm_b3dm: return " resm_b3dm";
+		case  resm_i3dm: return " resm_i3dm";
+		case  resm_pnts: return " resm_pnts";
+		case  resm_cmpt: return " resm_cmpt";
+		case  resm_midi: return " resm_midi";
 		default: return "resource OUT OF RANGE";
 	}
 }

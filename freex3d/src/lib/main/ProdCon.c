@@ -500,7 +500,7 @@ void new_root(){
 
 	/* tell the statusbar that it needs to reinitialize */
 	//kill_status();
-	setMenuStatus(NULL);
+	setMenuStatusVP(NULL);
 
 	/* free textures */
 /*
@@ -533,7 +533,7 @@ void new_root(){
 
 	/* tell statusbar that we have none */
 	viewer_default();
-	setMenuStatus("NONE");
+	setMenuStatusVP("NONE");
 
 	//ConsoleMessage ("new_root, right now rootNode has %d children\n",rootNode()->children.n);
 
@@ -742,8 +742,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 		nRnfree = nRn;
 		insert_node = X3D_NODE(res->whereToPlaceData); /* casting here for compiler */
 		offsetInNode = res->offsetFromWhereToPlaceData;
-
-		parsedOk = parser_do_parse_string((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
+		if(res->media_type == resm_gltf || res->media_type == resm_glb)
+			parsedOk = parser_do_parse_gltf((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
+		else
+			parsedOk = parser_do_parse_string((const char *)res->URLrequest,(const int)strlen(res->URLrequest), ectx, nRn);
 		//printf("after parse_string in EAI/SAI parsing\n");
 	} else {
 		/* standard file parsing */
@@ -836,7 +838,10 @@ bool parser_process_res_VRML_X3D(resource_item_t *res)
 		}
 
 		/* ACTUALLY CALLS THE PARSER */
-		parsedOk = parser_do_parse_string(of->fileData, of->fileDataSize, ectx, nRn);
+		if(res->media_type == resm_gltf || res->media_type == resm_glb)
+			parsedOk = parser_do_parse_gltf(of->fileData, of->fileDataSize, ectx, nRn);
+		else
+			parsedOk = parser_do_parse_string(of->fileData, of->fileDataSize, ectx, nRn);
 		//printf("after parse_string in standard file parsing\n");
 		if ((res != (resource_item_t*)tg->resources.root_res) && ((!tg->resources.root_res) ||(!((resource_item_t*)tg->resources.root_res)->complete))) {
 			tg->CParse.globalParser = t->savedParser;
@@ -1225,6 +1230,7 @@ void process_res_texitem(resource_item_t *res);
 bool parser_process_res_SHADER(resource_item_t *res);
 bool process_res_audio(resource_item_t *res);
 bool  process_res_movie(resource_item_t *res);
+int parser_process_res_gltf(resource_item_t *res);
 /**
  *   parser_process_res: for each resource state, advance the process of loading.
  *   this version assumes the item has been dequeued for processing,
@@ -1245,7 +1251,7 @@ static bool parser_process_res(s_list_t *item)
 		return retval;
 
 	res = ml_elem(item);
-
+	//printf("%s ",res->URLrequest);
 	//printf("\nprocessing resource: type %s, status %s\n", resourceTypeToString(res->type), resourceStatusToString(res->status));
 	switch (res->status) {
 
@@ -1381,6 +1387,28 @@ static bool parser_process_res(s_list_t *item)
 		case resm_x3z:
 			process_x3z(res);
 			printf("processed x3z\n");
+			break;
+		case resm_mocap:
+			process_mocap(res);
+			break;
+		//Khronos gltf and derivitives
+		case resm_gltf:
+		case resm_glb:
+		case resm_bin:
+		//cesium derivitives related to gltf
+		case resm_json:
+		case resm_b3dm:
+		case resm_i3dm:
+		case resm_pnts:
+		case resm_cmpt:
+			if (parser_process_res_gltf(res)) {
+				DEBUG_MSG("parser successfull: %s\n", res->URLrequest);
+				res->status = ress_parsed;
+
+			} else {
+				ERROR_MSG("parser failed for resource: %s\n", res->URLrequest);
+				retval = FALSE;
+			}
 			break;
 		case resm_external:
 			// JAS - resm_external is part of this enum, but not handled here,

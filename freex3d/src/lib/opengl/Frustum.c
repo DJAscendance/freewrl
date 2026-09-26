@@ -176,368 +176,6 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry)
 	} 
 }
 
-#define PROP_EXTENT_CHECK \
-		if (maxx > geomParent->EXTENT_MAX_X) {geomParent->EXTENT_MAX_X = maxx; touched = TRUE;} \
-		if (minx < geomParent->EXTENT_MIN_X) {geomParent->EXTENT_MIN_X = minx; touched = TRUE;} \
-		if (maxy > geomParent->EXTENT_MAX_Y) {geomParent->EXTENT_MAX_Y = maxy; touched = TRUE;} \
-		if (miny < geomParent->EXTENT_MIN_Y) {geomParent->EXTENT_MIN_Y = miny; touched = TRUE;} \
-		if (maxz > geomParent->EXTENT_MAX_Z) {geomParent->EXTENT_MAX_Z = maxz; touched = TRUE;} \
-		if (minz < geomParent->EXTENT_MIN_Z) {geomParent->EXTENT_MIN_Z = minz; touched = TRUE;} 
-
-#define FRUSTUM_TRANS(myNodeType)  \
-	if (me->_nodeType == NODE_##myNodeType) { \
-		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, \
-		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will \
-		   take the "inside out" boundingBox as being correct! */ \
- \
-			/* has this node actually been extented away from the default? */ \
- \
-		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { \
-			struct X3D_##myNodeType *node; \
-			Quaternion rq; \
-			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; \
-			node = (struct X3D_##myNodeType *)me; \
-	 \
-			/* make up a "cube" with vertexes being our bounding box */ \
-			BBV(0,MAX_X,MAX_Y,MAX_Z); \
-			BBV(1,MAX_X,MAX_Y,MIN_Z); \
-			BBV(2,MAX_X,MIN_Y,MAX_Z); \
-			BBV(3,MAX_X,MIN_Y,MIN_Z); \
-			BBV(4,MIN_X,MAX_Y,MAX_Z); \
-			BBV(5,MIN_X,MAX_Y,MIN_Z); \
-			BBV(6,MIN_X,MIN_Y,MAX_Z); \
-			BBV(7,MIN_X,MIN_Y,MIN_Z); \
-	 \
-	                /* 1: REVERSE CENTER */ \
-	                if (node->__do_center) { \
-				add_translation(inxyz,-node->center.c[0],-node->center.c[1],-node->center.c[2],8); \
-			} \
-	 \
-	                /* 2: REVERSE SCALE ORIENTATION */ \
-	                if (node->__do_scaleO) { \
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-	 \
-				/* copy these points back out */ \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ));  \
-			} \
-	 \
-	                /* 3: SCALE */ \
-	                if (node->__do_scale) { \
-	                        /* FW_GL_SCALE_F(node->scale.c[0],node->scale.c[1],node->scale.c[2]); */ \
-				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8); \
-			} \
-	 \
-	                /* 4: SCALEORIENTATION */ \
-	                if (node->__do_scaleO) { \
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-	 \
-				/* copy these points back out */ \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	                } \
-	 \
-	                /* 5: ROTATION */ \
-	                if (node->__do_rotation) { \
-	                        /* FW_GL_ROTATE_F(my_rotation, node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]); */ \
-				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-	 \
-				/* copy these points back out */ \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	                } \
-	 \
-	                /* 6: CENTER */ \
-	                if (node->__do_center) { \
-	                        /* FW_GL_TRANSLATE_F(node->center.c[0],node->center.c[1],node->center.c[2]); */ \
-				add_translation(inxyz,node->center.c[0],node->center.c[1],node->center.c[2],8); \
-			} \
-\
-	                /* 7: TRANSLATION */ \
-	                if (node->__do_trans) { \
-	                        /* FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]); */ \
-				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8); \
-			} \
-	 \
-	 \
-			/* work changes into extent */ \
-            /* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, \
-                thus we do not bother to test against OLD max/min values */ \
-            maxx = -FLT_MAX; maxy = -FLT_MAX; maxz = -FLT_MAX; \
-            minx = FLT_MAX; miny = FLT_MAX; minz = FLT_MAX; \
-			for (i=0; i<8; i++) { \
-				if (inxyz[i].x > maxx) maxx =  (float)inxyz[i].x; \
-				if (inxyz[i].y > maxy) maxy =  (float)inxyz[i].y; \
-				if (inxyz[i].z > maxz) maxz =  (float)inxyz[i].z; \
-				if (inxyz[i].x < minx) minx =  (float)inxyz[i].x; \
-				if (inxyz[i].y < miny) miny =  (float)inxyz[i].y; \
-				if (inxyz[i].z < minz) minz =  (float)inxyz[i].z; \
-			} \
-		} \
-	} 
-
-
-#define FRUSTUM_GEOLOCATION  \
-	if (me->_nodeType == NODE_GeoLocation) { \
-		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, \
-		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will \
-		   take the "inside out" boundingBox as being correct! */ \
- \
-			/* has this node actually been extented away from the default? */ \
- \
-		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { \
-		struct X3D_GeoLocation *node; \
-		Quaternion rq; \
-		struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; \
-		node = (struct X3D_GeoLocation *)me; \
-	 \
-		/* make up a "cube" with vertexes being our bounding box */ \
-		BBV(0,MAX_X,MAX_Y,MAX_Z); \
-		BBV(1,MAX_X,MAX_Y,MIN_Z); \
-		BBV(2,MAX_X,MIN_Y,MAX_Z); \
-		BBV(3,MAX_X,MIN_Y,MIN_Z); \
-		BBV(4,MIN_X,MAX_Y,MAX_Z); \
-		BBV(5,MIN_X,MAX_Y,MIN_Z); \
-		BBV(6,MIN_X,MIN_Y,MAX_Z); \
-		BBV(7,MIN_X,MIN_Y,MIN_Z); \
-	 \
-\
-	        /* 5: ROTATION */ \
-		vrmlrot_to_quaternion(&rq,node->__localOrient.c[0], node->__localOrient.c[1], node->__localOrient.c[2], node->__localOrient.c[3]); \
-		quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-	 \
-		/* copy these points back out */ \
-		memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	 \
-                /* 7: TRANSLATION */ \
-                /* FW_GL_TRANSLATE_F(node->translation.c[0],node->translation.c[1],node->translation.c[2]); */ \
-		/*printf ("doing translation %f %f %f\n", node->__movedCoords.c[0],node->__movedCoords.c[1],node->__movedCoords.c[2]); */ \
-		add_translation(inxyz,(float) node->__movedCoords.c[0],(float) node->__movedCoords.c[1],(float) node->__movedCoords.c[2],8); \
- \
-	 \
-	 \
-		/* work changes into extent */ \
-            /* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, \
-                thus we do not bother to test against OLD max/min values */ \
-            maxx = -FLT_MAX; maxy = -FLT_MAX; maxz = -FLT_MAX; \
-            minx = FLT_MAX; miny = FLT_MAX; minz = FLT_MAX; \
-		for (i=0; i<8; i++) { \
-			if (inxyz[i].x > maxx) maxx = (float) inxyz[i].x; \
-			if (inxyz[i].y > maxy) maxy = (float) inxyz[i].y; \
-			if (inxyz[i].z > maxz) maxz = (float) inxyz[i].z; \
-			if (inxyz[i].x < minx) minx = (float) inxyz[i].x; \
-			if (inxyz[i].y < miny) miny = (float) inxyz[i].y; \
-			if (inxyz[i].z < minz) minz = (float) inxyz[i].z; \
-		} \
-		} \
-	} 
-
-#define FRUSTUM_GEOTRANS  \
-	if (me->_nodeType == NODE_GeoTransform) { \
-		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, \
-		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will \
-		   take the "inside out" boundingBox as being correct! */ \
- \
-			/* has this node actually been extented away from the default? */ \
- \
-		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { \
-			struct X3D_GeoTransform *node; \
-			Quaternion rq; \
-			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; \
-			node = (struct X3D_GeoTransform *)me; \
-	 \
-			/* make up a "cube" with vertexes being our bounding box */ \
-			BBV(0,MAX_X,MAX_Y,MAX_Z); \
-			BBV(1,MAX_X,MAX_Y,MIN_Z); \
-			BBV(2,MAX_X,MIN_Y,MAX_Z); \
-			BBV(3,MAX_X,MIN_Y,MIN_Z); \
-			BBV(4,MIN_X,MAX_Y,MAX_Z); \
-			BBV(5,MIN_X,MAX_Y,MIN_Z); \
-			BBV(6,MIN_X,MIN_Y,MAX_Z); \
-			BBV(7,MIN_X,MIN_Y,MIN_Z); \
-	 \
-	                /* 1: REVERSE CENTER */ \
-	                if (node->__do_center) { \
-				add_translation(inxyz,(float) (-node->geoCenter.c[0]), (float) (-node->geoCenter.c[1]),(float)(-node->geoCenter.c[2]),8); \
-			} \
-	 \
-	                /* 2: REVERSE SCALE ORIENTATION */ \
-	                if (node->__do_scaleO) { \
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-			} \
-	 \
-	                /* 3: SCALE */ \
-	                if (node->__do_scale) { \
-				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8); \
-			} \
-	 \
-	                /* 4: SCALEORIENTATION */ \
-	                if (node->__do_scaleO) { \
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	                } \
-	 \
-	                /* 5: ROTATION */ \
-	                if (node->__do_rotation) { \
-				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]); \
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	                } \
-	 \
-	                /* 6: CENTER */ \
-	                if (node->__do_center) { \
-				add_translation(inxyz,(float)node->geoCenter.c[0],(float)node->geoCenter.c[1],(float)node->geoCenter.c[2],8); \
-			} \
-			add_translation (inxyz,(float) X3D_GEOTRANSFORM(node)->__movedCoords.c[0], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[1], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[2],8); \
-\
-			vrmlrot_to_quaternion(&rq,X3D_GEOTRANSFORM(node)->__localOrient.c[0], X3D_GEOTRANSFORM(node)->__localOrient.c[1], X3D_GEOTRANSFORM(node)->__localOrient.c[2], X3D_GEOTRANSFORM(node)->__localOrient.c[3]); \
-			quaternion_multi_rotation(outxyz,&rq,inxyz,8); \
-			memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); \
-	                /* 7: TRANSLATION */ \
-	                if (node->__do_trans) { \
-				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8); \
-			} \
-	 \
-	 \
-			/* work changes into extent */ \
-            		/* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, \
-            		    thus we do not bother to test against OLD max/min values */ \
-            		maxx = -FLT_MAX; maxy = -FLT_MAX; maxz = -FLT_MAX; \
-            		minx = FLT_MAX; miny = FLT_MAX; minz = FLT_MAX; \
-			for (i=0; i<8; i++) { \
-				if (inxyz[i].x > maxx) maxx = (float) inxyz[i].x; \
-				if (inxyz[i].y > maxy) maxy = (float) inxyz[i].y; \
-				if (inxyz[i].z > maxz) maxz = (float) inxyz[i].z; \
-				if (inxyz[i].x < minx) minx = (float) inxyz[i].x; \
-				if (inxyz[i].y < miny) miny = (float) inxyz[i].y; \
-				if (inxyz[i].z < minz) minz = (float) inxyz[i].z; \
-			} \
-		} \
-	} 
-
-#define BBV(num,XX,YY,ZZ) \
-			inxyz[num].x= (double) (me->EXTENT_##XX); \
-			inxyz[num].y= (double) (me->EXTENT_##YY); \
-			inxyz[num].z= (double) (me->EXTENT_##ZZ);
-
-//#define FRUSTUM_GEOTRANS  
-void FRUSTUM_GEOTRANSB(struct X3D_Node *me,float *minx, float *miny, float *minz, float *maxx, float *maxy, float *maxz){
-	int i;
-	if (me->_nodeType == NODE_GeoTransform) { 
-		/* have we actually done a propagateExtent on this one? Because we look at ALL points in a boundingBox, 
-		   because of rotations, we HAVE to ensure that the default values are not there, otherwise we will 
-		   take the "inside out" boundingBox as being correct! */ 
- 
-			/* has this node actually been extented away from the default? */ 
- 
-		if (!APPROX(me->EXTENT_MAX_X,-10000.0)) { 
-			struct X3D_GeoTransform *node; 
-			Quaternion rq; 
-			struct point_XYZ inxyz[8]; struct point_XYZ outxyz[8]; 
-			node = (struct X3D_GeoTransform *)me; 
-	 
-			/* make up a "cube" with vertexes being our bounding box */ 
-			BBV(0,MAX_X,MAX_Y,MAX_Z); 
-			BBV(1,MAX_X,MAX_Y,MIN_Z); 
-			BBV(2,MAX_X,MIN_Y,MAX_Z); 
-			BBV(3,MAX_X,MIN_Y,MIN_Z); 
-			BBV(4,MIN_X,MAX_Y,MAX_Z); 
-			BBV(5,MIN_X,MAX_Y,MIN_Z); 
-			BBV(6,MIN_X,MIN_Y,MAX_Z); 
-			BBV(7,MIN_X,MIN_Y,MIN_Z); 
-	
-			/* 1: REVERSE CENTER */ 
-			if (node->__do_center) { 
-				add_translation(inxyz,(float) (-node->geoCenter.c[0]), (float) (-node->geoCenter.c[1]),(float)(-node->geoCenter.c[2]),8); 
-			} 
-	 
-			/* 2: REVERSE SCALE ORIENTATION */ 
-			if (node->__do_scaleO) { 
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
-			} 
-	
-			/* 3: SCALE */ 
-			if (node->__do_scale) { 
-				multiply_in_scale(inxyz,node->scale.c[0],node->scale.c[1],node->scale.c[2],8); 
-			} 
-	 
-			/* 4: SCALEORIENTATION */ 
-			if (node->__do_scaleO) { 
-				vrmlrot_to_quaternion(&rq,node->scaleOrientation.c[0], node->scaleOrientation.c[1], node->scaleOrientation.c[2], -node->scaleOrientation.c[3]); 
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
-			} 
-	 
-			/* 5: ROTATION */ 
-			if (node->__do_rotation) { 
-				vrmlrot_to_quaternion(&rq,node->rotation.c[0], node->rotation.c[1], node->rotation.c[2], node->rotation.c[3]); 
-				quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
-				memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
-			} 
-	 
-			/* 6: CENTER */ 
-			if (node->__do_center) { 
-				add_translation(inxyz,(float)node->geoCenter.c[0],(float)node->geoCenter.c[1],(float)node->geoCenter.c[2],8); 
-			} 
-			add_translation (inxyz,(float) X3D_GEOTRANSFORM(node)->__movedCoords.c[0], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[1], (float) X3D_GEOTRANSFORM(node)->__movedCoords.c[2],8); 
-
-			vrmlrot_to_quaternion(&rq,X3D_GEOTRANSFORM(node)->__localOrient.c[0], X3D_GEOTRANSFORM(node)->__localOrient.c[1], X3D_GEOTRANSFORM(node)->__localOrient.c[2], X3D_GEOTRANSFORM(node)->__localOrient.c[3]); 
-			quaternion_multi_rotation(outxyz,&rq,inxyz,8); 
-			memcpy (inxyz,outxyz,8*sizeof(struct point_XYZ)); 
-			/* 7: TRANSLATION */ 
-			if (node->__do_trans) { 
-				add_translation(inxyz,node->translation.c[0],node->translation.c[1],node->translation.c[2],8); 
-			} 
-	 
-	 
-			/* work changes into extent */ 
-			/* because we have materially moved this Transform, the WHOLE Bounding Box has moved, too, 
-				thus we do not bother to test against OLD max/min values */ 
-			*maxx = -FLT_MAX; *maxy = -FLT_MAX; *maxz = -FLT_MAX; 
-			*minx = FLT_MAX; *miny = FLT_MAX; *minz = FLT_MAX; 
-			for (i=0; i<8; i++) { 
-				if (inxyz[i].x > *maxx) *maxx = (float) inxyz[i].x; 
-				if (inxyz[i].y > *maxy) *maxy = (float) inxyz[i].y; 
-				if (inxyz[i].z > *maxz) *maxz = (float) inxyz[i].z; 
-				if (inxyz[i].x < *minx) *minx = (float) inxyz[i].x; 
-				if (inxyz[i].y < *miny) *miny = (float) inxyz[i].y; 
-				if (inxyz[i].z < *minz) *minz = (float) inxyz[i].z; 
-			} 
-		} 
-	} 
-}
-void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me);
-void FRUSTUM_GEO(struct X3D_Node *me){
-	int i;
-	if (me->_nodeType == NODE_GeoTransform || me->_nodeType == NODE_GeoLocation || me->_nodeType == NODE_EspduTransform) { 
-		if( extent6f_isSet(me->_extent)) {
-			float e[6];
-			double mat[16];
-
-			//push idenity
-			FW_GL_PUSH_MATRIX();
-			FW_GL_LOAD_IDENTITY();
-			//call prep
-			virtTable[me->_nodeType]->prep(me);
-			//scrape mat
-			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mat);
-			//call fin to pop
-			virtTable[me->_nodeType]->fin(me);
-			//pop to whatever was before identity
-			FW_GL_POP_MATRIX();
-			//transform extent with mat
-			extent6f_mattransform4d(e,me->_extent,mat);
-			extent6f_setParentExtentB(e,me);
-			//extent6f_setNodeExtentB(ef6,me);
-		} 
-	} 
-}
-
 
 //extent6f {xmax,xmin,ymax,ymin,zmax,zmin}
 float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,float ymax, float zmin,float zmax){
@@ -547,6 +185,7 @@ float *extent6f_constructor(float *extent6, float xmin,float xmax,  float ymin,f
 }
 float *extent6f_clear(float *extent6){
 	float *e = extent6;
+	//s max,min y max,min, z max,min
 	e[0]=-10000.0; e[1]=10000.0; e[2]=-10000.0; e[3]=10000.0; e[4]=-10000.0; e[5]=10000.0;
 	return e;
 }
@@ -619,21 +258,40 @@ float *extent6f_union_vec3f(float *extent6, float *p3){
 	}
 	return extent6;
 }
+int extent6f_point_inside(float *extent6, float *pd){
+	int inside = TRUE;
+	for(int i=0;i<3;i++){
+		inside = inside && extent6[i*2 + 1] < pd[i];
+		inside = inside && pd[i] < extent6[i*2 + 0];
+	}
+	return inside;
+}
+float *extent6f_union_vec2f(float *extent6, float *p2){
+	int i,isa,isb;
+	isa = extent6f_isSet(extent6);
+	if(!isa)
+	for(i=0;i<2;i++){
+		extent6[i*2 + 1] = p2[i];
+		extent6[i*2 + 0] = p2[i];
+	}
+	for(i=0;i<2;i++){
+		extent6[i*2 + 1] = min(extent6[i*2 + 1], p2[i]);
+		extent6[i*2 + 0] = max(extent6[i*2 + 0], p2[i]);
+	}
+	return extent6;
+}
 void extent6f_to_box3f8(float *extent6, float *p3f8){
 	//generate 8 points from extent
 	int i,j,k,n;
 	n = 0;
-	//extent6f_printf(extent6);printf(" extent\n box:\n");
 	for(k=0;k<2;k++)
 		for(j=0;j<2;j++)
 			for(i=0;i<2;i++){
 				p3f8[n*3 + 0] = extent6[0 + i];
 				p3f8[n*3 + 1] = extent6[2 + j];
 				p3f8[n*3 + 2] = extent6[4 + k];
-				//printf("%d %f %f %f\n",n,p3f8[n*3 + 0],p3f8[n*3 + 1],p3f8[n*3 + 2]);
 				n++;
 			}
-	//printf("\n");
 }
 float * extent6f_from_box3fn(float *extent6,float *p, int n){
 	int i,j;
@@ -642,27 +300,34 @@ float * extent6f_from_box3fn(float *extent6,float *p, int n){
 		extent6f_union_vec3f(extent6,&p[i*3]);
 	return extent6;
 }
+float * extent6f_from_box2fn(float *extent6,float *p, int n){
+	int i,j;
+	extent6f_clear(extent6);
+	for(i=0;i<n;i++)
+		extent6f_union_vec2f(extent6,&p[i*2]);
+	return extent6;
+}
 float *extent6f_scale3f(float *eout6, float *ein6, float *s3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] *= s3[i];
-		eout6[i*2 + 1] *= s3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] * s3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] * s3[i];
 	}
 	return eout6;
 }
 float *extent6f_translate3f(float *eout6, float *ein6, float *p3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] += p3[i];
-		eout6[i*2 + 1] += p3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] + p3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] + p3[i];
 	}
 	return eout6;
 }
 float *extent6f_translate3d(float *eout6, float *ein6, double *p3){
 	int i;
 	for(i=0;i<3;i++){
-		eout6[i*2 + 0] += p3[i];
-		eout6[i*2 + 1] += p3[i];
+		eout6[i*2 + 0] = ein6[i*2 + 0] + p3[i];
+		eout6[i*2 + 1] = ein6[i*2 + 1] + p3[i];
 	}
 	return eout6;
 }
@@ -682,6 +347,31 @@ float extent6f_get_maxsize(float *extent6){
 	}
 	return msize;
 }
+void extent6f2bbox(float *extent6, float* center, float *size){
+	//extent6: xmax,xmin,ymax,ymin,zmax,zmin
+	for(int i=0;i<3;i++){
+		if(extent6[2*i] >= extent6[2*i+1]){
+			center[i] = .5f*extent6[2*i] + .5f*extent6[2*i+1];
+			size[i] = extent6[2*i+0] - extent6[2*i+1];
+		}else{
+			center[i] = 0.0f;
+			size[i] = -1.0f;
+		}
+	}
+}
+void bbox2extent6f(float* center, float *size, float *extent6){
+	
+	for(int i=0;i<3;i++){
+		if(size[i] >= 0.0f){
+			extent6[2*i +0] = center[i] + .5f*size[i]; //max
+			extent6[2*i +1] = center[i] - .5f*size[i]; //min
+		}else{
+			extent6[2*i +0] = -10000.0f; //max
+			extent6[2*i +1] =  10000.0f; //min
+		}
+	}
+}
+
 float extent6f_get_maxradius(float *extent6){
 	
 	float radius, p3f8[8][3], pc[3], pd[3];
@@ -733,55 +423,106 @@ float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4){
 	float p3f[8][3];
 	double p3d[8][3];
 	Quaternion rq;
-
-	extent6f_to_box3f8(ein6,p3f[0]);
-	float2double(p3d[0],p3f[0],24);
-	for(i=0;i<8;i++){
-		transformAFFINEd(p3d[i],p3d[i],mat4); 
+	if(extent6f_isSet(ein6)){
+		extent6f_to_box3f8(ein6,p3f[0]);
+		float2double(p3d[0],p3f[0],24);
+		for(i=0;i<8;i++){
+			transformAFFINEd(p3d[i],p3d[i],mat4); 
+		}
+		double2float(p3f[0],p3d[0],24);
+		extent6f_from_box3fn(eout6,p3f[0],8);
+	}else{
+		extent6f_clear(eout6);
 	}
-	double2float(p3f[0],p3d[0],24);
-	extent6f_from_box3fn(eout6,p3f[0],8);
 	return eout6;
 	
-} 
+}
+float *orientedBBox2extent6f(float *extent6, float *obb12){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	float *center = &obb12[0];
+	float *hx = &obb12[3];
+	float *hy = &obb12[6];
+	float *hz = &obb12[9];
+	float p3f[8][3], temp[3], temp2[3];
+	int ijk = 0;
+	for(int i=0;i<2;i++)
+		for(int j=0;j<2;j++)
+			for(int k=0;k<2;k++){
+				veccopy3f(temp,center);
+				vecadd3f(temp,temp,vecscale3f(temp2,hx,i?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hy,j?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hz,k?1.0f:-1.0f));
+				veccopy3f(p3f[ijk], temp);
+				ijk++;
+			}
+	extent6f_from_box3fn(extent6,p3f[0], 8);
+	return extent6;
+}
+float *orientedBBox2vec3fn(float *p3fn24, float *obb12){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	float *center = &obb12[0];
+	float *hx = &obb12[3];
+	float *hy = &obb12[6];
+	float *hz = &obb12[9];
+	float *p3f[8], temp[3], temp2[3];
+	for(int i=0;i<8;i++) p3f[i] = &p3fn24[3*i];
+	int ijk = 0;
+	for(int i=0;i<2;i++)
+		for(int j=0;j<2;j++)
+			for(int k=0;k<2;k++){
+				veccopy3f(temp,center);
+				vecadd3f(temp,temp,vecscale3f(temp2,hx,i?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hy,j?1.0f:-1.0f));
+				vecadd3f(temp,temp,vecscale3f(temp2,hz,k?1.0f:-1.0f));
+				veccopy3f(p3f[ijk], temp);
+				ijk++;
+			}
+	//for(int i=0;i<8;i++)
+	//	printf("bvcoord %d %f %f %f\n",i,p3fn24[i*3],p3fn24[i*3+1],p3fn24[i*3+2]);
+	return p3fn24;
+}
+float *orientedBBox_mattransform4d(float *out12, float *obb12, double *mat4){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	//H when transforming an OBB, the half- vector parts shall be transformed like normals are:
+	// using the transpose inverse
+	float fmat4[16], fmat3[9],fmat3i[9],normat[9];
+	matdouble2float4(fmat4,mat4);
+	mat423f(fmat3,fmat4);
+	matinverse3f(fmat3i,fmat3);
+	mattranspose3f(normat,fmat3i);
+	//transform half-vectors
+	for(int i=0;i<3;i++)
+		transform3x3f(&out12[(i+1)*3],&obb12[(i+1)*3],normat);
+	//transform the center
+	transformf(out12,obb12,mat4);
+	return out12;
+	
+}
+float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4){
+	// Tiles3D section 3. https://github.com/CesiumGS/3d-tiles/blob/master/3d-tiles-overview.pdf
+	//goal: transform into cuboid space using (modelview x projction) but don't divide by perspectives
+	// I think that's coboid space -1 to 1 on 3 axes
+	// then its easier to do extent checks.
+	float *p3f[8];
+	double d1[3],d2[3];
+	for(int i=0;i<8;i++) p3f[i] = &p3fn24[3*i];
+
+	orientedBBox2vec3fn(p3f[0],obb12);
+	for(int i=0;i<8;i++){
+		float2double(d1,p3f[i],3);
+		transformAFFINEd(d2,d1,mat4);
+		double2float(p3f[i],d2,3);
+	}
+	return p3fn24;
+}
 void extent6f_printf(float *extent6){
 	float *e = extent6;
-	printf("min,max x:%lf,%lf y:%f,%f z:%f,%f ",e[1],e[0],e[3],e[2],e[5],e[4]);
+	printf("min,max x:%8.1f,%8.1f y:%8.1f,%8.1f z:%8.1f,%8.1f ",e[1],e[0],e[3],e[2],e[5],e[4]);
 }
-void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *me){
-	int i,j;
-	struct X3D_Node *shapeParent;
-	struct X3D_Node *groupParent;
-	float *e = extent6;
-    
-	#ifdef FRUSTUMVERBOSE
-	extent6f_printf(e);
-	printf(" extent6f_setNodeExtentB me %p nt %s\n",me,stringNodeType(me->_nodeType));
-	#endif
-
-	/* record this for ME for sorting purposes for sorting children fields */
-	extent6f_copy(me->_extent,e);
-
-	if (me->_parentVector == NULL) {
-		#ifdef FRUSTUMVERBOSE
-		printf ("setExtent, parentVector NULL for node %p type %s\n",
-			me,stringNodeType(me->_nodeType));
-		#endif
-		return;
-	}
-
-	for (i=0; i<vectorSize(me->_parentVector); i++) {
-		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,i);
-		extent6f_copy(shapeParent->_extent,e);
-		for (j=0; j<vectorSize(shapeParent->_parentVector); j++) {
-			groupParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,j);
-			
-			//extent6f_printf(e); printf(" e\n");
-			//extent6f_printf(groupParent->_extent); printf(" gp before\n");
-			extent6f_union_extent6f(groupParent->_extent,e);
-			//extent6f_printf(groupParent->_extent); printf(" gp after union\n");
-		}
-	}
+void union_group_extent(float *e6);
+void extent6f_setNodeExtentB(float *extent6, struct X3D_Node *node){
+	extent6f_copy(node->_extent,extent6);
+	union_group_extent(extent6);
 }
 void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
 	int i,j;
@@ -817,6 +558,197 @@ void extent6f_setParentExtentB(float *extent6, struct X3D_Node *me){
 		}
 	}
 }
+//struct Planed {
+//	double normal[3];
+//	double d;
+//};
+//enum {
+//	NEARP =0,
+//	FARP,
+//	BOTTOM,
+//	TOP,
+//	LEFT,
+//	RIGHT,
+//};
+//static struct Planed pl[6];
+void planed_setCoefficients(struct Planed* p, double a, double b, double c, double d) {
+
+	// set the normal vector
+	vecsetd(p->normal,a,b,c);
+	//compute the lenght of the vector
+	double length = veclengthd(p->normal);
+	// normalize the vector
+	vecscaled(p->normal,p->normal,1.0/length);
+	// and divide d by th length as well
+	p->d = d/length;
+	vecscaled(p->p,p->normal,p->d);
+}
+int imat(int irow, int icol){
+	//int index = (irow-1)*4 + (icol-1);
+	int index = (icol-1)*4 + (irow-1);
+	return index;
+}
+void setFrustumPlanes(double *mvpMatrix, struct Planed *pl) {
+	double *m = mvpMatrix;
+	planed_setCoefficients(&pl[NEARP],
+				 m[imat(3,1)] + m[imat(4,1)],
+				 m[imat(3,2)] + m[imat(4,2)],
+				 m[imat(3,3)] + m[imat(4,3)],
+				 m[imat(3,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[FARP],
+				-m[imat(3,1)] + m[imat(4,1)],
+				-m[imat(3,2)] + m[imat(4,2)],
+				-m[imat(3,3)] + m[imat(4,3)],
+				-m[imat(3,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[BOTTOM],
+				 m[imat(2,1)] + m[imat(4,1)],
+				 m[imat(2,2)] + m[imat(4,2)],
+				 m[imat(2,3)] + m[imat(4,3)],
+				 m[imat(2,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[TOP],
+				-m[imat(2,1)] + m[imat(4,1)],
+				-m[imat(2,2)] + m[imat(4,2)],
+				-m[imat(2,3)] + m[imat(4,3)],
+				-m[imat(2,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[LEFT],
+				 m[imat(1,1)] + m[imat(4,1)],
+				 m[imat(1,2)] + m[imat(4,2)],
+				 m[imat(1,3)] + m[imat(4,3)],
+				 m[imat(1,4)] + m[imat(4,4)]);
+	planed_setCoefficients(&pl[RIGHT],
+				-m[imat(1,1)] + m[imat(4,1)],
+				-m[imat(1,2)] + m[imat(4,2)],
+				-m[imat(1,3)] + m[imat(4,3)],
+				-m[imat(1,4)] + m[imat(4,4)]);
+	//for(int i=0;i<6;i++){
+	//	printf("plane[%d]= %lf %lf %lf, %lf\n",i,pl[i].normal[0],pl[i].normal[1],pl[i].normal[2],pl[i].d);
+	//}
+}
+enum {
+	OUTSIDE = 0,
+	INSIDE = 1,
+	INTERSECT = 2,
+};
+/*
+float *getVertexP(float *p, float *v, float *normal){
+	p = (xmin,ymin,zmin)
+	if (normal.x >= 0)
+		p.x = xmax;
+	if (normal.y >=0))
+		p.y = ymax;
+	if (normal.z >= 0)
+		p.z = zmax:
+}
+int frustum_boxInFrustum(struct Planed *frustum, float *abb) {
+	// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes-ii/
+	int result = INSIDE;
+	//for each plane do ...
+	for(int i=0; i < 6; i++) {
+
+		// is the positive vertex outside?
+		if (pl[i].distance(b.getVertexP(pl[i].normal)) < 0)
+			return OUTSIDE;
+		// is the negative vertex outside?
+		else if (pl[i].distance(b.getVertexN(pl[i].normal)) < 0)
+			result =  INTERSECT;
+	}
+	return(result);
+}
+*/
+int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point){
+	//Granphics Gems I p.305
+	// computes point of intersection of 3 planes, if it exists returns TRUE and point, else FALSE
+	int intersection = FALSE;
+	double pi[3], ptemp1[3], ptemp2[3], detval;
+	vecsetd(pi,0.0,0.0,0.0);
+	vecscaled(ptemp2,veccrossd(ptemp1,p2->normal,p3->normal),vecdotd(p1->p,p1->normal));
+	vecaddd(pi,pi,ptemp2);
+	vecscaled(ptemp2,veccrossd(ptemp1,p3->normal,p1->normal),vecdotd(p2->p,p2->normal));
+	vecaddd(pi,pi,ptemp2);
+	vecscaled(ptemp2,veccrossd(ptemp1,p1->normal,p2->normal),vecdotd(p3->p,p3->normal));
+	vecaddd(pi,pi,ptemp2);
+	detval = det3d(p1->normal,p2->normal,p3->normal);
+	if( detval != 0.0){
+		intersection = TRUE;
+		vecscaled(point,pi,-1.0/detval);
+		//printf("> %lf %lf %lf\n",pi[0],pi[1],pi[2]);
+	}
+	return intersection;
+}
+
+double plane_distance_to_point(struct Planed *plane, double *p){
+	//assumes plane is normalized
+	double dist= vecdotd(plane->normal,p);
+	dist += plane->d;
+	return dist;
+}
+int frustum_point_inside(struct Planed *frustum_planes, double *p) {
+	//assumes 6 planes around frustum
+	int result = INSIDE;
+
+	for(int i=0; i < 6; i++) {
+		//if(i==1) continue; //H: far plane not far enough
+		if(plane_distance_to_point(&frustum_planes[i],p) < 0.0)
+			return OUTSIDE;
+	}
+	return(result);
+}
+int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n){
+	//generates frusum corner points from planes,
+	//near plane clockwise starting wtih upper left, then far plane same order
+	//returns TRUE
+	int n=0;
+	int order [] = {LEFT,TOP,RIGHT,BOTTOM};
+	for(int i=0;i<2;i++){
+		for(int j=0;j<4;j++){
+			double pi[3];
+			int jj,kk,k;
+			jj = order[j];
+			k = j+1;
+			kk = order[k % 4];
+			if(!plane_intersect_plane_intersect_plane(&frustum_planes[i],&frustum_planes[jj],&frustum_planes[kk],pi)) 
+				return FALSE;
+			double2float(&pf24n[n*3],pi,3);
+			n++;
+		}
+	}
+	//for(int i=0;i<n;i++)
+	//	printf("fc[%d] %f %f %f\n",i,pf24n[i*3],pf24n[i*3+1],pf24n[i*3+2]);
+	return TRUE;
+}
+
+int frustum_box_inside(struct Planed *frustum_planes, float *corners3f, int np) {
+	// http://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-testing-boxes/
+	int result = INSIDE, out,in;
+
+	// for each plane do ...
+	for(int i=0; i < 6; i++) {
+
+		// reset counters for corners in and out
+		out=0;in=0;
+		// for each corner of the box do ...
+		// get out of the cycle as soon as a box as corners
+		// both inside and out of the frustum
+		for (int k = 0; k < np && (in==0 || out==0); k++) {
+			double corner[3];
+			// is the corner outside or inside
+			float2double(corner,&corners3f[k*3],3);
+			if( plane_distance_to_point(&frustum_planes[i], corner) < 0.0)
+				out++;
+			else
+				in++;
+		}
+		//if all corners are out
+		if (!in)
+			return (OUTSIDE);
+		// if some corners are out and others are in
+		else if (out)
+			result = INTERSECT;
+	}
+	return(result);
+ }
+
+
 void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 	int i;
 	if (me->_nodeType == NODE_GeoElevationGrid) { 
@@ -833,11 +765,13 @@ void FRUSTUM_GEOELEVATIONGRID(struct X3D_Node *me){
 
 
 /* does this current node actually fit in the Switch rendering scheme? */
-int is_Switchchild_inrange(struct X3D_Switch *node, struct X3D_Node *me) {
-        int wc = node->whichChoice;
+int is_Switchchild_inrange(struct X3D_Switch* node, struct X3D_Node* me) {
+	int wc = node->whichChoice;
 
-        /* is this VRML, or X3D?? */
-        if (node->__isX3D == 0) {
+	/* is this VRML, or X3D?? */
+	int spec = X3D_PROTO(node->_executionContext)->__specversion;
+	if (spec < 300 || (node->choice).n) {
+			//if (node->__isX3D == 0) {
                 if(wc >= 0 && wc < ((node->choice).n)) {
                         void *p = ((node->choice).p[wc]);
                         return (X3D_NODE(p)==me);
@@ -853,19 +787,19 @@ int is_Switchchild_inrange(struct X3D_Switch *node, struct X3D_Node *me) {
 
 
 /* does this current node actually display, according to the CADLayer scheme? */
-int is_CADLayerchild_inrange(struct X3D_CADLayer *node, struct X3D_Node *me) {
-    int i;
-    for (i=0; i<node->children.n; i++) {
-        
-        /* if we have more children than we have indexes into visible field, just return TRUE */
-        if ((i >= node->visible.n) && (node->children.p[i] == me)) return TRUE;
-        
-        /* if not, if it is in the visible field, return true */
-        else if ((node->visible.p[i]) && (node->children.p[i] == me)) return TRUE;
-        }
-    /* not visible, so return false */
-    return FALSE;
-}
+//int is_CADLayerchild_inrange(struct X3D_CADLayer *node, struct X3D_Node *me) {
+//    int i;
+//    for (i=0; i<node->children.n; i++) {
+//        
+//        /* if we have more children than we have indexes into visible field, just return TRUE */
+//        if ((i >= node->visible.n) && (node->children.p[i] == me)) return TRUE;
+//        
+//        /* if not, if it is in the visible field, return true */
+//        else if ((node->visible.p[i]) && (node->children.p[i] == me)) return TRUE;
+//        }
+//    /* not visible, so return false */
+//    return FALSE;
+//}
 
 /* does this current node actually fit in the GeoLOD rendering scheme? */
 int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me) {
@@ -902,97 +836,7 @@ int is_GeoLODchild_inrange (struct X3D_GeoLOD* gpnode, struct X3D_Node *me) {
  * Geometries grouping node parent. */
 
 
-/* this is used for collision in transformChildren - don't bother going through
-   children of a transform if there is nothing close... */
 
-void setExtent_OLD(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
-	int c,d;
-	struct X3D_Node *shapeParent;
-	struct X3D_Node *geomParent;
-	int touched;
-
-	UNUSED(touched); //compiler warning mitigation
-    
-	#ifdef FRUSTUMVERBOSE
-	printf ("setExtent maxx %f minx %f maxy %f miny %f maxz %f minz %f me %p nt %s\n",
-			maxx, minx, maxy, miny, maxz, minz, me, stringNodeType(me->_nodeType));
-	#endif
-
-	/* record this for ME for sorting purposes for sorting children fields */
-	me->EXTENT_MAX_X = maxx; me->EXTENT_MIN_X = minx;
-	me->EXTENT_MAX_Y = maxy; me->EXTENT_MIN_Y = miny;
-	me->EXTENT_MAX_Z = maxz; me->EXTENT_MIN_Z = minz;
-
-	if (me->_parentVector == NULL) {
-		#ifdef FRUSTUMVERBOSE
-		printf ("setExtent, parentVector NULL for node %p type %s\n",
-			me,stringNodeType(me->_nodeType));
-		#endif
-		return;
-	}
-
-	for (c=0; c<vectorSize(me->_parentVector); c++) {
-		shapeParent = vector_get(struct X3D_Node *, me->_parentVector,c);
-	
-		/* record this for ME for sorting purposes for sorting children fields */
-		shapeParent->EXTENT_MAX_X = maxx; shapeParent->EXTENT_MIN_X = minx;
-		shapeParent->EXTENT_MAX_Y = maxy; shapeParent->EXTENT_MIN_Y = miny;
-		shapeParent->EXTENT_MAX_Z = maxz; shapeParent->EXTENT_MIN_Z = minz;
-	
-		#ifdef FRUSTUMVERBOSE
-		if (shapeParent == NULL)
-		printf ("parent %u of %u is %p, is null\n",c,vectorSize(me->_parentVector),shapeParent); 
-		else
-		printf ("parent %u of %u is %p, type %s\n",c,vectorSize(me->_parentVector),shapeParent,stringNodeType(shapeParent->_nodeType)); 
-		#endif
-
-		for (d=0; d<vectorSize(shapeParent->_parentVector); d++) {
-			geomParent = vector_get(struct X3D_Node *, shapeParent->_parentVector,d);
-
-			#ifdef FRUSTUMVERBOSE
-			printf ("setExtent in loop, parent %u of shape %s is %s\n",c,stringNodeType(shapeParent->_nodeType),
-				stringNodeType(geomParent->_nodeType)); 
-	
-			/* is there a problem with this geomParent? */
-			if (!checkNode(geomParent, __FILE__, __LINE__)) printf ("problem here with checkNode\n");
-			#endif
-	
-	
-			/* note, maxz is positive, minz is negative, distance should be negative, so we take a negative distance,
-				and subtract the "positive" z value to get the closest point, then take the negative distance,
-				and subtract the "negative" z value to get the far distance */
-	
-			PROP_EXTENT_CHECK;
-	
-			#ifdef FRUSTUMVERBOSE
-			printf ("setExtent - now I am %p (%s) has extent maxx %f minx %f maxy %f miny %f maxz %f minz %f\n",
-					me, stringNodeType(me->_nodeType),
-					me->EXTENT_MAX_X ,
-					me->EXTENT_MIN_X ,
-					me->EXTENT_MAX_Y ,
-					me->EXTENT_MIN_Y ,
-					me->EXTENT_MAX_Z ,
-					me->EXTENT_MIN_Z);
-			printf ("setExtent - now parent %p (%s) has extent maxx %f minx %f maxy %f miny %f maxz %f minz %f\n",
-					geomParent, stringNodeType(geomParent->_nodeType),
-					geomParent->EXTENT_MAX_X ,
-					geomParent->EXTENT_MIN_X ,
-					geomParent->EXTENT_MAX_Y ,
-					geomParent->EXTENT_MIN_Y ,
-					geomParent->EXTENT_MAX_Z ,
-					geomParent->EXTENT_MIN_Z);
-			#endif 
-
-		}
-	}
-}
-
-
-void setExtentA(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
-	float e[6];
-	extent6f_constructor(e,minx,maxx,miny,maxy,minz,maxz);
-	extent6f_setNodeExtentB(e,me);
-}
 
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me) {
 	float e[6];
@@ -1045,95 +889,6 @@ void printmatrix(GLDOUBLE* mat) {
  * of the group to be passed in in the floats x,y,z */
 
 void propagateExtent(struct X3D_Node *me) {
-	float minx, miny, minz, maxx, maxy, maxz;
-	int i;
-	struct X3D_Node *geomParent;
-	int touched;
-
-	if (me==NULL) return;
-
-
-	#ifdef FRUSTUMVERBOSE
-	printf ("propextent Iam %s, myExtent (%4.2f %4.2f) (%4.2f %4.2f) (%4.2f %4.2f) me %p parents %d\n",
-			stringNodeType(me->_nodeType),
-			me->EXTENT_MAX_X, me->EXTENT_MIN_X,
-			me->EXTENT_MAX_Y, me->EXTENT_MIN_Y,
-			me->EXTENT_MAX_Z, me->EXTENT_MIN_Z,
-			me, vectorSize(me->_parentVector));
-	#endif
-
-
-	if (me->_parentVector == NULL) {
-		ConsoleMessage ("propagateExtent, parentVector NULL, me %p %s\n",
-			me,stringNodeType(me->_nodeType));
-		return;
-	}
-
-	/* calculate the maximum of the current position, and add the previous extent */
-	/* these MIGHT be overwritten if we have a Transform node here */
-	/* these values are used in PROP_EXTENT_CHECK */
-	maxx = me->EXTENT_MAX_X; minx = me->EXTENT_MIN_X;
-	maxy = me->EXTENT_MAX_Y; miny = me->EXTENT_MIN_Y;
-	maxz = me->EXTENT_MAX_Z; minz = me->EXTENT_MIN_Z;
-
-	/* is this a transform? Should we add in the translated position?? */
-	FRUSTUM_TRANS(Transform);
-
-	//FRUSTUM_GEOTRANS;
-	//FRUSTUM_GEOTRANSB(me,&minx,&miny,&minz,&maxx,&maxy,&maxz);
-	FRUSTUM_GEO(me);
-	//FRUSTUM_GEOLOCATION;
-	FRUSTUM_TRANS(HAnimSite);
-	FRUSTUM_TRANS(HAnimJoint);
-	FRUSTUM_GEOELEVATIONGRID(me);
-
-	for (i=0; i<vectorSize(me->_parentVector); i++) {
-		geomParent = vector_get(struct X3D_Node *, me->_parentVector, i);
-
-		/* do we propagate for this parent? */
-		touched = FALSE;
-
-		/* switch nodes - only propagate extent back up if the node is "active" */
-		switch (geomParent->_nodeType) {
-			case NODE_GeoLOD: 
-				if (is_GeoLODchild_inrange(X3D_GEOLOD(geomParent), me)) {
-			                PROP_EXTENT_CHECK;
-        			}
-				break;
-			case NODE_LOD:
-				/* works for both X3D and VRML syntax; compare with the "_selected" field */
-				if (me == X3D_LODNODE(geomParent)->_selected) {
-			                PROP_EXTENT_CHECK;
-        			}
-				break;
-        
-			case NODE_Switch: 
-				if (is_Switchchild_inrange(X3D_SWITCH(geomParent), me)) {
-			                PROP_EXTENT_CHECK;
-        			}
-                break;
-            case NODE_CADLayer: 
-                if (is_CADLayerchild_inrange(X3D_CADLAYER(geomParent),me)) {
-                    PROP_EXTENT_CHECK;
-				}
-				break;
-			default: {
-				PROP_EXTENT_CHECK;
-			}
-		}
-            
-                
-		#ifdef FRUSTUMVERBOSE
-		printf ("after transform calcs me (%p %s) my parent %d is (%p %s) ext %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n",
-			me, stringNodeType(me->_nodeType),i,geomParent, stringNodeType(geomParent->_nodeType),
-			geomParent->EXTENT_MAX_X, geomParent->EXTENT_MIN_X,
-			geomParent->EXTENT_MAX_Y, geomParent->EXTENT_MIN_Y,
-			geomParent->EXTENT_MAX_Z, geomParent->EXTENT_MIN_Z);
-		#endif
-
-		/* now, send these up the line, assuming this child makes the extent larger */
-		if (touched) propagateExtent(geomParent); 
-        }
 }
 
 /* perform all the viewpoint rotations for a point */
@@ -1160,8 +915,18 @@ void moveAndRotateThisPoint(struct point_XYZ *mypt, double x, double y, double z
 /* get the center of the bounding box, rotate it, and find out how far it is Z distance from us.
 */
 
+//BBoxFields described in
+//src/lib/scenegraph/RenderFuncs.h
+struct BBoxFields {
+        struct SFVec3f bboxCenter;
+        struct SFVec3f bboxSize;
+        int visible;
+        int bboxDisplay;
 
-void record_ZBufferDistance(struct X3D_Node *node) {
+};
+
+//#define FRUSTUMVERBOSE
+void record_ZBufferDistance(struct X3D_Node *node, void *bbfv) {
 	GLDOUBLE modelMatrix[16];
 	double ex;
 	double ey;
@@ -1169,115 +934,147 @@ void record_ZBufferDistance(struct X3D_Node *node) {
 	struct point_XYZ movedPt;
 	double minMovedDist;
 
+	struct BBoxFields *bbf = (struct BBoxFields*) bbfv;
+
 	minMovedDist = -1000000000;
 
-	#ifdef FRUSTUMVERBOSE
-	printf ("\nrecordDistance for node %p nodeType %s size %4.2f %4.2f %4.2f ",node, stringNodeType (node->_nodeType),
-	node->EXTENT_MAX_X - node->EXTENT_MIN_X,
-	node->EXTENT_MAX_Y - node->EXTENT_MIN_Y,
-	node->EXTENT_MAX_Z - node->EXTENT_MIN_Z
-	); 
+	if (APPROX(node->EXTENT_MAX_X,-10000.0)) {
+		#ifdef FRUSTUMVERBOSE
+		printf ("record_ZBufferDistance: EXTENT NOT INIT\n");
+		#endif //FRUSTUMVERBOSE
+		return;
+	}
 
-	if (APPROX(node->EXTENT_MAX_X,-10000.0)) printf ("EXTENT NOT INIT");
+	float extent[6];
+	bbox2extent6f(bbf->bboxCenter.c,bbf->bboxSize.c,extent);
+
+	struct X3D_Node *bb = node;
+
+	#ifdef FRUSTUMVERBOSE
+        ttrenderstate rs = renderstate();
+        //if (rs->render_geom && (!rs->render_blend)) printf ("record_ZBufferDistance, geom and !blend\n");
+
+	printf ("\nrecord_ZBufferDistance for node %p nodeType %s size %4.2f %4.2f %4.2f ",
+		node, stringNodeType (node->_nodeType),
+		node->EXTENT_MAX_X - node->EXTENT_MIN_X,
+		node->EXTENT_MAX_Y - node->EXTENT_MIN_Y,
+		node->EXTENT_MAX_Z - node->EXTENT_MIN_Z
+	); 
+	
+	if (node->_nodeType == NODE_Shape) {
+		printf ("NODE: %s\n",stringNodeType(X3D_SHAPE(node)->geometry->_nodeType)); 
+	}
+		
 
 	printf ("\n");
-	printf ("recordDistance, max,min %f:%f, %f:%f, %f:%f\n",
-		node->EXTENT_MAX_X , node->EXTENT_MIN_X,
-		node->EXTENT_MAX_Y , node->EXTENT_MIN_Y,
-		node->EXTENT_MAX_Z , node->EXTENT_MIN_Z);
+
+	printf ("record_ZBufferDistance, bbox size %4.3f,%4.3f,%4.3f, center %4.3f,%4.3f,%4.3f\n",
+		bbf->bboxSize.c[0], bbf->bboxSize.c[1], bbf->bboxSize.c[2],
+		bbf->bboxCenter.c[0], bbf->bboxCenter.c[1], bbf->bboxCenter.c[2]);
+
+	//float extent[6];
+	//bbox2extent6f(bbf->bboxCenter.c,bbf->bboxSize.c,extent);
+	printf ("ext6f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n",
+		extent[0],extent[1],extent[2],extent[3],extent[4],extent[5]);
+	printf ("oldext %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n",
+		node->EXTENT_MAX_X,node->EXTENT_MIN_X,
+		node->EXTENT_MAX_Y,node->EXTENT_MIN_Y,
+		node->EXTENT_MAX_Z,node->EXTENT_MIN_Z);
+
+	//if (rs->render_geom) printf ("RD, render_geom\n");
+	//if (rs->render_blend) printf ("RD, render_blend\n");
+	//if (rs->render_vp) printf ("RD, render_vp\n");
+
 	#endif
 
 	/* get the current pos in modelMatrix land */
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 
-#ifdef TRY_ONLY_ONE_POINT
-#ifdef TRY_RADIUS
-	/* get radius of bounding box around its origin */
-	ex = (node->EXTENT_MAX_X - node->EXTENT_MIN_X) / 2.0;
-	ey = (node->EXTENT_MAX_Y - node->EXTENT_MIN_Y) / 2.0;
-	ez = (node->EXTENT_MAX_Z - node->EXTENT_MIN_Z) / 2.0;
-	printf ("	ex %lf ey %lf ez %lf\n",ex,ey,ez);
-#else
-	/* get the center of the bounding box */
-	ex = node->EXTENT_MAX_X + node->EXTENT_MIN_X;
-	ey = node->EXTENT_MAX_Y + node->EXTENT_MIN_Y;
-	ez = node->EXTENT_MAX_Z + node->EXTENT_MIN_Z;
-#endif
+	#ifdef FRUSTUMVERBOSE
+	printf ("modelMatrix:\n");
+	printf ("\t%3.2f %3.2f %2.2f %3.2f\n",
+		modelMatrix[0],modelMatrix[1],modelMatrix[2],modelMatrix[3]);
+	printf ("\t%3.2f %3.2f %2.2f %3.2f\n",
+		modelMatrix[4],modelMatrix[5],modelMatrix[6],modelMatrix[7]);
+	printf ("\t%3.2f %3.2f %2.2f %3.2f\n",
+		modelMatrix[8],modelMatrix[9],modelMatrix[10],modelMatrix[11]);
+	printf ("\t%3.2f %3.2f %2.2f %3.2f\n",
+		modelMatrix[12],modelMatrix[13],modelMatrix[14],modelMatrix[15]);
+	#endif //FRUSTUMVERBOSE
 
-	
-	/* rotate the center of this point */
-	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
-	printf ("%lf %lf %lf centre is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z);
+	//#define DO_CENTER_ONLY
+	#ifdef DO_CENTER_ONLY
+	moveAndRotateThisPoint (&movedPt,
+		bbf->bboxCenter.c[0],
+		bbf->bboxCenter.c[1],
+		bbf->bboxCenter.c[2],
+		modelMatrix);
+	printf ("movd point %f %f %f\n",movedPt.x,movedPt.y,movedPt.z);
 	minMovedDist = movedPt.z;
+	#else
+	#define MIN_X 0
+	#define MAX_X 1
+	#define MIN_Y 2
+	#define MAX_Y 3
+	#define MIN_Z 4
+	#define MAX_Z 5
 
-#else
-	
 	/* printf ("moving all 8 points of this bounding box\n"); */
-	ex = node->EXTENT_MIN_X;
-	ey = node->EXTENT_MIN_Y;
-	ez = node->EXTENT_MIN_Z;
+	ex= extent[MIN_X];
+	ey= extent[MIN_Y];
+	ez= extent[MIN_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MIN_X;
-	ey = node->EXTENT_MIN_Y;
-	ez = node->EXTENT_MAX_Z;
+	ex= extent[MIN_X];
+	ey= extent[MIN_Y];
+	ez= extent[MIN_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MIN_X;
-	ey = node->EXTENT_MAX_Y;
-	ez = node->EXTENT_MIN_Z;
+	ex= extent[MIN_X];
+	ey= extent[MIN_Y];
+	ez= extent[MIN_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MIN_X;
-	ey = node->EXTENT_MAX_Y;
-	ez = node->EXTENT_MAX_Z;
+	ex= extent[MIN_X];
+	ey= extent[MAX_Y];
+	ez= extent[MAX_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MAX_X;
-	ey = node->EXTENT_MIN_Y;
-	ez = node->EXTENT_MIN_Z;
+	ex= extent[MAX_X];
+	ey= extent[MIN_Y];
+	ez= extent[MIN_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MAX_X;
-	ey = node->EXTENT_MIN_Y;
-	ez = node->EXTENT_MAX_Z;
+	ex= extent[MAX_X];
+	ey= extent[MIN_Y];
+	ez= extent[MAX_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MAX_X;
-	ey = node->EXTENT_MAX_Y;
-	ez = node->EXTENT_MIN_Z;
+	ex= extent[MAX_X];
+	ey= extent[MAX_Y];
+	ez= extent[MIN_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
 
-	ex = node->EXTENT_MAX_X;
-	ey = node->EXTENT_MAX_Y;
-	ez = node->EXTENT_MAX_Z;
+	ex= extent[MAX_X];
+	ey= extent[MAX_Y];
+	ez= extent[MAX_Z];
 	moveAndRotateThisPoint (&movedPt, ex,ey,ez,modelMatrix);
 	if (movedPt.z > minMovedDist) minMovedDist = movedPt.z;
-	/* printf ("%lf %lf %lf moved is %lf %lf %lf\n",ex,ey,ez,movedPt.x, movedPt.y, movedPt.z); */
-#endif
 
-	node->_dist = minMovedDist;
+	#endif //NOT DO_CENTER_ONLY
+	node->_dist  = minMovedDist;
 
 #ifdef FRUSTUMVERBOSE
-	printf ("I am at %lf %lf %lf\n",Viewer()->currentPosInModel.x, Viewer()->currentPosInModel.y, Viewer()->currentPosInModel.z);
-	printf ("and distance to the nearest corner of the BB for this node is %lf\n", node->_dist);
-#endif
-
-
+	//printf ("I am at %lf %lf %lf\n",Viewer()->currentPosInModel.x, Viewer()->currentPosInModel.y, Viewer()->currentPosInModel.z);
+	//printf ("and distance to the nearest corner of the BB for this node is %lf\n", node->_dist);
+#endif //FRUSTUMVERBOSE
  
 #undef FRUSTUMVERBOSE
 

@@ -99,30 +99,38 @@ void
 JS_MY_Finalize(JSContext *cx, JSObject *obj){
 #else
 JS_MY_Finalize(JSFreeOp *fop, JSObject *obj){
-JSContext *cx = NULL;
+//JSContext *cx = NULL;
 #endif
 
 	void *ptr;
-	#ifdef JSVRMLCLASSESVERBOSE
-	printf ("finalizing %p\n",obj);
+	//#ifdef JSVRMLCLASSESVERBOSE
+	//printf ("finalizing %p\n",obj);
 	//printJSNodeType(cx,obj);
-	#endif
+	//#endif
 
-	REMOVE_ROOT(cx,obj)
+	//REMOVE_ROOT(cx,obj)
 
-	if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
-		
-		if(SM_method() == 0)
-			FREE_IF_NZ (ptr);
-		if(SM_method() == 2){
-			AnyNative *any = (AnyNative*)ptr;
-			if(any->gc) FREE_IF_NZ(any->v);
+	//if ((ptr = (void *)JS_GetPrivateFw(cx, obj)) != NULL) {
+		ptr = (void*)JS_GetPrivate(obj);
+		if (ptr) {
+			if (SM_method() == 0)
+				FREE_IF_NZ(ptr);
+			if (SM_method() == 2) {
+				//AnyNativeNew mallocs ptr, v and elsewhere mf.p is malloced
+				AnyNative* any = (AnyNative*)ptr;
+				if (any->gc) {
+					if (any->type % 2 == 1) //is it MF
+						FREE_IF_NZ(any->v->mffloat.p);
+					FREE_IF_NZ(any->v);
+				}
+				//printf("finalize anygc = %d\n", any->gc);
+				FREE_IF_NZ(ptr);
+			}
 		}
-
-		JS_SetPrivateFw(cx,obj,NULL);
-		FREE_IF_NZ(ptr);
+		//JS_SetPrivateFw(cx,obj,NULL);
+		//FREE_IF_NZ(ptr);
 		
-	}
+	//}
 
 	#ifdef JSVRMLCLASSESVERBOSE
 	} else {
@@ -132,7 +140,7 @@ JSContext *cx = NULL;
 
 }
 
-
+// MFColor
 JSBool
 MFColorToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
@@ -292,6 +300,171 @@ MFColorSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFColor);
 }
 
+// MFColorRGBA
+JSBool
+MFColorRGBAToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	if (!doMFToString(cx, obj, "MFColorRGBA", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFColorRGBAAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFColorRGBAClass, FIELDTYPE_SFColorRGBA)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFColorRGBAConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFColorRGBAClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFColorRGBAConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFColorRGBAConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFColorRGBA, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFColorRGBAConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFColorRGBAConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFColorRGBA) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfcolorrgba.p = MALLOC(struct SFColorRGBA*, newsize);
+			memset(anyv->mfcolorrgba.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFColorRGBAConstr: obj = %p, %u args\n",
+		obj, argc);
+#endif
+
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf(
+				"JS_ValueToObject failed in MFColorRGBAConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFColorRGBAClass)
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 4+ contiguous floats, we can use it as a colorrgba, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFColorRGBA || any2->type == FIELDTYPE_SFVec4f) {
+						shallow_copy_field(FIELDTYPE_SFColorRGBA, any2->v, (union anyVrml*)&anyv->mfcolorrgba.p[i]);
+						anyv->mfcolorrgba.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %u in MFColorRGBAConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+
+MFColorRGBAAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFAddProperty(cx, obj, id, vp, "MFColorRGBAAddProperty");
+}
+
+JSBool
+MFColorRGBAGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFColorRGBA()", FIELDTYPE_MFColorRGBA);
+}
+
+JSBool
+MFColorRGBASetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFColorRGBA);
+}
+
+
+// MFFloat
 JSBool
 MFFloatToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
@@ -321,7 +494,7 @@ MFFloatAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 JSBool
 MFFloatConstr(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_NewObject(cx,&MFFloatClass,NULL,NULL);
+		JSObject* obj = JS_NewObject(cx, &MFFloatClass, NULL, NULL);
         jsval *argv = JS_ARGV(cx,vp);
         jsval rval = OBJECT_TO_JSVAL(obj);
         if (!MFFloatConstrInternals(cx,obj,argc,argv,&rval)) { return JS_FALSE; }
@@ -337,7 +510,7 @@ JSBool MFFloatConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 	unsigned int i;
 	union anyVrml *anyv;
 
-	ADD_ROOT(cx,obj)
+//	ADD_ROOT(cx,obj) only root non-stack variables
 
 	isArray = FALSE;
 	if(argc == 1 && argv){
@@ -437,7 +610,7 @@ MFFloatSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFFloat);
 }
 
-
+// MFInt32
 JSBool
 MFInt32ToString(JSContext *cx, uintN argc, jsval *vp) {
         JSObject *obj = JS_THIS_OBJECT(cx,vp);
@@ -619,6 +792,193 @@ MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> h
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFInt32);
 }
 
+// MFBool
+JSBool
+MFBoolToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolToString\n");
+#endif
+
+	if (!doMFToString(cx, obj, "MFBool", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFBoolAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolAssign\n");
+#endif
+
+	SET_MF_ECMA_HAS_CHANGED
+
+		if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFBoolClass, FIELDTYPE_SFBool)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+
+JSBool
+MFBoolConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFBoolClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFBoolConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFBoolConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	int32 _i;
+	unsigned int i;
+	union anyVrml* anyv;
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolConstr\n");
+#endif
+
+	ADD_ROOT(cx, obj)
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFBool, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(int) * upper_power_of_two(argc); //newsize in bytes
+		if (argc > 0) {
+			anyv->mfbool.p = MALLOC(int*, newsize);
+			memset(anyv->mfbool.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+			DEFINE_MF_ECMA_HAS_CHANGED
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFBoolConstr: obj = %p, %u args\n", obj, argc);
+#endif
+
+	/* any values here that we should add in? */
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		//if (!JS::ToInt32(cx, vp, &_i)) {
+		if (!vp.isInt32()) {
+			printf("JS_ValueToInt32 failed in MFBoolConstr.\n");
+			return JS_FALSE;
+		}
+		_i = vp.toInt32();
+#ifdef JSVRMLCLASSESVERBOSE
+		printf("value at %d is %d\n", i, _i);
+#endif
+		if (SM_method() == 2) {
+			anyv->mfbool.p[i] = _i;
+			anyv->mfbool .n = i + 1;
+		}
+		else {
+			if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf("JS_DefineElement failed for arg %u in MFBoolConstr.\n", i);
+				return JS_FALSE;
+			}
+		}
+	}
+
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFBoolAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolAddProperty\n");
+#endif
+
+	return doMFAddProperty(cx, obj, id, vp, "MFBoolAddProperty");
+}
+
+JSBool
+MFBoolGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolGetProperty\n");
+#endif
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = 0", FIELDTYPE_MFBool);
+}
+
+JSBool
+MFBoolSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("start of MFBoolSetProperty\n");
+#endif
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFBool);
+}
+
+
+// MFNode
 
 JSBool
 MFNodeToString(JSContext *cx, uintN argc, jsval *vp) {
@@ -802,6 +1162,7 @@ MFNodeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hi
 	return doMFSetProperty(cx, obj, id, vp,FIELDTYPE_MFNode);
 }
 
+// MFTime
 
 JSBool
 MFTimeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -953,7 +1314,162 @@ MFTimeAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
+// MFDouble
 
+JSBool
+MFDoubleAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFAddProperty(cx, obj, id, vp, "MFDoubleAddProperty");
+}
+
+JSBool
+MFDoubleGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = 0.0",
+		FIELDTYPE_MFDouble);
+}
+
+JSBool
+MFDoubleSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFDouble);
+}
+
+JSBool
+MFDoubleToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	if (!doMFToString(cx, obj, "MFDouble", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFDoubleConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFDoubleClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFDoubleConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFDoubleConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	jsdouble _d;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFDouble, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFTimeConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFDoubleConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(double) * upper_power_of_two(argc); //newsize in bytes
+		if (argc > 0) {
+			anyv->mfdouble.p = MALLOC(double*, newsize);
+			memset(anyv->mfdouble.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+			DEFINE_MF_ECMA_HAS_CHANGED
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFDoubleConstr: obj = %p, %u args\n", obj, argc);
+#endif
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToNumber(cx, vp, &_d)) {
+			printf(
+				"JS_ValueToNumber failed in MFDoubleConstr.\n");
+			return JS_FALSE;
+		}
+		if (SM_method() == 2) {
+			anyv->mfdouble.p[i] = _d;
+			anyv->mfdouble.n = i + 1;
+		}
+		else {
+			if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+				printf("JS_DefineElement failed for arg %u in MFTimeConstr.\n", i);
+				return JS_FALSE;
+			}
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFDoubleAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	SET_MF_ECMA_HAS_CHANGED
+
+		if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFDoubleClass, FIELDTYPE_SFDouble)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+// MFVec2f
 
 JSBool
 MFVec2fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
@@ -1111,7 +1627,7 @@ MFVec2fAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
-/* MFVec3f */
+// MFVec3f 
 JSBool
 MFVec3fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -1270,8 +1786,827 @@ MFVec3fAssign(JSContext *cx, uintN argc, jsval *vp) {
         return JS_TRUE;
 }
 
-/* VrmlMatrix */
 
+// MFVec4f
+JSBool
+MFVec4fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec4fAddProperty");
+}
+
+JSBool
+MFVec4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec4f()", FIELDTYPE_MFVec4f);
+}
+
+JSBool
+MFVec4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec4f);
+}
+
+JSBool
+MFVec4fToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec4fToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec4f", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec4fConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec4fClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec4fConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec4fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec4f, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec4fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec4fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec4f) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec4f.p = MALLOC(struct SFVec4f*, newsize);
+			memset(anyv->mfvec4f.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4fConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec4fClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec4f || any2->type == FIELDTYPE_SFColorRGBA) {
+						shallow_copy_field(FIELDTYPE_SFVec4f, any2->v, (union anyVrml*)&anyv->mfvec4f.p[i]);
+						anyv->mfvec4f.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec4fConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec4fAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec4fClass, FIELDTYPE_SFVec4f)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+
+//MFVec2d
+JSBool
+MFVec2dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec2dAddProperty");
+}
+
+JSBool
+MFVec2dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec2d()", FIELDTYPE_MFVec2d);
+}
+
+JSBool
+MFVec2dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec2d);
+}
+
+JSBool
+MFVec2dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec2dToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec2d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec2dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec2dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec2dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec2dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec2dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec2d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec2dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec2dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec2d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec2d.p = MALLOC(struct SFVec2d*, newsize);
+			memset(anyv->mfvec2d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec2dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec2dConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec2dClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec2d || any2->type == FIELDTYPE_SFVec3d || any2->type == FIELDTYPE_SFVec4d) {
+						shallow_copy_field(FIELDTYPE_SFVec2d, any2->v, (union anyVrml*)&anyv->mfvec2d.p[i]);
+						anyv->mfvec2d.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec2dConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec2dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec2dClass, FIELDTYPE_SFVec2d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+// MFVec3d
+JSBool
+MFVec3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec3dAddProperty");
+}
+
+JSBool
+MFVec3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec3d()", FIELDTYPE_MFVec3d);
+}
+
+JSBool
+MFVec3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec3d);
+}
+
+JSBool
+MFVec3dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec3dToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec3d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec3dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec3dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec3dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec3d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec3d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec3d.p = MALLOC(struct SFVec3d*, newsize);
+			memset(anyv->mfvec3d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec3dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec3dClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec3d || any2->type == FIELDTYPE_SFVec4d) {
+						shallow_copy_field(FIELDTYPE_SFVec3d, any2->v, (union anyVrml*)&anyv->mfvec3d.p[i]);
+						anyv->mfvec3d.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec3dConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec3dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec3dClass, FIELDTYPE_SFVec3d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+
+// MFVec4d
+JSBool
+MFVec4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFVec4dAddProperty");
+}
+
+JSBool
+MFVec4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFVec4d()", FIELDTYPE_MFVec4d);
+}
+
+JSBool
+MFVec4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFVec4d);
+}
+
+JSBool
+MFVec4dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFVec4dToString\n");*/
+	if (!doMFToString(cx, obj, "MFVec4d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFVec4dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFVec4dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFVec4dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFVec4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFVec4d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFVec4d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfvec4d.p = MALLOC(struct SFVec4d*, newsize);
+			memset(anyv->mfvec4d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFVec4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFVec4dClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFVec4d ) {
+						shallow_copy_field(FIELDTYPE_SFVec4d, any2->v, (union anyVrml*)&anyv->mfvec4d.p[i]);
+						anyv->mfvec4d.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFVec4dConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFVec4dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFVec4dClass, FIELDTYPE_SFVec4d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+
+// MFImage
+JSBool
+MFImageAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFImageAddProperty");
+}
+
+JSBool
+MFImageGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFImage()", FIELDTYPE_MFImage);
+}
+
+JSBool
+MFImageSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFImage);
+}
+
+JSBool
+MFImageToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFImageToString\n");*/
+	if (!doMFToString(cx, obj, "MFImage", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFImageConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFImageClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFImageConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFImageConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFImageConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFImage, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFImageConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFImageConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFImage) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfimage.p = MALLOC(struct SFImage*, newsize);
+			memset(anyv->mfimage.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFImageConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFImageConstr.\n");
+			return JS_FALSE;
+		}
+
+		CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFImageClass)
+
+			if (SM_method() == 2) {
+				AnyNative* any2;
+				if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+					//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+					// but in future internal types might change
+					if (any2->type == FIELDTYPE_SFImage) {
+						shallow_copy_field(FIELDTYPE_SFImage, any2->v, (union anyVrml*)&anyv->mfimage.p[i]);
+						anyv->mfimage.n = i + 1;
+					}
+				}
+				// else for now we'll leave zeros
+			}
+			else {
+
+				if (!JS_DefineElement(cx, obj, (jsint)i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
+					printf("JS_DefineElement failed for arg %d in MFImageConstr.\n", i);
+					return JS_FALSE;
+				}
+			}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFImageAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFImageClass, FIELDTYPE_SFImage)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+
+/*
 static void _setmatrix (JSContext *cx, JSObject *obj, double *matrix) {
 	jsval val;
 	int i;
@@ -1289,7 +2624,7 @@ static void _setmatrix (JSContext *cx, JSObject *obj, double *matrix) {
 	}
 }
 
-/* get the matrix values into a double array */
+// get the matrix values into a double array
 static void _getmatrix (JSContext *cx, JSObject *obj, double *fl) {
 	int32 _length;
 	jsval _length_val;
@@ -1323,705 +2658,88 @@ static void _getmatrix (JSContext *cx, JSObject *obj, double *fl) {
 		}
 	}
 
-	/* in case our matrix was short for some reason */
+	// in case our matrix was short for some reason
 	for (i=_length; i < 16; i++) {
 		fl[i]=0.0;
 	}
 }
-
-
-JSBool
-VrmlMatrixToString(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-        jsval rval;
-	UNUSED(argc);
-	UNUSED(argv);
-
-        if (!doMFToString(cx, obj, "MFFloat", &rval)) { return JS_FALSE; }
-        JS_SET_RVAL(cx,vp,rval);
-        return JS_TRUE;
+// get rows; used for scale and rot in getTransform
+void _get4f(double* ret, double* mat, int row) {
+	if (row == 0) { ret[0] = MAT00; ret[1] = MAT01; ret[2] = MAT02; ret[3] = MAT03; }
+	if (row == 1) { ret[0] = MAT10; ret[1] = MAT11; ret[2] = MAT12; ret[3] = MAT13; }
+	if (row == 2) { ret[0] = MAT20; ret[1] = MAT21; ret[2] = MAT22; ret[3] = MAT23; }
 }
 
-/* get rows; used for scale and rot in getTransform */
-void _get4f(double *ret, double *mat, int row) {
-	if (row == 0) {ret[0]=MAT00;ret[1]=MAT01;ret[2]=MAT02;ret[3]=MAT03;}
-	if (row == 1) {ret[0]=MAT10;ret[1]=MAT11;ret[2]=MAT12;ret[3]=MAT13;}
-	if (row == 2) {ret[0]=MAT20;ret[1]=MAT21;ret[2]=MAT22;ret[3]=MAT23;}
+// set rows; used for scale and rot in getTransform
+void _set4f(double len, double* mat, int row) {
+	if (row == 0) { MAT00 = MAT00 / len; MAT01 = MAT01 / len; MAT02 = MAT02 / len; MAT03 = MAT03 / len; }
+	if (row == 1) { MAT10 = MAT10 / len; MAT11 = MAT11 / len; MAT12 = MAT12 / len; MAT13 = MAT13 / len; }
+	if (row == 2) { MAT20 = MAT20 / len; MAT21 = MAT21 / len; MAT22 = MAT22 / len; MAT23 = MAT23 / len; }
 }
-
-/* set rows; used for scale and rot in getTransform */
-void _set4f(double len, double *mat, int row) {
-	if (row == 0) {MAT00=MAT00/len;MAT01=MAT01/len;MAT02=MAT02/len;MAT03=MAT03/len;}
-	if (row == 1) {MAT10=MAT10/len;MAT11=MAT11/len;MAT12=MAT12/len;MAT13=MAT13/len;}
-	if (row == 2) {MAT20=MAT20/len;MAT21=MAT21/len;MAT22=MAT22/len;MAT23=MAT23/len;}
-}
-
-JSBool
-VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-	int i;
-    	JSObject *transObj = NULL;
-	JSObject *rotObj = NULL;
-	JSObject *scaleObj = NULL;
-	SFRotationNative *Rptr;
-	SFVec3fNative *Vptr;
-
-    	Quaternion quat;
-    	double matrix[16];
-    	double qu[4];
-	double r0[4], r1[4], r2[4];
-	double l0,l1,l2;
-
-	/* some intermediate calculations */
-	_getmatrix(cx,obj,matrix);
-	/* get each row */
-	_get4f(r0,matrix,0);
-	_get4f(r1,matrix,1);
-	_get4f(r2,matrix,2);
-	/* get the length of each row */
-	l0 = sqrt(r0[0]*r0[0] + r0[1]*r0[1] + r0[2]*r0[2] +r0[3]*r0[3]);
-	l1 = sqrt(r1[0]*r1[0] + r1[1]*r1[1] + r1[2]*r1[2] +r1[3]*r1[3]);
-	l2 = sqrt(r2[0]*r2[0] + r2[1]*r2[1] + r2[2]*r2[2] +r2[3]*r2[3]);
-
-	if (argc == 1) {
-		if (!JS_ConvertArguments(cx, argc, argv, "o", &transObj)) {
-			printf ("getTransform, invalid parameters\n");
-			return JS_FALSE;
-		}
-	}
-	if (argc == 2) {
-		if (!JS_ConvertArguments(cx, argc, argv, "o o", &transObj, &rotObj)) {
-			printf ("getTransform, invalid parameters\n");
-			return JS_FALSE;
-		}
-	}
-	if (argc == 3) {
-		if (!JS_ConvertArguments(cx, argc, argv, "o o o",
-					&transObj,&rotObj,&scaleObj)) {
-			printf ("getTransform, invalid parameters\n");
-			return JS_FALSE;
-		}
-	}
-
-	/* translation */
-	if (transObj!=NULL) {
-		CHECK_CLASS(cx,transObj,NULL,__FUNCTION__,SFVec3fClass)
-
-		if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
-			printf( "JS_GetPrivate failed.\n");
-			return JS_FALSE;
-		}
-		(Vptr->v).c[0] = (float) matrix[12];
-		(Vptr->v).c[1] = (float) matrix[13];
-		(Vptr->v).c[2] = (float) matrix[14];
-		Vptr->valueChanged++;
-	}
-
-	/* rotation */
-	if (rotObj!=NULL) {
-
-		CHECK_CLASS(cx,rotObj,NULL,__FUNCTION__,SFRotationClass)
-
-		if ((Rptr = (SFRotationNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
-			printf( "JS_GetPrivate failed.\n");
-			return JS_FALSE;
-		}
-
-		/* apply length to each row */
-		_set4f(l0, matrix, 0);
-		_set4f(l1, matrix, 1);
-		_set4f(l2, matrix, 2);
-
-		/* convert the matrix to a quaternion */
-		matrix_to_quaternion (&quat, matrix);
-		#ifdef JSVRMLCLASSESVERBOSE
-		printf ("quaternion %f %f %f %f\n",quat.x,quat.y,quat.z,quat.w);
-		#endif
-
-		/* convert the quaternion to a VRML rotation */
-		quaternion_to_vrmlrot(&quat, &qu[0],&qu[1],&qu[2],&qu[3]);
-
-		/* now copy the values over */
-		for (i=0; i<4; i++) (Rptr->v).c[i] = (float) qu[i];
-		Rptr->valueChanged = 1;
-	}
-
-	/* scale */
-	if (scaleObj != NULL) {
-		CHECK_CLASS(cx,scaleObj,NULL,__FUNCTION__,SFVec3fClass)
-
-		if ((Vptr = (SFVec3fNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
-			printf( "JS_GetPrivate failed.\n");
-			return JS_FALSE;
-		}
-		(Vptr->v).c[0] = (float) l0;
-		(Vptr->v).c[1] = (float) l1;
-		(Vptr->v).c[2] = (float) l2;
-		Vptr->valueChanged = 1;
-	}
-
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
-
-	return JS_TRUE;
-}
-
-
-/* Sets the VrmlMatrix to the passed values. Any of the rightmost parameters may be omitted. 
-   The method has 0 to 5 parameters. For example, specifying 0 parameters results in an 
-   identity matrix while specifying 1 parameter results in a translation and specifying 2 
-   parameters results in a translation and a rotation. Any unspecified parameter is set to 
-   its default as specified for the Transform node. */
-
-JSBool
-VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-    	JSObject *transObj = NULL;
-	JSObject *rotObj = NULL;
-	JSObject *scaleObj = NULL;
-	JSObject *scaleOObj = NULL;
-	JSObject *centerObj = NULL;
-
-    	double matrix[16];
-
-	int error = FALSE;
-
-#undef TESTING
-#ifdef TESTING
-	GLDOUBLE xxmat[16];
-	FW_GL_MATRIX_MODE(GL_MODELVIEW);
-	FW_GL_PUSH_MATRIX();
-	FW_GL_LOAD_IDENTITY();
-#endif
-
-
-	/* set the identity for this matrix. We work on this matrix, then assign it to the variable */
-	loadIdentityMatrix(matrix);
-
-	/* first, is this a VrmlMatrix object? The chances of this failing are slim to none... */
-	if (!JS_InstanceOf(cx, obj, &VrmlMatrixClass, NULL)) {
-		error = TRUE;
-	} else {
-		if (argc == 1) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj); 
-		}
-		if (argc == 2) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o", &transObj,
-				&rotObj);
-		}
-		if (argc == 3) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o",
-				&transObj,&rotObj,&scaleObj);
-		}
-		if (argc == 4) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o o",
-				&transObj,&rotObj,&scaleObj,&scaleOObj);
-		}
-		if (argc == 5) {
-			error = !JS_ConvertArguments(cx, argc, argv, "o o o o o",
-				&transObj,&rotObj,&scaleObj,&scaleOObj,&centerObj);
-		}
-		if (argc > 5) { error = TRUE; }
-	}
-
-	if (error) {
-		ConsoleMessage ("setTransform: error in parameters");
-		return JS_FALSE;
-	}
-
-	/* verify that we have the correct objects here */
-	if (transObj != NULL) 
-		error = !JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL);
-	if (!error && (rotObj != NULL)) 
-		error = !JS_InstanceOf(cx, rotObj, &SFRotationClass, NULL);
-	if (!error && (scaleObj != NULL)) 
-		error = !JS_InstanceOf(cx, scaleObj, &SFVec3fClass, NULL);
-	if (!error && (scaleOObj != NULL)) 
-		error = !JS_InstanceOf(cx, scaleOObj, &SFRotationClass, NULL);
-	if (!error && centerObj != NULL) 
-		error = !JS_InstanceOf(cx, centerObj, &SFVec3fClass, NULL);
-
-	if (error) {
-		ConsoleMessage ("setTransform: at least one parameter incorrect type");
-		return JS_FALSE;
-	}
-
-	/* apply Transform, if requested */
-	if (transObj) {
-		SFVec3fNative * Vptr;
-		Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj);
-		error = (Vptr == NULL);
-	
-		if (!error) {
-                	matrix[12]=Vptr->v.c[0];
-                	matrix[13]=Vptr->v.c[1];
-                	matrix[14]=Vptr->v.c[2];
-		}
-	}
-
-	if (!error && (rotObj != NULL)) {
-		SFRotationNative * Rptr;
-                Rptr = (SFRotationNative *)JS_GetPrivateFw(cx, rotObj);
-		error = (Rptr == NULL);
-	
-		if (!error) {
-			Quaternion quat;
-			vrmlrot_to_quaternion(&quat, Rptr->v.c[0], Rptr->v.c[1], Rptr->v.c[2], Rptr->v.c[3]);
-			/* printf ("from rotation %f %f %f %f\n",Rptr->v.c[0], Rptr->v.c[1], Rptr->v.c[2], Rptr->v.c[3]);
-			printf ("quaternion is %f %f %f %f\n",quat.x,quat.y,quat.x, quat.w); */
-			quaternion_to_matrix (matrix, &quat);
-		}
-	}
-
-	if (!error && (scaleObj != NULL)) {
-		SFVec3fNative * Vptr;
-                Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, scaleObj);
-		error = (Vptr == NULL);
-
-		if (!error) {
-			struct point_XYZ myScale;
-
-			COPY_SFVEC3F_TO_POINT_XYZ (myScale,Vptr->v.c);
-			scale_to_matrix(matrix, &myScale);
-		}
-
-	}
-
-	/* place the new values into the vrmlMatrix array */
-	_setmatrix (cx, obj, matrix);
-
-#ifdef TESTING
-       printf ("calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-                matrix[0],  matrix[4],  matrix[ 8],  matrix[12],
-                matrix[1],  matrix[5],  matrix[ 9],  matrix[13],
-                matrix[2],  matrix[6],  matrix[10],  matrix[14],
-                matrix[3],  matrix[7],  matrix[11],  matrix[15]);
-	glGetDoublev(GL_MODELVIEW,xxmat);
-       printf ("modelview Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-                xxmat[0],  xxmat[4],  xxmat[ 8],  xxmat[12],
-                xxmat[1],  xxmat[5],  xxmat[ 9],  xxmat[13],
-                xxmat[2],  xxmat[6],  xxmat[10],  xxmat[14],
-                xxmat[3],  xxmat[7],  xxmat[11],  xxmat[15]);
-	FW_GL_POP_MATRIX();
-#endif
-
-/* JS 185+ -requires- rval to be set on true return; assume we will return the 'this' object */
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
-
-	return JS_TRUE;
-}
-
-
-JSBool
-VrmlMatrixinverse(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-	double src[16];
-	double dest[16];
-	JSObject *retObj;
-	UNUSED (argv);
-
-	if (argc != 0) {
-		printf ("VrmlMatrix, expect 0 parameters\n");
-		return JS_FALSE;
-	}
-	_getmatrix (cx, obj,src);
-	matinverseFULL (dest,src);
-
-        retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
-
-        _setmatrix(cx,retObj,dest);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-	return JS_TRUE;
-}
-
-
-JSBool
-VrmlMatrixtranspose(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-	double src[16];
-	double dest[16];
-	JSObject *retObj;
-	UNUSED (argv);
-
-	if (argc != 0) {
-		printf ("VrmlMatrix, expect 0 parameters\n");
-		return JS_FALSE;
-	}
-	_getmatrix (cx, obj,src);
-	mattranspose (dest,src);
-
-        retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
-
-        _setmatrix(cx,retObj,dest);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-	return JS_TRUE;
-}
-
-
-
-JSBool
-VrmlMatrixmultLeft(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-
-        JSObject *transObj = NULL;
-	JSObject *retObj = NULL;
-
-        double matrix1[16];
-        double matrix2[16];
-        int error = FALSE;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	} else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &VrmlMatrixClass, NULL)) { error = TRUE;}	
-
-	if (error) {
-		ConsoleMessage ("VrmlMatrixMultLeft, error in params");
-		return JS_FALSE;
-	}
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx,obj,matrix1);
-	_getmatrix(cx,transObj,matrix2);
-	matmultiplyFULL(matrix1,matrix1,matrix2);
-
-	retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
-
-	/*
-       printf ("multLeft calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-                matrix1[0],  matrix1[4],  matrix1[ 8],  matrix1[12],
-                matrix1[1],  matrix1[5],  matrix1[ 9],  matrix1[13],
-                matrix1[2],  matrix1[6],  matrix1[10],  matrix1[14],
-                matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
-	*/
-	_setmatrix(cx,retObj,matrix1);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-
-	return JS_TRUE;
-}
-
-JSBool
-VrmlMatrixmultRight(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-        JSObject *transObj = NULL;
-	JSObject *retObj = NULL;
-
-        double matrix1[16];
-        double matrix2[16];
-        int error = FALSE;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	} else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &VrmlMatrixClass, NULL)) { error = TRUE;}	
-
-	if (error) {
-		ConsoleMessage ("VrmlMatrixMultRight, error in params");
-		return JS_FALSE;
-	}
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx,obj,matrix1);
-	_getmatrix(cx,transObj,matrix2);
-	matmultiplyFULL(matrix1,matrix2,matrix1);
-
-	retObj = JS_ConstructObjectFw(cx,&VrmlMatrixClass,NULL, NULL);
-
-	/*
-       printf ("multRight calculated Matrix: \n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n\t%5.2f %5.2f %5.2f %5.2f\n",
-                matrix1[0],  matrix1[4],  matrix1[ 8],  matrix1[12],
-                matrix1[1],  matrix1[5],  matrix1[ 9],  matrix1[13],
-                matrix1[2],  matrix1[6],  matrix1[10],  matrix1[14],
-                matrix1[3],  matrix1[7],  matrix1[11],  matrix1[15]);
-	*/
-	_setmatrix(cx,retObj,matrix1);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-
-	return JS_TRUE;
-}
-
-
-JSBool
-VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-        JSObject *transObj = NULL;
-	JSObject *retObj = NULL;
-	SFVec3fNative *Vptr;
-
-        double matrix1[16];
-        int error = FALSE;
-	struct point_XYZ inp, outp;
-	outp.x = outp.y = outp.z = 0.0;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	} else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE;}	
-
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
-		error = TRUE;
-	}
-
-	if (error) {
-		ConsoleMessage ("VrmlMatrixMultVec, error in params");
-		return JS_FALSE;
-	}
-
-	COPY_SFVEC3F_TO_POINT_XYZ(inp,Vptr->v.c);
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx,obj,matrix1);
-
-	/* is this the one we have to transpose? */
-	/* mattranspose (matrix1, matrix1); */
-	
-	matrotate2v(matrix1, inp, outp);
-
-	retObj = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, NULL);
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, retObj)) == NULL) {
-		printf ("error in new VrmlMatrix\n");
-		return JS_FALSE;
-	}
-
-	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c,outp);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-
-	return JS_TRUE;
-}
-
-
-JSBool
-VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-
-        JSObject *transObj = NULL;
-	JSObject *retObj = NULL;
-	SFVec3fNative *Vptr;
-
-        double matrix1[16];
-        int error = FALSE;
-	struct point_XYZ inp, outp;
-	outp.x = outp.y = outp.z = 0.0;
-
-	if (argc == 1) {
-		error = !JS_ConvertArguments(cx, argc, argv, "o", &transObj);
-	} else error = TRUE;
-
-	if (!error) if (!JS_InstanceOf(cx, transObj, &SFVec3fClass, NULL)) { error = TRUE;}	
-
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, transObj)) == NULL) {
-		error = TRUE;
-	}
-
-	if (error) {
-		ConsoleMessage ("VrmlMatrixMultVec, error in params");
-		return JS_FALSE;
-	}
-
-	COPY_SFVEC3F_TO_POINT_XYZ(inp,Vptr->v.c);
-
-	/* fill in the 2 matricies, multiply them, then return it */
-	_getmatrix(cx,obj,matrix1);
-
-	/* is this the one we have to transpose? */
-	mattranspose (matrix1, matrix1);
-	
-	matrotate2v(matrix1, inp, outp);
-
-	retObj = JS_ConstructObjectFw(cx,&SFVec3fClass,NULL, NULL);
-	if ((Vptr = (SFVec3fNative *)JS_GetPrivateFw(cx, retObj)) == NULL) {
-		printf ("error in new VrmlMatrix\n");
-		return JS_FALSE;
-	}
-
-	COPY_POINT_XYZ_TO_SFVEC3F(Vptr->v.c,outp);
-	JS_SET_RVAL(cx,vp,OBJECT_TO_JSVAL(retObj));
-
-	return JS_TRUE;
-}
-
-
-JSBool
-VrmlMatrixAssign(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_THIS_OBJECT(cx,vp);
-        jsval *argv = JS_ARGV(cx,vp);
-        jsval rval;
-        if (!_standardMFAssign (cx, obj, argc, argv, &rval, &VrmlMatrixClass,FIELDTYPE_FreeWRLPTR/*does not matter*/)) { return JS_FALSE; }
-        JS_SET_RVAL(cx,vp,rval);
-        return JS_TRUE;
-}
-
-JSBool
-VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp) {
-        JSObject *obj = JS_NewObject(cx,&VrmlMatrixClass,NULL,NULL);
-        jsval *argv = JS_ARGV(cx,vp);
-        jsval rval = OBJECT_TO_JSVAL(obj);
-        if (!VrmlMatrixConstrInternals(cx,obj,argc,argv,&rval)) { return JS_FALSE; }
-        JS_SET_RVAL(cx,vp,rval);
-        return JS_TRUE;
-}
-JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval) {
-
-	JSObject *_arrayObj;
-	int isArray;
-	jsdouble _d;
-	unsigned int i;
-
-	ADD_ROOT(cx,obj)
-
-	isArray = FALSE;
-	if(argc == 1 && argv){
-		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
-		// tests/JohnCarlson/Arc1A.x3d
-		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
-			printf( "JS_ValueToObject failed in MFVec3fConstr.\n");
-			return JS_FALSE;
-		}
-
-		if(JS_IsArrayObject(cx, _arrayObj)){
-			jsuint lengthp;
-			jsval vp;
-			//printf("its an array\n");
-			isArray = TRUE;
-			JS_GetArrayLength(cx,_arrayObj, &lengthp);
-			argc = lengthp;
-		}
-	}
-
-	if ((argc != 16) && (argc != 0)) {
-		printf ("VrmlMatrixConstr - require either 16 or no values\n");
-		return JS_FALSE;
-	}
-
-	DEFINE_LENGTH(cx,obj,16)
-
-	if (argc == 16) {
-		for (i = 0; i < 16; i++) {
-			jsval vp;
-			if(isArray){
-				JS_GetElement(cx, _arrayObj, i, &vp);
-
-			}else{
-				vp = argv[i];
-			}
-			if (!JS_ValueToNumber(cx, vp, &_d)) {
-				printf(
-					"JS_ValueToNumber failed in VrmlMatrixConstr.\n");
-				return JS_FALSE;
-			}
-
-			if (!JS_DefineElement(cx, obj, (jsint) i, vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed for arg %u in VrmlMatrixConstr.\n", i);
-				return JS_FALSE;
-			}
-		}
-	} else {
-		/* make the identity matrix */
-		double matrix[16];
-		loadIdentityMatrix(matrix);
-		_setmatrix (cx, obj, matrix);
-	}
-	*rval = OBJECT_TO_JSVAL(obj);
-	return JS_TRUE;
-}
-
-JSBool
-VrmlMatrixAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
-	JSObject *obj = *hobj.address();
-	jsid id = *hiid.address();
-	jsval *vp = hvp.address();
-	return doMFAddProperty(cx, obj, id, vp,"VrmlMatrixAddProperty");
-}
-
-JSBool
-VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
-	JSObject *obj = *hobj.address();
-	jsid iid = *hiid.address();
-	jsval *vp = hvp.address();
-
-	int32 _length, _index;
-	jsval _length_val;
-
-
-	jsval id;
-	if (!JS_IdToValue(cx,iid,&id)) {
-		printf("JS_IdToValue failed in VrmlMatrixGetproperty.\n");
-		return JS_FALSE;
-	}
-
-
-    if (!JS_GetProperty(cx, obj,  MF_LENGTH_FIELD, &_length_val)) {
-		printf( "JS_GetProperty failed for \"%s\" in VrmlMatrixGetProperty.\n", MF_LENGTH_FIELD);
-        return JS_FALSE;
-	}
-	_length = JSVAL_TO_INT(_length_val);
-
-/* -- note, code in here is not compliant to xulrunner-2
-                if (JSVAL_IS_STRING(id)==TRUE) {
-                printf("        is a common string :%s:\n",
-                        JS_GetStringBytes(JS_ValueToString(cx, id)));
-                }
-                if (JSVAL_IS_OBJECT(id)==TRUE) {
-                        printf ("       parameter is an object\n");
-                }
-                if (JSVAL_IS_PRIMITIVE(id)==TRUE) {
-                        printf ("       parameter is a primitive\n");
-                }
-                if (JSVAL_IS_NULL(id)) { printf ("      - its a NULL\n");}
-                if (JSVAL_IS_INT(id)) { printf ("       - its a INT %d\n",JSVAL_TO_INT(id));}
 */
 
 
-
-
-	if (JSVAL_IS_INT(id)) {
-		_index = JSVAL_TO_INT(id);
-
-		if (_index >= _length) {
-			JS_NewNumberValue(cx,0.0,vp);
-			if (!JS_DefineElement(cx, obj, (jsint) _index, *vp, JS_GET_PROPERTY_STUB, JS_SET_PROPERTY_CHECK, JSPROP_ENUMERATE)) {
-				printf( "JS_DefineElement failed in VrmlMatrixGetProperty.\n");
-				return JS_FALSE;
-			}
-		} else {
-			if (!JS_LookupElement(cx, obj, _index, vp)) {
-				printf(
-						"JS_LookupElement failed in VrmlMatrixGetProperty.\n");
-				return JS_FALSE;
-			}
-			if (JSVAL_IS_NULL(*vp)) {
-				printf( "VrmlMatrixGetProperty: obj = %p, jsval = %d does not exist!\n",
-					   obj, (int) _index);
-				return JS_FALSE;
-			}
-		}
-	} else if (id.isObject()) {
-	}
-
-	return JS_TRUE;
-}
+// VrmlMatrix 
 
 JSBool
-VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
-	JSObject *obj = *hobj.address();
-	jsid id = *hiid.address();
-	jsval *vp = hvp.address();
+VrmlMatrixToString(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4ToString(cx, argc, vp);
+}
+JSBool
+VrmlMatrixgetTransform(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4getTransform(cx, argc, vp);
+}
+JSBool
+VrmlMatrixsetTransform(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4setTransform(cx, argc, vp);
+}
+JSBool
+VrmlMatrixinverse(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4inverse(cx, argc, vp);
+}
+JSBool
+VrmlMatrixtranspose(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4transpose(cx, argc, vp);
+}
+JSBool
+VrmlMatrixmultLeft(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4multLeft(cx, argc, vp);
+}
+JSBool
+VrmlMatrixmultRight(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4multRight(cx, argc, vp);
+}
+JSBool
+VrmlMatrixmultVecMatrix(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4multVecMatrix(cx, argc, vp);
+}
+JSBool
+VrmlMatrixmultMatrixVec(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4multMatrixVec(cx, argc, vp);
+}
+JSBool
+VrmlMatrixAssign(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4Assign(cx, argc, vp);
+ }
 
-	return doMFSetProperty(cx, obj, id, vp,1000); /* do not have a FIELDTYPE for this */
+JSBool
+VrmlMatrixConstr(JSContext *cx, uintN argc, jsval *vp) {
+	return X3DMatrix4Constr(cx, argc, vp);
+}
+JSBool
+VrmlMatrixAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	return X3DMatrix4AddProperty(cx, hobj, hiid, hvp);
+}
+JSBool
+VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
+	return X3DMatrix4GetProperty(cx, hobj, hiid, hvp);
+}
+JSBool
+VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp){
+	return X3DMatrix4SetProperty(cx, hobj, hiid, strict, hvp);
 }
 
-/* MFRotation */
+// MFRotation
 JSBool
 MFRotationAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -2178,7 +2896,7 @@ MFRotationAssign(JSContext *cx, uintN argc, jsval *vp) {
 
 }
 
-/* MFStrings */
+// MFStrings 
 JSBool
 MFStringAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid,  JS::MutableHandle<JS::Value> hvp){
 	JSObject *obj = *hobj.address();
@@ -2571,6 +3289,2394 @@ JSBool MFStringConvertProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JSType
 	#endif
 	return JS_TRUE;
 }
+
+// MFMatrix3f
+
+JSBool
+MFMatrix3fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix3fAddProperty");
+}
+
+JSBool
+MFMatrix3fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix3f()", FIELDTYPE_MFMatrix3f);
+}
+
+JSBool
+MFMatrix3fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix3f);
+}
+
+JSBool
+MFMatrix3fToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix3fToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix3f", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix3fConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix3fClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix3fConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix3fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+	isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix3f, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix3f) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix3f.p = MALLOC(struct SFMatrix3f*, newsize);
+			memset(anyv->mfmatrix3f.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix3fConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix3fClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix3f) {
+					shallow_copy_field(FIELDTYPE_SFMatrix3f, any2->v, (union anyVrml*)&anyv->mfmatrix3f.p[i]);
+					anyv->mfmatrix3f.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix3f, any2->v, (union anyVrml*)&anyv->mfmatrix3f.p[i]);
+					anyv->mfmatrix3f.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix3fAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix3fClass, FIELDTYPE_SFMatrix3f)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix4f 
+
+
+JSBool
+MFMatrix4fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix4fAddProperty");
+}
+
+JSBool
+MFMatrix4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix4f()", FIELDTYPE_MFMatrix4f);
+}
+
+JSBool
+MFMatrix4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix4f);
+}
+
+JSBool
+MFMatrix4fToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix4fToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix4f", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix4fConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix4fClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix4fConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix4fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix4f, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix4f) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix4f.p = MALLOC(struct SFMatrix4f*, newsize);
+			memset(anyv->mfmatrix4f.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix4fConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix4fClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix4f) {
+					shallow_copy_field(FIELDTYPE_SFMatrix4f, any2->v, (union anyVrml*)&anyv->mfmatrix4f.p[i]);
+					anyv->mfmatrix4f.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix4f, any2->v, (union anyVrml*)&anyv->mfmatrix4f.p[i]);
+					anyv->mfmatrix4f.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix4fAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix4fClass, FIELDTYPE_SFMatrix4f)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix3d 
+
+JSBool
+MFMatrix3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix3dAddProperty");
+}
+
+JSBool
+MFMatrix3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix3d()", FIELDTYPE_MFMatrix3d);
+}
+
+JSBool
+MFMatrix3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix3d);
+}
+
+JSBool
+MFMatrix3dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix3dToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix3d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix3dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix3dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix3dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix3d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix3d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix3d.p = MALLOC(struct SFMatrix3d*, newsize);
+			memset(anyv->mfmatrix3d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix3dClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix3d) {
+					shallow_copy_field(FIELDTYPE_SFMatrix3d, any2->v, (union anyVrml*)&anyv->mfmatrix3d.p[i]);
+					anyv->mfmatrix3d.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix3d, any2->v, (union anyVrml*)&anyv->mfmatrix3d.p[i]);
+					anyv->mfmatrix3d.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix3dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix3dClass, FIELDTYPE_SFMatrix3d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// MFMatrix4d
+
+
+JSBool
+MFMatrix4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "MFMatrix4dAddProperty");
+}
+
+JSBool
+MFMatrix4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return _standardMFGetProperty(cx, obj, id, vp,
+		"_FreeWRL_Internal = new SFMatrix4d()", FIELDTYPE_MFMatrix4d);
+}
+
+JSBool
+MFMatrix4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+
+	return doMFSetProperty(cx, obj, id, vp, FIELDTYPE_MFMatrix4d);
+}
+
+JSBool
+MFMatrix4dToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+
+	UNUSED(argc);
+	UNUSED(argv);
+	/* printf ("CALLED MFMatrix4dToString\n");*/
+	if (!doMFToString(cx, obj, "MFMatrix4d", &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+
+}
+
+JSBool
+MFMatrix4dConstr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &MFMatrix4dClass, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval = OBJECT_TO_JSVAL(obj);
+	if (!MFMatrix4dConstrInternals(cx, obj, argc, argv, &rval)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+JSBool MFMatrix4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval) {
+
+	JSObject* _arrayObj;
+	int isArray;
+	JSObject* _obj;
+	unsigned int i;
+	union anyVrml* anyv;
+
+	ADD_ROOT(cx, obj)
+
+		isArray = FALSE;
+	if (argc == 1 && argv) {
+		//could it be new MFxxx( [A,B] ) javscript array, as used by Carlson aka Carlson Array
+		// tests/JohnCarlson/Arc1A.x3d
+		if (!JS_ValueToObject(cx, argv[0], &_arrayObj)) {
+			printf("JS_ValueToObject failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, _arrayObj)) {
+			jsuint lengthp;
+			jsval vp;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, _arrayObj, &lengthp);
+			argc = lengthp;
+		}
+	}
+
+
+
+	if (SM_method() == 2) {
+		AnyNative* any;
+		int newsize;
+		if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_MFMatrix4d, NULL, NULL)) == NULL) {
+			printf("AnyfNativeNew failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+		if (!JS_SetPrivateFw(cx, obj, any)) {
+			printf("JS_SetPrivate failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+		anyv = any->v;
+		newsize = sizeof(struct SFMatrix4d) * upper_power_of_two(argc);
+		if (argc > 0) {
+			anyv->mfmatrix4d.p = MALLOC(struct SFMatrix4d*, newsize);
+			memset(anyv->mfmatrix4d.p, 0, newsize);
+		}
+
+	}
+	else {
+		DEFINE_LENGTH(cx, obj, argc)
+	}
+	if (!argv) {
+		return JS_TRUE;
+	}
+
+#ifdef JSVRMLCLASSESVERBOSE
+	printf("MFVec4dConstr: obj = %p, %u args\n", obj, argc);
+#endif	
+	for (i = 0; i < argc; i++) {
+		jsval vp;
+		if (isArray) {
+			JS_GetElement(cx, _arrayObj, i, &vp);
+
+		}
+		else {
+			vp = argv[i];
+		}
+		if (!JS_ValueToObject(cx, vp, &_obj)) {
+			printf("JS_ValueToObject failed in MFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		//CHECK_CLASS(cx, _obj, NULL, __FUNCTION__, SFMatrix4dClass)
+
+		if (SM_method() == 2) {
+			AnyNative* any2;
+			if ((any2 = (AnyNative*)JS_GetPrivateFw(cx, _obj)) != NULL) {
+				//2018 I think as long as its 3+ contiguous floats, we can use it as a vec2f, 
+				// but in future internal types might change
+				if (any2->type == FIELDTYPE_SFMatrix4d) {
+					shallow_copy_field(FIELDTYPE_SFMatrix4d, any2->v, (union anyVrml*)&anyv->mfmatrix4d.p[i]);
+					anyv->mfmatrix4d.n = i + 1;
+				}
+				else {
+					shallow_copy_field_precision(any2->type, FIELDTYPE_SFMatrix4d, any2->v, (union anyVrml*)&anyv->mfmatrix4d.p[i]);
+					anyv->mfmatrix4d.n = i + 1;
+				}
+			}
+			// else for now we'll leave zeros
+		}
+	}
+	*rval = OBJECT_TO_JSVAL(obj);
+	return JS_TRUE;
+}
+
+JSBool
+MFMatrix4dAssign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &MFMatrix4dClass, FIELDTYPE_SFMatrix4d)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+// X3DMatrix4 (same as VrmlMatrix)
+
+JSBool
+X3DMatrix4ToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+
+	JSString* _str;
+	double* cc;
+	char buff[STRING];
+
+	UNUSED(argc);
+	UNUSED(argv);
+	if (SM_method() == 2) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf("JS_GetPrivate failed in SFMatrix4dToString.\n");
+			return JS_FALSE;
+		}
+		cc = ptr->v->sfmatrix4d.c;
+	}
+	memset(buff, 0, STRING);
+	sprintf(buff, "%.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g, %.9g %.9g %.9g %.9g",
+		cc[0], cc[1], cc[2], cc[3],
+		cc[4], cc[5], cc[6], cc[7],
+		cc[8], cc[9], cc[10], cc[11],
+		cc[12], cc[13], cc[14], cc[15]
+	);
+	_str = JS_NewStringCopyZ(cx, buff);
+
+	JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(_str));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	int i;
+	JSObject* transObj = NULL;
+	JSObject* rotObj = NULL;
+	JSObject* scaleObj = NULL;
+
+	struct SFMatrix4d* cptr; 
+	struct SFVec3d translation; 
+	struct SFRotation rotation; 
+	struct SFVec3d scale; 
+	double* matrix[4], retscale[3];
+	double matrixd[16];
+	Quaternion quat;
+	double qu[4];
+
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+
+	for (i = 0; i < 4; i++)
+		matrix[i] = &cptr->c[i * 4];
+
+	//get row scales
+	for (i = 0; i < 3; i++)
+		retscale[i] = sqrt(vecdot4d(matrix[i], matrix[i]));
+
+	//if (translation) {
+	veccopyd(translation.c, matrix[3]);
+	//}
+
+	// rotation 
+	//if (rotation) {
+	double m2[16], ff;
+	for (i = 0; i < 3; i++) {
+		ff = retscale[i];
+		if (ff != 0.0) ff = 1.0 / ff;
+		vecscale4d(&m2[i * 4], matrix[i], ff);
+	}
+	// convert the matrix to a quaternion
+	//for(i=0;i<16;i++) matrixd[i] = (double) m2[i];
+	matrix_to_quaternion(&quat, m2); // matrixd);
+
+	// convert the quaternion to a VRML rotation 
+	quaternion_to_vrmlrot(&quat, &qu[0], &qu[1], &qu[2], &qu[3]);
+
+	// now copy the values over 
+	for (i = 0; i < 4; i++)
+		rotation.c[i] = (float)qu[i];
+	//}
+
+	// scale
+	//if (scale) {
+	veccopyd(scale.c, retscale);
+	//}
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &transObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+	if (argc == 2) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o o", &transObj, &rotObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+	if (argc == 3) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o o o",
+			&transObj, &rotObj, &scaleObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+
+	if (transObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, ptr->type, (union anyVrml*)&translation, ptr->v);
+	}
+	if (rotObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFRotation, ptr->type, (union anyVrml*)&rotation, ptr->v);
+	}
+	if (scaleObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, ptr->type, (union anyVrml*)&scale, ptr->v);
+	}
+
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
+
+	return JS_TRUE;
+}
+
+
+/* Sets the X3DMatrix4 to the passed values. Any of the rightmost parameters may be omitted.
+   The method has 0 to 5 parameters. For example, specifying 0 parameters results in an
+   identity matrix while specifying 1 parameter results in a translation and specifying 2
+   parameters results in a translation and a rotation. Any unspecified parameter is set to
+   its default as specified for the Transform node. 
+	//void setTransform(SFVec3f translation, SFRotation rotation, SFVec3f scale, SFRotation scaleOrientation, SFVec3f center)
+	// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform
+	// P' = T * C * R * SR * S * -SR * -C * P
+*/
+JSBool
+X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	JSObject* transObj = NULL;
+	JSObject* rotObj = NULL;
+	JSObject* scaleObj = NULL;
+	JSObject* scaleOObj = NULL;
+	JSObject* centerObj = NULL;
+	int i;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d translation; // = fwpars[0]._web3dval.native;
+	struct SFRotation rotation; // = fwpars[1]._web3dval.native;
+	struct SFVec3d scale; // = fwpars[2]._web3dval.native;
+	struct SFRotation scaleOrientation; // = fwpars[3]._web3dval.native;
+	struct SFVec3d center; // = fwpars[4]._web3dval.native;
+	//set up some [][] helpers for clarity
+	double* matrix[4], * mat[4], m2[16], dval;
+
+	memset(&translation, 0, sizeof(struct SFVec3d));
+	memset(&rotation, 0, sizeof(struct SFRotation));
+	memset(&scale, 0, sizeof(struct SFVec3d));
+	memset(&scaleOrientation, 0, sizeof(struct SFRotation));
+	memset(&center, 0, sizeof(struct SFVec3d));
+	scale.c[0] = scale.c[1] = scale.c[2] = 1.0;
+	rotation.c[0] = 1.0f;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+
+	int error = FALSE;
+
+
+
+	if (argc >= 1) {
+		//translation - either a js array [] or SFVec3X
+		if (argv[0].isObject()) {
+			error = !JS_ValueToObject(cx, argv[0], &transObj);
+			if (JS_IsArrayObject(cx, transObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, transObj, &lengthp);
+				int ncopy = lengthp > 3 ? 3 : lengthp;
+				for (i = 0; i < ncopy; i++) {
+					JS_GetElement(cx, transObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						translation.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&translation);
+			}
+		}
+	}
+	if (argc >= 2) {
+		//rotation - SFRotation
+		if (argv[1].isObject()) {
+			error = !JS_ValueToObject(cx, argv[1], &rotObj);
+			if (!JS_IsArrayObject(cx, rotObj)) {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&rotation);
+			}
+		}
+	}
+	if (argc >= 3) {
+		//scale - either a scalar, an SFVec3X or js array []
+		if (argv[2].isNumber()) {
+			JS_ValueToNumber(cx, argv[2], &dval);
+			scale.c[0] = scale.c[1] = scale.c[2] = dval;
+		}
+		else if (argv[2].isObject()) {
+			error = !JS_ValueToObject(cx, argv[2], &scaleObj);
+			if (JS_IsArrayObject(cx, scaleObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, scaleObj, &lengthp);
+				int ncopy = lengthp > 3 ? 3 : lengthp;
+				for (i = 0; i < ncopy; i++) {
+					JS_GetElement(cx, scaleObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						scale.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&scale);
+			}
+		}
+	}
+	if (argc >= 4) {
+		//scaleOrientation SFRotation
+		error = !JS_ConvertArguments(cx, argc, argv, "o o o o", &transObj, &rotObj, &scaleObj, &scaleOObj);
+		if (argv[3].isObject()) {
+			error = !JS_ValueToObject(cx, argv[3], &scaleOObj);
+			if (!JS_IsArrayObject(cx, scaleOObj)) {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&scaleOrientation);
+			}
+		}
+	}
+	if (argc >= 5) {
+		if (argv[4].isObject()) {
+			error = !JS_ValueToObject(cx, argv[4], &centerObj);
+			if (JS_IsArrayObject(cx, centerObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, centerObj, &lengthp);
+				int ncopy = lengthp > 3 ? 3 : lengthp;
+				for (i = 0; i < ncopy; i++) {
+					JS_GetElement(cx, centerObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						translation.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&center);
+			}
+		}
+	}
+
+	if (error) {
+		ConsoleMessage("setTransform: error in parameters");
+		return JS_FALSE;
+	}
+
+
+	/* apply Transform, if requested */
+	//if (transObj) {
+	//	AnyNative* ptr;
+	//	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+	//		printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+	//		return JS_FALSE;
+	//	}
+	//	shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&translation);
+	//}
+	//if (rotObj) {
+	//	AnyNative* ptr;
+	//	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+	//		printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+	//		return JS_FALSE;
+	//	}
+	//	shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&rotation);
+	//}
+	//if (scaleObj) {
+	//	AnyNative* ptr;
+	//	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+	//		printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+	//		return JS_FALSE;
+	//	}
+	//	shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&scale);
+	//}
+	//if (scaleOObj) {
+	//	AnyNative* ptr;
+	//	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
+	//		printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+	//		return JS_FALSE;
+	//	}
+	//	shallow_copy_field_precision(ptr->type, FIELDTYPE_SFRotation, ptr->v, (union anyVrml*)&scaleOrientation);
+	//}
+	//if (centerObj) {
+	//	AnyNative* ptr;
+	//	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
+	//		printf("JS_GetPrivate failed in X3DMatrix4d.setTransform.\n");
+	//		return JS_FALSE;
+	//	}
+	//	shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&center);
+	//}
+
+	for (i = 0; i < 4; i++) {
+		matrix[i] = &cptr->c[i * 4]; //our current matrix3
+		mat[i] = &m2[i * 4]; //scratch matrix
+	}
+	//initialize to Identity
+	matidentity4d(matrix[0]);
+
+	//T
+	//if(translation){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], translation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+	//C
+	//if(center){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//R
+	//if(rotation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], rotation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//SR
+	//if(scaleOrientation){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//S
+	//if(scale){
+	matidentity4d(mat[0]);
+	for (i = 0; i < 4; i++)
+		vecmult3d(mat[i], mat[i], scale.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	// 
+	//-SR
+	//if(scaleOrientation){
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	matidentity4d(mat[0]);
+	for (i = 0; i < 3; i++)
+		axisangle_rotate3d(mat[i], mat[i], scaleOrientation.c);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	scaleOrientation.c[3] = -scaleOrientation.c[3];
+	//}
+
+	//-C
+	//if(center){
+	matidentity4d(mat[0]);
+	veccopyd(mat[3], center.c);
+	vecscaled(mat[3], mat[3], -1.0f);
+	matmultiplyFULL(matrix[0], mat[0], matrix[0]);
+	//}
+
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
+
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4inverse(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
+
+	matinverseFULL(ret->c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4.inverse.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4transpose(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.transpose.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	mattranspose(ret->c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4.inverse.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+
+JSBool
+X3DMatrix4multLeft(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix4d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+	
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret =  &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
+	matidentity4d(rhs.c);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix4d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiplyFULL(ret->c, rhs.c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL); 
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix4multRight(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix4d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFMatrix4d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfmatrix4d;
+	matidentity4d(ret->c);
+	matidentity4d(rhs.c);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix4d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiplyFULL(ret->c, cptr->c, rhs.c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multLeft.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4multVecMatrix(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFVec3d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec3d, NULL, NULL)) == NULL) {
+		printf("SFVec3dNativeNew failed in X3DMatrix4.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfvec3d;
+	vecsetd(ret->c,0.0,0.0,0.0);
+	vecsetd(rhs.c, 0.0, 0.0, 0.0);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec3d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	double a4[4], r4[4];
+	veccopyd(a4, rhs.c);
+	a4[3] = 1.0;
+	vecmultmat4d(r4, a4, cptr->c);
+	if (r4[3] != 0.0) {
+		double wi = 1.0 / r4[3];
+		vecscaled(ret->c, r4, wi);
+	}
+	else {
+		veccopyd(ret->c, r4);
+	}
+
+	retObj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4multMatrixVec(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFVec3d rhs;
+	struct SFMatrix4d* cptr;
+	struct SFVec3d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec3d, NULL, NULL)) == NULL) {
+		printf("SFVec3dNativeNew failed in X3DMatrix4.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix4d;
+	ret = &anyret->v->sfvec3d;
+	vecsetd(ret->c, 0.0, 0.0, 0.0);
+	vecsetd(rhs.c, 0.0, 0.0, 0.0);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec3d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	double a4[4], r4[4];
+	veccopyd(a4, rhs.c);
+	a4[3] = 1.0;
+	matmultvec4d(r4, cptr->c, a4);
+	if (r4[3] != 0.0) {
+		double wi = 1.0 / r4[3];
+		vecscaled(ret->c, r4, wi);
+	}
+	else {
+		veccopyd(ret->c, r4);
+	}
+
+	retObj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix4d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4Assign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &X3DMatrix4Class, FIELDTYPE_FreeWRLPTR/*does not matter*/)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix4Constr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &X3DMatrix4Class, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsdouble pars[16];
+	double* cc;
+
+	ADD_ROOT(cx, obj)
+	AnyNative* any;
+	if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix4d, NULL, NULL)) == NULL) {
+		printf("SFMatrix4dNativeNew failed in X3DMatrix4Constr.\n");
+		return JS_FALSE;
+	}
+
+	if (!JS_SetPrivateFw(cx, obj, any)) {
+		printf("JS_SetPrivate failed in SFMatrix4dConstr.\n");
+		return JS_FALSE;
+	}
+	cc = any->v->sfmatrix4d.c;
+
+	matidentity4d(cc);
+
+	int ncopy = 0;
+	if (argc == 1) {
+		JSObject* paramObj;
+		int isArray;
+
+		if (!JS_ValueToObject(cx, argv[0], &paramObj)) {
+			printf("JS_ValueToObject failed in SFMatrix4dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, paramObj)) {
+			jsuint lengthp;
+			jsval vp;
+			double _d;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, paramObj, &lengthp);
+			ncopy = lengthp > 16 ? 16 : lengthp;
+			for (int i = 0; i < ncopy; i++) {
+				JS_GetElement(cx, paramObj, i, &vp);
+				if (JS_ValueToNumber(cx, vp, &_d))
+					cc[i] = _d;
+			}
+		}
+		else {
+
+			AnyNative* pptr;
+			if ((pptr = (AnyNative*)JS_GetPrivateFw(cx, paramObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4Constr.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(pptr->type, FIELDTYPE_SFMatrix4d, pptr->v, (union anyVrml*)cc);
+		}
+	}
+	else if (argc == 16) {
+		if (!JS_ConvertArguments(cx, argc, argv, "d d d d d d d d d d d d d d d d",
+			&(pars[0]), &(pars[1]), &(pars[2]), &(pars[3]),
+			&(pars[4]), &(pars[5]), &(pars[6]), &(pars[7]),
+			&(pars[8]), &(pars[9]), &(pars[10]), &(pars[11]),
+			&(pars[12]), &(pars[13]), &(pars[14]), &(pars[15])
+		))
+		{
+			printf("JS_ConvertArguments failed in X3DMatrix4Constr.\n");
+			return JS_FALSE;
+		}
+		for (int i = 0; i < 16; i++)
+			cc[i] = (double)pars[i];
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix4AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "X3DMatrix4AddProperty");
+}
+
+JSBool
+X3DMatrix4GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	int index;
+
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DMatrix4.GetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 4) {
+			struct SFMatrix4d* cptr;
+
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+				return JS_FALSE;
+			}
+			cptr = &ptr->v->sfmatrix4d;
+			double* row = &cptr->c[index * 4];
+
+			AnyNative* anyret;
+			if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec4d, NULL, NULL)) == NULL) {
+				printf("SFVec4dNativeNew failed in X3DMatrix4.GetProperty.\n");
+				return JS_FALSE;
+			}
+			anyret->gc = 0;
+			anyret->type = FIELDTYPE_SFVec4d;
+			anyret->v = (union anyVrml*)row;
+			JSObject *retObj = JS_NewObject(cx, &SFVec4dClass, NULL, NULL);
+			if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+				printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+			return JS_TRUE;
+
+		}
+	}
+	else if (id.isObject()) {
+	}
+
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix4SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	int index;
+
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DMatrix4.GetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 4) {
+			struct SFMatrix4d* cptr;
+			double rhs;
+			if (!JS_ValueToNumber(cx, *vp, &rhs)) {
+				printf("problems converting Javascript val to number in X3DMatrix.SetProperty\n");
+				return JS_FALSE;
+			}
+
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix4d.multLeft.\n");
+				return JS_FALSE;
+			}
+			cptr = &ptr->v->sfmatrix4d;
+			double* row = &cptr->c[index * 4];
+			row[index] = 100.0; //****
+			return JS_TRUE;
+
+		}
+	}
+	else if (id.isObject()) {
+	}
+
+	return JS_TRUE;
+}
+
+// X3DMatrix3
+
+JSBool
+X3DMatrix3ToString(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+
+	JSString* _str;
+	double* cc;
+	char buff[STRING];
+
+	UNUSED(argc);
+	UNUSED(argv);
+	if (SM_method() == 2) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+			printf("JS_GetPrivate failed in SFMatrix3dToString.\n");
+			return JS_FALSE;
+		}
+		cc = ptr->v->sfmatrix3d.c;
+	}
+	memset(buff, 0, STRING);
+	sprintf(buff, "%.9g %.9g %.9g, %.9g %.9g %.9g, %.9g %.9g %.9g",
+		cc[0], cc[1], cc[2], 
+		cc[3], cc[4], cc[5], 
+		cc[6], cc[7], cc[8]
+	);
+	_str = JS_NewStringCopyZ(cx, buff);
+
+	JS_SET_RVAL(cx, vp, STRING_TO_JSVAL(_str));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix3getTransform(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	int i;
+	JSObject* transObj = NULL;
+	JSObject* rotObj = NULL;
+	JSObject* scaleObj = NULL;
+
+	struct SFMatrix3d* cptr;
+	struct SFVec2d translation;
+	struct SFVec3d rotation;
+	struct SFVec2d scale;
+	double* matrix[3], retscale[2];
+	double matrixd[9], angle;
+
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+
+	for (i = 0; i < 3; i++)
+		matrix[i] = &cptr->c[i * 3];
+
+	//get row scales
+	for (i = 0; i < 2; i++)
+		retscale[i] = sqrt(vecdotd(matrix[i], matrix[i]));
+	veccopy2d(scale.c, retscale);
+	//if (translation) {
+	veccopy2d(translation.c, matrix[2]);
+
+	//}
+
+	/* rotation */
+	if (1) {
+		/* apply length to each row to normalize upperleft 3x3 to rotations and shears*/
+		double m2[9], ff;
+		for (i = 0; i < 2; i++) {
+			ff = retscale[i];
+			if (ff != 0.0f) ff = 1 / ff;
+			vecscaled(&m2[i * 3], matrix[i], ff);
+		}
+		angle = atan2(m2[1], m2[2]); //right indexes? should be 0 and 1?
+		/* now copy the values over */
+		//if(rotation) 
+		memset(&rotation, 0, sizeof(struct SFVec3d));
+		rotation.c[0] = cos(angle);
+		rotation.c[1] = sin(angle);
+		rotation.c[2] = angle;
+	}
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &transObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+	if (argc == 2) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o o", &transObj, &rotObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+	if (argc == 3) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o o o",
+			&transObj, &rotObj, &scaleObj)) {
+			printf("getTransform, invalid parameters\n");
+			return JS_FALSE;
+		}
+	}
+
+	if (transObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec2d, ptr->type, (union anyVrml*)&translation, ptr->v);
+	}
+	if (rotObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec3d, ptr->type, (union anyVrml*)&rotation, ptr->v);
+	}
+	if (scaleObj) {
+		AnyNative* ptr;
+		if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.getTransform.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(FIELDTYPE_SFVec2d, ptr->type, (union anyVrml*)&scale, ptr->v);
+	}
+
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
+
+	return JS_TRUE;
+}
+
+
+/* Sets the X3DMatrix3 to the passed values. Any of the rightmost parameters may be omitted.
+   The method has 0 to 5 parameters. For example, specifying 0 parameters results in an
+   identity matrix while specifying 1 parameter results in a translation and specifying 2
+   parameters results in a translation and a rotation. Any unspecified parameter is set to
+   its default as specified for the Transform node.
+	//void setTransform(SFVec3f translation, SFVec3f rotation, SFVec3f scale, SFVec3f scaleOrientation, SFVec3f center)
+	// http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform
+	// P' = T * C * R * SR * S * -SR * -C * P
+*/
+JSBool
+X3DMatrix3setTransform(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	JSObject* transObj = NULL;
+	JSObject* rotObj = NULL;
+	JSObject* scaleObj = NULL;
+	JSObject* scaleOObj = NULL;
+	JSObject* centerObj = NULL;
+	int i;
+	struct SFMatrix3d* cptr;
+	struct SFVec2d translation; // = fwpars[0]._web3dval.native;
+	struct SFVec3d rotation; // = fwpars[1]._web3dval.native;
+	struct SFVec2d scale; // = fwpars[2]._web3dval.native;
+	struct SFVec3d scaleOrientation; // = fwpars[3]._web3dval.native;
+	struct SFVec2d center; // = fwpars[4]._web3dval.native;
+	//set up some [][] helpers for clarity
+	double* matrix[3], * mat[3], m2[9], angle, scaleangle, dval;
+
+	memset(&translation, 0, sizeof(struct SFVec2d));
+	memset(&rotation, 0, sizeof(struct SFVec3d));
+	memset(&scale, 0, sizeof(struct SFVec2d));
+	memset(&scaleOrientation, 0, sizeof(struct SFVec3d));
+	memset(&center, 0, sizeof(struct SFVec2d));
+	scale.c[0] = scale.c[1] = 1.0;
+	angle = scaleangle = 0.0;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+
+	int error = FALSE;
+
+	if (argc >= 1) {
+		//Translation, either SFVecXX or js [] array
+		error = !JS_ValueToObject(cx, argv[0], &transObj);
+		if (JS_IsArrayObject(cx, transObj)) {
+			jsuint lengthp;
+			jsval vp;
+			JS_GetArrayLength(cx, transObj, &lengthp);
+			int ncopy = lengthp > 2 ? 2 : lengthp;
+			for (i = 0; i < 2; i++) {
+				JS_GetElement(cx, transObj, i, &vp);
+				if (JS_ValueToNumber(cx, vp, &dval))
+					translation.c[i] = dval;
+			}
+		}
+		else {
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, transObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&translation);
+		}
+	}
+	if (argc >= 2) {
+		// rotation either scalar or SFVec3X
+		if (argv[1].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[1], &val);
+			angle = val;
+		}
+		else {
+			error = !JS_ValueToObject(cx, argv[1], &rotObj);
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, rotObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&rotation);
+			angle = rotation.c[2];
+		}
+	}
+	if (argc >= 3) {
+		//scale - either a scalar or js array [] or SFVec2X
+		if (argv[2].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[2], &val);
+			scale.c[0] = scale.c[1] = val;
+		}
+		else if (argv[2].isObject()) {
+			error = !JS_ValueToObject(cx, argv[2], &scaleObj);
+			if (JS_IsArrayObject(cx, scaleObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, scaleObj, &lengthp);
+				int ncopy = lengthp > 2 ? 2 : lengthp;
+				for (i = 0; i < 2; i++) {
+					JS_GetElement(cx, scaleObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						scale.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&scale);
+			}
+		}
+	}
+	if (argc >= 4) {
+		//scaleOrientation either a scalar or SFVec3X
+		if (argv[3].isNumber()) {
+			double val;
+			JS_ValueToNumber(cx, argv[3], &val);
+			scaleangle = val;
+		}
+		else {
+			error = !JS_ValueToObject(cx, argv[3], &scaleOObj);
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, scaleOObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec3d, ptr->v, (union anyVrml*)&rotation);
+			scaleangle = rotation.c[2];
+		}
+	}
+	if (argc >= 5) {
+		//center either an SFVec2X or js array[]
+		if (argv[4].isObject()) {
+			error = !JS_ValueToObject(cx, argv[4], &centerObj);
+			if (JS_IsArrayObject(cx, centerObj)) {
+				jsuint lengthp;
+				jsval vp;
+				JS_GetArrayLength(cx, centerObj, &lengthp);
+				int ncopy = lengthp > 2 ? 2 : lengthp;
+				for (i = 0; i < 2; i++) {
+					JS_GetElement(cx, centerObj, i, &vp);
+					if (JS_ValueToNumber(cx, vp, &dval))
+						center.c[i] = dval;
+				}
+			}
+			else {
+				AnyNative* ptr;
+				if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, centerObj)) == NULL) {
+					printf("JS_GetPrivate failed in X3DMatrix3d.setTransform.\n");
+					return JS_FALSE;
+				}
+				shallow_copy_field_precision(ptr->type, FIELDTYPE_SFVec2d, ptr->v, (union anyVrml*)&center);
+			}
+		}
+	}
+
+	if (error) {
+		ConsoleMessage("setTransform: error in parameters");
+		return JS_FALSE;
+	}
+
+	for (i = 0; i < 3; i++) {
+		matrix[i] = &cptr->c[i * 3];
+		mat[i] = &m2[i * 3];
+	}
+	//initialize to Identity
+	matidentity3d(matrix[0]);
+
+	//T
+	//if(translation){
+	matidentity3d(mat[0]);
+	veccopy2d(mat[2], translation.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+	//C
+	//if(center){
+	matidentity3d(mat[0]);
+	veccopy2d(mat[2], center.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+	//R
+	if (angle != 0.0f) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(angle);
+		mat[0][1] = mat[1][0] = sin(angle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
+	//SR
+	if (scaleangle != 0.0f) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(scaleangle);
+		mat[0][1] = mat[1][0] = sin(scaleangle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
+	//S
+	//if(scale){
+	matidentity3d(mat[0]);
+	for (i = 0; i < 3; i++)
+		vecmult2d(mat[i], mat[i], scale.c);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+
+	//-SR
+	if (scaleangle != 0.0) {
+		matidentity3d(mat[0]);
+		mat[0][0] = mat[1][1] = cos(-scaleangle);
+		mat[0][1] = mat[1][0] = sin(-scaleangle);
+		mat[1][0] = -mat[1][0];
+		matmultiply3d(matrix[0], mat[0], matrix[0]);
+	}
+
+	//-C
+	//if(center){
+	matidentity3d(mat[0]);
+	veccopy2d(mat[2], center.c);
+	vecscale2d(mat[2], mat[2], -1.0);
+	matmultiply3d(matrix[0], mat[0], matrix[0]);
+	//}
+
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(NULL)); //JSVAL_VOID);
+
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3inverse(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix3d* cptr;
+	struct SFMatrix3d* ret;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.inverse.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfmatrix3d;
+
+	matinverse3d(ret->c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix3Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix3.inverse.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3transpose(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix3d* cptr;
+	struct SFMatrix3d* ret;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.transpose.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfmatrix3d;
+	mattranspose3d(ret->c, cptr->c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix3Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix3.inverse.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3multLeft(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix3d rhs;
+	struct SFMatrix3d* cptr;
+	struct SFMatrix3d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfmatrix3d;
+	matidentity3d(ret->c);
+	matidentity3d(rhs.c);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix3d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix3d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiply3d(ret->c, rhs.c, cptr->c);
+
+
+	retObj = JS_NewObject(cx, &X3DMatrix3Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix3multRight(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFMatrix3d rhs;
+	struct SFMatrix3d* cptr;
+	struct SFMatrix3d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3.multLeft.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfmatrix3d;
+	matidentity3d(ret->c);
+	matidentity3d(rhs.c);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix3d.multLeft.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFMatrix3d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	matmultiply3d(ret->c, cptr->c, rhs.c);
+
+	retObj = JS_NewObject(cx, &X3DMatrix3Class, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix3d.multLeft.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3multVecMatrix(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFVec2d rhs;
+	struct SFMatrix3d* cptr;
+	struct SFVec2d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec2d, NULL, NULL)) == NULL) {
+		printf("SFVec2dNativeNew failed in X3DMatrix3.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfvec2d;
+	vecset2d(ret->c, 0.0, 0.0);
+	vecset2d(rhs.c, 0.0, 0.0);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix3d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec2d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	double a3[3], r3[3];
+	veccopy2d(a3, rhs.c);
+	a3[2] = 1.0;
+	vecmultmat3d(r3, a3, cptr->c);
+	if (r3[2] != 0.0) {
+		double wi = 1.0 / r3[2];
+		vecscale2d(ret->c, r3, wi);
+	}
+	else {
+		veccopy2d(ret->c, r3);
+	}
+
+	retObj = JS_NewObject(cx, &SFVec2dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3multMatrixVec(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	struct SFVec2d rhs;
+	struct SFMatrix3d* cptr;
+	struct SFVec2d* ret;
+	JSObject* rhsObj = NULL;
+	JSObject* retObj = NULL;
+
+	AnyNative* anyret;
+	if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec2d, NULL, NULL)) == NULL) {
+		printf("SFVec2dNativeNew failed in X3DMatrix3.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+
+	AnyNative* ptr;
+	if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+		printf("JS_GetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	cptr = &ptr->v->sfmatrix3d;
+	ret = &anyret->v->sfvec2d;
+	vecset2d(ret->c, 0.0, 0.0);
+	vecset2d(rhs.c, 0.0, 0.0);
+
+	if (argc == 1) {
+		if (!JS_ConvertArguments(cx, argc, argv, "o", &rhsObj)) {
+			printf("JS_ConvertArgs failed in X3DMatrix3d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		AnyNative* rhsptr;
+		if ((rhsptr = (AnyNative*)JS_GetPrivateFw(cx, rhsObj)) == NULL) {
+			printf("JS_GetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+			return JS_FALSE;
+		}
+		shallow_copy_field_precision(rhsptr->type, FIELDTYPE_SFVec2d, rhsptr->v, (union anyVrml*)&rhs);
+	}
+	double a3[3], r3[3];
+	veccopy2d(a3, rhs.c);
+	a3[2] = 1.0f;
+	matmultvec3d(r3, cptr->c, a3);
+	if (r3[2] != 0.0f) {
+		double wi = 1.0 / r3[2];
+		vecscale2d(ret->c, r3, wi);
+	}
+	else {
+		veccopy2d(ret->c, r3);
+	}
+
+	retObj = JS_NewObject(cx, &SFVec2dClass, NULL, NULL);
+	if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+		printf("JS_SetPrivate failed in X3DMatrix3d.multVecMatrix.\n");
+		return JS_FALSE;
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3Assign(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_THIS_OBJECT(cx, vp);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsval rval;
+	if (!_standardMFAssign(cx, obj, argc, argv, &rval, &X3DMatrix3Class, FIELDTYPE_FreeWRLPTR/*does not matter*/)) { return JS_FALSE; }
+	JS_SET_RVAL(cx, vp, rval);
+	return JS_TRUE;
+}
+
+
+JSBool
+X3DMatrix3Constr(JSContext* cx, uintN argc, jsval* vp) {
+	JSObject* obj = JS_NewObject(cx, &X3DMatrix3Class, NULL, NULL);
+	jsval* argv = JS_ARGV(cx, vp);
+	jsdouble pars[9];
+	double* cc;
+
+	ADD_ROOT(cx, obj)
+	AnyNative* any;
+	if ((any = (AnyNative*)AnyNativeNew(FIELDTYPE_SFMatrix3d, NULL, NULL)) == NULL) {
+		printf("SFMatrix3dNativeNew failed in X3DMatrix3Constr.\n");
+		return JS_FALSE;
+	}
+
+	if (!JS_SetPrivateFw(cx, obj, any)) {
+		printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+		return JS_FALSE;
+	}
+	cc = any->v->sfmatrix3d.c;
+
+	matidentity3d(cc);
+
+	int ncopy = 0;
+	if (argc == 1) {
+		JSObject* paramObj;
+		int isArray;
+
+		if (!JS_ValueToObject(cx, argv[0], &paramObj)) {
+			printf("JS_ValueToObject failed in SFMatrix3dConstr.\n");
+			return JS_FALSE;
+		}
+
+		if (JS_IsArrayObject(cx, paramObj)) {
+			jsuint lengthp;
+			jsval vp;
+			double _d;
+			//printf("its an array\n");
+			isArray = TRUE;
+			JS_GetArrayLength(cx, paramObj, &lengthp);
+			ncopy = lengthp > 9 ? 9 : lengthp;
+			for (int i = 0; i < ncopy; i++) {
+				JS_GetElement(cx, paramObj, i, &vp);
+				if (JS_ValueToNumber(cx, vp, &_d))
+					cc[i] = _d;
+			}
+		}
+		else {
+
+			AnyNative* pptr;
+			if ((pptr = (AnyNative*)JS_GetPrivateFw(cx, paramObj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3Constr.\n");
+				return JS_FALSE;
+			}
+			shallow_copy_field_precision(pptr->type, FIELDTYPE_SFMatrix3d, pptr->v, (union anyVrml*)cc);
+		}
+	}
+	else if (argc == 9) {
+		if (!JS_ConvertArguments(cx, argc, argv, "d d d d d d d d d",
+			&(pars[0]), &(pars[1]), &(pars[2]), 
+			&(pars[3]),	&(pars[4]), &(pars[5]), 
+			&(pars[6]), &(pars[7]),	&(pars[8])
+		))
+		{
+			printf("JS_ConvertArguments failed in X3DMatrix3Constr.\n");
+			return JS_FALSE;
+		}
+		for (int i = 0; i < 9; i++)
+			cc[i] = (double)pars[i];
+	}
+	JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix3AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid id = *hiid.address();
+	jsval* vp = hvp.address();
+	return doMFAddProperty(cx, obj, id, vp, "X3DMatrix3AddProperty");
+}
+
+JSBool
+X3DMatrix3GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+	int index;
+
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DMatrix3.GetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 3) {
+			struct SFMatrix3d* cptr;
+
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+				return JS_FALSE;
+			}
+			cptr = &ptr->v->sfmatrix3d;
+			double* row = &cptr->c[index * 3];
+
+			AnyNative* anyret;
+			if ((anyret = (AnyNative*)AnyNativeNew(FIELDTYPE_SFVec3d, NULL, NULL)) == NULL) {
+				printf("SFVec4dNativeNew failed in X3DMatrix3.GetProperty.\n");
+				return JS_FALSE;
+			}
+			anyret->gc = 0;
+			anyret->type = FIELDTYPE_SFVec3d;
+			anyret->v = (union anyVrml*)row;
+			JSObject* retObj = JS_NewObject(cx, &SFVec3dClass, NULL, NULL);
+			if (!JS_SetPrivateFw(cx, retObj, anyret)) {
+				printf("JS_SetPrivate failed in SFMatrix3dConstr.\n");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(retObj));
+			return JS_TRUE;
+
+		}
+	}
+	else if (id.isObject()) {
+	}
+
+	return JS_TRUE;
+}
+
+JSBool
+X3DMatrix3SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp) {
+	JSObject* obj = *hobj.address();
+	jsid iid = *hiid.address();
+	jsval* vp = hvp.address();
+
+	int index;
+
+	jsval id;
+	if (!JS_IdToValue(cx, iid, &id)) {
+		printf("JS_IdToValue failed in X3DMatrix3.GetProperty.\n");
+		return JS_FALSE;
+	}
+
+	if (JSVAL_IS_INT(id)) {
+		index = JSVAL_TO_INT(id);
+		if (index > -1 && index < 3) {
+			struct SFMatrix3d* cptr;
+			double rhs;
+			if (!JS_ValueToNumber(cx, *vp, &rhs)) {
+				printf("problems converting Javascript val to number in X3DMatrix.SetProperty\n");
+				return JS_FALSE;
+			}
+
+			AnyNative* ptr;
+			if ((ptr = (AnyNative*)JS_GetPrivateFw(cx, obj)) == NULL) {
+				printf("JS_GetPrivate failed in X3DMatrix3d.multLeft.\n");
+				return JS_FALSE;
+			}
+			cptr = &ptr->v->sfmatrix3d;
+			double* row = &cptr->c[index * 3];
+			row[index] = 100.0; //**** we don't set here. We set in SFVec3d [][]
+			return JS_TRUE;
+
+		}
+	}
+	else if (id.isObject()) {
+	}
+
+	return JS_TRUE;
+}
+
+
 
 #endif //defined(JS_SMCPP)
 

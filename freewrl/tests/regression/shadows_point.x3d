@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "http://www.web3d.org/specifications/x3d-4.0.dtd">
+<X3D profile='Immersive' version='4.0'>
+  <head>
+    <meta name='description' content='Shadow map from a PointLight (shadows TRUE). A box floats above a floor. Pass: the box casts a darker shadow onto the floor; the scene otherwise renders normally; no shader or GL errors.'/>
+  </head>
+  <Scene>
+    <NavigationInfo headlight='false'/>
+    <Background skyColor='0.3 0.3 0.35'/>
+    <Viewpoint position='0 4 8' orientation='1 0 0 -0.45' description='front'/>
+    <PointLight location='1 3 1' radius='20' intensity='1' shadows='true' global='true'/>
+    <Transform translation='0 1 0'>
+      <Shape><Appearance><Material diffuseColor='0.9 0.2 0.2'/></Appearance><Box size='1 1 1'/></Shape>
+    </Transform>
+    <Transform translation='0 -0.05 0'>
+      <Shape><Appearance><Material diffuseColor='0.8 0.8 0.8'/></Appearance><Box size='8 0.1 8'/></Shape>
+    </Transform>
+  </Scene>
+</X3D>

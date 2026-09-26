@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- X_ITE reference viewer. Query params:
+     world=/path/to/world.wrl  (required; served by serve.py)
+     w=,h=                      canvas size in CSS px
+     hold=ms                    keep the load event open this long (screenshot mode)
+     xite=URL                   X_ITE dist dir (default: pinned jsdelivr build) -->
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}x3d-canvas{display:block}</style>
+<script>
+const q = new URLSearchParams(location.search);
+const XITE = q.get('xite') || 'https://cdn.jsdelivr.net/npm/x_ite@16.4.1/dist';
+document.write('<link rel="stylesheet" href="' + XITE + '/x_ite.css">');
+document.write('<script src="' + XITE + '/x_ite.min.js"><\/script>');
+</script>
+</head><body>
+<script>
+const c = document.createElement('x3d-canvas');
+c.setAttribute('splashScreen', 'false');
+c.setAttribute('notifications', 'false');
+c.setAttribute('contextMenu', 'false');
+c.setAttribute('timings', 'false');
+c.setAttribute('preserveDrawingBuffer', 'true');
+c.style.width = (q.get('w') || 672) + 'px';
+c.style.height = (q.get('h') || 438) + 'px';
+c.setAttribute('src', q.get('world'));
+document.body.appendChild(c);
+if (q.get('hold')) {
+  const img = document.createElement('img');
+  img.src = '/__hold?ms=' + q.get('hold');
+  img.style.display = 'none';
+  document.body.appendChild(img);
+}
+</script>
+</body></html>

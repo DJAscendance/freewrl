@@ -296,7 +296,7 @@ typedef struct pComponent_Text{
 	int started;// = FALSE;
 	GLfloat *textpanel_vert;
 	GLfloat *textpanel_tex;
-	GLushort *textpanel_ind;
+	GLuint *textpanel_ind;
 	int textpanel_size;
 	int textpanel_vert_size;
 	int textpanel_tex_size;
@@ -443,7 +443,8 @@ void render_Text (struct X3D_Text * node)
 		if(node->_isScreen){
 			render_screentext(node);
 		}else{
-			COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
+			//COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL);
+			if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 			//DISABLE_CULL_FACE;
 			CULL_FACE(node->solid)
 			render_polyrep(node);
@@ -465,7 +466,7 @@ static void FW_NewVertexPoint ()
 		double x_scale, y_scale, pixel_size_x, pixel_size_y, device_x, device_y, design_x, design_y;
 		double x_scale1, y_scale1;
 		double x_scale2, y_scale2;
-		ushort fu_per_em;
+		int fu_per_em;
 		//FT_Size ftsize;
 		lastx = p->last_point.x;
 		lasty = p->last_point.y;
@@ -1923,8 +1924,8 @@ void collide_Text (struct X3D_Text *node)
 {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth,atop,abottom,astep,modelMatrix[16];
-    struct point_XYZ delta = {0,0,-1};
-    struct X3D_PolyRep pr;
+    struct point_XYZ delta = {.x=0,.y=0,.z=-1};
+    struct X3D_PolyRep *pr;
 	ttglobal tg;
     int change = 0;
 	tg = gglobal();
@@ -1945,27 +1946,25 @@ void collide_Text (struct X3D_Text *node)
       so, if there is no need to calculate normals..., why do it? */
 
     /* JAS - first pass, intern is probably zero */
-    if (node->_intern == NULL) return;
-
+    if (node->_intern == NULL || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*)node->_intern;
     /* JAS - no triangles in this text structure */
-    if (node->_intern->ntri == 0) return;
+    if (pr->ntri == 0) return;
 
     /*save changed state.*/
-    if (node->_intern)
-        change = node->_intern->irep_change;
+    change = pr->irep_change;
 
-    COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
-
-    if (node->_intern)
-        node->_intern->irep_change = change;
+    //COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL);
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+    pr->irep_change = change;
 
     /* restore changes state, invalidates compile_polyrep work done, so it can be done
        correclty in the RENDER pass */
 
-    pr = *(node->_intern);
+    pr = (struct X3D_PolyRep*)node->_intern;
 
     /* do the triangle test again, now that we may have compiled the node. */
-    if (pr.ntri == 0) {
+    if (pr->ntri == 0) {
         /* printf ("TRIANGLE NOW HAS ZERO NODES...\n"); */
         return;
     }
@@ -1975,7 +1974,7 @@ void collide_Text (struct X3D_Text *node)
 	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision);
 	//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix);
 
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix,pr.minVals,pr.maxVals) )return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix,pr->minVals,pr->maxVals) )return;
     delta = planar_polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,PR_DOUBLESIDED,delta);
     /* delta used as zero */
 
@@ -1994,7 +1993,7 @@ void collide_Text (struct X3D_Text *node)
 
 void make_Text (struct X3D_Text *node)
 {
-	struct X3D_PolyRep *rep_ = node->_intern;
+	struct X3D_PolyRep *rep_ = (struct X3D_PolyRep*)node->_intern;
 	double spacing = 1.0;
 	double size = 1.0;
 	int isScreenFontStyle;
@@ -3259,7 +3258,7 @@ GLfloat cursorTex[] = {
 	1.0f, 1.0f,
 	1.0f, 0.0f,
 	};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2 fxy, fwh;
 	//ivec2 xy;
@@ -3327,7 +3326,7 @@ GLfloat cursorTex[] = {
 	//printvpstacktop(__LINE__);
 	//char *saveme[4*4*4];
 	//memcpy(saveme,_vpstack->data,4*4*4); //glew config overwrites vpstack->data top.X
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind );
 	//memcpy(_vpstack->data,saveme,4*4*4);
 	//printvpstacktop(__LINE__);
 
@@ -3374,7 +3373,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2  fixy, fiwh; //fxy, fwh,
 	//ivec2 xy;
@@ -3453,7 +3452,7 @@ GLfloat cursorTex[] = {
 
 	//// Set the base map sampler to texture unit to 0
 	//glUniform1i ( textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); 
 }
 
 
@@ -3637,7 +3636,7 @@ int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int
 		//(4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
 		GLfloat *tex; //tex[1024];
 		//(2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
-		GLushort *ind; //ind[768];
+		GLuint *ind; //ind[768];
 		int maxlen = 128;
 		ttglobal tg = gglobal();
 		ppComponent_Text p = (ppComponent_Text)tg->Component_Text.prv;
@@ -3653,7 +3652,7 @@ int textpanel_render_row(AtlasFont *font, char * cText, int len, int *pen_x, int
 			//tex: (4 tex / glyph * max 128 glyphs per line) * 2 coords per tex = (4 * 128)*2 = (512)*2 = 1024;
 			p->textpanel_tex = REALLOC(p->textpanel_tex,p->textpanel_tex_size*sizeof(GLfloat));
 			//ind: (2 triangles * 3 ind / triangle) * max 128 glyphs/line = 6 * 128 = 768
-			p->textpanel_ind = REALLOC(p->textpanel_ind,p->textpanel_ind_size*sizeof(GLushort));
+			p->textpanel_ind = REALLOC(p->textpanel_ind,p->textpanel_ind_size*sizeof(GLuint));
 		}
 		vert = p->textpanel_vert;
 		tex  = p->textpanel_tex;
@@ -3753,7 +3752,7 @@ if(0) glEnableVertexAttribArray (p->texCoordLoc );
 		glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
 							   GL_FALSE, 0, tex ); 
 
-		glDrawElements ( GL_TRIANGLES, len*3*2, GL_UNSIGNED_SHORT, ind );
+		glDrawElements ( GL_TRIANGLES, len*3*2, GL_UNSIGNED_INT, ind );
 
 
 	}
@@ -3912,7 +3911,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	vec2  fixy, fiwh; //fxy, fwh,
 	//ivec2 xy;
@@ -3990,7 +3989,7 @@ GLfloat cursorTex[] = {
 
 	//// Set the base map sampler to texture unit to 0
 	//glUniform1i ( textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); 
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); 
 
 
 }
@@ -4034,9 +4033,10 @@ static void render_screentext_aligned(struct X3D_Text *tnode, int screenAligned)
 			if (!myap) {
 				glUniform4f(p->color4fLoc,.5f,.5f,.5f,1.0f); //default
 			}else{
-				float *dc;
+				float *dc, o;
 				dc = myap->fw_FrontMaterial.diffuse;
-				glUniform4f(p->color4fLoc,dc[0],dc[1],dc[2],dc[3]); //0.7f,0.7f,0.9f,1.0f);
+				o = 1.0f - myap->fw_FrontMaterial.transparency;
+				glUniform4f(p->color4fLoc,dc[0],dc[1],dc[2],o); //0.7f,0.7f,0.9f,1.0f);
 			}
 		}
 

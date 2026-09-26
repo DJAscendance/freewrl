@@ -37,6 +37,7 @@ CProto ???
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Frustum.h"
 #include "../main/headers.h"
+#include "../main/MainLoop.h"
 
 #include "LinearAlgebra.h"
 #include "quaternion.h"
@@ -192,6 +193,8 @@ void viewer_default0(X3D_Viewer *viewer, int vpnodetype) {
 	}else{
 		//all other viewpoint types - Viewpoint, GeoViewpoint ...
 		fwl_set_viewer_type0(viewer,VIEWER_EXAMINE);
+		viewer->nearPlane = 0.1;
+		viewer->farPlane = 210000.0;
 	}
 	viewer->LookatMode = 0;
 
@@ -212,6 +215,7 @@ X3D_Viewer *ViewerByLayerId(int layerid)
 		viewer = MALLOCV(sizeof(X3D_Viewer));
 		memset(viewer,0,sizeof(X3D_Viewer));
 		vpnodetype = bstack->nodetype == NODE_LayoutLayer ? NODE_OrthoViewpoint : NODE_Viewpoint;
+		//vpnodetype = bstack->nodetype == NODE_Layer ? NODE_OrthoViewpoint : vpnodetype;
 		viewer_default0(viewer,vpnodetype);
 		init_stereodefaults(viewer);
 		bstack->viewer = viewer;
@@ -250,7 +254,7 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		vrmlrot_to_quaternion (&viewer->Quat,1.0,0.0,0.0,0.0);
 
 		viewer->headlight = TRUE;
-		viewer->collision = FALSE;
+		viewer->collision = TRUE; // FALSE;
 		viewer->speed = 1.0;
 		viewer->Dist = 10.0;
 		//viewer->exploreDist = 10.0;
@@ -263,7 +267,7 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		/* SLERP code for moving between viewpoints */
 		viewer->SLERPing = FALSE;
 		viewer->startSLERPtime = 0.0;
-		viewer->transitionType = 1; /* assume LINEAR */
+		viewer->transitionType = VIEWER_TRANSITION_LINEAR; //VIEWER_TRANSITION_TELEPORT;//VIEWER_TRANSITION_LINEAR;  /* assume TELEPORT unless NavigationInfo, which defaults to LINEAR */
 		viewer->transitionTime = 1.0; /* assume 1 second */
 
 		/* Orthographic projections */
@@ -279,7 +283,6 @@ void viewer_init (X3D_Viewer *viewer, int type) {
 		viewer->backgroundPlane = DEFAULT_BACKGROUNDPLANE;       /* where Background and TextureBackground nodes go */
 		viewer->fieldofview=45.0;
 		viewer->fovZoom = 1.0;
-
 		viewer->wasBound = FALSE;
 	}
 
@@ -307,12 +310,12 @@ void printStats()
 	printStatsRoutes();
 	printStatsBindingStacks();
 }
-
+//char* fwl_requestedVPname(int *is_bound, int *is_reachable, int *count, int *index);
 void
 print_viewer()
 {
 	X3D_Viewer *viewer;
-
+	//int reachable, bound, count, index;
 	struct orient_XYZA ori;
 	viewer = Viewer();
 
@@ -322,6 +325,8 @@ print_viewer()
 	ConsoleMessage("\tQuaternion[%.4f, %.4f, %.4f, %.4f]\n", (viewer->Quat).w, (viewer->Quat).x, (viewer->Quat).y, (viewer->Quat).z);
 	ConsoleMessage("\tOrientation[%.4f, %.4f, %.4f, %.4f]\n", ori.x, ori.y, ori.z, ori.a);
 	ConsoleMessage("}\n");
+	ConsoleMessage("vp description %s\n", fwl_currentBoundVPname());
+	//ConsoleMessage("bound %c reachable %c index %d/%d\n", bound ? 'T' : 'F', reachable ? 'T' : 'F',index,count);
 	getCurrentPosInModelB();
 	ConsoleMessage("World Coordinates of Avatar [%.4f, %.4f %.4f]\n",viewer->currentPosInModel.x,viewer->currentPosInModel.y,viewer->currentPosInModel.z);
 	printStats();
@@ -360,6 +365,8 @@ void toggle_collision() {
 int fwl_getCollision(){
 	X3D_Viewer *viewer;
 	viewer = Viewer();
+	if (viewer->SLERPing || viewer->SLERPing2 || viewer->SLERPing3) 
+		return 0;
 	return viewer->collision;
 }
 void fwl_setCollision(int state) {
@@ -415,6 +422,8 @@ void fwl_set_viewer_type0(X3D_Viewer *viewer, const int type) {
 	case VIEWER_TURNTABLE:
 	case VIEWER_DIST:
 	case VIEWER_FLY:
+	case VIEWER_PAN:
+	case VIEWER_ZOOM:
 		viewer->type = type;
 		break;
 	case VIEWER_SPHERICAL:
@@ -520,6 +529,8 @@ struct navmode {
 	{"YAWPITCH",VIEWER_YAWPITCH},
 	{"ROLL",VIEWER_ROLL},
 	{"DIST",VIEWER_DIST},
+	{"PAN",VIEWER_PAN},
+	{"ZOOM",VIEWER_ZOOM},
 	{NULL,0},
 };
 char * lookup_navmodestring(int navmode){
@@ -577,7 +588,7 @@ int fwl_setNavMode(char *mode){
 
 void resolve_pos20(X3D_Viewer *viewer) {
 	/* my($this) = @_; */
-	struct point_XYZ rot, z_axis = { 0, 0, 1 };
+	struct point_XYZ rot, z_axis = { .x=0, .y=0, .z=1 };
 	Quaternion q_inv;
 
 	X3D_Viewer_Examine *examine = &viewer->examine;
@@ -616,6 +627,14 @@ double vecangle2(struct point_XYZ* V1, struct point_XYZ* V2, struct point_XYZ* r
 	/* get full circle unambiguous angle using both cosine and sine */
 	angle = atan2(sine,cosine);
 	vecnormal(rotaxis,&cross);
+	return angle;
+}
+double vecangle2d(double* v1, double* v2, double* rotaxis) {
+	struct point_XYZ V1, V2, rotax;
+	double2pointxyz(&V1,v1);
+	double2pointxyz(&V2,v2);
+	double angle = vecangle2(&V1,&V2,&rotax);
+	pointxyz2double(rotaxis,&rotax);
 	return angle;
 }
 void avatar2BoundViewpointVerticalAvatar(GLDOUBLE *matA2BVVA, GLDOUBLE *matBVVA2A)
@@ -897,7 +916,7 @@ static double
 
 void handle_examine(const int mev, const unsigned int button, float x, float y) {
 	Quaternion q, q_i, arc;
-	struct point_XYZ pp = { 0, 0, 0};
+	struct point_XYZ pp = {.x=0,.y=0,.z=0};
 	double squat_norm;
 	// OLDCODE UNUSED ppViewer p;
 	X3D_Viewer *viewer;
@@ -992,7 +1011,7 @@ void handle_dist(const int mev, const unsigned int button, float x, float y) {
 	*/
 	//examine variant - doesn't move the vp/.pos
 	Quaternion q_i;
-	struct point_XYZ pp = { 0, 0, 0};
+	struct point_XYZ pp = {.x=0,.y=0,.z=0};
 	double yy;
 	X3D_Viewer *viewer;
 	// OLDCODE UNUSED ppViewer p;
@@ -1254,7 +1273,290 @@ void handle_fly2(const int mev, const unsigned int button, float x, float y) {
 	}
 	
 }
+//
+//#include "RenderFuncs.h"
+//ivec4 get_current_viewport();
+//int getPinPoint() {
+//    int iret = FALSE;
+//	ttglobal tg = gglobal();
+//
+//	printf("hpdist %f ",tg->RenderFuncs.hitPointDist);
+//    if(tg->RenderFuncs.hitPointDist >= 0 || TRUE) {
+//		struct X3D_Node * node;
+//		struct currayhit * rh = (struct currayhit *)tg->RenderFuncs.rayHit;
+//
+//        /* is the sensitive node not NULL? */
+//		printf("hitNode %d ", rh->hitNode != NULL ? 1 : 0);
+//        if (rh->hitNode != NULL) {
+//			//GLDOUBLE matTarget[16];
+//			double center[3];
+//			//use the pickpoint (think of a large, continuous geospatial terrain shape,
+//			// and you want to examine a specific geographic point on that shape)
+//			pointxyz2double(center,tg->RenderFuncs.hp);
+//			transformAFFINEd(center,center,getPickrayMatrix(0));
+//			double2float(Viewer()->pin_point,center,3);
+//			iret = TRUE;
+//		}
+//    }
+//	return iret;
+//}
+void show_pin_point(double  *pin_point){
+	struct X3D_Node *boundvp = (struct X3D_Node*)getActiveLayerBoundViewpoint(); 
+	if(boundvp){
+		switch(boundvp->_nodeType){
+		case NODE_Viewpoint: {
+			struct X3D_Viewpoint *vp = (struct X3D_Viewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		case NODE_OrthoViewpoint: {
+			struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		case NODE_GeoViewpoint: {
+			struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint *)boundvp;
+			veccopyd(vp->_pin_point.c,pin_point);
+			vp->_show_pin_point = TRUE; }
+			break;
+		
+		}
+	}
+}
+void unshow_pin_point(){
+	struct X3D_Node *boundvp = (struct X3D_Node*)getActiveLayerBoundViewpoint(); 
+	if(boundvp){
+		switch(boundvp->_nodeType){
+		case NODE_Viewpoint: {
+			struct X3D_Viewpoint *vp = (struct X3D_Viewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		case NODE_OrthoViewpoint: {
+			struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		case NODE_GeoViewpoint: {
+			struct X3D_GeoViewpoint *vp = (struct X3D_GeoViewpoint *)boundvp;
+			vp->_show_pin_point = FALSE; }
+			break;
+		
+		}
+	}
+}
+double * get_touch_pin_point();
+double get_touch_hitPointDist();
+double * get_touch_ray();
 
+void quaternion_split_tilt_yaw(Quaternion *Qyaw, Quaternion *Qtilt, Quaternion *Qfull, double *up){
+	//split full quaterion (representing viewer.rotation) into tilts and yaw
+	//for walk-derivitive nav types, Tranform - bound-viewpoint - Pos/position - yaw - tilts - avatarView - pickray
+	// Qfull = Qyaw x Qtilt
+	// Qyaw = Qtilt.inverse x Qfull
+	// X DOES NOT WORK - Q ROTATING IN WRONG PLANE
+	double down[3], tilted[3], rotaxis[3],angle;
+	Quaternion Qtilt_inverse, Qfull_inverse, Qyaw_inverse;
+	vecscaled(down,up,-1.0);
+
+	quaternion_inverse(&Qfull_inverse,Qfull);
+	quaternion_rotationd(tilted, &Qfull_inverse, down);
+	//tilted is in avatar space.
+	angle = vecangle2d(down,tilted,rotaxis);
+	//if( APPROX(angle,0.0) ) return; //we're level already
+	vrmlrot_to_quaternion(Qtilt, rotaxis[0], rotaxis[1], rotaxis[2], angle );
+	quaternion_normalize(Qtilt);
+	quaternion_inverse(&Qtilt_inverse,Qtilt);
+	quaternion_multiply(Qyaw,&Qtilt_inverse,Qfull);
+	Quaternion Qtest;
+	quaternion_multiply(&Qtest,Qtilt,Qyaw);
+	//quaternion_print(&Qtest,"Qtilt x Qyaw 2");
+	//quaternion_print(Qfull,"Qfull ");
+		
+}
+void handle_pan(const int mev, const unsigned int button, float x, float y) {
+/* July 2020 PAN, ZOOM, TURN using 'pin point' in preparation for geospatial equivalent
+	PAN - LMB drag 
+	ZOOM - WHEEL
+	TURN - MMB drag; like turntable
+	pin_point - a point on the 'terrain' that stays under the cursor during PAN/ZOOM/TURN
+	- can't navigate dragging sky / background / empty space
+	- complex action-filter in setup_picking gets a ray-hit on terrain when needed
+*/
+
+	if(button){
+		X3D_Viewer *viewer;
+		ttglobal tg = gglobal();
+		viewer = Viewer();
+		float f3[3];
+		double *pin_point, *ray, d3[3], pp[3], angle, Dpos[3];
+		struct point_XYZ downvec, tilted, rotaxis;
+		Quaternion Qfull, Qfull_inverse, Qtilt, Qyaw;
+		int k = 0;
+
+		viewer_fetch_user_offsets0(viewer);
+
+		//split full quaterion (representing viewer.rotation) into tilts and yaw
+		Qfull = viewer->Quat;
+		quaternion_inverse(&Qfull_inverse,&Qfull);
+		double dtemp[3];
+		quaternion_split_tilt_yaw(&Qyaw,&Qtilt,&Qfull,pointxyz2double(dtemp,&viewer->Up));
+		pointxyz2double(Dpos,&viewer->Pos);
+
+		X3D_Viewer_Spherical *ypz;
+		ypz = &viewer->ypz; //just a place to store last mouse xy during drag
+
+		// LMB > PAN and WHEEL > ZOOM
+		switch(mev){
+			case  ButtonPress:
+				//button 1 or 2 LMB, MMB
+				pin_point = get_touch_pin_point();
+				ray = get_touch_ray();
+				if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
+					//early transform of ray to BV bound viewpoint
+					double v[3], N[3], dd, trackpoint[3];
+					quaternion_rotationd(ray,&Qfull_inverse,ray);
+					quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
+					vecaddd(ray,ray,Dpos);
+					vecaddd(&ray[3],&ray[3],Dpos);
+					vecdifd(v,&ray[3],ray);
+					vecnormald(v,v);
+					vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
+
+					dd = -vecdotd(N,&ray[3]);
+					if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
+						return; //looking at plane edge-on / parallel, no intersection
+					veccopyd(viewer->pan.pin_point_planed,trackpoint);
+					pointxyz2double(viewer->pan.down_pos,&viewer->Pos);
+					//printf("trackpoint %lf %lf %lf\n",trackpoint[0],trackpoint[1],trackpoint[2]);
+					//printf("pin_point  %lf %lf %lf\n",pin_point[0],pin_point[1],pin_point[2]);
+					show_pin_point(trackpoint);
+
+				}
+				ypz->x = x;
+				ypz->y = y;
+
+				break;
+			case MotionNotify:
+				pin_point = get_touch_pin_point();
+				ray = get_touch_ray();
+				if(button == 1){
+					//PAN
+					if(get_touch_hitPointDist() > 0.0 && pin_point && ray) {
+						//early transform of ray to BV bound viewpoint
+						double v[3], N[3], dd, delta[3], trackpoint[3];
+
+						double ddelta[3],dpos[3];
+						quaternion_rotationd(ray,&Qfull_inverse,ray);
+						quaternion_rotationd(&ray[3],&Qfull_inverse,&ray[3]);
+						vecaddd(ray,ray,Dpos);
+						vecaddd(&ray[3],&ray[3],Dpos);
+
+						vecdifd(v,&ray[3],ray);
+						vecnormald(v,v);
+						vecsetd(N,0.0,1.0,0.0); //plane is XZ plane of bound viewpoint, assuming viewpoint bound looking at horizon
+						dd = -vecdotd(N,viewer->pan.pin_point_planed);
+						if (!line_intersect_planed_3d(ray, v, N, dd, trackpoint, NULL))
+							return; //looking at plane edge-on / parallel, no intersection
+						vecdifd(delta,viewer->pan.pin_point_planed,trackpoint);
+						//vecaddd(dpos,viewer->pan.down_pos,delta);
+						vecaddd(dpos,Dpos,delta);
+						double2pointxyz(&viewer->Pos,dpos);
+
+					}
+				}else if(button == 4 || button == 5){
+					//wheel == zoom for PAN mode, and mouse button isn't down - its an on-wheel-notify activity
+					ray = get_touch_ray();
+					if(get_touch_hitPointDist() > 0.0 && ray) {
+						double ddelta[3],dpos[3],vv[3];
+						vecdifd(vv,&ray[3],ray);
+						if(button == 4)
+							vecscaled(ddelta,vv, -.2); //zoom in
+						if(button ==5)
+							vecscaled(ddelta,vv, .25); //zoom out
+						pointxyz2double(dpos,&viewer->Pos);
+						quaternion_rotationd(ddelta,&Qfull_inverse,ddelta);
+						vecaddd(dpos,dpos,ddelta);
+						double2pointxyz(&viewer->Pos,dpos);
+					}
+				} else if(button == 2){
+					//TURNTABLE (x-drag) or TILT (y-drag)
+					//TURNTABLE is around pin_point, 1/2 a turn (around ground verticle) per scren-width drag
+					//TILT - is around hinge axis going through pin_point, and perpendicular to viewpoint Z, 1/4 turn per screenheight drag
+					//Steps
+					//1. get the pin_point in bound-viewpoint coords
+					//2. get the difference between Pos and pin_point -> turntable vector
+					//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
+					//4. get mouse and compute some drag induced yaw and pitch changes
+					//5. combine delta yaw and pitch into a turntable delta quat
+					//6. rotate the turntable vector by delta turntable_quat => turntable2 vector
+					//7. rotate viewer quat by delta turntable_quat
+					//8. get diff (examine2 - examine) = delta_examine
+					//9. add delta_examine to viewer.Pos
+					if(get_touch_hitPointDist() > 0.0 && pin_point ) {
+						Quaternion qyaw, qpitch, qttable;
+						double dyaw, dpitch, v[3], v2[3], pin[3],dpos[3], xaxis[3], yaxis[3], ddr[3], xx[3],pp[3],pp2[3],delta[3],vlength;
+						double yaw;
+						dyaw = dpitch = 0.0;
+						//struct point_XYZ dd,ddr,xx,xxr;
+						double dist;
+						pointxyz2double(yaxis,&viewer->Up);
+						ray = get_touch_ray();
+						pointxyz2double(dpos,&viewer->Pos);
+						//1. get the pin_point in bound-viewpoint coords
+						veccopyd(pin,viewer->pan.pin_point_planed);
+						//2. get the difference between Pos and pin_point -> turntable vector, in bound-viewpoint coords
+						vecdifd(v,pin,dpos);
+						vlength = veclengthd(v);
+						//3. get the viewer yaw, so delta ptich can be wrt viewer X axis and pin_point
+						vecsetd(xaxis,1.0,0.0,0.0);
+						quaternion_rotationd(xaxis,&Qfull_inverse,xaxis);
+						//xaxis[1] = 0.0; // yaw vector
+						//yaw = atan2(xaxis[2],xaxis[0]);
+						//	printf("viewer yaw %lf \n",yaw * 180.0/PI);
+						//4. get mouse and compute some drag induced yaw and pitch changes
+						dyaw = -(ypz->x - x) * .5 * PI;
+						dpitch = (ypz->y - y) * .5 * PI;
+						//5. combine new yaw and pitch into a turntable quat
+						vrmlrot_to_quaternion(&qyaw, 0.0, 1.0, 0.0, dyaw);
+						vrmlrot_to_quaternion(&qpitch, xaxis[0],xaxis[1],xaxis[2], dpitch);
+						quaternion_multiply(&qttable, &qpitch, &qyaw);
+						quaternion_normalize(&qttable);
+						//7. rotate viewer quat by turntable_quat
+						quaternion_multiply(&viewer->Quat,&viewer->Quat,&qttable);
+						//6. rotate the turntable vector by turntable_quat => turntable2 vector
+						//quaternion_inverse(&qttable,&qttable);
+						quaternion_rotationd(v2,&qttable,v);
+						//printf("tvec before %lf %lf %lf\n",v[0],v[1],v[2]);
+						//printf("tvec aftere %lf %lf %lf\n",v2[0],v2[1],v2[2]);
+						//8. get diff (examine2 - examine) = delta_examine
+						vecdifd(delta,v2,v);
+						//9. add delta_examine to viewer.Pos
+						vecaddd(dpos,dpos,delta);
+						//vecaddd(dpos,pin,v2);
+						double2pointxyz(&viewer->Pos,dpos);
+						ypz->x = x;
+						ypz->y = y;
+					}
+				}
+				break;
+			case ButtonRelease:
+				//viewer->lookatmode should == 3 coming in here
+				unshow_pin_point();
+			break;
+		}
+		viewer_update_user_offsets0(viewer);
+	}
+
+}
+
+
+void handle_zoom(const int mev, const unsigned int button, float x, float y) {
+
+printf("geo_zoom ");
+}
+
+void handle_geo_turntable(const int mev, const unsigned int button, float x, float y) {
+printf("geo_ttable ");
+}
 
 void increment_pos0(struct point_XYZ *vec);
 void handle_tick_fly2(double dtime) {
@@ -1506,7 +1808,7 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 {
 	X3D_Viewer *viewer;
 	viewer = Viewer();
-
+	//printf("handle0 button=%d mev=%d \n",button,mev);
 	switch(viewer->type){
 		case VIEWER_WALK:
 		case VIEWER_FLY:
@@ -1514,6 +1816,8 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
 		case VIEWER_DIST:
+		case VIEWER_PAN:
+		case VIEWER_ZOOM:
 			viewer_fetch_user_offsets0(viewer);break;
 		default:
 			viewer_fetch_LCS(viewer);break;
@@ -1521,9 +1825,9 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	/* ConsoleMessage("Viewer handle: viewer_type %s, mouse event %d, button %u, x %f, y %f\n", 
 	   lookup_navmodestring(viewer->type), mev, button, x, yup); */
 
-	if (button == 2) {
-		return;
-	}
+	//if (button == 2) {
+	//	return;
+	//}
 	switch(viewer->type) {
 	case VIEWER_NONE:
 		break;
@@ -1564,6 +1868,12 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 	case VIEWER_DIST:
 		handle_dist(mev,button,(float)x,(float)yup);
 		break;
+	case VIEWER_PAN:
+		handle_pan(mev,button,(float)x,(float)yup);
+		break;
+	case VIEWER_ZOOM:
+		handle_zoom(mev,button,(float)x,(float)yup);
+		break;
 	default:
 		break;
 	}
@@ -1574,6 +1884,8 @@ void handle0(const int mev, const unsigned int button, const float x, const floa
 		case VIEWER_TURNTABLE:
 		case VIEWER_EXAMINE:
 		case VIEWER_DIST:
+		case VIEWER_PAN:
+		case VIEWER_ZOOM:
 			viewer_update_user_offsets0(viewer);break;
 		default:
 			viewer_update_LCS(viewer);break;
@@ -2661,10 +2973,27 @@ void setMono()
 	viewer->sidebyside = 0;
 	viewer->updown = 0;
 	viewer->shutterGlasses = 0;
+	viewer->cardboard = 0;
+	viewer->quadrant = 0;
 	tg->display.shutterGlasses = 0;
 
 }
-
+void fwl_init_quadrant(){
+	X3D_Viewer *viewer;
+	ttglobal tg = gglobal();
+	viewer = Viewer();
+	setMono();
+	viewer->quadrant = 1;
+	
+}
+void fwl_init_cardboard(){
+	X3D_Viewer *viewer;
+	ttglobal tg = gglobal();
+	viewer = Viewer();
+	setMono();
+	viewer->cardboard = 1;
+	
+}
 /*
 #define VIEWER_STEREO_OFF 0
 #define VIEWER_STEREO_SHUTTERGLASSES 1
@@ -2686,6 +3015,8 @@ static void setStereo(int type)
 	case VIEWER_STEREO_SIDEBYSIDE: {fwl_init_SideBySide(); break;}
 	case VIEWER_STEREO_ANAGLYPH: {setAnaglyph(); break;}
 	case VIEWER_STEREO_UPDOWN: {fwl_init_UpDown(); break;}
+	case VIEWER_STEREO_CARDBOARD: {fwl_init_cardboard(); break;}
+	case VIEWER_STEREO_QUADRANT: {fwl_init_quadrant(); break;}
 	default: break;
 	}
 }
@@ -2698,7 +3029,7 @@ void toggleOrSetStereo(int type)
 	viewer = Viewer();
 
 	shut = viewer->shutterGlasses ? 1 : 0;
-	curtype = viewer->isStereo*( (shut)*1 + viewer->sidebyside*2 + viewer->anaglyph*3 + viewer->updown*4);
+	curtype = viewer->isStereo*( (shut)*1 + viewer->sidebyside*2 + viewer->anaglyph*3 + viewer->updown*4 + viewer->cardboard*5 + viewer->quadrant*6);
 	if(type != curtype) {
 		setStereo(type);
 	} else {
@@ -2772,7 +3103,8 @@ void viewer_postGLinit_init(void)
 	if( viewer->sidebyside ) type = VIEWER_STEREO_SIDEBYSIDE;
 	if( viewer->updown ) type = VIEWER_STEREO_UPDOWN;
 	if( viewer->anaglyph ==1 ) type = VIEWER_STEREO_ANAGLYPH;
-
+	if( viewer->cardboard ==1 ) type = VIEWER_STEREO_CARDBOARD;
+	if( viewer->quadrant == 1 ) type = VIEWER_STEREO_QUADRANT;
 	if(type==VIEWER_STEREO_SHUTTERGLASSES)
 	{
 		// does this opengl driver/hardware support GL_STEREO? p.469, p.729 RedBook and
@@ -2843,7 +3175,10 @@ void geoviewpoint_update_TCS(struct X3D_GeoViewpoint *vp, Quaternion *Quat, stru
 void viewer_update_user_offsets0(X3D_Viewer *viewer){
 	//call this often when navigating
 	//saves accumulated navigation from bind pose, per viewpoint
-
+	// Q1. if we re-bind to the viewpoint, do we get our last pose with this vp, or the original design pose?
+	// we don't seem to get eventouts from .position and .orientation 
+	// Q2. should we MARK_EVENT(vp,offsetof(struct X3D_Viewpoint,position)); ?
+	// Q3. should the specs have separate eventOuts for updated pose so original pose is preseerved for re-bind?
 	struct X3D_Node *boundvp;
 	boundvp = getActiveLayerBoundViewpoint();
 	if(boundvp){
@@ -2866,6 +3201,7 @@ void viewer_update_user_offsets0(X3D_Viewer *viewer){
 				quaternion_to_vrmlrot(&viewer->Quat,&oo[0],&oo[1],&oo[2],&oo[3]);
 				oo[3] = -oo[3];
 				double2float(vp->orientation.c,oo,4);
+				//MARK_EVENT(vp, offsetof(struct X3D_Viewpoint, position));
 			}
 			break;
 			case NODE_GeoViewpoint:
@@ -3417,6 +3753,8 @@ void setup_viewpoint_slerp3(double* center, double pivot_radius, double vp_radiu
 	quaternion_multiply(&viewer->endSLERPQuat,&qtmp,&viewer->startSLERPQuat);
 }
 
+
+//Q. where do we 'visit' the viewpoint? H: render_viewpoint??
 void viewer_viewall(){
 	double dcenter[3], pivot_radius, vp_radius;
 	float extent6[6];
@@ -3428,21 +3766,55 @@ void viewer_viewall(){
 		double MM[16];
 		float vpf[3], center[3], vpoffset[3];
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, MM);
+		//matinverse(MM2,MM);
 		extent6f_copy(extent6,rn->_extent);
+		//extent6f_printf(extent6);
 		extent6f_mattransform4d(extent6,extent6,MM);
-		//include currently bound viewpoint in scene_diameter? 
-		//-I think it already is part of rootNode extent, no need to add it
-		vecset3f(vpf,0.0f,0.0f,0.0f); 
-		extent6f_get_center3f(extent6,center);
-		float2double(dcenter,center,3);
-		vecdif3f(vpoffset,center,vpf);
-		pivot_radius = extent6f_get_maxradius(extent6);
-		vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
-		Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
+		if(Viewer()->ortho){
+			//printf("got ourselves an orthoviewpoint in viewer_viewall\n");
+			//Viewer()->fieldOfView 
+			struct X3D_Node *boundvp = getActiveLayerBoundViewpoint();
+			if(boundvp->_nodeType == NODE_OrthoViewpoint){
+				struct X3D_OrthoViewpoint *vp = (struct X3D_OrthoViewpoint*)boundvp;
+				vp->fieldOfView.p[0] = extent6[1];
+				vp->fieldOfView.p[1] = extent6[3];
+				vp->fieldOfView.p[2] = extent6[0];
+				vp->fieldOfView.p[3] = extent6[2];
+				//Viewer()->orthoField[0] = extent6[1];
+				//Viewer()->orthoField[0] = extent6[3];
+				//Viewer()->orthoField[0] = extent6[0];
+				//Viewer()->orthoField[0] = extent6[2];
+				//Viewer()->SLERPing3 = 1;
+			}
+		}else{
+			//include currently bound viewpoint in scene_diameter? 
+			//-I think it already is part of rootNode extent, no need to add it
+			vecset3f(vpf,0.0f,0.0f,0.0f); 
+			extent6f_get_center3f(extent6,center);
+			float2double(dcenter,center,3);
+			pivot_radius = extent6f_get_maxradius(extent6);
+			if(0){
+				vecdif3f(vpoffset,center,vpf);
+				vp_radius = vpradius = veclength3f(vpoffset) * 1.5;
+			}else{
+				//assuming perspective camera
+				//theory (2D side view of scneario)
+				// if your viewer half-angle is alpha
+				// and the scene radious is R
+				// how far away D should you be from scene center?
+				// sin(alpha) = R/D, or D = R/sin(alpha)
+				//printf("\npivot_radius= %lf\n",pivot_radius);
+				//printf("fieldofview = %lf\n",viewer->fieldofview);
+				vp_radius = pivot_radius /sin(Viewer()->fieldofview *.5 * M_PI / 180.0);
+				//printf("vp_radius %lf\n",vp_radius);
+			}
+			Viewer()->Dist = vp_radius; //pivot_radius; // + scene_diameter;
 
-		setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
+			setup_viewpoint_slerp3(dcenter,pivot_radius, vp_radius);
+		}
 	}
 }
+
 /* We have a Viewpoint node being bound. (not a GeoViewpoint node) */
 void bind_Viewpoint (struct X3D_Viewpoint *vp) {
 	Quaternion q_i;

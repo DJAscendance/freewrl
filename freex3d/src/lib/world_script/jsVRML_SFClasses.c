@@ -1341,7 +1341,7 @@ SFNodeValueOf(JSContext *cx, uintN argc, jsval *vp) {
 	{
 		jsdouble nv;
 		char tmpline[100];
-		sprintf (tmpline,"%zx",handle);
+		sprintf (tmpline,"%zx",(size_t)handle);
 		/* sprintf (tmpline,"%ld",ptr->handle); */
 
 		/* printf ("pointer to long int :%s:\n",tmpline); */
@@ -2037,7 +2037,7 @@ SFNodeGetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid,  JSMutabl
 				//static void X3D_MF_TO_JS(JSContext *cx, JSObject *obj, void *Data, int dataType, jsval *newval, char *fieldName) {
 					X3D_MF_TO_JS_B(cx, value, type, valueChanged, vp);
 					break;
-				default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", type) ;
+				default: printf ("unhandled type FIELDTYPE_ %d in get SFNodeField\n", type) ;
 				return JS_FALSE;
 				}
 	
@@ -2451,7 +2451,7 @@ SFNodeSetProperty(JSContext *cx, JSHandleObject hobj, JSHandleId hiid, JSBool st
 						case FIELDTYPE_SFImage:
 						X3D_MF_TO_JS(cx2, obj2, &vrmlField, myfieldType, &newval, _id_c);
 						break;
-						default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", myfieldType) ;
+						default: printf ("unhandled type FIELDTYPE_ %d ingetSFNodeField\n", myfieldType) ;
 						return JS_FALSE;
 					}
 				}else{ //deepcopy

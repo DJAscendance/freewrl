@@ -36,6 +36,10 @@
  *  bufpool.c++
  *
  */
+#ifdef __unix__
+# include "stdlib.h"
+# include "assert.h"
+#endif
 
 #include "glimports.h"
 #include "myassert.h"

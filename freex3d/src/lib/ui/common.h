@@ -31,7 +31,6 @@ int fwl_getTrap();
 /* Status update functions */
 
 void setMenuFps(float fps);
-void setMenuStatus(char *stat);
 void setMenuStatusVP(char *stat);
 char* getMenuStatus();
 void setMessageBar();
@@ -55,12 +54,18 @@ void update_status(char* msg);
 void kill_status();
 char *get_status();
 char *getMenuStatus();
+void setSensorStatus(char*);
+char* getSensorStatus();
 void showConsoleText(int on);
 int getShowConsoleText();
 void fwl_setDrawBoundingBoxes(int drawbb);
 int fwl_getDrawBoundingBoxes();
 void fwl_set_depth_slices(int nslices);
 int fwl_get_depth_slices();
+void fwl_setShowViewpoints(int show);
+void fwl_setDrawRig(int draw);
+int fwl_getDrawRig();
+int fwl_getShowViewpoints();
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
@@ -125,5 +130,14 @@ ALT,CTRL,SHIFT true/false
 #define JSENGINE_STUB 0
 #define JSENGINE_DUK 1
 #define JSENGINE_SM 2
+
+/* recording / playback (.fwplay) */
+int fwl_get_modeRecord();
+void record_mouse(int mev, int butnum, int mouseX, int mouseY, int windex);
+void record_rawkeypress(int key, int type);
+void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex);
+#ifdef _MSC_VER
+void updateCursorStyle0(int cstyle); /* fwWindow32.c; other frontends poll getCursorStyle() */
+#endif
 
 #endif /* __LIBFREEWRL_UI_COMMON_H__ */

@@ -38,6 +38,56 @@
 
 #include "LinearAlgebra.h"
 
+float fclamp(float fval, float fstart, float fend) { 
+	float fret = fval;
+	fret = fval > fend? fend : fval;		//min(fval,fend)
+	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
+	return fret;
+}
+float *vecclamp2f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<2;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
+float *vecclamp3f(float *fval, float *fstart, float *fend){
+	int i;
+	for(i=0;i<3;i++){
+		if(fstart[i] <= fend[i])
+			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
+	}
+	return fval;  //so you can chain
+}
+float *fvecclamp3f(float *fval, float fstart, float fend){
+	int i;
+	for(i=0;i<3;i++){
+		if(fstart <= fend)
+			fval[i] = fclamp(fval[i],fstart,fend);
+	}
+	return fval;  //so you can chain
+}
+// #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
+int approx3f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<3;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
+int approx4f(float *a, float *b){
+	float tol = 0.00000001;
+	int i, iret = TRUE;
+	for(i=0;i<4;i++){
+		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
+	}
+	return iret;
+}
+
+
+
 double angleNormalized(double angle){
 	//will normalize to +- 2*PI (+-180) range
 	return atan2(sin(angle),cos(angle));
@@ -75,6 +125,11 @@ double * vecsetd(double *b, double x, double y, double z){
 	b[0] = x, b[1] = y; b[2] = z;
 	return b;
 }
+double* vecset2d(double* b, double x, double y) {
+	b[0] = x, b[1] = y; 
+	return b;
+}
+
 double * vecset4d(double *b, double x, double y, double z, double a){
 	b[0] = x, b[1] = y; b[2] = z; b[3] = a;
 	return b;
@@ -100,6 +155,12 @@ double *vecdif2d(double *c, double* a, double *b){
 	c[1] = a[1] - b[1];
 	return c;
 }
+double* veccopy2d(double* c, double* a) {
+	c[0] = a[0];
+	c[1] = a[1];
+	return c;
+}
+
 double veclength2d( double *p ){
 	return sqrt(p[0]*p[0] + p[1]*p[1]);
 }
@@ -318,6 +379,11 @@ float vecdot4f( float *a, float *b )
 {
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + + a[3]*b[3];
 }
+double vecdot4d(double* a, double* b)
+{
+	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + +a[3] * b[3];
+}
+
 float *vecset3f(float *b, float x, float y, float z)
 {
 	b[0] = x; b[1] = y; b[2] = z;
@@ -335,6 +401,14 @@ float veclength3f(float *a){
 double vecangle(struct point_XYZ* V1, struct point_XYZ* V2) {
     return acos((V1->x*V2->x + V1->y*V2->y +V1->z*V2->z) /
 		sqrt( (V1->x*V1->x + V1->y*V1->y + V1->z*V1->z)*(V2->x*V2->x + V2->y*V2->y + V2->z*V2->z) )  );
+};
+float vecangle2f(float * V1, float * V2) {
+	//full circle angele between 2 2D vectors
+    float det, dot, angle;
+	dot = V1[0]*V2[0] + V1[1]*V2[1];  // dot product
+	det = V1[0]*V2[1] - V1[1]*V2[0];  // determinant
+	angle = atan2(det, dot);  // atan2(y, x) or atan2(sin, cos)
+	return angle;
 };
 
 float *veccopy4f(float *b, float *a)
@@ -388,13 +462,28 @@ float calc_angle_between_two_vectors(struct point_XYZ a, struct point_XYZ b)
     }
     return (float) acos(temp);
 }
-
+int vecapprox3f(float *a, float *b, float tol){
+	float tmp[3];
+	return veclength3f(vecdif3f(tmp,a,b)) < tol ? TRUE : FALSE;
+}
+int vecapprox2f(float *a, float *b, float tol){
+	float tmp[2];
+	return veclength2f(vecdif2f(tmp,a,b)) < tol ? TRUE : FALSE;
+}
 int vecsame3f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<3;i++)
 		if(a[i] != b[i]) isame = FALSE;
 	return isame;
 }
+int vecclose3f(float* a, float* b, float tol) {
+	int isame;
+	isame = TRUE;
+	for (int i = 0; i < 3; i++)
+		if (fabs(a[i] - b[i]) > tol) isame = FALSE;
+	return isame;
+}
+
 int vecsame4f(float *a, float *b){
 	int i,isame = TRUE;
 	for(i=0;i<4;i++)
@@ -432,16 +521,36 @@ float *vecscale4f(float *b, float *a, float scale){
 	b[3] = a[3] * scale;
 	return b;
 }
+double* vecscale4d(double* b, double* a, double scale) {
+	b[0] = a[0] * scale;
+	b[1] = a[1] * scale;
+	b[2] = a[2] * scale;
+	b[3] = a[3] * scale;
+	return b;
+}
 float *vecmult3f(float *c, float *a, float *b){
 	/* c[i] = a[i]*b[i] */
 	int i=0;
 	for(;i<3;i++) c[i] = a[i]*b[i];
 	return c;
 }
+double* vecmult3d(double* c, double* a, double* b) {
+	/* c[i] = a[i]*b[i] */
+	int i = 0;
+	for (; i < 3; i++) c[i] = a[i] * b[i];
+	return c;
+}
+
 float *vecmult2f(float *c, float *a, float *b){
 	/* c[i] = a[i]*b[i] */
 	int i=0;
 	for(;i<2;i++) c[i] = a[i]*b[i];
+	return c;
+}
+double* vecmult2d(double* c, double* a, double* b) {
+	/* c[i] = a[i]*b[i] */
+	int i = 0;
+	for (; i < 2; i++) c[i] = a[i] * b[i];
 	return c;
 }
 
@@ -467,7 +576,12 @@ float det3f(float *a, float *b, float *c)
 	float temp[3];
 	return vecdot3f(a,veccross3f(temp,b, c));
 }
-
+double det3d(double *a, double *b, double *c)
+{
+	/*FLOPs 9 float: dot 3, cross 6 */
+	double temp[3];
+	return vecdotd(a,veccrossd(temp,b, c));
+}
 struct point_XYZ* transform(struct point_XYZ* r, const struct point_XYZ* a, const GLDOUBLE* b)
 {
 	//FLOPs 9 double
@@ -546,7 +660,106 @@ double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat){
 	//result should be pure rotation matrix (with possible rare shear)
 	return rotmat; //we return it too, in case you want to do fancy chain multiplication 
 }
-
+/**
+This requires a pure rotation matrix 'm' as input.
+*/
+void RotationMatrixtoAxisAngle(double *axisangle, double *mat4) {
+// https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/ 
+	//matrix must be pure rotation matrix
+	double angle, x, y, z; // variables for result
+	double epsilon = 0.01; // margin to allow for rounding errors
+	double epsilon2 = 0.1; // margin to distinguish between 0 and 180 degrees
+	// optional check that input is pure rotation, 'isRotationMatrix' is defined at:
+	// https://www.euclideanspace.com/maths/algebra/matrix/orthogonal/rotation/
+	double* m[3];
+	m[0] = &mat4[0];
+	m[1] = &mat4[4];
+	m[2] = &mat4[8];
+	if ((abs(m[0][1] - m[1][0]) < epsilon)
+		&& (abs(m[0][2] - m[2][0]) < epsilon)
+		&& (abs(m[1][2] - m[2][1]) < epsilon)) {
+		// singularity found
+		// first check for identity matrix which must have +1 for all terms
+		//  in leading diagonaland zero in other terms
+		if ((abs(m[0][1] + m[1][0]) < epsilon2)
+			&& (abs(m[0][2] + m[2][0]) < epsilon2)
+			&& (abs(m[1][2] + m[2][1]) < epsilon2)
+			&& (abs(m[0][0] + m[1][1] + m[2][2] - 3) < epsilon2)) {
+			// this singularity is identity matrix so angle = 0
+			vecsetd(axisangle, 0.0, 1.0, 0.0);
+			axisangle[3] = 0.0;
+			return; // new axisAngle(0, 1, 0, 0); // zero angle, arbitrary axis
+		}
+		// otherwise this singularity is angle = 180
+		angle = PI;
+		double xx = (m[0][0] + 1) / 2;
+		double yy = (m[1][1] + 1) / 2;
+		double zz = (m[2][2] + 1) / 2;
+		double xy = (m[0][1] + m[1][0]) / 4;
+		double xz = (m[0][2] + m[2][0]) / 4;
+		double yz = (m[1][2] + m[2][1]) / 4;
+		if ((xx > yy) && (xx > zz)) { // m[0][0] is the largest diagonal term
+			if (xx < epsilon) {
+				x = 0;
+				y = 0.7071;
+				z = 0.7071;
+			}
+			else {
+				x = sqrt(xx);
+				y = xy / x;
+				z = xz / x;
+			}
+		}
+		else if (yy > zz) { // m[1][1] is the largest diagonal term
+			if (yy < epsilon) {
+				x = 0.7071;
+				y = 0;
+				z = 0.7071;
+			}
+			else {
+				y = sqrt(yy);
+				x = xy / y;
+				z = yz / y;
+			}
+		}
+		else { // m[2][2] is the largest diagonal term so base result on this
+			if (zz < epsilon) {
+				x = 0.7071;
+				y = 0.7071;
+				z = 0;
+			}
+			else {
+				z = sqrt(zz);
+				x = xz / z;
+				y = yz / z;
+			}
+		}
+		vecsetd(axisangle, x, y, z);
+		axisangle[3] = angle;
+		return; // new axisAngle(angle, x, y, z); // return 180 deg rotation
+	}
+	// as we have reached here there are no singularities so we can handle normally
+	double s = sqrt((m[2][1] - m[1][2]) * (m[2][1] - m[1][2])
+		+ (m[0][2] - m[2][0]) * (m[0][2] - m[2][0])
+		+ (m[1][0] - m[0][1]) * (m[1][0] - m[0][1])); // used to normalise
+	if (abs(s) < 0.001) s = 1;
+	// prevent divide by zero, should not happen if matrix is orthogonal and should be
+	// caught by singularity test above, but I've left it in just in case
+	angle = acos((m[0][0] + m[1][1] + m[2][2] - 1) / 2);
+	x = (m[2][1] - m[1][2]) / s;
+	y = (m[0][2] - m[2][0]) / s;
+	z = (m[1][0] - m[0][1]) / s;
+	vecsetd(axisangle, x, y, z);
+	axisangle[3] = angle;
+	return; // new axisAngle(angle, x, y, z);
+}
+void AFFINEmatrix2axisangled(double* axisangle, double* matrix4) {
+	//convert to pure rotation matrix
+	double rotmat4[16];
+	matrixAFFINE2RotationMatrix(rotmat4, matrix4);
+	//get axis angle
+	RotationMatrixtoAxisAngle(axisangle, rotmat4);
+}
 double *transformAFFINEd(double *r, double *a, const GLDOUBLE* mat){
 	// r = a x mat
 	struct point_XYZ pa, pr;
@@ -597,6 +810,19 @@ float* matmultvec4f(float* r4, float *mat4, float* a4 )
 	}
     return r4;
 }
+double* matmultvec4d(double* r4, double* mat4, double* a4)
+{
+	int i, j;
+	double t4[4], * b[4];
+	memcpy(t4, a4, 4 * sizeof(double));
+	for (i = 0; i < 4; i++) {
+		r4[i] = 0.0f;
+		b[i] = &mat4[i * 4];
+		for (j = 0; j < 4; j++)
+			r4[i] += b[i][j] * t4[j];
+	}
+	return r4;
+}
 float* vecmultmat4f_broken(float* r4, float* a4, float *mat4 )
 {
 	int i,j;
@@ -623,6 +849,20 @@ float* vecmultmat4f(float* r4, float* a4, float *mat4 )
 	}
     return r4;
 }
+
+double* vecmultmat4d(double* r4, double* a4, double* mat4)
+{
+	int i, j;
+	double t4[4];
+	memcpy(t4, a4, 4 * sizeof(double));
+	for (i = 0; i < 4; i++) {
+		r4[i] = 0.0f;
+		for (j = 0; j < 4; j++)
+			r4[i] += t4[j] * mat4[j * 4 + i];
+	}
+	return r4;
+}
+
 float* matmultvec3f(float* r3, float *mat3, float* a3 )
 {
 	int i,j;
@@ -649,6 +889,35 @@ float* vecmultmat3f(float* r3, float* a3, float *mat3 )
 	}
 
     return r3;
+}
+
+double* matmultvec3d(double* r3, double* mat3, double* a3)
+{
+	int i, j;
+	double t3[3], * b[3];
+	memcpy(t3, a3, 3 * sizeof(double));
+	for (i = 0; i < 3; i++) {
+		r3[i] = 0.0f;
+		b[i] = &mat3[i * 3];
+		for (j = 0; j < 3; j++)
+			r3[i] += b[i][j] * t3[j];
+	}
+	return r3;
+}
+double* vecmultmat3d(double* r3, double* a3, double* mat3)
+{
+	int i, j;
+	double t3[3], * b[3];
+	memcpy(t3, a3, 3 * sizeof(double));
+	for (i = 0; i < 3; i++) b[i] = &mat3[i * 3];
+	for (i = 0; i < 3; i++) {
+		r3[i] = 0.0f;
+		//b[i] = &mat3[i * 3];
+		for (j = 0; j < 3; j++)
+			r3[i] += t3[j] * b[j][i];
+	}
+
+	return r3;
 }
 
 /*transform point, but ignores translation.*/
@@ -780,6 +1049,27 @@ BOOL line_intersect_plane_3f(float *p, float *v, float *N, float *pp, float *pi,
 	return line_intersect_planed_3f(p, v, N, d, pi, t);
 }
 
+BOOL line_intersect_planed_3d(double *p, double *v, double *N, double d, double *pi, double *t)
+{
+	//from graphics gems I, p.391 http://inis.jinr.ru/sl/vol1/CMC/Graphics_Gems_1,ed_A.Glassner.pdf
+	// V dot N = d = const for points on a plane, or N dot P + d = 0
+	// line/ray P1 + v1*t = P2 (intersection point)
+	// combining t = -(d + N dot P1)/(N dot v1)
+	double t1[3], t2[3], nd, tt;
+	nd = vecdotd(N, v);
+	if (APPROX(nd, 0.0)) return FALSE;
+	tt = -(d + vecdotd(N, p)) / nd;
+	vecaddd(t2, p, vecscaled(t1, v, tt));
+	if (t) *t = tt;
+	if (pi) veccopyd(pi, t2);
+	return TRUE;
+}
+BOOL line_intersect_plane_3d(double *p, double *v, double *N, double *pp, double *pi, double *t)
+{
+	double d;
+	d = vecdotd(N, pp);
+	return line_intersect_planed_3d(p, v, N, d, pi, t);
+}
 BOOL line_intersect_cylinder_3f(float *p, float *v, float radius, float *pi)
 {
 	//from rendray_Cylinder
@@ -917,6 +1207,25 @@ float* mattranspose3f(float* res, float* mm)
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j < 3; j++) {
 			res[i*3+j] = m[j*3+i];
+		}
+	}
+	return res;
+}
+double* mattranspose3d(double* res, double* mm)
+{
+	double mcpy[9];
+	int i, j;
+	double* m;
+
+	m = mm;
+	if (res == m) {
+		memcpy(mcpy, m, sizeof(double) * 9);
+		m = mcpy;
+	}
+
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			res[i * 3 + j] = m[j * 3 + i];
 		}
 	}
 	return res;
@@ -1077,6 +1386,7 @@ GLDOUBLE* matscale(GLDOUBLE* r, double sx, double sy, double sz)
 	r[0] = sx;
 	r[5] = sy;
 	r[10] = sz;
+	r[15] = 1.0;
     return r;
 }
 
@@ -1260,6 +1570,35 @@ float* matmultiply3f(float* r, float* mm , float* nn)
 		}
 	return r;
 }
+double* matmultiply3d(double* r, double* mm, double* nn)
+{
+	/* FLOPs 27 float: N^3 = 3x3x3
+	r = mm x nn
+	*/
+	double tm[9], tn[9];
+	double* m, * n;
+	int i, j, k;
+	/* prevent self-multiplication problems.*/
+	m = mm;
+	n = nn;
+	if (r == m) {
+		memcpy(tm, m, sizeof(double) * 9);
+		m = tm;
+	}
+	if (r == n) {
+		memcpy(tn, n, sizeof(double) * 9);
+		n = tn;
+	}
+	/* assume 4x4 homgenous transform */
+	for (i = 0; i < 3; i++)
+		for (j = 0; j < 3; j++)
+		{
+			r[i * 3 + j] = 0.0;
+			for (k = 0; k < 3; k++)
+				r[i * 3 + j] += m[i * 3 + k] * n[k * 3 + j];
+		}
+	return r;
+}
 float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 {
 	/*	http://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation
@@ -1278,6 +1617,25 @@ float *axisangle_rotate3f(float* b, float *a, float *axisangle)
 	vecadd3f(b,vecscale3f(t1, a, cosine), vecadd3f(t2, vecscale3f(t3, cross, sine), vecscale3f(t4, axis, dot*(1.0f - cosine))));
 	return b;
 }
+double* axisangle_rotate3d(double* b, double* a, float* axisangle)
+{
+	/*	http://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation
+	uses Rodrigues formula axisangle (axis,angle)
+	somewhat expensive, so if tranforming many points with the same rotation,
+		it might be more efficient to use another method (like axisangle -> matrix, then matrix transforms)
+	b = a*cos(angle) + (axis cross a)*sin(theta) + axis*(axis dot a)*(1 - cos(theta))
+	*/
+	double cosine, sine, cross[3], dot, theta, axis[3], t1[3], t2[3], t3[3], t4[3];
+	theta = axisangle[3];
+	float2double(axis,axisangle,3);
+	cosine = cos(theta);
+	sine = (float)sin(theta);
+	veccrossd(cross, axis, a);
+	dot = vecdotd(axis, a);
+	vecaddd(b, vecscaled(t1, a, cosine), vecaddd(t2, vecscaled(t3, cross, sine), vecscaled(t4, axis, dot * (1.0 - cosine))));
+	return b;
+}
+
 struct SFRotation *sfrotation_multiply(struct SFRotation* T, struct SFRotation *A, struct SFRotation *B);
 float *axisangle_rotate4f(float* axisAngleC, float *axisAngleA, float *axisAngleB)
 {
@@ -1350,6 +1708,16 @@ double *mattranslate4d(double *mat, double* xyz){
 	matmultiplyFULL(mat,mtemp,mat);
 	return mat;
 }
+double* matscale4d(double* mat, double* sxyz) {
+	// untested, want it to work like fw_glTranslated
+	double mtemp[16];
+	matidentity4d(mtemp);
+	mtemp[0] = sxyz[0];
+	mtemp[5] = sxyz[1];
+	mtemp[10] = sxyz[2];
+	matmultiplyFULL(mat, mtemp, mat);
+	return mat;
+}
 float *matidentity4f(float *b){
 	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i,j;
@@ -1363,10 +1731,17 @@ float *matidentity4f(float *b){
 	return b;
 }
 float *matidentity3f(float *b){
-	// zeros a 4x4 and puts 1's down the diagonal to make a 4x4 identity matrix
+	// zeros a 3x3 and puts 1's down the diagonal to make a 4x4 identity matrix
 	int i;
 	for(i=0;i<9;i++) b[i] = 0.0f;
 	for(i=0;i<3;i++) b[i*3 +i] = 1.0f;
+	return b;
+}
+double* matidentity3d(double* b) {
+	// zeros a 3x3 and puts 1's down the diagonal to make a 4x4 identity matrix
+	int i;
+	for (i = 0; i < 9; i++) b[i] = 0.0;
+	for (i = 0; i < 3; i++) b[i * 3 + i] = 1.0;
 	return b;
 }
 float *axisangle2matrix4f(float *b, float *axisangle){
@@ -1574,6 +1949,78 @@ BOOL matrix3x3_inverse_float(float *inn, float *outt)
         return TRUE;
     }
 }
+BOOL matrix3x3_inverse_double(double* inn, double* outt)
+{
+	/*FLOPs 40 float: det3 12, 1/det 1, adj3x3 9x3=27 */
+
+	double    det_1;
+	double    pos, /* neg, */ temp;
+	double* in[3], * out[3];
+
+	/*#define ACCUMULATE    \
+	//    if (temp >= 0.0)  \
+	//        pos += temp;  \
+	//    else              \
+			neg += temp;
+	*/
+
+#define ACCUMULATE pos += temp;
+
+	//#define PRECISION_LIMIT 1.0e-7 //(1.0e-15)
+	in[0] = &inn[0];
+	in[1] = &inn[3];
+	in[2] = &inn[6];
+	out[0] = &outt[0];
+	out[1] = &outt[3];
+	out[2] = &outt[6];
+
+	/*
+	 * Calculate the determinant of submatrix A and determine if the
+	 * the matrix is singular as limited by the double precision
+	 * floating-point data representation.
+	 */
+	pos = 0.0f; //neg = 0.0;
+	temp = in[0][0] * in[1][1] * in[2][2];
+	ACCUMULATE
+		temp = in[0][1] * in[1][2] * in[2][0];
+	ACCUMULATE
+		temp = in[0][2] * in[1][0] * in[2][1];
+	ACCUMULATE
+		temp = -in[0][2] * in[1][1] * in[2][0];
+	ACCUMULATE
+		temp = -in[0][1] * in[1][0] * in[2][2];
+	ACCUMULATE
+		temp = -in[0][0] * in[1][2] * in[2][1];
+	ACCUMULATE
+		det_1 = pos; // + neg;
+
+	/* Is the submatrix A singular? */
+	//if ((det_1 == 0.0) || (abs(det_1 / (pos - neg)) < PRECISION_LIMIT)) {
+	if (APPROX(det_1, 0.0)) {
+
+		/* Matrix M has no inverse */
+
+		if (SHOW_NONSINGULARS) printf("affine_matrix4_inverse: singular matrix\n");
+		return FALSE;
+	}
+
+	else {
+
+		/* Calculate inverse(A) = adj(A) / det(A) */
+		det_1 = 1.0f / det_1;
+		out[0][0] = (in[1][1] * in[2][2] - in[1][2] * in[2][1]) * det_1;
+		out[1][0] = -(in[1][0] * in[2][2] - in[1][2] * in[2][0]) * det_1;
+		out[2][0] = (in[1][0] * in[2][1] - in[1][1] * in[2][0]) * det_1;
+		out[0][1] = -(in[0][1] * in[2][2] - in[0][2] * in[2][1]) * det_1;
+		out[1][1] = (in[0][0] * in[2][2] - in[0][2] * in[2][0]) * det_1;
+		out[2][1] = -(in[0][0] * in[2][1] - in[0][1] * in[2][0]) * det_1;
+		out[0][2] = (in[0][1] * in[1][2] - in[0][2] * in[1][1]) * det_1;
+		out[1][2] = -(in[0][0] * in[1][2] - in[0][2] * in[1][0]) * det_1;
+		out[2][2] = (in[0][0] * in[1][1] - in[0][1] * in[1][0]) * det_1;
+
+		return TRUE;
+	}
+}
 float * mat423f(float *out3x3, float *in4x4)
 {
 	int i,j;
@@ -1586,6 +2033,11 @@ float * mat423f(float *out3x3, float *in4x4)
 float * matinverse3f(float *out3x3, float *in3x3)
 {
 	matrix3x3_inverse_float(in3x3,out3x3);
+	return out3x3;
+}
+double* matinverse3d(double* out3x3, double* in3x3)
+{
+	matrix3x3_inverse_double(in3x3, out3x3);
 	return out3x3;
 }
 

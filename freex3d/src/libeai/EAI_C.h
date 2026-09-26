@@ -31,7 +31,7 @@
 	#include <winsock2.h>	
 	#include <ws2tcpip.h> /* for TCPIP - are we using tcp? */
 	#include <windows.h>
-	#define snprintf _snprintf
+	//#define snprintf _snprintf
 	//#define sscanf sscanf_s
 	#define STRTOK_S strtok_s
 #else

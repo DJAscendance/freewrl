@@ -101,7 +101,7 @@ GLfloat boxtex[] = {
 #undef F2
 #undef F3
 
-ushort boxwireindices[] = { 
+int boxwireindices[] = { 
  0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3, 
  6, 7, 7, 8, 8, 6, 9,10,10,11,11, 9, 
 12,13,13,14,14,12,15,16,16,17,17,15,

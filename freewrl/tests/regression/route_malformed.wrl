@@ -1,0 +1,23 @@
+#VRML V2.0 utf8
+# Regression: malformed ROUTE statements must be reported, not crash the parser.
+# FreeWRL 6.7's ROUTE error path freed pointers it had never set (abort in
+# parser_routeStatement_B). The first group names unknown nodes/fields or mismatched types:
+# each is reported ("Routing problem") and skipped. The last one is a syntax error: the
+# classic VRML parser stops there, as it always has, so it comes after the scene.
+# Pass: FreeWRL does not crash, logs the errors, and renders the blue sphere.
+Viewpoint { position 0 0 6 description "front" }
+DEF T TimeSensor { cycleInterval 1 loop TRUE }
+DEF P PositionInterpolator { key [ 0 1 ] keyValue [ 0 0 0, 0 0 0 ] }
+DEF X Transform { }
+ROUTE Nowhere.fraction_changed TO P.set_fraction
+ROUTE T.no_such_field TO P.set_fraction
+ROUTE T.fraction_changed TO Nowhere.set_fraction
+ROUTE T.fraction_changed TO P.no_such_field
+ROUTE T.fraction_changed TO X.set_translation
+Transform {
+	children Shape {
+		appearance Appearance { material Material { diffuseColor 0 0 1 } }
+		geometry Sphere { radius 1 }
+	}
+}
+ROUTE T.fraction_changed P.set_fraction

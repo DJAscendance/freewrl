@@ -37,6 +37,7 @@ X3D Geospatial Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "Component_Grouping.h"
 
 #include "../world_script/fieldSet.h"
 #include "../x3d_parser/Bindable.h"
@@ -59,7 +60,13 @@ X3D Geospatial Component
 #include "fwgeolib.h"
 #define GEOLIB
 #endif
-
+#ifdef HAVE_SRM
+#define _LIB 1
+#define SRMLIB 1
+#include <stdio.h>
+#include <string.h>
+#include <srm.h>
+#endif
 int method_geolib(){
 #ifdef GEOLIB
 	return 0; //freewrl hand coded way, was working fine for more than decade
@@ -68,6 +75,15 @@ int method_geolib(){
 	return 0; //freewrl hand coded way
 #endif
 }
+int method_srm(){
+#ifdef SRMLIB
+	//return 0; //freewrl hand coded way, was working fine for more than decade
+	return 1; //srm.lib from sedris.org
+#else //SRMLIB
+	return 0; //freewrl hand coded way
+#endif //SRMLIB
+}
+
 
 void push_planetId(int planetId);
 int current_planetId();
@@ -806,6 +822,86 @@ static void Gd_Gc3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struct
 		getchar();
 }
 #endif //GEOLIB
+#ifdef SRMLIB
+static void Gd_Gc3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
+	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
+
+
+	//step 1a allocate source SRF
+	SRM_Celestiodetic   cd_srf;
+	SRM_Status_Code      status;
+
+	SRM_ORM_Code src_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code src_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(src_orm,src_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1 ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiocentric cc_srf;
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CC_Create(tgt_orm, tgt_rt, &cc_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2 ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cd_3d_coord;
+		
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 3 ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cc_3d_coord;
+
+	status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
+												0.0,0.0,0.0,
+												&cc_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+	for(int i=0;i<n;i++){
+
+		double gd[3], gc[3];
+		veccopyd(gd,inc[i].c);
+		if(!geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(geoSystem->gd_degrees) vecscale2d(gd,gd,RADIANS_PER_DEGREE);
+		
+		SRM_Long_Float   latitude = gd[0];
+		SRM_Long_Float   longitude = gd[1];
+		SRM_Long_Float   ellipsoidal_height = gd[2];
+		//if(gd[1] < 0.0) gd[1] += PI;
+		printf("swizzled and radians gd:\n");
+		printf("%d  %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
+		status = cd_srf.methods->SetCoordinate3DValues(&cd_srf,&cd_3d_coord, 
+			gd[1],gd[0],gd[2]);
+			//longitude, latitude, ellipsoidal_height);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+
+
+		//step 3 convert
+		SRM_Coordinate_Valid_Region valid_region;
+
+		status = cc_srf.methods->ChangeCoordinate3DSRF(&cc_srf,
+												   &cd_srf,
+												   &cd_3d_coord,
+												   &cc_3d_coord,
+												   &valid_region);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 ");
+
+		SRM_Long_Float tgt_ord[3];
+		vecsetd(tgt_ord,0.0,0.0,0.0);
+		status = cc_srf.methods->GetCoordinate3DValues(&cc_srf,
+				 &cc_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+		veccopyd(outc[i].c,tgt_ord);
+	}
+
+    return;
+}
+#endif //SRMLIB
 static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc){
 	int i;
 #ifdef GEOLIB
@@ -817,6 +913,16 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 		//}
 	}else
 #endif //GEOLIB
+#ifdef SRMLIB
+	if(method_srm()){
+		Gd_Gc3d_srm(geoSystem,inc,n,outc);
+		printf("srm gd2gc:\n");
+		for(i=0;i<min(200,n);i++){
+			printf("gd %d %lf %lf %lf\n",i,inc[i].c[0],inc[i].c[1],inc[i].c[2]);
+			printf("gc %d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+		}
+	}else
+#endif //SRMLIB
 	{
 		double semimajor, flattening;
 		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
@@ -839,10 +945,14 @@ static void Gd_Gc3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3
 		else
 		{
 			Gd_Gc3d_fw(geoSystem,inc,n,outc);
-			//printf("fw gd:\n");
-			//for(i=0;i<min(5,n);i++){
-			//	printf("%d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
-			//}
+			#ifdef SRMLIB
+			printf("regular gd2gc:\n");
+			for(i=0;i<min(5,n);i++){
+				printf("gd %d %lf %lf %lf\n",i,inc[i].c[0],inc[i].c[1],inc[i].c[2]);
+				printf("gc %d %lf %lf %lf\n",i,outc[i].c[0],outc[i].c[1],outc[i].c[2]);
+
+			}
+			#endif //SRMLIB
 			//printf("\n");
 		}
 	}
@@ -1095,6 +1205,98 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	} 
 }
 #endif //GEOLIB
+#ifdef SRMLIB
+static void Xtm_Gd3d_srm(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, 
+	double radius, double flatten, 	double scaleFactor, double falseEasting, double falseNorthing, 
+	double zoneSize) {
+	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
+
+
+	//step 1a allocate source SRF
+	SRM_Status_Code         status;
+	SRM_SRFS_Code_Info      srfs_code_info;
+	SRM_TransverseMercator  *utm12_srf;
+
+	srfs_code_info.srfs_code       = SRM_SRFSCOD_UNIVERSAL_TRANSVERSE_MERCATOR;
+	srfs_code_info.value.srfsm_utm = SRM_SRFSMUTMCOD_ZONE_12_NORTHERN_HEMISPHERE;
+
+	status = SRM_CreateSRFSetMember(srfs_code_info,
+									SRM_ORMCOD_WGS_1984,
+									SRM_RTCOD_WGS_1984_IDENTITY,
+									(SRM_Object_Reference *)&utm12_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1a ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiodetic   cd_srf;
+
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm,tgt_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1b ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D xtm_3d_coord;
+	status = utm12_srf->methods->CreateCoordinate3D(utm12_srf,
+												0.0,0.0,0.0,
+												&xtm_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2a ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2b ");
+
+
+
+	for(int i=0;i<n;i++){
+
+		status = utm12_srf->methods->SetCoordinate3DValues(utm12_srf,&xtm_3d_coord, 
+			inc[i].c[0], inc[i].c[1],inc[i].c[2]);
+			printf("UTM inc[%d]= %lf %lf %lf\n",i,inc[i].c[0],inc[i].c[1],inc[i].c[2]);
+			//longitude, latitude, ellipsoidal_height);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 2c ");
+
+
+
+		//step 3 convert
+		SRM_Coordinate_Valid_Region valid_region;
+		if(1)
+		status = cd_srf.methods->ChangeCoordinate3DSRF(&cd_srf,
+												   utm12_srf,
+												   &xtm_3d_coord,
+												   &cd_3d_coord,
+												   &valid_region);
+		if(0)
+		status = utm12_srf->methods->ChangeCoordinate3DSRF(&cd_srf,
+                utm12_srf, &xtm_3d_coord, &cd_3d_coord, &valid_region);
+
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 status=%d\n ",status);
+
+		SRM_Long_Float tgt_ord[3];
+		vecsetd(tgt_ord,0.0,0.0,0.0);
+		status = cd_srf.methods->GetCoordinate3DValues(&cd_srf,
+				 &cd_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+        if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+
+
+		double gd[3];
+		veccopyd(gd,tgt_ord);
+		if(geoSystem->gd_latitude_first) vecswizzle2d(gd);
+		if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		
+		printf("UNswizzled and  MAYBE degrees gd:\n");
+		printf("%d  %lf %lf %lf\n",i,gd[0],gd[1],gd[2]);
+
+		veccopyd(outc[i].c,gd);
+	}
+
+    return;
+}
+#endif //SRM
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
 	1:	ellipsoid index (defaults to GEOSP_WE) 
@@ -1105,6 +1307,9 @@ static void Xtm_Gd3d_geolib(Geosys *geoSystem, struct SFVec3d *inc, int n, struc
 	6:	GD: true if geoid height
 	7:	GD: TRUE: decimal degrees, FALSE radians
 */
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords);
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc);
+
 static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
 static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords);
 static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
@@ -1115,6 +1320,11 @@ static void Utm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec
 		Xtm_Gd3d_geolib(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	else
 	#endif //GEOLIB
+	#ifdef SRMLIB
+	if(method_srm())
+		Xtm_Gd3d_srm(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
+	else
+	#endif //SRMLIB
 		Xtm_Gd3d(geoSystem, inc, n, outc, semimajor, flattening, UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE);
 	if(0){
 		//round trip verification, want to convert a UTM -> GD -> (UTM, 3TM)
@@ -1221,6 +1431,18 @@ static void moveCoords3d (Geosys * geoSystem, struct SFVec3d *offset, struct SFV
 				/* first, convert UTM to GC, then GD, then GD to GC */
 				/* see the compileGeosystem function for geoSystem fields */
 				U3tm_Gd3d(geoSystem,inCoords,n, gdCoords);
+				if(geoSystem->geoid_height || geoSystem->relativeHeight)
+					for(i=0; i < n; i++)
+						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
+				Gd_Gc3d(geoSystem,gdCoords,n,outCoords); 
+			}
+			break;
+		case GEOSP_WM:
+			{
+				/* GD coords will be returned from the conversion process....*/
+				/* first, convert UTM to GC, then GD, then GD to GC */
+				/* see the compileGeosystem function for geoSystem fields */
+				Wm_Gd3d(geoSystem,inCoords,n, gdCoords);
 				if(geoSystem->geoid_height || geoSystem->relativeHeight)
 					for(i=0; i < n; i++)
 						gdCoords[i].c[2] += userHeight2ellipsoidHeight(geoSystem,&gdCoords[i]);
@@ -1559,6 +1781,82 @@ static void gccToGdc_geolib (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVe
 
 }
 #endif //GEOLIB
+#ifdef SRMLIB
+static void gccToGdc_srm (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
+	double gd[3],gc[3], semimajor,flattening;
+	// https://www.sedris.org/sdk_4.1.4/src/lib/srm/docs/srm_c_users_guide.htm
+
+
+	//step 1a allocate source SRF
+	SRM_Celestiocentric cc_srf;
+	SRM_Status_Code      status;
+
+	SRM_ORM_Code src_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code src_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CC_Create(src_orm,src_rt,&cc_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1 ");
+
+	//step 1b allocate target SRF
+	SRM_Celestiodetic   cd_srf;
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm, tgt_rt, &cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2 ");
+
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cc_3d_coord;
+	status = cc_srf.methods->CreateCoordinate3D(&cc_srf,
+												0.0,0.0,0.0,
+												&cc_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 3 ");
+
+
+	status = cc_srf.methods->SetCoordinate3DValues(&cc_srf,&cc_3d_coord, 
+		gcc->c[0],gcc->c[1],gcc->c[2]);
+		//longitude, latitude, ellipsoidal_height);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 4 ");
+
+
+
+	//step 3 convert
+	SRM_Coordinate_Valid_Region valid_region;
+
+	status = cd_srf.methods->ChangeCoordinate3DSRF(&cd_srf,
+												&cc_srf,
+												&cc_3d_coord,
+												&cd_3d_coord,
+												&valid_region);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 ");
+
+	SRM_Long_Float tgt_ord[3];
+	vecsetd(tgt_ord,0.0,0.0,0.0);
+	status = cd_srf.methods->GetCoordinate3DValues(&cd_srf,
+				&cd_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+	veccopyd(gd,tgt_ord);
+	if(geoSystem->gd_latitude_first) vecswizzle2d(gd);
+	if(geoSystem->gd_degrees) vecscale2d(gd,gd,DEGREES_PER_RADIAN);
+		
+	SRM_Long_Float   latitude = gd[0];
+	SRM_Long_Float   longitude = gd[1];
+	SRM_Long_Float   ellipsoidal_height = gd[2];
+	//if(gd[1] < 0.0) gd[1] += PI;
+	printf("UNswizzled and maybe degrees gd:\n");
+	printf(" %lf %lf %lf\n",gd[0],gd[1],gd[2]);
+
+	veccopyd(gdc->c,gd);
+
+}
+#endif //SRMLIB
 static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gdc){
 #ifdef GEOLIB
 	if(method_geolib()){
@@ -1566,6 +1864,12 @@ static void gccToGdc (Geosys *geoSystem, struct SFVec3d *gcc, struct SFVec3d *gd
 		//vecprint3db("gl gdc ",gdc->c,"\n");
 	}else
 #endif //GEOLIB
+#ifdef SRMLIB
+	if(method_srm()){
+		gccToGdc_srm(geoSystem,gcc,gdc);
+		//vecprint3db("gl gdc ",gdc->c,"\n");
+	}else
+#endif //SRNLIB
 	{
 		double semimajor, flattening;
 		getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
@@ -1703,6 +2007,89 @@ static void gdToXtm_geolib(int geotype, double radius, double flattening, double
 	#endif
 }
 #endif //GEOLIB
+#ifdef SRMLIB
+//assumes LAT, LON in radians
+static void gdToXtm_srm(int geotype, double radius, double flattening, double latitude, double longitude, double scaleFactor, 
+	double falseEasting, double falseNorthing, double zoneSize, int *zone, double *easting, double *northing) 
+{
+	//do we compute zone from lat, long, or take what comes in from geosystem?
+	//maybe there should be an 'auto' vairant?
+
+	//step 0 calculate utm zone from longitude (and lat)?
+	double dlon = longitude * DEGREES_PER_RADIAN;
+	if (*zone < 0) {
+		*zone = (int) (((dlon + 180.0)/zoneSize) + 1);
+		*zone = latitude >= 0.0 ? *zone : *zone + 60; 
+	}
+	//dlon0 = (*zone -1) * zoneSize - 180. + zoneSize*.5;
+
+
+
+	//step 1a allocate source SRF
+	SRM_Status_Code         status;
+	SRM_Celestiodetic   cd_srf;
+
+	SRM_ORM_Code tgt_orm = SRM_ORMCOD_WGS_1984;
+	SRM_RT_Code tgt_rt  = SRM_RTCOD_WGS_1984_IDENTITY;
+	status = SRM_CD_Create(tgt_orm,tgt_rt,&cd_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1b ");
+
+	//step 1b allocate target SRF
+	SRM_SRFS_Code_Info      srfs_code_info;
+	SRM_TransverseMercator  *utm12_srf;
+
+	srfs_code_info.srfs_code       = SRM_SRFSCOD_UNIVERSAL_TRANSVERSE_MERCATOR;
+	//SRF zone numbering 1-60 for northern hemispher, 61-120 for soutnerh (=northern + 60)
+	srfs_code_info.value.srfsm_utm = (SRM_SRFSM_UTM_Code) *zone; //SRM_SRFSMUTMCOD_ZONE_12_NORTHERN_HEMISPHERE;
+
+	status = SRM_CreateSRFSetMember(srfs_code_info,
+									SRM_ORMCOD_WGS_1984,
+									SRM_RTCOD_WGS_1984_IDENTITY,
+									(SRM_Object_Reference *)&utm12_srf);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 1a ");
+
+	//step 2a allocate a source coordinate
+	SRM_Coordinate3D cd_3d_coord;
+	status = cd_srf.methods->CreateCoordinate3D(&cd_srf,
+												0.0,0.0,0.0,
+												&cd_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2b ");
+
+	//step 2b allocate a destination coordinate
+	SRM_Coordinate3D xtm_3d_coord;
+	status = utm12_srf->methods->CreateCoordinate3D(utm12_srf,
+												0.0,0.0,0.0,
+												&xtm_3d_coord);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2a ");
+
+
+	status = cd_srf.methods->SetCoordinate3DValues(&cd_srf,&cd_3d_coord, 
+		longitude, latitude,0.0);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 2c ");
+
+	//step 3 convert
+	SRM_Coordinate_Valid_Region valid_region;
+	status = utm12_srf->methods->ChangeCoordinate3DSRF(utm12_srf,
+												&cd_srf,
+												&cd_3d_coord,
+												&xtm_3d_coord,
+												&valid_region);
+
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 5 status=%d\n ",status);
+
+	SRM_Long_Float tgt_ord[3];
+	vecsetd(tgt_ord,0.0,0.0,0.0);
+	status = utm12_srf->methods->GetCoordinate3DValues(utm12_srf,
+				&xtm_3d_coord, &tgt_ord[0], &tgt_ord[1], &tgt_ord[2]);
+    if(status != SRM_STATCOD_SUCCESS) printf("ouch 6 ");
+
+	*easting = tgt_ord[0];
+	*northing = tgt_ord[1];
+	printf("easting = %lf northing = %lf \n",*easting, *northing);
+
+}
+#endif //SRMLIB
+
 
 /* compileGeosystem - encode the return value such that srf->p[x] is... 
 	0:	spatial reference frame (GEOSP_UTM, GEOSP_GC, GEOSP_GD); 
@@ -1736,6 +2123,11 @@ static void gdToUtm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 		gdToXtm_geolib(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	else
 #endif //GEOLIB
+#ifdef SRMLIB
+	if(method_srm())
+		gdToXtm_srm(geotype,semimajor,flattening,gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
+	else
+#endif //SRMLIB
 		gdToXtm(semimajor,flattening, gdradians[0],gdradians[1], UTM_SCALE, UTM_FALSE_EASTING, UTM_FALSE_NORTHING, UTM_ZONE_SIZE, zone, &xtmcoords[1], &xtmcoords[0]);
 	
 	if(!northing_first) vecswizzle2d(xtmcoords);
@@ -1767,6 +2159,93 @@ static void gdTo3tm3d(Geosys *geoSystem, double *gdcoords, double *xtmcoords) {
 	if(!northing_first) vecswizzle2d(xtmcoords);
 	xtmcoords[2] = gdcoords[2];
 }
+
+/*
+WEB MERCATOR
+https://en.wikipedia.org/wiki/Web_Mercator_projection
+https://earth-info.nga.mil/GandG/wgs84/web_mercator/(U)%20NGA_SIG_0011_1.0.0_WEBMERC.pdf 
+-- refers to Map Projections---- A Working Manual, Synder, 1987, which I have.
+https://docs.mapbox.com/help/how-mapbox-works/mapbox-data/
+- mapbox uses 3857 (ellipsoidal)
+http://docs.openlayers.org/library/spherical_mercator.html 
+- openlayers calls it sphereical, but uses a,b
+<900913> +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs
+https://alastaira.wordpress.com/2011/01/23/the-google-maps-bing-maps-spherical-mercator-projection/ 
+- has code for sphereical, that google uses (not ellipsoidal)http://epsg.io/3857 
+- this has a Transform button - can check coords 
+- mercator formula doesn't look too bad, 
+-- and 3857 uses ellipsoid lat,lon projected in a spherical manner.
+More precisely, 
+- lat, lon are in wgs84 ellipsoidal coordinates (for commonly used EPSG:3857) 
+- then a spherical porjection is used to get x,y
+Our default WGS84 uses GRS80 ellipsoid with a= 6378137 (exact) as does WM, so default ellipsoid is correct - nothing for compile_geosystem to do.
+*/
+
+
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords);
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc);
+static void gdToWm(double radius, double latitudeRadians, double longitudeRadians, double *x, double *y){
+  *x = longitudeRadians * radius;
+  *y = log(tan(.5*(PI*.5 + latitudeRadians)))*radius;
+
+}
+static void gdToWm3d(Geosys *geoSystem, double *gdcoords, double *wmcoords) {
+	//geographic to web mercator
+	double semimajor, flattening;
+	double gdradians[3];
+	int geotype, northing_first, latitude_first, is_degrees, *zone;
+	
+	geotype = geoSystem->ellipsoid; //ellipsoid index
+	//northing_first = geoSystem->xtm_northing_first;
+	northing_first = FALSE;
+	latitude_first = geoSystem->gd_latitude_first;
+	is_degrees = geoSystem->gd_degrees;
+	
+	if(is_degrees) vecscaled(gdradians,gdcoords,RADIANS_PER_DEGREE);
+	else veccopyd(gdradians,gdcoords);
+	if(!latitude_first) vecswizzle2d(gdradians);
+	
+	getEllipsoidParams(geotype,&semimajor,&flattening);
+
+	gdToWm(semimajor, gdradians[0],gdradians[1], &wmcoords[1], &wmcoords[0]);
+	
+	if(!northing_first) vecswizzle2d(wmcoords);
+	wmcoords[2] = gdcoords[2];
+}
+static void Wm_Gd3d0(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc, double radius){
+	double lon,lat,x,y;
+	int latitude, longitude, elevation;
+	latitude=0; longitude=1;
+	if(geoSystem->gd_latitude_first == FALSE){
+		latitude = 1;
+		longitude = 0;
+	}
+	elevation = 2;
+	for(int i=0;i<n;i++){
+		outc[i].c[elevation] = inc[i].c[2]; //ELEVATION_OUT = ELEVATION_IN;
+		x = inc[i].c[0];
+		y = inc[i].c[1];
+		lon = x / radius;
+		lat = y / radius;
+		lat = 2.0*atan(exp(lat)) - .5*PI;
+		if(geoSystem->gd_degrees == FALSE){
+			//version 3.3+ works in angle base units (radians) by default
+			outc[i].c[latitude] = lat; //LATITUDE_OUT
+			outc[i].c[longitude] = lon; //LONGITUDE_OUT
+		}else{
+			//version 3.2- works in degrees by default
+			outc[i].c[latitude] = lat * DEGREES_PER_RADIAN;
+			outc[i].c[longitude] = lon * DEGREES_PER_RADIAN;
+		}
+	}
+}
+static void Wm_Gd3d(Geosys *geoSystem, struct SFVec3d *inc, int n, struct SFVec3d *outc) {
+	double semimajor, flattening;
+	getEllipsoidParams(geoSystem->ellipsoid,&semimajor,&flattening);
+	Wm_Gd3d0(geoSystem, inc, n, outc, semimajor);
+}
+
+
 
 /* calculate the rotation needed to apply to this position on the GC coordinate location 
 	a) rotate from equatorial plane GC X,Y to TCS (topocentric coordinate system) plane
@@ -1902,6 +2381,7 @@ struct stringint lookup_spatialreferencesys [] = {
 	{"GD",GEOSP_GD},
 	{"UTM",GEOSP_UTM},
 	{"3TM",GEOSP_3TM},
+	{"WM",GEOSP_WM},
 	{NULL,-1},
 };
 
@@ -1968,7 +2448,7 @@ void compile_geoSystem (struct X3D_Node *node, int nodeType, struct Multi_String
 	if (this_srf == GEOSP_GC) {
 		//srf->p[1] = INT_ID_UNDEFINED;
 		//nothing to do 
-	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM) {
+	} else if (this_srf == GEOSP_GD || this_srf == GEOSP_3TM || this_srf == GEOSP_UTM || this_srf == GEOSP_WM) {
 		for (i=0; i<args->n; i++) {
 			if (i != this_srf_ind) {
 				int iellipse;
@@ -2227,7 +2707,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		*/
 	}
 
-	rep = node->_intern;
+	rep = (struct X3D_PolyRep*) node->_intern;
 
 	/* work out how many triangles/quads we will have */
 	ntri = (nx && nz ? 2 * (nx-1) * (nz-1) : 0);
@@ -2389,7 +2869,7 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 		
 			/* Make up a new vertex. Add the geoGridOrigin to every point */
 
-			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM)) {
+			if ((mySRF == GEOSP_GD) || (mySRF == GEOSP_UTM) || (mySRF == GEOSP_3TM) || (mySRF == GEOSP_WM)) {
 				/* GD - give it to em in Latitude/Longitude/Elevation order */
 				/* UTM- or give it to em in Northing/Easting/Elevation order */
 				/* latitude - range of -90 to +90 */
@@ -2464,15 +2944,20 @@ int checkX3DGeoElevationGridFields (struct X3D_GeoElevationGrid *node, float **p
 
 
 	/* copy the resulting array back to the ElevationGrid */
-
+	//float extent6[6];
+	//extent6f_clear(extent6);
 	for (j=0; j<nz; j++) {
 		for (i=0; i < nx; i++) {
 			/* copy this coordinate into our ElevationGrid array */
 			int k = i+(j*nx);
 			double2float(newpoints,mOUT.p[k].c,3);
+			//extent6f_union_vec3f(extent6,newpoints);
 			newpoints += 3;
 		}
 	}
+	//extent6f_copy(node->_extent,extent6);
+	//printf("initial extent in LCS: \n");
+	//extent6f_printf(node->_extent);
 	#ifdef VERBOSE
 	printf ("points converted to mesh coords, xyz index:\n");
 	newpoints = rep->actualCoord;
@@ -2502,6 +2987,14 @@ int planetInPlanets(int planet, struct Multi_Int32 *planets){
 	return ifound > -1;
 }
 void RegisterGeoElevationGrid(struct X3D_Node *node, int planetID);
+void setExtentGeoElevationGrid(struct X3D_GeoElevationGrid *node){
+	if( extent6f_isSet(node->_extent)) {
+		float ef6[6];
+		extent6f_rotate4d(ef6, node->_extent, node->__localOrient.c);
+		extent6f_translate3d(ef6,ef6,node->__autoOffset.c);
+		union_group_extent(ef6); //May 2020
+	}
+}
 void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	/*compile stack for geoElevationGrid:
 	checkX3DGeoElelvationGridFields *see function above
@@ -2514,7 +3007,9 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 	int planetID = 0; 
 	initializeGeospatial((struct X3D_GeoOrigin **) &node->geoOrigin); 
 	planetID = current_planetId();
-	COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+	//COMPILE_POLY_IF_REQUIRED (NULL, NULL, node->color, node->normal, node->texCoord) 
+	if (!compile_poly_if_required(node, NULL, NULL, node->color, node->normal, node->texCoord))return;
+
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 	if(!planetInPlanets(planetID,&node->__planets)){
@@ -2525,6 +3020,7 @@ void render_GeoElevationGrid (struct X3D_GeoElevationGrid *node) {
 		node->__planets.p[node->__planets.n] = planetID;
 		node->__planets.n++;
 	}
+	setExtentGeoElevationGrid(node);
 }
 
 /************************************************************************/
@@ -2571,8 +3067,6 @@ void compile_GeoLocation (struct X3D_GeoLocation * node) {
 
 void child_GeoLocation (struct X3D_GeoLocation *node) {
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 
 	OCCLUSIONTEST
@@ -2594,27 +3088,12 @@ void child_GeoLocation (struct X3D_GeoLocation *node) {
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
 	/* do we have a local for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 	/* now, just render the non-directionalLight children */
-
-	/* printf ("GeoLocation %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - doing normalChildren\n");
-	#endif
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	normalChildren(node->children);
-
-	#ifdef CHILDVERBOSE
-		printf ("GeoLocation - done normalChildren\n");
-	#endif
-
-	//LOCAL_LIGHT_OFF
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
 }
 
 /* do transforms, calculate the distance */
@@ -2634,8 +3113,7 @@ void prep_GeoLocation (struct X3D_GeoLocation *node) {
 	if(!renderstate()->render_vp) {
 		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 }
 void fin_GeoLocation (struct X3D_GeoLocation *node) {
@@ -2790,6 +3268,10 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 		printf ("hmmm - GeoLOD %p was level %d, now %d\n",node,node->__level, p->geoLodLevel);
 	}
 
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+
 	#ifdef VERBOSE
 	if ( node->__inRange) {
 		printf ("GeoLOD %u (level %d) closer\n",node,p->geoLodLevel);
@@ -2871,6 +3353,9 @@ void child_GeoLOD (struct X3D_GeoLOD *node) {
 		p->geoLodLevel--;
 
 	}
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 }
 
 /************************************************************************/
@@ -3173,7 +3658,19 @@ void geoprep(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
 			FW_GL_PUSH_MATRIX();
+			push_transform_local_identity();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 			geoprep0(geoSystem,userCoord);
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		}
 	}
 }
@@ -3181,6 +3678,7 @@ void geoprepT0(Geosys *geoSystem, struct SFVec3d *userCoord);
 void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(geoSystem){
 		if(!renderstate()->render_vp) {
+			pop_transform_local();
 			FW_GL_POP_MATRIX();
 		}else{
 			geoprepT0(geoSystem,userCoord);
@@ -3189,10 +3687,17 @@ void geofin(Geosys *geoSystem, struct SFVec3d *userCoord){
 }
 void render_GeoProximitySensor(struct X3D_GeoProximitySensor *node){
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) {
+	if(renderstate()->render_geom && fwl_getDrawBoundingBoxes()) {
 		COMPILE_IF_REQUIRED 
 		geoprep(GEOSYS(node->__geoSystem),&node->center);
-		extent6f_draw(node->_extent);
+		float center[3];
+		double2float(center,node->center.c,3);
+		bbox2extent6f(center,node->size.c,node->_extent);
+		draw_bbox(center,node->size.c);
+		//propagate bbox up one level
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent); //
+		//extent6f_draw(node->_extent);
 		geofin(GEOSYS(node->__geoSystem),&node->center);
 	}
 }
@@ -3205,10 +3710,10 @@ void proximity_GeoProximitySensor (struct X3D_GeoProximitySensor *node) {
 	struct point_XYZ dr2r3; 
 	struct point_XYZ nor1,nor2; 
 	struct point_XYZ ins; 
-	static struct point_XYZ yvec = {0,0.05,0}; 
-	static struct point_XYZ zvec = {0,0,-0.05}; 
-	static struct point_XYZ zpvec = {0,0,0.05}; 
-	static struct point_XYZ orig = {0,0,0};
+	static struct point_XYZ yvec = {.x=0,.y=0.05,.z=0}; 
+	static struct point_XYZ zvec = {.x=0,.y=0,.z=-0.05}; 
+	static struct point_XYZ zpvec = {.x=0,.y=0,.z=0.05}; 
+	static struct point_XYZ orig = {.x=0,.y=0,.z=0};
 	struct point_XYZ t_zvec, t_yvec, t_orig, t_center; 
 	GLDOUBLE modelMatrix[16]; 
 	GLDOUBLE projMatrix[16]; 
@@ -3498,6 +4003,14 @@ void do_GeoTouchSensor ( void *ptr, int ev, int but1, int over) {
 /************************************************************************/
 /* GeoViewpoint								*/
 /************************************************************************/
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+enum {
+	WALK_SURFACE_HIGHEST = 0,
+	WALK_SURFACE_LOWEST = 1,
+	WALK_SURFACE_PRIORITY = 2,
+};
 void calculateViewingSpeedB();
 void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	Geosys *gs;
@@ -3510,6 +4023,15 @@ void compile_GeoViewpoint (struct X3D_GeoViewpoint * node) {
 	gc2gd(gs,&gcCoord,1,&node->__movedgd);
 	MARK_NODE_COMPILED
 	
+
+
+
+	node->_walkSurfacePriority = 0;
+	for(int i=0;i<node->walkSurface.n;i++){
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"HIGHEST")) node->_walkSurfacePriority |= WALK_SURFACE_HIGHEST;
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"LOWEST")) node->_walkSurfacePriority |= WALK_SURFACE_LOWEST;
+		if(!strcasecmp(node->walkSurface.p[i]->strptr,"PRIORITY")) node->_walkSurfacePriority |= WALK_SURFACE_PRIORITY;
+	}
 	/* events */
 	/* MARK_SFNODE_INOUT_EVENT(node->metadata, node->__oldmetadata, offsetof (struct X3D_GeoViewpoint, metadata)) */
 	MARK_SFFLOAT_INOUT_EVENT(node->fieldOfView, node->__oldFieldOfView, offsetof (struct X3D_GeoViewpoint, fieldOfView))
@@ -3721,14 +4243,16 @@ void geoviewpoint_update_LCS(struct X3D_GeoViewpoint *node, Quaternion *Quat, st
 	MARK_EVENT(X3D_NODE(node),offsetof(struct X3D_GeoViewpoint,orientation));
 	
 }
-
+struct X3D_Node* getSelectedViewpoint();
 void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 	struct Planet *planet;
 	double a1;
 	GLint viewPort[10];
 	if (!renderstate()->render_vp) return;
 
-	if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	node->_reachablethispass = TRUE;
+	//if((struct X3D_Node*)node == getActiveLayerBoundViewpoint() && !node->_donethispass){
+	if((struct X3D_Node*)node == getSelectedViewpoint() && !node->_donethispass){
 		X3D_Viewer *viewer = Viewer();
 		node->_donethispass = 1; //if the vp id DEF/USED multiple places in the scengraph, 
 		COMPILE_IF_REQUIRED
@@ -3780,6 +4304,7 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 			A.the window can be resized on any frame. so can't do it once in compile_geoviewpoint 
 			 -and analogously we do it in prep_viewpoint and prep_orthoviewpoint
 		*/
+
 		FW_GL_GETINTEGERV(GL_VIEWPORT, viewPort);
 		if(viewPort[2] > viewPort[3]) {
 			a1=0;
@@ -3799,7 +4324,21 @@ void prep_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		#endif
 	}
 }
-
+void draw_viewpoint(int type, float *fov, float aspect);
+void render_GeoViewpoint (struct X3D_GeoViewpoint *node) {
+	float center[3],size[3];
+	if(node->_show_pin_point || fwl_getShowViewpoints())
+		draw_bbox(double2float(center,node->_pin_point.c,3),vecset3f(size,400000.f,400000.f,400000.f));
+	if(fwl_getShowViewpoints()){
+		FW_GL_PUSH_MATRIX();
+		FW_GL_TRANSLATE_D(node->_position.c[0],node->_position.c[1],node->_position.c[2]);
+		FW_GL_ROTATE_RADIANS( node->_orientation.c[3],node->_orientation.c[0],node->_orientation.c[1],
+				node->_orientation.c[2]);
+		//draw_bbox(vecset3f(center,0.0,0.0,0.0),vecset3f(size,.4f,.4f,1.2f));
+		draw_viewpoint(node->_nodeType,&node->fieldOfView,.6f);
+		FW_GL_POP_MATRIX();
+	}
+}
 /* GeoViewpoint speeds and avatar sizes are depenent on elevation above WGS_84. These are calculated here */
 void calculateViewingSpeedB() {
 	/* the current position is the GC coordinate */
@@ -3865,7 +4404,37 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 		veccopyd(node->position.c,node->_position.c);
 		veccopy4f(node->orientation.c,node->_orientation.c);
 	}
+	fwl_set_viewer_type (VIEWER_WALK);
+	struct Uni_String **svptr;
+	char *typeptr;
+	svptr = node->navigationType.p;
+	for (int i = 0; i < node->navigationType.n; i++) {
+		/*  get the string pointer */
+		typeptr = svptr[i]->strptr;
 
+		if (strcmp(typeptr, "PAN") == 0) {
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_PAN);
+		}
+		if (strcmp(typeptr, "ZOOM") == 0) {
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_ZOOM);
+		}
+		if (strcmp(typeptr, "ANY") == 0) {
+			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
+			viewer->oktypes[VIEWER_WALK] = TRUE;
+			viewer->oktypes[VIEWER_EXFLY] = TRUE;
+			viewer->oktypes[VIEWER_FLY] = TRUE;
+			viewer->oktypes[VIEWER_EXPLORE] = TRUE;
+			viewer->oktypes[VIEWER_LOOKAT] = TRUE;
+			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
+			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
+			viewer->oktypes[VIEWER_DIST] = TRUE;
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK); /*  just choose one */
+		}
+	}
 
 	if (viewer->transitionType != VIEWER_TRANSITION_TELEPORT && viewer->wasBound) { 
 		//save the previous vp pose, in root space, for future slerps
@@ -3902,14 +4471,18 @@ void bind_GeoViewpoint (struct X3D_GeoViewpoint *node) {
 
 	vrmlrot_to_quaternion (&viewer->Quat,node->__movedOrientation.c[0],
 		node->__movedOrientation.c[1],node->__movedOrientation.c[2],node->__movedOrientation.c[3]);
+	ttglobal tg = gglobal();
+	int saveActive = tg->Bindable.activeLayer;
+	tg->Bindable.activeLayer = node->_layerId;
 
 	calculateViewingSpeedB();
 	node->_resetRelativeHeight = !node->relativeHeight;
 
 	calculateExamineModeDistance();
-	setMenuStatusVP (node->description->strptr);
-	fwl_set_viewer_type (VIEWER_WALK);
 	fwl_setCollision(TRUE);
+	tg->Bindable.activeLayer = saveActive;
+	setMenuStatusVP (node->description->strptr);
+
 }
 
 
@@ -3974,9 +4547,12 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
+		push_transform_local_identity();
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -4008,10 +4584,17 @@ void prep_GeoTransform (struct X3D_GeoTransform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
+
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
 		} 
-
-		RECORD_DISTANCE
-
 	}
 }
 
@@ -4020,6 +4603,7 @@ void fin_GeoTransform (struct X3D_GeoTransform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -4093,12 +4677,25 @@ void geoprepT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	// to this node TCS (topocentric coordinate system
 	if(!renderstate()->render_vp) {
 		FW_GL_PUSH_MATRIX();
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 		geoprepT0(geoSystem,userCoord);
+		{
+			double mat[16];
+
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+			FW_GL_POP_MATRIX();
+			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+			reset_transform_local(mat);
+		}
+
 	}
 
 }
 void geofinT(Geosys *geoSystem, struct SFVec3d *userCoord){
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	}else{
 		geoprep0(geoSystem,userCoord);
@@ -4140,9 +4737,31 @@ void child_GeoTransform (struct X3D_GeoTransform *node) {
 	#ifdef CHILDVERBOSE
 		printf ("transform - doing normalChildren\n");
 	#endif
-	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter);
+	geoprepT(GEOSYS(node->__geoSystem),&node->geoCenter); //bbox- we also push a local transform
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 	normalChildren(node->children);
-	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter);
+
+	pop_group_visible();
+	{
+		//bbox - in child-space - gets transformed/propagated to Transform parent space and set as Transform._extent
+		extent6f2bbox(peek_group_extent(),node->bboxCenter.c,node->bboxSize.c);
+		if(renderstate()->render_geom && (node->bboxDisplay || fwl_getDrawBoundingBoxes() )) {
+			draw_bbox(node->bboxCenter.c,node->bboxSize.c);
+		}
+		//propagate bbox up one level
+		//1st step of 2-step extent transform
+		extent6f_mattransform4d(node->_extent,peek_group_extent(),peek_transform_local());
+		pop_group_extent(); // up where parents are
+		//union_group_extent(node->_extent); // NO UNION HERE, SEE +6 LINES
+	}
+	geofinT(GEOSYS(node->__geoSystem),&node->geoCenter); //we also pop a local transform
+	{
+		//2nd step of 2-step extent transform
+		extent6f_mattransform4d(node->_extent,node->_extent,peek_transform_local());
+		union_group_extent(node->_extent);
+	}
 	#ifdef CHILDVERBOSE
 		printf ("transform - done normalChildren\n");
 	#endif
@@ -4188,7 +4807,7 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 			/* printf ("changed as a GDC, %lf %lf %lf\n", thisField.c[0], thisField.c[1], thisField.c[2]); */ 
 		 
 			/* is this a GD? if so, go no further */ 
-			if (geoSystem->spatial_system == GEOSP_UTM || geoSystem->spatial_system == GEOSP_3TM ) { 
+			if (geoSystem->spatial_system == GEOSP_UTM || geoSystem->spatial_system == GEOSP_3TM || geoSystem->spatial_system == GEOSP_WM ) { 
 				/* convert this to UTM  or 3TM */ 
 				double dtemp[3];
 
@@ -4198,8 +4817,10 @@ void CONVERT_BACK_TO_GD_OR_UTMC(Geosys *targetGeoSystem, struct X3D_Node *geoori
 				}else if(geoSystem->spatial_system == GEOSP_3TM) {
 					gdTo3tm3d(geoSystem,thisField->c, dtemp);
 					veccopyd(thisField->c,dtemp);
-				} 
- 
+				}else if(geoSystem->spatial_system == GEOSP_WM) {
+					gdToWm3d(geoSystem,thisField->c, dtemp);
+					veccopyd(thisField->c,dtemp);
+				}
 			/* printf ("changed as a UTM, %lf %lf %lf\n", thisField[0], thisField[1], thisField[2]); */ 
 			}  
 		} 
@@ -4251,6 +4872,7 @@ int geoelevationgrid_getGDHeight0(struct X3D_GeoElevationGrid *node, struct SFVe
 	//naviinfo = (struct sNaviInfo *)tg->Bindable.naviinfo;
 
 	nodeSystem = GEOSYS(node->__geoSystem);
+	if(!nodeSystem) return 0;
 	hit = -1; //caller: watch out, this can be -1 on return. only 1 means true hit
 	//get target node's gdCoord into GEG's gdcoord 
 	veccopyd(xxCoord.c,gdCoord->c); 
@@ -4527,16 +5149,37 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 	int i,j,nfound;
 	struct Planet *planet;
 	double highest;
+	int n_walk_surface;
+	struct X3D_Node **walk_surface;
 	//find planet
-	ppComponent_Geospatial p = (ppComponent_Geospatial)gglobal()->Component_Geospatial.prv;
+	ttglobal tg = gglobal();
+	ppComponent_Geospatial p = (ppComponent_Geospatial)tg->Component_Geospatial.prv;
+
+	int height_method = WALK_SURFACE_HIGHEST;
+	n_walk_surface = 0;
+	walk_surface = NULL;
 	highest = 0.0; //this means we can't go below ground. It also means if no GEG found, then we are relative to ellipsoid
 	if(!p->planet_stack) return highest; //no GEGs registered, stick to absolute height
+
+	if(1){
+		//June 2020 attempt at bathymetric walking
+		struct X3D_Node *boundvp = vector_back(struct X3D_Node*,getActiveBindableStacks(tg)->viewpoint);
+
+		if(boundvp && boundvp->_nodeType == NODE_GeoViewpoint){
+			struct X3D_GeoViewpoint *node = (struct X3D_GeoViewpoint*)boundvp;
+			//COMPILE_IF_REQUIRED(X3D_NODE(node));
+			if(node->_ichange != node->_change) compile_GeoViewpoint(node);
+			height_method = node->_walkSurfacePriority;
+			n_walk_surface = node->prioritySurfaces.n;
+			walk_surface = node->prioritySurfaces.p;
+		}
+	}
 	nfound = 0;
 	planet = NULL;
 	for(i=0;i<vectorSize(p->planet_stack);i++){
 		planet = vector_get_ptr(struct Planet,p->planet_stack,i);
 		if(planet && planet->ID == planetID) {
-			if(!planet->gegs) return highest; //no gegs registered
+			if(!planet->gegs) break; //no gegs registered
 			for(j=0;j<vectorSize(planet->gegs);j++){
 				double gridheight;
 				struct X3D_GeoElevationGrid *geg = vector_get(struct X3D_GeoElevationGrid*,planet->gegs,j);
@@ -4545,11 +5188,37 @@ double getTerrainHeight(int planetID, Geosys *geoSystem, struct SFVec3d *gdCoord
 					//make a list of hits, and pick the highest one, in case there are grid overlays etc.
 					nfound++;
 					if(nfound == 1) highest = gridheight;
-					highest = max(highest,gridheight);
+					if(height_method & WALK_SURFACE_HIGHEST)
+						highest = max(highest,gridheight);
+					else if(height_method &WALK_SURFACE_LOWEST)
+						highest = min(highest, gridheight);
 					//printf("p %d g %x h %lf\n",planetID,geg,highest);
 				}
 			}
 		}
+	}
+	if(n_walk_surface && height_method & WALK_SURFACE_PRIORITY){
+		int mfound = 0;
+		for(i=0;i<n_walk_surface;i++){
+			struct X3D_Node *node = walk_surface[i];
+			if(node->_nodeType == NODE_GeoElevationGrid){
+				double gridheight;
+				struct X3D_GeoElevationGrid *geg = (struct X3D_GeoElevationGrid *)node;
+				if(geg)
+				if( geoelevationgrid_getGDHeight0(geg,gdCoord,geoSystem,&gridheight) == 1){
+					//make a list of hits, and pick the highest one, in case there are grid overlays etc.
+					mfound++;
+					if(mfound == 1) highest = gridheight;
+
+					if(height_method & WALK_SURFACE_HIGHEST)
+						highest = max(highest,gridheight);
+					else if(height_method &WALK_SURFACE_LOWEST)
+						highest = min(highest, gridheight);
+				}
+
+			}
+		}
+
 	}
 	return highest;
 }
@@ -4643,33 +5312,44 @@ void prep_GeoPlanet(struct X3D_GeoPlanet *node){
 
 		planet = current_planet();
 		//we need to get the LCS to GC transform on the stack
+
 		FW_GL_PUSH_MATRIX();
+		push_transform_local_identity();
+		FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+		FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
+
 		veccopyd(ao,planet->autoOrigin.c);
 		veccopy4d(aoo,planet->autoOrient.c);
 		FW_GL_TRANSLATE_D(ao[0], ao[1], ao[2]);
 		FW_GL_ROTATE_RADIANS(aoo[3], aoo[0],aoo[1],aoo[2]);
 
+		{
+			double mat[16];
+
+			FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+			FW_GL_POP_MATRIX();
+			FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+			reset_transform_local(mat);
+		}
 
 		/* did either we or the Viewpoint move since last time? */
-		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 	}
 
 }
 	
 void child_GeoPlanet(struct X3D_GeoPlanet *node){
 	CHILDREN_COUNT
-	//LOCAL_LIGHT_SAVE
-	//INITIALIZE_GEOSPATIAL(node)
 	COMPILE_IF_REQUIRED
 //	OCCLUSIONTEST
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->children);
 
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 void fin_GeoPlanet(struct X3D_GeoPlanet *node){
@@ -4678,6 +5358,7 @@ void fin_GeoPlanet(struct X3D_GeoPlanet *node){
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		FW_GL_POP_MATRIX();
 	} else {
 		if ((node->_renderFlags & VF_Viewpoint) == VF_Viewpoint) {
@@ -4949,3 +5630,25 @@ void do_GeoConvert (void *px){
 		veccopyd(node->__oldgcCoords.c,node->set_gcCoords.c);
 	}
 }
+
+#ifndef SRM
+//stubs
+void compile_GeoSRF(struct X3D_GeoSRF *node){
+}
+void render_GeoSRF(struct X3D_GeoSRF *node){
+}
+#else //SRM
+// OFF-SEPC there's no geosystem node in the specs, this is to help 
+// dug9 work out SRM and/or ISO 18026 and/or geo 2020 v4 changes
+// Goal: broaden the acceptance and implementation of ISO 18026 in web3d browsers
+//  - by making an MIT/permissive helper that takes an MFString set of SRF parameters
+//   and tells you what you did wrong, and what to type next.
+void compile_GeoSRF(struct X3D_GeoSRF *node){
+	printf("in cmopile_GeoSRF\n");
+	MARK_NODE_COMPILED
+}
+void render_GeoSRF(struct X3D_GeoSRF *node){
+	COMPILE_IF_REQUIRED
+
+}
+#endif //SRM

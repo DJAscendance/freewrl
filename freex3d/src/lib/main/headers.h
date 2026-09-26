@@ -129,6 +129,7 @@ extern char *BrowserFullPath;
 #define VF_USE						 0x8000 /*for 2-node scenarios like pickingsensor and transform sensor, signals a node_USE to save its modelview matrix for do_handling*/
 #define VF_Cube                      0x10000 //when generating generatedcubemap texture to fbo (don't render generatedcubemap parent nodes)
 #define VF_Background				0x20000
+#define VF_Depth					0x40000
 /* for z depth buffer calculations */
 #define DEFAULT_NEARPLANE 0.07
 #define DEFAULT_FARPLANE 21000.0
@@ -150,13 +151,13 @@ extern double geoHeightinZAxis;
 #define ROUTING_MFVEC3D         -20
 #define ROUTING_MFDOUBLE        -21
 #define ROUTING_SFSTRING        -22
-#define ROUTING_MFMATRIX4F      -30
-#define ROUTING_MFMATRIX4D      -31
 #define ROUTING_MFVEC2D         -32
 #define ROUTING_MFVEC4F         -33
 #define ROUTING_MFVEC4D         -34
 #define ROUTING_MFMATRIX3F      -35
 #define ROUTING_MFMATRIX3D      -36
+#define ROUTING_MFMATRIX4F      -30
+#define ROUTING_MFMATRIX4D      -31
 
 
 
@@ -168,12 +169,12 @@ extern double geoHeightinZAxis;
 
 
 #define NODE_CHANGE_INIT_VAL 153	/* node->_change is set to this when created */
-#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e) \
-                if(!node->_intern || node->_change != (node->_intern)->irep_change) { \
-                        compileNode ((void *)compile_polyrep, node, a,b,c,d,e); \
-		} \
-		if (!node->_intern) return;
-
+//#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e) \
+//                if(!node->_intern || node->_change != (node->_intern)->irep_change) { \
+//                        compileNode ((void *)compile_polyrep, node, a,b,c,d,e); \
+//		} \
+//		if (!node->_intern) return;
+void* compile_poly_if_required(void* node, void* coord, void* fogCoord, void* color, void* normal, void* texCoord);
 #define COMPILE_IF_REQUIRED { struct X3D_Virt *v; \
 	if (node->_ichange != node->_change) { \
 		v = virtTable[node->_nodeType]; \
@@ -206,7 +207,7 @@ extern double geoHeightinZAxis;
     if (myTCnode->_ichange == 0) return; \
 }
 
-
+void check_compile(struct X3D_Node* node);
 
 /* convert a PROTO node (which will be a Group node) into a node. eg, for Materials  - this is a possible child
 node for ANY node that takes something other than a Group */
@@ -519,7 +520,7 @@ void normalize_ifs_face (float *point_normal,
 //extern double lastTime;
 double TickTime();
 double lastTime();
-
+double BrowserStartTime();
 /* number of triangles this rendering loop */
 //extern int trisThisLoop;
 
@@ -582,7 +583,6 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DTouchSensorNode 			42
 #define X3DSequencerNode  			43
 #define X3DTimeDependentNode 			44
-#define X3DSoundSourceNode 			45
 #define X3DTriggerNode 				46
 #define X3DInfoNode 				47
 #define X3DShaderNode				48
@@ -608,6 +608,21 @@ void *returnInterpolatorPointer (int nodeType);
 #define X3DComposableVolumeRenderStyleNode 68
 #define X3DVolumeDataNode 69
 #define X3DTextureProjectorNode			70
+#define X3DMotionNode					73
+#define X3DMotionDataNode				74
+#define X3DGeoSRFTParametersNode		75
+#define X3DGeoSRFParametersNode			76
+#define X3DGeoSRFParametersInfoNode		77
+#define X3DSoundNode					80
+#define X3DSoundProcessingNode			81
+#define X3DSoundSourceNode				82
+#define X3DSoundDestinationNode			83
+#define X3DSoundChannelNode				84
+#define X3DMIDINode						85
+#define X3DMIDISourceNode				86
+#define X3DMIDIDestinationNode			87
+#define X3DMIDIProcessingNode			88
+
 
 
 BOOL isManagedField(int mode, int type, BOOL isPublic);
@@ -792,7 +807,7 @@ void freewrlDie(const char *format);
 //extern int render_sensitive,render_vp,render_light,render_proximity,render_other,verbose,render_blend,render_geom,render_collision;
 typedef struct trenderstate{
 int render_sensitive,render_picking,render_vp,render_light,render_proximity,render_other,
-verbose,render_blend,render_geom,render_collision,render_cube,render_background, render_boxes;
+verbose,render_blend,render_geom,render_collision,render_cube,render_background,render_depth,rwhat;
 }* ttrenderstate;
 //extern struct trenderstate renderstate;
 ttrenderstate renderstate();
@@ -918,7 +933,7 @@ void resetSensorEvents();
 
 
 /* META data, component, profile  stuff */
-void handleMetaDataStringString(struct Uni_String *val1,struct Uni_String *val2);
+void handleMetaDataStringString(void *ec, char *val1,char *val2);
 void handleUnitDataStringString(void *ec, char *categoryname,char *unitname, double conversionfactor);
 void handleProfile(int myp);
 void handleComponent(int com, int lev);
@@ -975,5 +990,12 @@ typedef struct polyrep_combiner_data {
 	int *ria;
 	int *riaindex;
 } polyrep_combiner_data;
-
+struct combiner_point {
+	float c[3];
+	float n[3];
+	float uv[2];
+	float rgba[4];
+	float fog;
+};
+void set_tess_callbacks(int variant);
 #endif /* __FREEWRL_HEADERS_H__ */

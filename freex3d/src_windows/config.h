@@ -258,9 +258,10 @@ char *getWgetPath();
 /* Define to the type of a signed integer type of width exactly 32 bits if
    such a type exists and the standard includes do not define it. */
 #undef int32_t
-#define int32_t long
+//#define int32_t long
 
 #define ushort unsigned short
+#define uint unsigned int
 
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
@@ -297,12 +298,12 @@ char *getWgetPath();
 #ifdef WINAPI_FAMILY
 #include <winapifamily.h>
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#define SSR_SERVER 1
+//#define SSR_SERVER 1
 #elif WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define WINRT 1
 #endif
 #else
-#define SSR_SERVER 1
+//#define SSR_SERVER 1
 #endif
 #if (_MSC_VER > 1800) 
 #define HAVE_STRUCT_TIMESPEC 1

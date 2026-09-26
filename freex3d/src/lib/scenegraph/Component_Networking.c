@@ -296,10 +296,10 @@ int loadstatus_AudioClip(struct X3D_AudioClip *node);
 int loadstatus_Script(struct X3D_Script *script);
 int getFieldFromNodeAndNameC(struct X3D_Node* node,const char *fieldname, int *type, int *kind, int *iifield, int *builtIn, union anyVrml **value, const char **cname);
 void render_LoadSensor (struct X3D_LoadSensor *node) {
-	int count;
+	int count, nwatch;
 	int nowLoading;
 	int nowFinished;
-	struct X3D_Node *cnode;
+	struct X3D_Node *cnode, **watchlist;
 	// HAVE TO RECODE MovieTexture struct X3D_MovieTexture *mnode;
 	
 	/* if not enabled, do nothing */
@@ -324,10 +324,19 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	}
 
 	/* do we actually have any nodes to watch? */
-	if (node->watchList.n<=0) return;
+	nwatch = 0;
+	if (node->watchList.n) {
+		nwatch = node->watchList.n;
+		watchlist = node->watchList.p;
+	}
+	else if (node->children.n) {
+		nwatch = node->children.n;
+		watchlist = node->children.p;
+	}
+	if (nwatch <=0) return;
 
 	/* are all nodes loaded? */
-	if (node->__finishedloading == node->watchList.n) return;
+	if (node->__finishedloading == nwatch) return;
 
 	/* our current status... */
 	nowLoading = 0;
@@ -335,10 +344,10 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 
 	/* go through node list, and check to see what the status is */
 	/* printf ("have %d nodes to watch\n",node->watchList.n); */
-	for (count = 0; count < node->watchList.n; count ++) {
+	for (count = 0; count < nwatch; count ++) {
 
-		cnode = node->watchList.p[count];
-
+		cnode = watchlist[count];
+		render_node(cnode); //might not be def/use, this might be the only node list its in
 		/* printf ("node type of node %d is %d\n",count,tnode->_nodeType); */
 		switch (cnode->_nodeType) {
 		case NODE_ImageTexture:
@@ -422,7 +431,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 		
 
 	/* ok, are we NOW finished loading? */
-	if (nowFinished == node->watchList.n) {
+	if (nowFinished == nwatch) {
 		node->isActive = 0;
 		MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, isActive));
 
@@ -448,7 +457,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 	
 	/* what is our progress? */
 	if (node->isActive == 1) {
-		node->progress = (float)(nowFinished)/(float)(node->watchList.n);
+		node->progress = (float)(nowFinished)/(float)(nwatch);
 		MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, progress));
 	}
 
@@ -469,7 +478,7 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 				MARK_EVENT (X3D_NODE(node), offsetof (struct X3D_LoadSensor, isActive));
 
 				/* and, we will just assume that we have loaded everything next iteration */
-				node->__finishedloading = node->watchList.n;
+				node->__finishedloading = nwatch;
 			}
 		}
 	}
@@ -478,32 +487,18 @@ void render_LoadSensor (struct X3D_LoadSensor *node) {
 
 void child_Anchor (struct X3D_Anchor *node) {
 	int nc = (node->children).n;
-	//LOCAL_LIGHT_SAVE
-
-	/* printf ("child_Anchor node %u, vis %d\n",node,node->_renderFlags & VF_hasVisibleChildren); */
-
 	/* any children at all? */
 	if (nc==0) return;
-
 	/* any visible children? */
 	OCCLUSIONTEST
 
-	#ifdef CHILDVERBOSE
-	printf("RENDER ANCHOR START %d (%d)\n",node, nc);
-	#endif
-
 	/* do we have a local light for a child? */
-	//LOCAL_LIGHT_CHILDREN(node->children);
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 	/* now, just render the non-directionalLight children */
 	normalChildren(node->children);
-
-	#ifdef CHILDVERBOSE
-	printf("RENDER ANCHOR END %d\n",node);
-	#endif
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-	//LOCAL_LIGHT_OFF
 }
 
 struct X3D_Node *broto_search_DEFname(struct X3D_Proto *context, const char *name);
@@ -644,7 +639,6 @@ void update_weakRoutes(struct X3D_Proto *context){
 }
 struct X3D_Proto *hasContext(struct X3D_Node* node);
 
-
 int unload_broto(struct X3D_Proto* node);
 /* note that we get the resources in a couple of steps; this tries to keep the scenegraph running */
 void load_Inline (struct X3D_Inline *node) {
@@ -684,8 +678,8 @@ void load_Inline (struct X3D_Inline *node) {
 
 		case INLINE_FETCHING_RESOURCE:
 		res = node->__loadResource;
-		/* printf ("load_Inline, we have type  %s  status %s\n",
-			resourceTypeToString(res->type), resourceStatusToString(res->status)); */
+		//printf ("load_Inline, we have type  %s  status %s\n",
+		//	resourceTypeToString(res->type), resourceStatusToString(res->status));
 		if(res->complete){
 			if (res->status == ress_loaded) {
 				//determined during load process by resource_identify_type(): res->media_type = resm_vrml; //resm_unknown;
@@ -718,7 +712,6 @@ void load_Inline (struct X3D_Inline *node) {
 				if (res->status == ress_parsed) {
 					/* this might be a good place to populate parent context IMPORT table with our EXPORT nodes? */
 					node->__loadstatus = INLINE_IMPORTING; //INLINE_STABLE; 
-
 				} 
 			}
 
@@ -785,8 +778,6 @@ void prep_Inline (struct X3D_Inline *node) {
 	if ((node->__loadstatus != INLINE_STABLE && node->load) || (node->__loadstatus != INLINE_INITIAL_STATE && !node->load)) {
 		load_Inline(node);
 	}
-	RECORD_DISTANCE
-
 }
 /* not sure why we would compile */
 void compile_Inline(struct X3D_Inline *node) {
@@ -826,13 +817,19 @@ void child_Inline (struct X3D_Inline *node) {
 	//LOCAL_LIGHT_SAVE
 
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
+	push_executionContext(X3D_NODE(node));
 	prep_unitscale(X3D_PROTO(node));
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	//LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->_sortedChildren);
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 	fin_unitscale(X3D_PROTO(node));
+	pop_executionContext();
 	//LOCAL_LIGHT_OFF
 
 }
+

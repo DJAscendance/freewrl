@@ -86,37 +86,46 @@ void fv_usage()
 	    "  -t|--stereo <float>     Set stereo parameter (angle factor).\n"
 	    "  -A|--anaglyph <string>  Set anaglyph color pair ie: RB for left red, right blue. any of RGBCAM.\n"
 	    "  -B|--sidebyside         Set side-by-side stereo.\n"
-	    "  -U|--updown			   Set updown stereo.\n"
+	    "  -U|--updown             Set updown stereo.\n"
+		"  -q|--cardboard          set cardboard stereo \n"	
+		"  -Q|--quadrant		   set quadrant view \n"
+		"  -O|--screenorient	   set screen orientation degrees {0 90 180 270} \n"
+		"  -T|--touchtype          set pointing device touch type {0=single 1=emulate multitouch 2=multitouch 3=gesture \n"
 	    "  -K|--keypress <string>  Set immediate key pressed when ready.\n"
-#ifdef USE_SNAPSHOT_TESTING
 		"  -R|--record             Record to /recording/<scene>.fwplay.\n"
-		"  -F|--fixture            Playback from /recording/<scene>.fwplay to /fixture.\n"
 		"  -P|--playback           Playback from /recording/<scene>.fwplay to /playback\n"
-		"  -N|--nametest <string>  Set name of .fwplay test file\n"
-		"  -Y|--testpath <string>  Set path to recording directory\n"
-#endif
-		"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
-		"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
-		"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
-		"    panel,menuIcon,statusText,messageText ie \"#3D4557,#00FFFF,#00FFFF.#00FFFF\" \n"
 		"  -I|--pin TF             Pin statusbar(T/F) menubar(T/F)\n"	
 		"  -w|--want TF            Want statusbar(T/F) menubar(T/F)\n"	
 		"  -E|--FPS <int>          Target Maximum Frames Per Second\n"	
 		"  =^|--shadingStyle <int> 0=Flat 1=gouraud 2=phong 3=wire\n"
-		//"  -N|--nametest <string>  Set name of .fwplay test file\n"
 		"  -D|--DIS                Allow Distributed Interactive Simulation\n"
+		"     --DISaddress <string>  DIS default ipv4 address or localhost \n"
+		"     --DISport <int>        DIS default port 1000 - 99999\n"
+		"     --DISsite <int>        DIS default site ID (facility / room ID) 1-255\n"
+		"     --DISapp <int>         DIS application instance ID 1-255\n"
+		"     --DISverbose           DIS console display of received pdus\n"
+		"  -S|--set <int> testing set default 0, added to port number for DIS\n"
 		"  -J|--javascript <string> SM spidermonkey, DUK duktape, NONE stubs\n"
 		"  -x|--boxes              Draw bounding boxes\n"
+		"  -X|--viewpoints         Show viewpointss\n"
+		"  -l|--rig                Draw HAnim rig\n"
+		"  -M|--midi <int>         choose MIDI transport 1=msg 2=ump\n"
 	    "\nInternal options:\n"
 	    "  -i|--plugin <string>    Called from plugin.\n"
 	    "  -j|--fd <number>        Pipe to command the program.\n"
 	    "  -k|--instance <number>  Instance of plugin.\n"
 	    "  -L|--logfile <filename> Log file where all messages should go.\n"
+		"     --skinGPU  TF        for HAnim T= GPU skinning F= CPU skinning .\n"
 #ifdef HAVE_LIBCURL
 	    "  -C|--curl               Use libcurl instead of wget.\n"
 #endif
-	    ""
+	    "\n\n"
 	);
+	//"  -G|--colorscheme <string>  UI colorscheme by builtin name: {original,angry,\n"
+	//	"       aqua,favicon,midnight,neon:lime,neon:yellow,neon:cyan,neon:pink}\n"
+	//	"  -H|--colors <string>    UI colorscheme by 4 html colors in order: \n"
+	//	"    panel,menuIcon,statusText,messageText ie \"#3D4557,#00FFFF,#00FFFF.#00FFFF\" \n"
+
 }
 
 const char * fv_validate_string_arg(const char *optarg)
@@ -141,6 +150,7 @@ const char * fv_validate_string_arg(const char *optarg)
 	//{"fast", no_argument, 0, 'f'},
 	{"linewidth", required_argument, 0, 'W'},
 	//{"nocollision", no_argument, 0, 'Q'},
+	{"rig",no_argument,0,'l'},
 
 	{"gif", no_argument, 0, 'p'},
 	{"snapfile", required_argument, 0, 'n'},
@@ -153,6 +163,10 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"stereo", required_argument, 0, 't'},
 	{"anaglyph", required_argument, 0, 'A'},
 	{"sidebyside", no_argument, 0, 'B'},
+	{"cardboard", no_argument, 0, 'q'},
+	{"quadrant", no_argument, 0, 'Q'},
+	{"screenorient", required_argument, 0, 'O'},
+	{"touchtype", required_argument, 0, 'T'},
 	{"updown", no_argument, 0, 'U'},
 	{"keypress", required_argument, 0, 'K'},
 	{"plugin", required_argument, 0, 'i'},
@@ -163,19 +177,23 @@ const char * fv_validate_string_arg(const char *optarg)
 	{"curl", no_argument, 0, 'C'},
 
 	{"display", required_argument, 0, 'd'}, /* Roberto Gerson */
-#ifdef USE_SNAPSHOT_TESTING
 	{"record", no_argument, 0, 'R'},
-	{"fixture", no_argument, 0, 'F'},
 	{"playback", no_argument, 0, 'P'},
-	{"nametest", required_argument, 0, 'N'},
-	{"testpath", required_argument, 0, 'Y'},
-#endif
 	{"colorscheme", required_argument, 0, 'G'},
 	{"colors", required_argument, 0, 'H'},
 	{"shadingStyle",required_argument,0,'^'},
-	{"DIS",no_argument,0,'D'},
+	{"set",required_argument,0,'S'},
 	{"javascript",required_argument,0,'J'},
 	{"boxes",no_argument,0,'x'},
+	{"viewpoints",no_argument,0,'X'},
+	{"midi",required_argument,0,'M'},
+	{"DIS",no_argument,0,'D'},
+	{"DISaddress",required_argument,0,128},
+	{"DISport",required_argument,0,129},
+	{"DISsite",required_argument,0,130},
+	{"DISapp",required_argument,0,131},
+	{"skinGPU",required_argument,0,132},
+	{"DISverbose",no_argument,0,133},
 	{0, 0, 0, 0}
     };
 
@@ -204,14 +222,14 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 {
     int c, itmp;
     float ftmp;
-    long int ldtmp;
+    long* ldtmp;
     int option_index = 0;
     int real_option_index;
     const char *real_option_name;
     //char *logFileName = NULL;
     //FILE *fp;
 
-	static const char optstring[] = "efg:hi:j:k:vVpn:o:bsQW:K:Xcr:y:utCL:d:RFPN:Y:DJ:x"; //':' means the preceding option requires an arguement
+	static const char optstring[] = "efg:hi:j:k:vVpn:o:O:bsQqW:K:Xcr:y:utCL:d:RT:FPN:Y:DS:J:xM:l"; //':' means the preceding option requires an arguement
 
 
 	*url_index = -1;
@@ -237,6 +255,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	c = getopt(argc, argv, optstring);
 		
 # endif //HAVE_GETOPT_LONG
+//#define _DEBUG 1
 #if defined(_DEBUG) || defined(DEBUG)
 		printf("c=%c argv[%d]=%s\n",c,optind,argv[optind]);
 #define	DEBUG_ARGS printf
@@ -266,11 +285,11 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    /* Error handling */
 
 	case '?': /* getopt error: unknown option or missing argument */
-	    ERROR_MSG("ERROR: unknown option or missing argument to option: %c (%s)\n", 
+	    printf("ERROR: unknown option or missing argument to option: %c (%s)\n", 
 		     c, real_option_name);
 	    //fwExit(1);
-		return FALSE;
-	   // break;
+		//return TRUE;
+	    break;
 
 	    /* Options handling */
 
@@ -278,13 +297,13 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    fv_usage();
 	    //fwExit(0);
 		return FALSE;
-	    //break;
+	    break;
 
 	case 'v': /* --version, no argument */
 	    fv_print_version();
 	    //fwExit(0);
 		return FALSE;
-	    //break;
+	    break;
 
 /* Window options */
 
@@ -319,7 +338,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    } else {
 		    if (!fwl_parse_geometry_string(optarg, 
 						   &fv_params->width, &fv_params->height,
-						   &fv_params->xpos, &fv_params->ypos)) {
+						   &fv_params->xpos, &fv_params->ypos, &fv_params->wnum)) {
 			    ERROR_MSG("Malformed geometry string: %s\n", optarg);
 			    return FALSE;
 		    }
@@ -333,7 +352,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 
 	case 'd': /* --display, required argument int */
 		printf ("Parameter --display = %s\n", optarg);
-		sscanf(optarg,"%ld", (long int *)&ldtmp);
+		sscanf(optarg,"%zu", (size_t*)&ldtmp);
 		fv_params->winToEmbedInto = ldtmp;
 		break;
 
@@ -397,6 +416,9 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'x': /* bounding boxes */
 	    fwl_setDrawBoundingBoxes(1);
 	    break;
+	case 'X': /* viewpoints */
+	    fwl_setShowViewpoints(1);
+	    break;
 
 	case 't': /* --stereo, required argument: float */
 	    fwl_set_StereoParameter(optarg);
@@ -411,22 +433,75 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'D': /* --DIS, no argument */
 	    fwl_init_DIS();
 	    break;
+	case 128: /* --DISaddress <string> */
+		fwl_set_DISaddress(optarg);
+		break;
+	case 129: /* --DISport <integer 1000-99999> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISport(itmp);
+		break;
+	case 130: /* --DISsite <int 1-255> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISsite(itmp);
+		break;
+	case 131: /* --DISapp <int 1-255> */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_DISapplication(itmp);
+		break;
+
+	case 133: /* --DISverbose no param */
+		fwl_set_DISverbose(TRUE);
+		break;
+
+	case 132: /* --skinGPU T/F */
+		fwl_set_skinning(optarg[0]);
+		break;
+
+
+	case 'S': /* --set, required argument: int */
+		sscanf(optarg, "%d", &itmp);
+		fwl_set_testset(itmp);
+		break;
 
 	case 'U': /* --updown, no argument */
 	    fwl_init_UpDown();
 	    break;
+	case 'q': /* --cardboard, no argument */
+	    fwl_init_cardboard();
+	    break;
+	case 'Q': /* --quadrant, no argument */
+	    fwl_init_quadrant();
+	    break;
+	case 'O': /* --screenorient {0,90,180,270} */
+		{
+			int degrees;
+			sscanf(optarg,"%d",&degrees);
+			if(degrees != 0 && degrees != 90 && degrees != 180 && degrees != 270 ) degrees = 0;
+			fwl_setOrientation2(degrees);
+		}
+	    break;
+	case 'T': /* --touchtype {0=single/mouse 1=emulate multitouch 2=multitouch 3=gesture */
+		{
+			int ttype;
+			sscanf(optarg,"%d",&ttype);
+			if(ttype < 0 || ttype > 3) ttype = 0;
+			fwl_set_touchtype(ttype);
+			//ms windows: gestures are default, need to register window for touches if desired
+			fv_params->touchtype = ttype;
 
+		}
+	    break;
 	case 'K': /* --keypress, required argument: string */
 	    /* initial string of keypresses once main url is loaded */
 		fwl_set_KeyString(optarg);
 	    break;
 
-	case 'G': /* --colorscheme string */
-		fwl_set_ui_colorscheme(optarg);
-		break;
-	case 'H': /* --colors string */
-		fwl_set_ui_colors(optarg);
-		break;
+	//case 'G': /* --colorscheme string */
+	//	fwl_set_ui_colorscheme(optarg);
+	//	break;
+	//case 'H': /* --colors string */
+	//	fwl_set_ui_colors(optarg);
+	//	break;
 
 	case 'I': /* --pin TF */
 		fwl_set_sbh_pin_option(optarg);
@@ -460,6 +535,10 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	    sscanf(optarg,"%u",(unsigned int *)(void *)(&_fw_instance));
 	    break;
 
+	case 'l': /* --rig no arg*/
+		fwl_setDrawRig(TRUE);
+		break;
+
 	case 'L': /* --logfile, required argument: log filename */
 	    if (optarg) {
 		//logFileName = strdup(optarg);
@@ -472,25 +551,21 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	case 'J': /* --javascript, required argument: string */
 		fwl_setJsEngine(optarg);
 	    break;
-
-#ifdef USE_SNAPSHOT_TESTING  
-	// link to lib/main/SnapshotTesting.c
 	case 'R': /* --record, no arg */
 		fwl_set_modeRecord();
-		break;
-	case 'F': /* --fixture, no arg */
-		fwl_set_modeFixture();
 		break;
 	case 'P': /* --playback, no arg */
 		fwl_set_modePlayback();
 		break;
-	case 'N': /* --nametest, required arguement: "name_of_fwplay"*/
-		fwl_set_nameTest(optarg);
+	case 'M': /* --midi, int 1 or 2 for midi transport */
+		{
+		int ival = 2;
+		sscanf(optarg, "%d", &ival);
+		set_MIDITransport(ival);
+		}
 		break;
-	case 'Y': /* --testPath directory where to put recording, playback */
-		fwl_set_testPath(optarg);
-		break;
-#endif
+
+
 
 #ifdef HAVE_LIBCURL
 	case 'C': /* --curl, no argument */
@@ -501,7 +576,7 @@ int fv_parseCommandLine (int argc, char **argv, freewrl_params_t *fv_params, int
 	default:
 	    ERROR_MSG("ERROR: getopt returned character code 0%o, unknown error.\n", c);
 	    //fwExit(1);
-		return FALSE;
+		//return FALSE;
 	    break;
 	}
     }

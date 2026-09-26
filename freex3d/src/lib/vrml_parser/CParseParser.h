@@ -224,6 +224,10 @@ BOOL found_IS_field(struct VRMLParser* me, struct X3D_Node *node);
 BOOL isAvailableBroto(const char *pname, struct X3D_Proto* currentContext, struct X3D_Proto **proto);
 void registerParentIfManagedField(int type, int mode, int isPublic, union anyVrml* any, struct X3D_Node* parent);
 void shallow_copy_field(int typeIndex, union anyVrml* source, union anyVrml* dest);
+void shallow_copy_field_precision(int sourcetypeIndex, int desttypeIndex, union anyVrml* source, union anyVrml* dest);
+int type_dimension(int itype);
+int type_precision(int itype);
+
 BOOL usingBrotos();
 int X3DMODE(int val);
 void load_externProtoInstance (struct X3D_Proto *node);
@@ -248,4 +252,11 @@ struct IMEXPORT {
 };
 struct IMEXPORT *broto_search_IMPORTname(struct X3D_Proto *context, const char *name);
 struct IMEXPORT *broto_search_EXPORTname(struct X3D_Proto *context, const char *name);
+struct metarecord {
+	char* name;
+	char* content;
+};
+void add_empty_proto_vectors(struct X3D_Node* node);
+void load_externProtoDeclare (struct X3D_Proto *node);
+
 #endif /* __FREEWRL_CPARSE_PARSER_H__ */

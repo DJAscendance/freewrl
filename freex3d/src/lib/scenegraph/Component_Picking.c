@@ -94,23 +94,25 @@ void remove_picksensor(struct X3D_Node * node) {}
 
 void push_pickablegroupdata(void *userdata);
 void pop_pickablegroupdata();
-void child_PickableGroup (struct X3D_Group *node) {
-	CHILDREN_COUNT
+void child_PickableGroup (struct X3D_PickableGroup *node) {
+	//CHILDREN_COUNT
+	int nc = node->children.n;
 	RETURN_FROM_CHILD_IF_NOT_FOR_ME
 	/* printf("%s:%d child_PickableGroup\n",__FILE__,__LINE__); */
-
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
-
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	//PUSH OBJECTTYPE
 	//PUSH PICKABLE == TRUE/FALSE
 	push_pickablegroupdata(node);
-	
+
 	normalChildren(node->children);
 
 	//POP PICKABLE == TRUE/FALSE
 	//POP OBJECTTTYPE
 	pop_pickablegroupdata();
+
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 

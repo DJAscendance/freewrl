@@ -97,11 +97,11 @@ struct point_XYZ cone_disp(double y1, double y2, double ydisp, double r, struct 
 /*basically, it does collision with a rectangle on a plane that passes through the origin.*/
 struct point_XYZ cylinder_disp(double y1, double y2, double ydisp, double r, struct point_XYZ base, struct point_XYZ top, double baseradius);
 
-struct point_XYZ polyrep_disp2(struct X3D_PolyRep pr, GLDOUBLE* mat, prflags flags);
+struct point_XYZ polyrep_disp2(struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags flags);
 
 /*displacement when the polyrep structure is all in the same plane
   if normal is zero, it will be calculated form the first triangle*/
-struct point_XYZ planar_polyrep_disp(double y1, double y2, double ydisp, double r, struct X3D_PolyRep pr, GLDOUBLE* mat, prflags flags, struct point_XYZ n);
+struct point_XYZ planar_polyrep_disp(double y1, double y2, double ydisp, double r, struct X3D_PolyRep *pr, GLDOUBLE* mat, prflags flags, struct point_XYZ n);
 
 // struct point_XYZ elevationgrid_disp( double y1, double y2, double ydisp, double r, struct X3D_PolyRep pr, int xdim, int zdim, double xs, double zs, GLDOUBLE* mat, prflags flags);
 
@@ -132,7 +132,7 @@ struct sCollisionGPU {
 
 
 
-#define VIEWER_WALK 2
+//#define VIEWER_WALK 2
 //int viewer_type = VIEWER_WALK; // force to walking
 struct sFallInfo
 {

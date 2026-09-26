@@ -26,6 +26,7 @@
 #include <libFreeWRL.h>
 #include <iglobal.h>
 #include "../ui/common.h"
+#include "../main/MainLoop.h"
 #include <scenegraph/Vector.h>
 
 // OLD_IPHONE_AQUA #if defined (_MSC_VER) || defined (AQUA)  || defined(QNX) || defined(_ANDROID) || defined(ANDROIDNDK)
@@ -61,6 +62,7 @@ typedef struct pcommon{
 	int target_frames_per_second;
 	char myMenuStatus[MAXSTAT];
 	char messagebar[MAXSTAT];
+	char SensorStatus[MAXSTAT];
 	char fpsbar[16];
 	char distbar[16];
 	char window_title[MAXTITLE];
@@ -83,6 +85,11 @@ typedef struct pcommon{
 	int jsengine;
 	int jsengine_variant;
 	int draw_bounding_boxes;
+	int show_viewpoints;
+	int draw_rig;
+	int record_inputs;
+	int playback_inputs;
+	double start_time;
 }*ppcommon;
 void *common_constructor(){
 	void *v = MALLOCV(sizeof(struct pcommon));
@@ -102,7 +109,7 @@ void common_init(struct tcommon *t){
 		p->colorScheme = NULL;
 		p->colorSchemeChanged = 0;
 		p->pin_statusbar = 1;
-		p->pin_menubar = 0;
+		p->pin_menubar = 1;
 		p->want_menubar = 1;
 		p->want_statusbar = 1;
 		p->keyvals = NULL;
@@ -112,6 +119,9 @@ void common_init(struct tcommon *t){
 		p->pedal = 0; //pedal mode moves in-scene cursor by drag amount ie indirect/offset drag
 		p->hover = 0; //hover mode means your drags only do isOver -no navigation or sensor click
 		p->jsengine = JSENGINE_STUB;
+		p->draw_bounding_boxes = FALSE;
+		p->show_viewpoints = FALSE;
+		p->draw_rig = FALSE;
 #ifdef JAVASCRIPT_DUK
 		p->jsengine = JSENGINE_DUK;
 #endif
@@ -121,8 +131,9 @@ void common_init(struct tcommon *t){
 #ifdef JAVASCRIPT_ENGINE_VARIANT
 		p->jsengine_variant = JAVASCRIPT_ENGINE_VARIANT;  //1= pre-2018 SM1 2= 2018+ SM2
 #endif
-		p->draw_bounding_boxes = FALSE;
 #endif
+		p->record_inputs = FALSE;
+		p->playback_inputs = FALSE;
 	}
 }
 void common_clear(struct tcommon *t){
@@ -141,9 +152,141 @@ void common_clear(struct tcommon *t){
 		}
 	}
 }
-
+void splitpath3(const char* url, char** folder, char** local_name, char** suff);
 //ppcommon p = (ppcommon)gglobal()->common.prv;
+static FILE* frecord = NULL;
+FILE* getRecordFile() {
+	if (!frecord) {
+		char name[300];
+		char* folder, * local_name, * suff;
+		splitpath3(gglobal()->Mainloop.url, &folder, &local_name, &suff);
+		strcpy(name, folder);
+		strcat(name, "/");
+		strcat(name, local_name);
+		strcat(name, ".fwplay");
+		frecord = fopen(name, "w+");
+	}
+	return frecord;
+}
+static double last_time, run_time;
+void record_touch(int mev, unsigned int ID, int mouseX, int mouseY, int windex) {
+	ttglobal tg = gglobal();
+	FILE* f = getRecordFile();
+	double this_time = Time1970sec();
+	double delta_time = this_time -last_time;
+	last_time = this_time;
+	//normalize touch coords to -1 to +1 range in y, 
+	// so if screen size, dimensions change between record and playback it will still work
+	float fmouseX, fmouseY, scale;
+	scale = 2.0f / (float)tg->display.screenHeight;
+	fmouseY = (float)mouseY * scale - 1.0f;
+	fmouseX = (float)mouseX * scale - 1.0f;
+	fprintf(f, "T,%d,%u,%f,%f,%d,%lf\n",mev,ID,fmouseX,fmouseY,windex,delta_time);
+}
+void record_mouse(int mev, int butnum, int mouseX, int mouseY, int windex) {
+	ttglobal tg = gglobal();
+	FILE* f = getRecordFile();
+	double this_time = Time1970sec();
+	double delta_time = this_time - last_time;
+	last_time = this_time;
+	//normalize mouse coords to -1 to +1 range in y, 
+	// so if screen size, dimensions change between record and playback it will still work
+	float fmouseX, fmouseY, scale;
+	scale = 2.0f / (float)tg->display.screenHeight;
+	fmouseY = (float)mouseY * scale - 1.0f;
+	fmouseX = (float)mouseX * scale - 1.0f;
 
+	fprintf(f, "M,%d,%d,%f,%f,%d,%lf\n",mev,butnum,fmouseX,fmouseY,windex,delta_time);
+}
+void record_rawkeypress(int key, int type) {
+	FILE* f = getRecordFile();
+	double this_time = Time1970sec();
+	double delta_time = this_time - last_time;
+	last_time = this_time;
+	fprintf(f, "K,%d,%d,%lf\n", key, type, delta_time);
+}
+
+void fwl_set_modeRecord() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->record_inputs = TRUE;
+	last_time = Time1970sec();
+}
+static pthread_t playback_thread;
+void _playbackthread(ttglobal tglobal) {
+	ttglobal tg = tglobal;
+	char name[300], line[300], cc;
+	int mev, butnum, mouseX, mouseY, windex, cstyle, ID, key, type, iret;
+	float fmouseX, fmouseY, scale;
+	double delta_time, this_time, dtime;
+	char* folder, * local_name, * suff;
+	fwl_setCurrentHandle(tg, __FILE__, __LINE__);
+	while (tg->Mainloop.url == NULL) sleep(50);
+	splitpath3(tg->Mainloop.url, &folder, &local_name, &suff);
+	strcpy(name, folder);
+	strcat(name, "/");
+	strcat(name, local_name);
+	strcat(name, ".fwplay");
+	FILE *fplay = fopen(name, "r+");
+	run_time = Time1970sec();
+	while (fscanf(fplay, "%s", line)>0) {
+		//printf("%s\n",line);
+		switch (line[0]) {
+		case 'M':
+			sscanf(line, "%c,%d,%d,%f,%f,%d,%lf\n", &cc, &mev, &butnum, &fmouseX, &fmouseY, &windex, &dtime);
+			//printf("%c %d %d %d %d %d %lf\n", cc, mev, butnum, mouseX, mouseY, windex, rtime);
+			run_time += dtime;
+			this_time = Time1970sec();
+			delta_time = run_time - this_time;
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
+			//de-normalize mouse coords
+			scale = 2.0f / (float)tg->display.screenHeight;
+			mouseY = (int)((fmouseY + 1.0)/scale + .5f);
+			mouseX = (int)((fmouseX + 1.0)/scale + .5f);
+			cstyle = fwl_handle_mouse0(mev, butnum, mouseX, mouseY, windex);
+#ifdef _MSC_VER
+			updateCursorStyle0(cstyle); //other frontends poll getCursorStyle()
+#endif
+			break;
+		case 'T':
+			sscanf(line, "%c,%d,%u,%f,%f,%d,%lf\n", &cc, &mev, &ID, &fmouseX, &fmouseY, &windex, &dtime);
+			run_time += dtime;
+			this_time = Time1970sec();
+			delta_time = run_time - this_time; 
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
+			//de-normalize touch coords
+			scale = 2.0f / (float)tg->display.screenHeight;
+			mouseY = (int)(fmouseY + 1.0) / scale;
+			mouseX = (int)(fmouseX + 1.0) / scale;
+			cstyle = fwl_handle_touch0(mev, ID, mouseX, mouseY, windex);
+#ifdef _MSC_VER
+			updateCursorStyle0(cstyle); //other frontends poll getCursorStyle()
+#endif
+			break;
+		case 'K':
+			sscanf(line, "%c,%d,%d,%lf\n", &cc, &key, &type, &dtime);
+			run_time += dtime;
+			this_time = Time1970sec();
+			delta_time = run_time - this_time;
+			if (delta_time > 0.0) sleep((int)(1000.0 * (delta_time)));
+			fwl_do_keyPress0(key, type);
+			break;
+		}
+	}
+}
+void fwl_set_modePlayback() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->playback_inputs = TRUE;
+	last_time = Time1970sec();
+	int ret = pthread_create(&playback_thread, NULL, (void*)_playbackthread, gglobal());
+}
+int fwl_get_modePlayback() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->playback_inputs;
+}
+int fwl_get_modeRecord() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->record_inputs;
+}
 void fwl_setTrap(int k){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	p->itrap = k;
@@ -248,6 +391,18 @@ char *get_status(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->buffer;
 }
+void setSensorStatus(char* status) {
+	char* pp;
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+
+	pp = status;
+	if (!pp) pp = "";
+	snprintf(p->SensorStatus, MAXSTAT - 1, "%s", pp);
+
+}
+char* getSensorStatus() {
+	return ((ppcommon)gglobal()->common.prv)->SensorStatus;
+}
 void setMenuStatus3(char* status3)
 {
 	char *pp;
@@ -256,10 +411,6 @@ void setMenuStatus3(char* status3)
 	pp = status3;
 	if (!pp) pp = "";
 	snprintf(p->myMenuStatus, MAXSTAT-1, "%s", pp);
-}
-void setMenuStatus(char *stattext)
-{
-	setMenuStatus3(stattext);
 }
 void setMenuStatusVP(char *stattext)
 {
@@ -759,7 +910,7 @@ int print_keyval(char *key){
 	}
 	return 1;
 }
-int fwl_hyper_option(char *val);
+//int fwl_hyper_option(char *val);
 int ssr_test(char *keyval);
 struct command {
 	char *key;
@@ -775,7 +926,7 @@ struct command {
 	{"colorscheme",NULL,fwl_set_ui_colorscheme,"[original,midnight,angry,favicon,aqua,neon:lime,neon:yellow,neon:cyan,neon:pink]"},
 	{"set_keyval",NULL,set_keyval,"key,val"},
 	{"print_keyval",NULL,print_keyval,"key"},
-	{"hyper_option",NULL,fwl_hyper_option,"[0 - 10]"},
+	//{"hyper_option",NULL,fwl_hyper_option,"[0 - 10]"},
 #ifdef SSR_SERVER
 	{"ssrtest",NULL,ssr_test,"nav,val"},
 #endif
@@ -889,4 +1040,20 @@ void fwl_setDrawBoundingBoxes(int drawbb){
 int fwl_getDrawBoundingBoxes(){
 	ppcommon p = (ppcommon)gglobal()->common.prv;
 	return p->draw_bounding_boxes; //0 means off, 1 means on
+}
+void fwl_setShowViewpoints(int show){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->show_viewpoints = show; //0 means off, 1 means on
+}
+int fwl_getShowViewpoints(){
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->show_viewpoints; //0 means off, 1 means on
+}
+void fwl_setDrawRig(int draw) {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	p->draw_rig = draw; //0 means off, 1 means on
+}
+int fwl_getDrawRig() {
+	ppcommon p = (ppcommon)gglobal()->common.prv;
+	return p->draw_rig; //0 means off, 1 means on
 }

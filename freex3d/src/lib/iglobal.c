@@ -55,6 +55,8 @@ void collision_init(struct tcollision *t);
 void collision_clear(struct tcollision *t);
 void Component_CubeMapTexturing_init(struct tComponent_CubeMapTexturing *t);
 void Component_CubeMapTexturing_clear(struct tComponent_CubeMapTexturing *t);
+void Component_Lighting_init(struct tComponent_Lighting* t);
+void Component_Lighting_clear(struct tComponent_Lighting* t);
 void Component_EnvironSensor_init(struct tComponent_EnvironSensor *t);
 void Component_Geometry3D_init(struct tComponent_Geometry3D *t);
 void Component_Geometry3D_clear(struct tComponent_Geometry3D *t);
@@ -69,12 +71,14 @@ void Component_ParticleSystems_init(struct tComponent_ParticleSystems *t);
 void Component_ParticleSystems_clear(struct tComponent_ParticleSystems *t);
 void Component_ProgrammableShaders_init(struct tComponent_ProgrammableShaders *t);
 void Component_ProgrammableShaders_clear(struct tComponent_ProgrammableShaders *t);
-void Component_PTM_init(struct tComponent_PTM *t);
-void Component_PTM_clear(struct tComponent_PTM *t);
+void Component_TextureProjector_init(struct tComponent_TextureProjector *t);
+void Component_TextureProjector_clear(struct tComponent_TextureProjector *t);
 void Component_RigidBodyPhysics_init(struct tComponent_RigidBodyPhysics *t);
 void Component_RigidBodyPhysics_clear(struct tComponent_RigidBodyPhysics *t);
 void Component_Followers_init(struct tComponent_Followers *t);
 void Component_Followers_clear(struct tComponent_Followers *t);
+void Component_MIDI_init(struct tComponent_MIDI* t);
+void Component_MIDI_clear(struct tComponent_MIDI* t);
 
 void Component_KeyDevice_init(struct tComponent_KeyDevice *t);
 
@@ -87,12 +91,15 @@ void Component_Rendering_init(struct tComponent_Rendering *t);
 void Component_Rendering_clear(struct tComponent_Rendering *t);
 void Component_Shape_init(struct tComponent_Shape *t);
 void Component_Sound_init(struct tComponent_Sound *t);
+void Component_Sound_clear(struct tComponent_Sound *t);
 void Component_Text_init(struct tComponent_Text *t);
 void Component_Text_clear(struct tComponent_Text *t);
 void Component_Layering_clear(struct tComponent_Layering *t);
 void Component_Layout_clear(struct tComponent_Layout *t);
 void Component_VolumeRendering_init(struct tComponent_VolumeRendering *t);
 void Component_VolumeRendering_clear(struct tComponent_VolumeRendering *t);
+void Component_Grouping_init(struct tComponent_Grouping *t);
+void Component_Grouping_clear(struct tComponent_Grouping *t);
 
 void RenderFuncs_init(struct tRenderFuncs *t);
 void RenderFuncs_clear(struct tRenderFuncs *t);
@@ -127,6 +134,8 @@ void Bindable_clear(struct tBindable *t);
 
 void X3DParser_init(struct tX3DParser *t);
 void X3DParser_clear(struct tX3DParser *t);
+void gltf_loader_init(struct tgltf_loader *t);
+void gltf_loader_clear(struct tgltf_loader *t);
 
 void common_init(struct tcommon *t);
 void common_clear(struct tcommon *t);
@@ -186,7 +195,8 @@ printf(" tTextures %d\n", (int)sizeof(struct tTextures));
 printf(" tPluginSocket %d\n", (int)sizeof(struct tPluginSocket));
 printf(" tpluginUtils %d\n", (int)sizeof(struct tpluginUtils));
 printf(" tcollision %d\n", (int)sizeof(struct tcollision));
-printf(" tComponent_CubeMapTexturing %d\n", (int)sizeof(struct tComponent_CubeMapTexturing));
+printf(" tComponent_CubeMapTexturing %d\n", (int)sizeof(struct tComponent_CubeMapTexturing)); 
+printf(" tComponent_Lighting %d\n", (int)sizeof(struct tComponent_Lighting));
 printf(" tComponent_EnvironSensor %d\n", (int)sizeof(struct tComponent_EnvironSensor));
 printf(" tComponent_Geometry3D %d\n", (int)sizeof(struct tComponent_Geometry3D));
 printf(" tComponent_Geospatial %d\n", (int)sizeof(struct tComponent_Geospatial));
@@ -196,7 +206,7 @@ printf(" tComponent_Layout %d\n", (int)sizeof(struct tComponent_Layout));
 printf(" tComponent_NURBS %d\n", (int)sizeof(struct tComponent_NURBS));
 printf(" tComponent_ParticleSystems %d\n", (int)sizeof(struct tComponent_ParticleSystems));
 printf(" tComponent_ProgrammableShaders %d\n", (int)sizeof(struct tComponent_ProgrammableShaders));
-printf(" tComponent_PTM %d\n",(int)sizeof(struct tComponent_PTM));
+printf(" tComponent_PTM %d\n",(int)sizeof(struct tComponent_TextureProjector));
 printf(" tComponent_RigidBodyPhysics %d\n", (int)sizeof(struct tComponent_RigidBodyPhysics));
 printf(" tComponent_Followers %d\n", (int)sizeof(struct tComponent_Followers));
 printf(" tComponent_KeyDevice %d\n", (int)sizeof(struct tComponent_KeyDevice));
@@ -310,7 +320,7 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 	//RasterFont_init(&iglobal->RasterFont);
 	RenderTextures_init(&iglobal->RenderTextures);
 	Textures_init(&iglobal->Textures);
-	Component_PTM_init(&iglobal->Component_PTM);
+	Component_TextureProjector_init(&iglobal->Component_TextureProjector);
 #ifndef DISABLER	
 #ifndef NO_PLUGINSOCKET
 	PluginSocket_init(&iglobal->PluginSocket);
@@ -319,6 +329,7 @@ ttglobal  iglobal_constructor() //(mainthreadID,parserthreadID,texturethreadID..
 #endif	
 	collision_init(&iglobal->collision);
 	Component_CubeMapTexturing_init(&iglobal->Component_CubeMapTexturing);
+	Component_Lighting_init(&iglobal->Component_Lighting);
 	Component_EnvironSensor_init(&iglobal->Component_EnvironSensor);
 	Component_Geometry3D_init(&iglobal->Component_Geometry3D);
 	Component_Geospatial_init(&iglobal->Component_Geospatial);
@@ -340,6 +351,9 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 	Component_Sound_init(&iglobal->Component_Sound);
 	Component_Text_init(&iglobal->Component_Text);
     Component_VolumeRendering_init(&iglobal->Component_VolumeRendering);
+	Component_MIDI_init(&iglobal->Component_MIDI);
+	Component_Grouping_init(&iglobal->Component_Grouping);
+
 	RenderFuncs_init(&iglobal->RenderFuncs);
 	StreamPoly_init(&iglobal->StreamPoly);
 	Tess_init(&iglobal->Tess);
@@ -362,6 +376,7 @@ OLDCODE	Component_Networking_init(&iglobal->Component_Networking);
 #endif //JAVASCRIPT_DUK
 	Bindable_init(&iglobal->Bindable);
 	X3DParser_init(&iglobal->X3DParser);
+	gltf_loader_init(&iglobal->gltf_loader);
 	common_init(&iglobal->common);
 #ifndef DISABLER	
 	CursorDraw_init(&iglobal->CursorDraw);
@@ -394,6 +409,7 @@ void __iglobal_fields_destructor(ttglobal tg)
 	//call individual destructors in reverse order to constructor
 	FREE_IF_NZ(tg->CursorDraw.prv);
 	common_clear(&tg->common); FREE_IF_NZ(tg->common.prv);
+	gltf_loader_clear(&tg->gltf_loader); FREE_IF_NZ(tg->gltf_loader.prv);
 	X3DParser_clear(&tg->X3DParser); FREE_IF_NZ(tg->X3DParser.prv);
 	Bindable_clear(&tg->Bindable); FREE_IF_NZ(tg->Bindable.prv);
 
@@ -417,11 +433,14 @@ void __iglobal_fields_destructor(ttglobal tg)
 	FREE_IF_NZ(tg->statusbar.prv);
 	FREE_IF_NZ(tg->Viewer.prv);
 	FREE_IF_NZ(tg->Tess.prv);
+	Component_Grouping_clear(&tg->Component_Grouping); FREE_IF_NZ(tg->Component_Grouping.prv);
+	Component_MIDI_clear(&tg->Component_MIDI); FREE_IF_NZ(tg->Component_MIDI.prv);
 	Component_VolumeRendering_clear(&tg->Component_VolumeRendering); FREE_IF_NZ(tg->Component_VolumeRendering.prv);
 	FREE_IF_NZ(tg->StreamPoly.prv);
-	FREE_IF_NZ(tg->Component_Sound.prv);
+	//FREE_IF_NZ(tg->Component_Sound.prv);
 	RenderFuncs_clear(&tg->RenderFuncs); FREE_IF_NZ(tg->RenderFuncs.prv);
 	Component_Text_clear(&tg->Component_Text); FREE_IF_NZ(tg->Component_Text.prv);
+	Component_Sound_clear(&tg->Component_Sound); FREE_IF_NZ(tg->Component_Sound.prv);
 	FREE_IF_NZ(tg->Component_Shape.prv);
 	Component_Rendering_clear(&tg->Component_Rendering); FREE_IF_NZ(tg->Component_Rendering.prv);
 	FREE_IF_NZ(tg->Component_Picking.prv);
@@ -440,11 +459,12 @@ OLDCODE	FREE_IF_NZ(tg->Component_Networking.prv);
 	Component_Geospatial_clear(&tg->Component_Geospatial); FREE_IF_NZ(tg->Component_Geospatial.prv);
 	Component_Geometry3D_clear(&tg->Component_Geometry3D); FREE_IF_NZ(tg->Component_Geometry3D.prv);
 	FREE_IF_NZ(tg->Component_EnvironSensor.prv);
+	Component_Lighting_clear(&tg->Component_Lighting); FREE_IF_NZ(tg->Component_Lighting.prv);
 	Component_CubeMapTexturing_clear(&tg->Component_CubeMapTexturing); FREE_IF_NZ(tg->Component_CubeMapTexturing.prv);
 	collision_clear(&tg->collision); FREE_IF_NZ(tg->collision.prv);
 	FREE_IF_NZ(tg->pluginUtils.prv);
 	FREE_IF_NZ(tg->PluginSocket.prv);
-	Component_PTM_clear(&tg->Component_PTM); FREE_IF_NZ(tg->Component_PTM.prv);
+	Component_TextureProjector_clear(&tg->Component_TextureProjector); FREE_IF_NZ(tg->Component_TextureProjector.prv);
 	Textures_clear(&tg->Textures); FREE_IF_NZ(tg->Textures.prv);
 	FREE_IF_NZ(tg->RenderTextures.prv);
 	//FREE_IF_NZ(tg->RasterFont.prv);

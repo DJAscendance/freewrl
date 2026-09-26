@@ -36,6 +36,10 @@
  * flist.c++
  *
  */
+#ifdef __unix__
+# include <assert.h>
+#endif
+
 
 #include "glimports.h"
 #include "myassert.h"

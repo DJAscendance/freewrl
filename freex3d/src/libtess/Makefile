@@ -30,6 +30,12 @@ OBJECTS = $(C_OBJECTS)
 default:
 	$(MAKE) $(TESS_LIB_NAME) || exit 1 ; \
 
+all:
+
+install:
+
+uninstall:
+
 # Make the library:
 $(TESS_LIB_NAME): $(TESS_LIB_NAME)($(OBJECTS))
 

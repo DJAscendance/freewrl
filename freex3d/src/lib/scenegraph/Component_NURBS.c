@@ -120,6 +120,8 @@ There is some source for it:
 	http://mesa3d.org/
 	ftp://ftp.freedesktop.org/pub/mesa/glu/
 	http://oss.sgi.com/projects/ogl-sample/
+Here's a blog complaining glu won't render some example nurbs curves
+	https://www.codeproject.com/articles/996281/nurbs-curve-made-easy
 So we're left to re-implement the hard way.
 I find nurbs libs are always disappointing in documentation. 
 I think that's because there's not a lot to nurbs, mostly plumbing and little meat: 
@@ -179,7 +181,7 @@ void free_polyrep(struct X3D_PolyRep *rep){
 	//see also delete_polyrep - did dug9 duplicate the function or is it different?
 	if(rep){
 		rep->ntri = 0;
-		rep->transparency = 0;
+		//rep->transparency = 0;
 		//Q. are any of these added to GC tables? If not..
 		glDeleteBuffers(VBO_COUNT, rep->VBO_buffers);
 		FREE_IF_NZ(rep->actualCoord);
@@ -192,12 +194,14 @@ void free_polyrep(struct X3D_PolyRep *rep){
 		FREE_IF_NZ(rep);
 	}
 }
-struct X3D_PolyRep * create_polyrep(){
+struct X3D_PolyRep * create_polyrep0(){
 	int i;
 	struct X3D_PolyRep *polyrep;
 
 	polyrep = MALLOC(struct X3D_PolyRep *, sizeof(struct X3D_PolyRep));
 	memset(polyrep,0,sizeof(struct X3D_PolyRep));
+	polyrep->itype = 2; //0 points 1 lines 2 mesh
+	polyrep->mode = 4; //4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
 	polyrep->ntri = -1;
 	//polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
 	//polyrep->norindex = 0; polyrep->normal = 0; polyrep->flat_normal = 0; polyrep->GeneratedTexCoords = 0;
@@ -218,20 +222,18 @@ struct X3D_PolyRep * create_polyrep(){
 	for (i=0; i<VBO_COUNT; i++) 
 		polyrep->VBO_buffers[i] = 0;
 
+	return polyrep;
+}
+struct X3D_PolyRep * create_polyrep(){
+	struct X3D_PolyRep *polyrep = create_polyrep0();
 	/* printf ("generating buffers for node %p, type %s\n",p,stringNodeType(p->_nodeType)); */
 	glGenBuffers(1,&polyrep->VBO_buffers[VERTEX_VBO]);
 	glGenBuffers(1,&polyrep->VBO_buffers[INDEX_VBO]);
-	//glGenBuffers(1,&polyrep->VBO_buffers[NORMAL_VBO]);
-	//glGenBuffers(1,&polyrep->VBO_buffers[TEXTURE_VBO0+0]);
-
-
-
-	/* printf ("they are %u %u %u %u\n",polyrep->VBO_buffers[0],polyrep->VBO_buffers[1],polyrep->VBO_buffers[2],polyrep->VBO_buffers[3]); */
 	return polyrep;
 }
 
-
-
+#define NURBS_LIB 1
+//#undef NURBS_LIB
 #ifdef NURBS_LIB
 //START MIT LIC >>>>>>>>
 //some algorithms from "The Nurbs Book", Les Piegl et al
@@ -446,7 +448,12 @@ int SurfacePoint(int n,int p,float *U,
 #include <OpenGL/glu.h>
 #define CALLBACK
 #else
-#include <libnurbs2.h>
+#ifndef _MSC_VER
+#define CALLBACK
+#include <GL/glu.h>
+#endif //__MSC_VER
+#include <../libnurbs/libnurbs2.h>
+#include <../libtess/libtess2.h>
 #endif
 static int DEBG = 0; //glu nurbs surface and trim calls
 static int DEBGC = 0; //curve calls
@@ -1025,7 +1032,7 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 
 	/* first time through; make the intern structure for this polyrep node */
 	if(node->_intern){
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*)node->_intern;
 		FREE_IF_NZ(polyrep->cindex);
 		FREE_IF_NZ(polyrep->actualCoord);
 		FREE_IF_NZ(polyrep->GeneratedTexCoords[0]);
@@ -1039,9 +1046,9 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 		//glDeleteBuffers(VBO_COUNT,polyrep->VBO_buffers); //streampoly checks if 0 before doing a new one
 	}
 	if(!node->_intern) 
-		node->_intern = create_polyrep();
+		node->_intern = (struct X3D_GeomRep*) create_polyrep();
 
-	rep_ = polyrep = node->_intern;
+	rep_ = polyrep = (struct X3D_PolyRep*) node->_intern;
 
 
 	/* if multithreading, tell the rendering loop that we are regenning this one */
@@ -1056,8 +1063,11 @@ void convert_strips_to_polyrep(struct Vector * strips,struct X3D_NurbsTrimmedSur
 		rep_->tcoordtype = NODE_TextureCoordinate; //??
 		rep_->ntcoord = 1;
 	}
-	tcnode =  &tcnode0; //createNewX3DNode(NODE_TextureCoordinate);
-
+	//tcnode = createNewX3DNode(NODE_TextureCoordinate);
+	//memcpy(&tcnode0, tcnode, sizeof(struct X3D_TextureCoordinate));
+	//free(tcnode);
+	//tcnode =  &tcnode0; //createNewX3DNode(NODE_TextureCoordinate);
+	tcnode = createNewX3DNode(NODE_TextureCoordinate);
 	npoints = nindex = ntc = 0;
 	for(i=0;i<strips->n;i++){
 		ss = vector_get_ptr(struct stripState,strips,i);
@@ -2539,7 +2549,7 @@ void convert_mesh_to_polyrep(float *xyz, int npts, float *nxyz, int* tindex, int
 
 	/* first time through; make the intern structure for this polyrep node */
 	if(node->_intern){
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*) node->_intern;
 		FREE_IF_NZ(polyrep->cindex);
 		FREE_IF_NZ(polyrep->actualCoord);
 		FREE_IF_NZ(polyrep->GeneratedTexCoords[0]);
@@ -2551,9 +2561,9 @@ void convert_mesh_to_polyrep(float *xyz, int npts, float *nxyz, int* tindex, int
 		FREE_IF_NZ(polyrep->tcindex);
 	}
 	if(!node->_intern) 
-		node->_intern = create_polyrep();
+		node->_intern = (struct X3D_GeomRep*) create_polyrep();
 
-	rep_ = polyrep = node->_intern;
+	rep_ = polyrep = (struct X3D_PolyRep*) node->_intern;
 
 
 	/* if multithreading, tell the rendering loop that we are regenning this one */
@@ -2685,7 +2695,8 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		node->_method = 2;
 	if(!strcmp(node->method->strptr,"TRANSLATE"))
 		node->_method = 1;
-	if(node->_method == 1){
+	if(false && node->_method == 1){
+		//xx broken, April 2022, don't use this _method == 1 section (go through _method == 2 below with _method == 1 modifications)
 		//ALGO 1 Suv = T(v) + C(u)
 		struct X3D_NurbsPatchSurface *patch;
 		struct X3D_Coordinate *controlPoint;
@@ -2765,7 +2776,7 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		}
 		compile_NurbsPatchSurface((struct X3D_NurbsPatchSurface*)node->_patch);
 	} //end method == 1
-	if(node->_method == 2){
+	if(true || node->_method == 2){
 		//ALGO 2 skinning like extrusion
 		int mtessv, mtessu, nku, nkv;
 		int i,DBGSW;
@@ -2892,7 +2903,7 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 		it = 0;
 		for(i=0;i<mtessv1;i++){
 			//insert oriented xsection at T(v)
-			float mat [9], matt[9];
+			float mat[9], matt[9];
 			int j;
 			//set up 3x3 rotation by using 3 perpendicular local unit vectors as rot mat rows
 			//http://renderdan.blogspot.ca/2006/05/rotation-matrix-from-axis-vectors.html
@@ -2908,16 +2919,47 @@ void compile_NurbsSweptSurface(struct X3D_NurbsSweptSurface *node){
 				//your crosssection plane perpendicular to the start of your trajectory)
 				//and subsequent are rotated with respect to first
 				//Looks good
+				if (node->_method == 1) {
+					matidentity3f(mat);
+				}
 				memcpy(matB0,mat,9*sizeof(float));
 			}
 			matmultiply3f(mat,matt,matB0);
+			if (node->_method == 1) {
+				matidentity3f(mat);
+			}
 			for(j=0;j<mtessu1;j++){
-				float pp[3], norm[3];
+				float pp[3], norm[3], qq[3];
 				matmultvec3f(pp, mat, &Qu[j*3] ); //orient profile point
+				//matmultvec3f(norm,mat,&Nu[j*3]); //didn't work
+				//compute norm as difference of 2 transformed points
+				vecadd3f(qq, &Nu[j * 3], &Qu[j * 3]);
+				matmultvec3f(qq, mat, qq);
+				vecdif3f(norm, pp, qq);
+				vecnormalize3f(norm, norm);
+				veccopy3f(&normals[ic * 3], norm);
+
+				//shift rotated point to trajectory point
 				vecadd3f(pp,pp,&Tv[i*3]); //add on trajectory point
 				veccopy3f(&pts[ic*3],pp);
-				matmultvec3f(norm,mat,&Nu[j*3]);
-				veccopy3f(&normals[ic*3],norm);
+				if (node->_method == 1) {
+					float tt[3], ee[3], ff[3], ii[3]; //method 1 normal computation vectors
+
+					//compute normal as ii = ee x ff (edge normal cross face normal)
+					//norm = ii x tt (tt is direction of travel vector)
+					//x-section face normal, assume x-section in xy plane
+					vecset3f(ff, 0.0f, 0.0f, 1.0f); //assumed normal to x-section face
+					//edge normal - in plane of x-section, at vertex of x-section point
+					veccopy3f(ee, &Nu[j * 3]);
+					//travel vector along profile
+					if (i == 0) vecdif3f(tt, &Tv[(i+1) * 3], &Tv[i * 3]);  //vecset3f(tt, 0.0f, 0.0f, -1.0f);
+					else vecdif3f(tt, &Tv[i * 3], &Tv[(i - 1) * 3]);
+					//printf("tt[%d] %f %f %f\n", j, tt[0], tt[1], tt[2]);
+					veccross3f(ii, ff, ee);
+					veccross3f(norm, ii, tt);
+					vecnormalize3f(norm, norm);
+					veccopy3f(&normals[ic * 3], norm);
+				}
 				ic++;
 			}
 			//connect to last xsection with triangles
@@ -2994,7 +3036,7 @@ void collide_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 
 void render_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 	COMPILE_IF_REQUIRED
-	if(node->_method == 1){
+	if(false && node->_method == 1){
 		struct X3D_NurbsPatchSurface *patch;
 		if (!node->_patch->_intern) 
 			return;
@@ -3002,7 +3044,7 @@ void render_NurbsSweptSurface (struct X3D_NurbsSweptSurface *node) {
 		CULL_FACE(patch->solid)
 		render_polyrep(patch);
 	}
-	if(node->_method == 2){
+	if(true || node->_method == 2){
 		if (!node->_intern) 
 			return;
 		//CULL_FACE(node->solid)

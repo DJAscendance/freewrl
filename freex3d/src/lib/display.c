@@ -306,7 +306,7 @@ int fv_display_initialize_desktop(){
 	if(nwindows > 1){
 		//2nd fun window! to challenge us!
 		freewrl_params_t *p0;
-		dp->winToEmbedInto = -1;
+		dp->winToEmbedInto = (void*) - 1;
 		p0 = targetwindow_get_params(0);
 		if(!fv_create_window_and_context(dp,p0)){
 			return FALSE;
@@ -316,7 +316,7 @@ int fv_display_initialize_desktop(){
 	}
 	if(nwindows > 2){
 		freewrl_params_t *p1;
-		dp->winToEmbedInto = -1;
+		dp->winToEmbedInto = (void *) - 1;
 		p1 = targetwindow_get_params(1);
 		if(!fv_create_window_and_context(dp, p1)){
 			return FALSE;
@@ -355,23 +355,24 @@ int fv_display_initialize_desktop(){
 
 /**
  *   fv_setGeometry_from_cmdline: scan command line arguments (X11 convention), to
- *                             set up the window dimensions.
+ *    set up the window dimensions.
  */
 int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_height, 
-			      int *out_xpos, int *out_ypos)
+			      int *out_xpos, int *out_ypos, int *out_wnum)
 {
-	int width, height, xpos, ypos;
+	int width, height, xpos, ypos, wnum;
 	int c;
 
-	width = height = xpos = ypos = 0;
+	width = height = 0; xpos = ypos = wnum = -1;
 
-	c = sscanf(geometry, "%dx%d+%d+%d", 
-		   &width, &height, &xpos, &ypos);
+	c = sscanf(geometry, "%dx%d+%d+%d_%d", 
+		   &width, &height, &xpos, &ypos, &wnum);
 
 	if (out_width) *out_width = width;
 	if (out_height) *out_height = height;
 	if (out_xpos) *out_xpos = xpos;
 	if (out_ypos) *out_ypos = ypos;
+	if (out_wnum) *out_wnum = wnum;
 
 	if (c > 0)
 		return TRUE;
@@ -435,6 +436,12 @@ void fwl_updateScreenDim(int wi, int he)
  * On all platforms, when we don't have GLEW, we simulate it.
  * In any case we setup the rdr_capabilities struct.
  */
+ int get_GLSL_max_version();
+bool rdr_caps_av_ssbo()
+{
+	ppdisplay p = (ppdisplay)gglobal()->display.prv;
+	return p->rdr_caps.av_ssbo;
+}
 bool initialize_rdr_caps()
 {
 	//s_renderer_capabilities_t *rdr_caps;
@@ -461,11 +468,15 @@ bool initialize_rdr_caps()
         p->rdr_caps.renderer   = (char *) FW_GL_GETSTRING(GL_RENDERER);
         p->rdr_caps.version    = (char *) FW_GL_GETSTRING(GL_VERSION);
         p->rdr_caps.vendor     = (char *) FW_GL_GETSTRING(GL_VENDOR);
+#ifdef FW_GL_CORE_PROFILE
+	p->rdr_caps.extensions = NULL; //core profile: glGetStringi(GL_EXTENSIONS, i) only
+#else
 	p->rdr_caps.extensions = (char *) FW_GL_GETSTRING(GL_EXTENSIONS);
+#endif
     FW_GL_GETBOOLEANV(GL_STEREO,&(p->rdr_caps.quadBuffer));
     //if (rdr_caps.quadBuffer) ConsoleMessage("INIT HAVE QUADBUFFER"); else ConsoleMessage("INIT_ NO QUADBUFFER");
     ConsoleMessage("openGL version %s\n",p->rdr_caps.version);
-
+	get_GLSL_max_version();
 	/* rdr_caps.version = "1.5.7"; //"1.4.1"; //for testing */
 	if (p->rdr_caps.version)
 		p->rdr_caps.versionf = (float) atof(p->rdr_caps.version); 
@@ -509,6 +520,10 @@ bool initialize_rdr_caps()
     p->rdr_caps.have_GL_VERSION_2_0 = p->rdr_caps.versionf >= 2.0f;
     p->rdr_caps.have_GL_VERSION_2_1 = p->rdr_caps.versionf >= 2.1f;
     p->rdr_caps.have_GL_VERSION_3_0 = p->rdr_caps.versionf >= 3.0f;
+	/* GL_EXTENSIONS is not queryable this way in a core profile, so rely on the version there */
+	p->rdr_caps.av_ssbo = p->rdr_caps.versionf >= 4.3f ||
+		(p->rdr_caps.extensions && strstr(p->rdr_caps.extensions, "GL_ARB_shader_storage_buffer_object"));
+	ConsoleMessage("shader storage buffers %s\n", p->rdr_caps.av_ssbo ? "available" : "not available (HAnim uses CPU skinning)");
 
 
 	/* Initialize renderer capabilities without GLEW */
@@ -583,7 +598,11 @@ bool initialize_rdr_caps()
 	}
 	if(1){
 		int actualbits;
+#ifdef FW_GL_CORE_PROFILE
+		glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &actualbits);
+#else
 		glGetIntegerv(GL_DEPTH_BITS, &actualbits);
+#endif
 		ConsoleMessage("depth bits %d\n",actualbits);
 	}
 	/* print some debug infos */

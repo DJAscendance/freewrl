@@ -1,0 +1,45 @@
+# libtess/Makefile
+
+TESS_LIB_NAME = libtess.a
+
+C_SOURCES = \
+	dict.c		\
+	geom.c		\
+	memalloc.c	\
+	mesh.c		\
+	normal.c	\
+	priorityq.c	\
+	render.c	\
+	sweep.c		\
+	tess.c		\
+	tessmono.c
+
+SOURCES = $(C_SOURCES)
+
+C_OBJECTS = $(C_SOURCES:.c=.o)
+OBJECTS = $(C_OBJECTS) 
+CFLAGS=-I../..
+
+##### RULES #####
+
+.c.o:
+	$(CC) -c $(CFLAGS) -DNDEBUG  $< -o $@
+
+##### TARGETS #####
+
+all: default
+
+default:
+	$(MAKE) $(TESS_LIB_NAME)
+
+install:
+
+uninstall:
+
+# Make the library:
+$(TESS_LIB_NAME): $(TESS_LIB_NAME) $(OBJECTS)
+	$(AR) -rvU $(TESS_LIB_NAME) $(OBJECTS)
+
+clean:
+	-rm -f *.o
+

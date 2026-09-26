@@ -194,7 +194,14 @@ struct myArgs {
 			} \
 		} 
 
-
+int strcmproot(char* a, char* b) {
+	char* brackets = strstr(a, "[0]");
+	printf("a=%s b=%s brackets =%s\n", a, b, brackets);
+	if (brackets)
+		return strncmp(a, b, brackets - a);
+	else
+		return strcmp(a, b);
+}
 /* do type checking of shader and field variables when initializing interface */
 static int shader_checkType(struct FieldDecl * myField,
 		GLuint myShader, GLint myUniform, char *namePtr) {
@@ -213,12 +220,13 @@ static int shader_checkType(struct FieldDecl * myField,
 		int i;
 		int gp;
 		glGetProgramiv(myShader,GL_ACTIVE_UNIFORMS,&gp);
-		//ConsoleMessage ("in shader %d, we have %d uniforms, looking for name :%s:",myShader,gp,namePtr);
+		ConsoleMessage ("in shader %d, we have %d uniforms, looking for name :%s:",myShader,gp,namePtr);
 		for (i=0; i<gp; i++) {
 			glGetActiveUniform(myShader,i,(GLsizei)90,&len,&size,&type,ch);
-			//ConsoleMessage("    ....Uniform %d is name :%s: len %d size %d type %d",i,ch,len,size,type);
-			if (strcmp(ch,namePtr)==0) {
-				//ConsoleMessage ("names match, breaking");
+			ConsoleMessage("    ....Uniform %d is name :%s: len %d size %d type %d",i,ch,len,size,type);
+			if (strcmproot(ch,namePtr)==0) {
+				ConsoleMessage ("names match, breaking");
+				myUniform = i;
 				break;
 			}
 		}
@@ -724,7 +732,7 @@ void getField_ToShader(struct X3D_Node *node, int toOffset, union anyVrml *toAny
 							case FIELDTYPE_MFTime:
 							case FIELDTYPE_SFString:
 							case FIELDTYPE_MFString:
-							case FIELDTYPE_SFImage:
+							case FIELDTYPE_MFImage:
 							case FIELDTYPE_FreeWRLPTR:
 							case FIELDTYPE_MFVec3d:
 							case FIELDTYPE_MFDouble:
@@ -776,6 +784,7 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 	if (me->loaded) printf ("locked and loaded "); else printf ("needs loading, I guess ");
 	printf ("\n");
 	#endif
+	//PRINT_GL_ERROR_IF_ANY("BEFORE set textureUnit uniforms");
 
 	/* lets look for, and tie in, textures */
 	/* we make X3D_Texture0 = 0; X3D_Texture1=1, etc */
@@ -783,13 +792,14 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 		char myShaderTextureName[200];
 		GLint myVar;
 
-		sprintf (myShaderTextureName,"X3D_Texture%d",(int) i);
+		sprintf (myShaderTextureName,"textureUnit[%d]",(int) i);
 		myVar = GET_UNIFORM(myShader,myShaderTextureName);
 		if (myVar != INT_ID_UNDEFINED) {
 			printf ("for texture %s, we got %d\n", myShaderTextureName,myVar);
 			GLUNIFORM1I(myVar,(int) i);
 		}
 	}
+	//PRINT_GL_ERROR_IF_ANY("AFTER set textureUnit uniforms");
 
 	/* is there any fields? */
 	if (me == NULL) return;
@@ -831,17 +841,21 @@ static void send_fieldToShader (GLuint myShader, struct X3D_Node *node) {
 			else
 			ConsoleMessage ("Shader variable :%s: is either not declared or not used in the shader program",fieldDecl_getShaderScriptName(myf));
 		}
+		//PRINT_GL_ERROR_IF_ANY("BEFORE shader_checkType");
 
 		/* do the types of the field variable, and the shader variable match? */
 		shader_checkType(myf,myShader,myVar,namePtr);
 
-			
+		//PRINT_GL_ERROR_IF_ANY("BEFORE fieldDecl_setshaderVariableID");
+
 		/* save the variable object for this variable */
 		fieldDecl_setshaderVariableID(myf,myVar);
+		//PRINT_GL_ERROR_IF_ANY("BEFORE sendValueToShader");
 
 		if ((fieldDecl_getAccessType(myf)==PKW_initializeOnly) || (fieldDecl_getAccessType(myf)==PKW_inputOutput)) {
 			sendValueToShader(curField);
 		}
+		//PRINT_GL_ERROR_IF_ANY("AFTER sendValueToShader");
 
 	}
 

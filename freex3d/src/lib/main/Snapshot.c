@@ -243,6 +243,7 @@ void saveSnapshotBMP(char *pathname, char *buffer,int bytesPerPixel,int width, i
 	FWBITMAPFILEHEADER bmph;
 	char filler[3] = {'\0','\0','\0'};
 	FILE *fout;
+	memset(&bi, 0, sizeof(FWBITMAPINFOHEADER));
 
 	//fname = "freewrl_snapshot.bmp";
 	//if(p->snapsnapB) fname = p->snapsnapB;
@@ -327,7 +328,7 @@ void saveSnapshotBMP(char *pathname, char *buffer,int bytesPerPixel,int width, i
 			//swap BGR TO RGB
 			int i;
 			char c;
-			for(i=0;i<rowlength*height;i+=3)
+			for(i=0;i<rowlength*height;i+=bytesPerPixel)
 			{
 				c = buffer[i];
 				buffer[i] = buffer[i+2];

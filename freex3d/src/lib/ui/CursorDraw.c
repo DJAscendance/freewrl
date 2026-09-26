@@ -28,6 +28,7 @@
 
 #include "../vrml_parser/Structs.h"
 #include "main/headers.h"
+#include "opengl/Frustum.h"
 #include "vrml_parser/Structs.h"
 #include "scenegraph/Viewer.h"
 #include "scenegraph/Component_Shape.h"
@@ -258,6 +259,15 @@ static struct cline cur_over [] = {
 	{2,{.0f,.008f, .0f,.02f, .0f,.0f}},
 	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
 };
+static struct cline cur_circle [] = {
+	{3,{.1f,.00f, .0866f,.05f, .05f,.0866f}}, 
+	{3,{.05f,.0866f, .00f, .1f, -.05f, .0866f}},
+	{3,{-.05f, .0866f, -.0866f, .05f, -.1f, .00f}},
+	{3,{ -.1f, .00f, -.0866f, -.05f, -.05f, -.0866f}},
+	{3,{ -.05f, -.0866f, .00f, -.1f, .05f, -.0866f}},
+	{3,{ .05f, -.0866f, .0866f, -.05f, .1f, .00f }},
+	{0,{.0f,.0f,.0f,.0f,.0f,.0f}},
+};
 /* - in CursorDraw.h
 enum cursor_type {
 	CURSOR_UP = 0,
@@ -273,10 +283,12 @@ static struct cline *cursor_array [] = {
 	cur_hover,
 	cur_over,
 	cur_fiducials,
+	cur_circle,
 	NULL,
 };
 /* attempt to draw fiducials with lines - draws wrong place */
 s_shader_capabilities_t *getMyShader(unsigned int rq_cap0);
+
 void fiducialDrawB(int cursortype, int x, int y)
 {
 	XY xy;
@@ -631,7 +643,7 @@ void extent6f_draw(float *extent)
 	int i,j,k,n;
 	GLint  positionLoc;
 	GLfloat p[24][3];
-	unsigned short lineindices[3];
+	GLuint lineindices[3];
 	struct cline *cur, *line;
 	s_shader_capabilities_t *scap;
 	ttglobal tg = gglobal();
@@ -690,7 +702,7 @@ void extent6f_draw(float *extent)
 		reallyDrawOnce();
 	}else{
 		//this also works
-		sendElementsToGPU(GL_LINES,2,(ushort *)lineindices);
+		sendElementsToGPU(GL_LINES,2,(int *)lineindices);
 
 		for(i=0;i<n;i+=2){
 			//printf("line [%f %f %f] to [%f %f %f]\n",p[i][0],p[i][1],p[i][2],p[i+1][0],p[i+1][1],p[i+1][2]);
@@ -711,4 +723,166 @@ void extent6f_draw(float *extent)
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	restoreGlobalShader();
+}
+void draw_bbox(float *center, float *size){
+	float extent[6];
+	bbox2extent6f(center,size,extent);
+	extent6f_draw(extent);
+}
+void draw_viewpoint(int type, float *fov, float aspect)
+{
+	//assumes 0,0,0 is the perspective center, and -Z the look direction
+	int i,j,k,n;
+	GLint  positionLoc;
+	GLfloat p[24][3];
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	n = 0;
+	if(type == NODE_Viewpoint || type == NODE_GeoViewpoint){
+		//regular viewpoint 
+		float d,w,h;
+		d = 1.0 * cos(*fov);
+		w = sin(*fov); //half-width
+		h = aspect *w; //half-height
+		//sides
+		vecset3f(p[0],0.0f,0.0f,0.0f);
+		vecset3f(p[1],w,h,-d);
+		vecset3f(p[2],0.0f,0.0f,0.0f);
+		vecset3f(p[3],-w,h,-d);
+		vecset3f(p[4],0.0f,0.0f,0.0f);
+		vecset3f(p[5],-w,-h,-d);
+		vecset3f(p[6],0.0f,0.0f,0.0f);
+		vecset3f(p[7],w,-h,-d);
+		//opening
+		vecset3f(p[8],-w,-h,-d);
+		vecset3f(p[9],w,-h,-d);
+		vecset3f(p[10],w,-h,-d);
+		vecset3f(p[11],w,h,-d);
+		vecset3f(p[12],w,h,-d);
+		vecset3f(p[13],-w,h,-d);
+		vecset3f(p[14],-w,h,-d);
+		vecset3f(p[15],-w,-h,-d);
+		n = 16;
+
+	}
+
+	if(type == NODE_OrthoViewpoint){
+		//regular viewpoint 
+		float w1,w2,h1,h2,d = 1.0f;
+
+		//printf("ortho fov %f %f %f %f\n",fov[0],fov[1],fov[2],fov[3]);
+		w1=fov[0];
+		w2=fov[2];
+		h1=fov[1];
+		h2=fov[3];
+		vecset3f(p[0],w1,h1,d);
+		vecset3f(p[1],w2,h1,d);
+		vecset3f(p[2],w2,h1,d);
+		vecset3f(p[3],w2,h2,d);
+		vecset3f(p[4],w2,h2,d);
+		vecset3f(p[5],w1,h2,d);
+		vecset3f(p[6],w1,h2,d);
+		vecset3f(p[7],w1,h1,d);
+
+		vecset3f(p[8 ],w1,h1,-d);
+		vecset3f(p[9 ],w2,h1,-d);
+		vecset3f(p[10],w2,h1,-d);
+		vecset3f(p[11],w2,h2,-d);
+		vecset3f(p[12],w2,h2,-d);
+		vecset3f(p[13],w1,h2,-d);
+		vecset3f(p[14],w1,h2,-d);
+		vecset3f(p[15],w1,h1,-d);
+
+		n = 16;
+	}
+
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU (GL_LINES, 0, n);
+	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[0]);
+	reallyDrawOnce();
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
+}
+void draw_frustum(float *corners)
+{
+	//assumes 0,0,0 is the perspective center, and -Z the look direction
+	int i,j,k,n;
+	GLint  positionLoc;
+	GLfloat p[24][3];
+	struct cline *cur, *line;
+	s_shader_capabilities_t *scap;
+	ttglobal tg = gglobal();
+
+	n = 0;
+	for(int j=0;j<2;j++)
+	for(int i=0;i<4;i++){
+		int k = j*4 + i;
+		int m = j*4 + (i+1) % 4;
+		veccopy3f(p[n],&corners[k*3]);
+		veccopy3f(p[n+1],&corners[m*3]);
+		n+=2;
+	}
+	for(int i=0;i<4;i++){
+		veccopy3f(p[n],&corners[i*3]);
+		veccopy3f(p[n+1],&corners[(i+4)*3]);
+		n+=2;
+	}
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	//FW_GL_VERTEX_POINTER(2, GL_FLOAT, 0, (GLfloat *)p);
+	//sendArraysToGPU(GL_LINE_STRIP, 0, 3);
+	positionLoc =  scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU (GL_LINES, 0, n);
+	FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,p[0]);
+	reallyDrawOnce();
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
+}
+void line_draw(float* p, float* q, int depthtest, float width) {
+	GLint  positionLoc;
+	GLfloat pp[2][3];
+
+	s_shader_capabilities_t* scap;
+	ttglobal tg = gglobal();
+	veccopy3f(pp[0], p);
+	veccopy3f(pp[1], q);
+	scap = getMyShader(NO_APPEARANCE_SHADER);
+	enableGlobalShader(scap);
+	positionLoc = scap->Vertices; //glGetAttribLocation ( shader, "fw_Vertex" );
+	setupShaderB();
+	sendArraysToGPU(GL_LINES, 0, 2);
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, pp[0]);
+	if (!depthtest) glDisable(GL_DEPTH_TEST);
+	glLineWidth(width);
+	reallyDrawOnce();
+	if (!depthtest) glEnable(GL_DEPTH_TEST);
+	glLineWidth(1.0f);
+	clearDraw();
+
+	//printf("\n");
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	restoreGlobalShader();
+
 }

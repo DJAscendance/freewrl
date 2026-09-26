@@ -305,6 +305,7 @@ JSBool SFVec2fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool SFVec2fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
+
 JSBool SFVec3fAdd(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fCross(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fDivide(JSContext *cx, uintN argc, jsval *vp);
@@ -319,6 +320,25 @@ JSBool SFVec3fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool SFVec3fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool SFVec2dAdd(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dDivide(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dDot(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dLength(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dMultiply(JSContext* cx, uintN argc, jsval* vp);
+/* JSBool SFVec2fNegate(JSContext *cx, uintN argc, jsval *vp); */
+JSBool SFVec2dNormalize(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dSubtract(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFVec2dConstr(JSContext* cx, uintN argc, jsval* vp);
+
+
+JSBool SFVec2dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFVec2dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+
+
 
 JSBool SFVec3dAdd(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec3dCross(JSContext *cx, uintN argc, jsval *vp);
@@ -349,11 +369,32 @@ JSBool SFVec4fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<
 JSBool SFVec4dToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4dAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool SFVec4dConstr(JSContext *cx, uintN argc, jsval *vp);
-
 JSBool SFVec4dGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool SFVec4dSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool SFMatrix3fToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3fAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3fConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFMatrix3fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool SFMatrix4fToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4fAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4fConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFMatrix4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool SFMatrix3dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFMatrix3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool SFMatrix4dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool SFMatrix4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool SFMatrix4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 JSBool MFColorToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFColorAssign(JSContext *cx, uintN argc, jsval *vp);
@@ -363,6 +404,15 @@ JSBool MFColorConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 JSBool MFColorAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFColorGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFColorSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFColorRGBAToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFColorRGBAConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+
+JSBool MFColorRGBAAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFColorRGBAGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFColorRGBASetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 JSBool MFFloatToString(JSContext *cx, uintN argc, jsval *vp);
@@ -384,6 +434,16 @@ JSBool MFInt32ConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *a
 JSBool MFInt32AddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFInt32GetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFInt32SetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+
+JSBool MFBoolToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFBoolConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+
+JSBool MFBoolAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFBoolGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFBoolSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 JSBool MFNodeToString(JSContext *cx, uintN argc, jsval *vp);
@@ -429,12 +489,17 @@ JSBool MFTimeToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFTimeConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-
-
-
 JSBool MFTimeAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFTimeGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFTimeSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFDoubleToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFDoubleConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFDoubleAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFDoubleGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFDoubleSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 
@@ -454,14 +519,81 @@ JSBool MFVec3fToString(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFVec3fAssign(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFVec3fConstr(JSContext *cx, uintN argc, jsval *vp);
 JSBool MFVec3fConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-
-
-
-
 JSBool MFVec3fAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFVec3fGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool MFVec3fSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
+JSBool MFVec4fToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4fAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4fConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFVec4fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFVec2dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec2dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec2dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec2dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFVec2dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec2dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec2dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFVec3dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec3dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec3dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFVec3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFVec4dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFVec4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFVec4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFVec4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFMatrix3fToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3fAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3fConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFMatrix3fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix3fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix3fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFMatrix4fToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4fAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4fConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4fConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFMatrix4fAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix4fGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix4fSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFMatrix3dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix3dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFMatrix3dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix3dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix3dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFMatrix4dToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4dAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4dConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFMatrix4dConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFMatrix4dAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix4dGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFMatrix4dSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool MFImageToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageAssign(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageConstr(JSContext* cx, uintN argc, jsval* vp);
+JSBool MFImageConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool MFImageAddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFImageGetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool MFImageSetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 JSBool VrmlMatrixToString(JSContext *cx, uintN argc, jsval *vp);
@@ -481,6 +613,38 @@ JSBool VrmlMatrixConstrInternals(JSContext *cx, JSObject *obj, uintN argc, jsval
 JSBool VrmlMatrixAddProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool VrmlMatrixGetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
 JSBool VrmlMatrixSetProperty(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool X3DMatrix3ToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3Assign(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3setTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3getTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3inverse(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3transpose(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multLeft(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multRight(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multVecMatrix(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3multMatrixVec(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3Constr(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix3ConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool X3DMatrix3AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix3GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix3SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
+
+JSBool X3DMatrix4ToString(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4Assign(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4setTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4getTransform(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4inverse(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4transpose(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multLeft(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multRight(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multVecMatrix(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4multMatrixVec(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4Constr(JSContext* cx, uintN argc, jsval* vp);
+JSBool X3DMatrix4ConstrInternals(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+JSBool X3DMatrix4AddProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix4GetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JS::MutableHandle<JS::Value> hvp);
+JSBool X3DMatrix4SetProperty(JSContext* cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 
 
 JSBool _standardMFAssign(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval, JSClass *myClass, int type);
@@ -509,6 +673,9 @@ extern JSFunctionSpec (SFVec2fFunctions)[];
 extern JSClass SFVec3fClass;
 extern JSPropertySpec (SFVec3fProperties)[];
 extern JSFunctionSpec (SFVec3fFunctions)[];
+extern JSClass SFVec2dClass;
+extern JSPropertySpec(SFVecdfProperties)[];
+extern JSFunctionSpec(SFVecdfFunctions)[];
 extern JSClass SFVec3dClass;
 extern JSPropertySpec (SFVec3dProperties)[];
 extern JSFunctionSpec (SFVec3dFunctions)[];
@@ -521,8 +688,25 @@ extern JSClass SFVec4dClass;
 extern JSPropertySpec (SFVec4dProperties)[];
 extern JSFunctionSpec (SFVec4dFunctions)[];
 
+extern JSClass SFMatrix3fClass;
+extern JSPropertySpec(SFMatrix3fProperties)[];
+extern JSFunctionSpec(SFMatrix3fFunctions)[];
+extern JSClass SFMatrix4fClass;
+extern JSPropertySpec(SFMatrix4fProperties)[];
+extern JSFunctionSpec(SFMatrix4fFunctions)[];
+
+extern JSClass SFMatrix3dClass;
+extern JSPropertySpec(SFMatrix3dProperties)[];
+extern JSFunctionSpec(SFMatrix3dFunctions)[];
+extern JSClass SFMatrix4dClass;
+extern JSPropertySpec(SFMatrix4dProperties)[];
+extern JSFunctionSpec(SFMatrix4dFunctions)[];
+
 extern JSClass MFColorClass;
 extern JSFunctionSpec (MFColorFunctions)[];
+extern JSClass MFColorRGBAClass;
+extern JSFunctionSpec(MFColorRGBAFunctions)[];
+
 extern JSClass MFFloatClass;
 extern JSFunctionSpec (MFFloatFunctions)[];
 extern JSClass MFBoolClass;
@@ -538,13 +722,43 @@ extern JSFunctionSpec (MFStringFunctions)[];
 extern JSClass MFTimeClass;
 extern JSPropertySpec (MFTimeProperties)[] ;
 extern JSFunctionSpec (MFTimeFunctions)[];
+extern JSClass MFDoubleClass;
+extern JSPropertySpec(MFDoubleProperties)[];
+extern JSFunctionSpec(MFDoubleFunctions)[];
+
 extern JSClass MFVec2fClass;
 extern JSFunctionSpec (MFVec2fFunctions)[];
 extern JSClass MFVec3fClass;
 extern JSFunctionSpec (MFVec3fFunctions)[];
+extern JSClass MFVec4fClass;
+extern JSFunctionSpec(MFVec4fFunctions)[];
+extern JSClass MFVec2dClass;
+extern JSFunctionSpec(MFVec2dFunctions)[];
+extern JSClass MFVec3dClass;
+extern JSFunctionSpec(MFVec3dFunctions)[];
+extern JSClass MFVec4dClass;
+extern JSFunctionSpec(MFVec4dFunctions)[];
+extern JSClass MFImageClass;
+extern JSFunctionSpec(MFImageFunctions)[];
+
+extern JSClass MFMatrix3fClass;
+extern JSFunctionSpec(MFMatrix3fFunctions)[];
+extern JSClass MFMatrix4fClass;
+extern JSFunctionSpec(MFMatrix4fFunctions)[];
+
+extern JSClass MFMatrix3dClass;
+extern JSFunctionSpec(MFMatrix3dFunctions)[];
+extern JSClass MFMatrix4dClass;
+extern JSFunctionSpec(MFMatrix4dFunctions)[];
+
+
+
 extern JSClass VrmlMatrixClass;
 extern JSFunctionSpec (VrmlMatrixFunctions)[];
-
+extern JSClass X3DMatrix3Class;
+extern JSFunctionSpec(X3DMatrix3Functions)[];
+extern JSClass X3DMatrix4Class;
+extern JSFunctionSpec(X3DMatrix4Functions)[];
 
 JSBool js_SetPropertyCheck(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);
 JSBool js_SetPropertyDebug5(JSContext *cx, JS::Handle<JSObject*> hobj, JS::Handle<jsid> hiid, JSBool strict, JS::MutableHandle<JS::Value> hvp);

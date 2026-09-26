@@ -233,15 +233,57 @@ Extra = 11170,
 
 
 static int allow_DIS = 0;
+static char* DISaddress = NULL;
+static int DISport = 0;
+static int DISsite = 0;
+static int DISapplication = 0;
 void fwl_init_DIS(){
 	//from commandline --DIS or -D
 	allow_DIS = 1;
 }
+void fwl_set_DISaddress(char* address) {
+	DISaddress = address;
+}
+void fwl_set_DISport(int port) {
+	DISport = port;
+}
+void fwl_set_DISsite(int site) {
+	DISsite = site;
+}
+void fwl_set_DISapplication(int app) {
+	DISapplication = app;
+}
+static int dis_verbose = FALSE; // TRUE; //just for a receiver, not for sender
+void fwl_set_DISverbose(int verbose) {
+	dis_verbose = verbose;
+}
+
 int fwl_get_allow_DIS(){
 	return allow_DIS;
 }
+char* fwl_get_DISaddress() {
+	return DISaddress;
+}
+int fwl_get_DISport() {
+	return DISport;
+}
+int fwl_get_DISsite() {
+	return DISsite;
+}
+int fwl_get_DISapplication() {
+	return DISapplication;
+}
 void fwl_set_allow_DIS(int allow){
 	allow_DIS = allow ? 1 : 0;
+}
+//testset is an int added to port when regression tessting DIS sets
+// so 2 sets of mulitple freewrl instances don't mix their communications
+static int testset = 0;
+void fwl_set_testset(int iset) {
+	testset = iset;
+}
+int fwl_get_testset() {
+	return testset;
 }
 
 #ifdef WITH_DIS
@@ -594,12 +636,13 @@ struct Vector * dis_node2pdus_espdu(struct X3D_Node *node, int isHeartbeat){
 
 	//ENTITYSTATE
 	//if(pnode->_pduchange_es_articulation || pnode->_pduchange_es_deadreckoning || pnode->_pduchange_es_info || pnode->_pduchange_es_force){
-	printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
+	if(0) printf("es pduchange %d heartbeat %d\n",pnode->_pduchange_es,isHeartbeat);
 	if(pnode->_pduchange_es || isHeartbeat){
 		float xyz[3];
 		struct EntityStatePdu *espdu;
 		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
 		//entity
+		espdu->entityType.category = 1; //not 77
 		espdu->entityID.entity = pnode->entityID;
 		espdu->entityID.application = pnode->applicationID;
 		espdu->entityID.site = pnode->siteID;
@@ -1272,6 +1315,20 @@ struct Vector * dis_node2pdus_signal(struct X3D_Node *node, int isHeartbeat){
 	}
 	return pdus;
 }
+
+// for incoming pdus, we tag them as we handle them
+// in pdu->padding
+enum {
+	TAG_UNCLAIMED = 0,
+	TAG_SAME_PROGRAM = 1,
+	TAG_ESPDU = 2,
+	TAG_ENTITY_MANAGER = 3,
+	TAG_RECEIVER = 4,
+	TAG_TRANSMITTER = 5,
+	TAG_SIGNAL = 6,
+	TAG_AVATAR = 7,
+	TAG_SENSOR = 8,
+};
 struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int country, int category, int subcategory, int specific, int extra);
 int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	int i, ihit;
@@ -1283,19 +1340,30 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 	for(i=0;i<pdus->n;i++)
 	{
 		pdu = vector_get(struct Pdu*,pdus,i);
+		if(pdu->padding == TAG_UNCLAIMED)
 		switch(pdu->pduType){
 			case PDU_ENTITY_STATE:
 			{
 				//ENTITYSTATE
 				struct EntityStatePdu *espdu;
 				espdu = (struct EntityStatePdu*)pdu;
-				if(espdu->entityID.application != pnode->applicationID) break;
-				if(espdu->entityID.site != pnode->siteID) break;
+				// 2018.pdf 6.2.80.3 Application Number implied an instance number, 
+				// so should not be same unless loopback testing
+				//if (espdu->entityID.application == pnode->applicationID
+				//	&& espdu->entityID.site == pnode->siteID) {
+				if (espdu->entityID.application == fwl_get_DISapplication()
+					&& espdu->entityID.site == fwl_get_DISsite()) {
+						pdu->padding = TAG_SAME_PROGRAM;
+					break;
+				}
+				int avatar = FALSE;
+				if (espdu->entityType.category == 77) avatar = TRUE;
+				//	break; //its an avatar, handled elsewhere
 				if(espdu->entityID.entity != pnode->entityID) break;
 				ihit++;
+				pdu->padding = avatar ? TAG_AVATAR : TAG_ESPDU;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
-
 				if(pnode->__geoSystem){
 					Quaternion qgc2tcs, qtcs2body, qgc2body;
 					struct SFVec3d gd, gc, translate;
@@ -1418,13 +1486,16 @@ int dis_pdus2node_espdu(struct X3D_Node *node, struct Vector *pdus){
 						vecnormalize3f(pnode->_angularVelocity.c,axis);
 						pnode->_angularVelocity.c[3] = angle;
 					}
-
+					if (disverbose() && pdu->padding == TAG_AVATAR) {
+						printf("Avatar S%2d A%2d T %lf\n", espdu->entityID.site, espdu->entityID.application,TickTime());
+					}
 				}else{
 					//non-geosystem scene. Apr 22, 2018 we aren't using this now
 					// -- everything goes through geosystem code above
 					// -- but keeping this until we benchmark against Brutzman
 					//translation - assumes companion scenes will have same parent transform stack
 					//(x, -z, y).
+					
 					pnode->translation.c[0] = espdu->entityLocation.x;
 					pnode->translation.c[1] = espdu->entityLocation.z;
 					pnode->translation.c[2] = -espdu->entityLocation.y; 
@@ -1728,6 +1799,7 @@ int dis_pdus2node_receiver(struct X3D_Node *node, struct Vector *pdus){
 	for(i=0;i<pdus->n;i++)
 	{
 		pdu = vector_get(struct Pdu*,pdus,i);
+		if(pdu->padding == TAG_UNCLAIMED)
 		switch(pdu->pduType){
 			case PDU_RECEIVER:
 			{
@@ -1736,6 +1808,7 @@ int dis_pdus2node_receiver(struct X3D_Node *node, struct Vector *pdus){
 
 				if(pnode->radioID != rpdu->myRadioCommunicationsFamilyPdu.radioId) break;
 				ihit++;
+				pdu->padding = TAG_RECEIVER;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
 
@@ -1764,6 +1837,7 @@ int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
 	for(i=0;i<pdus->n;i++)
 	{
 		pdu = vector_get(struct Pdu*,pdus,i);
+		if(pdu->padding == TAG_UNCLAIMED)
 		switch(pdu->pduType){
 			case PDU_TRANSMITTER:
 			{
@@ -1772,10 +1846,12 @@ int dis_pdus2node_transmitter(struct X3D_Node *node, struct Vector *pdus){
 
 				if(pnode->radioID != tpdu->myRadioCommunicationsFamilyPdu.radioId) break;
 				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
-				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
-				if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+				//if(tpdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				//site.application should not be the same unless loopback testing
+				//if(tpdu->myRadioCommunicationsFamilyPdu.entityId.application == pnode->applicationID) break;
 
 				ihit++;
+				pdu->padding = TAG_TRANSMITTER;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
 				{
@@ -1827,6 +1903,7 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 	for(i=0;i<pdus->n;i++)
 	{
 		pdu = vector_get(struct Pdu*,pdus,i);
+		if(pdu->padding == TAG_UNCLAIMED)
 		switch(pdu->pduType){
 			case PDU_SIGNAL:
 			{
@@ -1835,10 +1912,13 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 
 				if(pnode->radioID != spdu->myRadioCommunicationsFamilyPdu.radioId) break;
 				if(spdu->myRadioCommunicationsFamilyPdu.entityId.entity != pnode->entityID) break;
-				if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
-				if(spdu->myRadioCommunicationsFamilyPdu.entityId.application != pnode->applicationID) break;
+				//site won't necessarily be the same
+				//if(spdu->myRadioCommunicationsFamilyPdu.entityId.site != pnode->siteID) break;
+				//site.application should not be the same unless loopback testing
+				//if(spdu->myRadioCommunicationsFamilyPdu.entityId.application == pnode->applicationID) break;
 
 				ihit++;
+				pdu->padding = TAG_SIGNAL;
 				pnode->_change++; //mark node changed
 				pnode->timestamp = TickTime();
 				if(ONE_INT32_PER_SIGNAL_DATA_BYTE){
@@ -1870,7 +1950,7 @@ int dis_pdus2node_signal(struct X3D_Node *node, struct Vector *pdus){
 
 
 // Simulation Management PDUs relate to the DISEntityManager node
-// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+// http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf x dead link see tests/28_DIS for .pdf copy
 //5.6 Simulation management p.85
 //6.2.82 Simulation Management PDU Header record p.311
 //- its an abstract type
@@ -1938,6 +2018,8 @@ int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 				struct CreateEntityPdu *crpdu;
 				//crpdu->mySimulationManagementFamilyPdu.myPdu.
 				printf("hi from pdu2node create_entity\n");
+				pdu->padding = TAG_ENTITY_MANAGER;
+				ihit++;
 				pnode->_pduchange_create = TRUE;
 			}
 			break;
@@ -1946,6 +2028,8 @@ int dis_pdus2node_sm(struct X3D_Node *node, struct Vector *pdus){
 				//REMOVE
 				struct RemoveEntityPdu *rmpdu;
 				printf("hi from pdu2node remove_entity\n");
+				pdu->padding = TAG_ENTITY_MANAGER;
+				ihit++;
 				pnode->_pduchange_remove = TRUE;
 			}
 			break;
@@ -1983,11 +2067,13 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 		struct Pdu* pdu;
 		for(i=0;i<pdus->n;i++) {
 			pdu = vector_get(struct Pdu*,pdus,i);
+			if(pdu->padding == TAG_UNCLAIMED)
 			switch(pdu->pduType){
 				case PDU_ENTITY_STATE:
 				case PDU_RECEIVER:
 				case PDU_TRANSMITTER:
 				case PDU_SIGNAL:
+				case PDU_ENTITY_STATE_UPDATE:
 				{
 					int j, already_done;
 					int entityID, siteID, applicationID;
@@ -1996,12 +2082,18 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					espdu = (struct EntityStatePdu*)pdu;
 					
 					//don't send to yourself
-					if(	pnode->applicationID == espdu->entityID.application &&
-						pnode->siteID == espdu->entityID.site) 
-						continue;
-
+					//if (pnode->applicationID == espdu->entityID.application &&
+					//	pnode->siteID == espdu->entityID.site) {
+					if (espdu->entityID.application == fwl_get_DISapplication() &&
+						espdu->entityID.site == fwl_get_DISsite()) {
+						pdu->padding = TAG_SAME_PROGRAM;
+						//ihit++;
+						break;
+					}
 					//skip if we already got this entity and are just awaiting creation
 					already_done = FALSE;
+					//printf("addEntities.n = %d\n", pnode->addEntities.n);
+					//printf("espdu entity %d app %d site %d\n", espdu->entityID.entity, espdu->entityID.application, espdu->entityID.site);
 					for(j=0;j<pnode->addEntities.n;j++){
 						struct X3D_Node *candi = (struct X3D_Node*)pnode->addEntities.p[j];
 						if(candi->_nodeType == NODE_DISEntityTypeMapping){
@@ -2011,17 +2103,23 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 							// || candi->_nodeType == NODE_ReceiverPdu 
 							// || candi->_nodeType == NODE_TransmitterPdu || candi->_nodeType == NODE_SignalPdu){
 							//else if radio etc
-							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)pnode->addEntities.p[j];
+							struct X3D_EspduTransform *et = (struct X3D_EspduTransform *)candi;
 							if(et->entityID == espdu->entityID.entity &&
 								et->applicationID == espdu->entityID.application &&
 								et->siteID == espdu->entityID.site) already_done = TRUE;
+							//printf("addEntities[%d] entity %d app %d site %d already %d\n", 
+							//	j,et->entityID, et->applicationID, et->siteID, already_done);
 							if(already_done) break;
 						}
 
 					}
-					if(already_done) 
-						continue;
-
+					if (already_done) {
+						//printf("already done\n");
+						break;
+					}
+					//printf("not already done\n");
+					pdu->padding = TAG_ENTITY_MANAGER;
+					ihit++;
 					//we'll use an EspduTransform struct just as a temp struct, not to register.
 					// -for the purpose of communicating with whatever can create a local copy
 					//  of a discovered entity.
@@ -2033,6 +2131,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 						case PDU_RECEIVER: nodetype = NODE_ReceiverPdu; break;
 						case PDU_TRANSMITTER: nodetype = NODE_TransmitterPdu; break;
 						case PDU_SIGNAL: nodetype = NODE_SignalPdu; break;
+						case PDU_ENTITY_STATE_UPDATE: nodetype = NODE_EspduTransform; break;
 						default: break;
 					}
 					//copy world coordinates as approx GC, in case < earths radius / 2 (earths core) test later, we use GC instead of default GD,WE
@@ -2043,7 +2142,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					et->siteID = espdu->entityID.site;
 					et->entityID = espdu->entityID.entity;
 					et->address = newASCIIString(dsock->address);
-					et->port = dsock->port;
+					et->port = dsock->port - fwl_get_testset();
 					et->multicastRelayHost = newASCIIString(dsock->multicastRelayHost);
 					et->multicastRelayPort = dsock->multicastRelayPort;
 					et->entityCategory = espdu->entityType.category;
@@ -2064,7 +2163,7 @@ int dis_pdus2newnode(struct dis_socket *dsock, struct X3D_DISEntityManager *pnod
 					// ?? do I need MARK_EVENT(X3D_NODE(pnode),offsetof (struct X3D_DISEntityManager,  addEntities));
 					//will get mapped and instanced as geom during entityManager scenegraph visit and compile
 					// >> pnode->_change ++;
-					ihit = 1;
+					//ihit = 1;
 				}
 				break;
 				default:
@@ -2206,7 +2305,7 @@ struct X3D_Node *dis_find_or_create_espdu_by_category(int kind, int domain, int 
 }
 
 
-unsigned char buf2[32767];
+unsigned char buf2[32768];
 
 void dis_get_node_lasttime(struct X3D_Node *node, double *lasttime, double *readInterval, double *writeInterval){
 	//4 nodes have the same field order for common fields, can be cast to Espdu 
@@ -2333,6 +2432,263 @@ int sockread(SOCKET s, const char *buf, int len);
 int sockrecvfrom(struct dis_socket *dsock, const char *buf, int len);
 int socksendto(struct dis_socket *dsock, const char *buf, int len);
 
+// https://stackoverflow.com/questions/2351087/what-is-the-best-32bit-hash-function-for-short-strings-tag-names 
+// hash: compute hash value of string 
+#define MULTIPLIER 37
+unsigned int hash37(const char* str)
+{
+	unsigned int h;
+	unsigned char* p;
+
+	h = 0;
+	for (p = (unsigned char*)str; *p != '\0'; p++)
+		h = MULTIPLIER * h + *p;
+	return h; // or, h % ARRAY_SIZE; in our case we want it spread over long int 4B so no/rare collisions
+}
+const char* getNodeName(struct X3D_Node* node);
+
+void dis_recv_sensor(int sensorIndex, int ev, int butStatus2, int status, float* posn3, float* norm3);
+struct dis_sensor {
+	int fromNode, dataNode;
+	int ev, butStatus2;
+	int status, padding;
+	float posn3[3], norm3[3];
+};
+static struct Vector* sensor_send_queue = NULL; //reset .n to 0 after pdu2buf
+
+int disverbose() {
+	return dis_verbose;
+}
+struct Vector* dis_sensors2pdus() {
+// 2023 multiplayer experiment: sensor event sharing
+	//converts queued sensor events into a CommentPdu for sending
+	struct Vector* pdus = NULL;
+	if (sensor_send_queue && vectorSize(sensor_send_queue)) {
+		int nevents = vectorSize(sensor_send_queue); //garbage collect after send
+		pdus = newVector(struct Pdu*, 1);
+		struct CommentPdu* cpdu;
+		cpdu = (struct CommentPdu*)dis_ctor(type_CommentPdu); //garbage collect after send
+		vector_pushBack(struct Pdu*, pdus, (struct Pdu*)cpdu);
+		//entity
+		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.entity = 33; //can be a code for sensors
+		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application = fwl_get_DISapplication();
+		cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site = fwl_get_DISsite();
+		struct VariableDatum* vd;
+		vd = malloc(nevents * sizeof(struct VariableDatum)); //free this after pdu2buff
+		for (int i = 0; i < nevents; i++) {
+			struct dis_sensor* ds = vector_get_ptr(struct dis_sensor, sensor_send_queue, i);
+			vd[i].variableDatumID = i;
+			vd[i].variableDatumLength = 6;
+			vd[i].variableDatums = (void*)ds; //don't free this
+		}
+		cpdu->variableDatums = vd;
+		cpdu->numberOfVariableDatumRecords = nevents;
+		//printf("send+");
+	}
+	return pdus;
+}
+void clear_sensor_queue() {
+	if(sensor_send_queue) sensor_send_queue->n = 0;
+}
+void dis_send_sensor(struct X3D_Node* fromNode, struct X3D_Node* dataNode, int ev, int butStatus2, 
+	int status, float* posn3, float* norm3) {
+	//receives sensor event information from mainloop sendSensorEvents on event
+	// and queues for sensor2pdu
+	// called from Mainloop.c SendSensorEvents about line 6901
+	if (allow_DIS) {
+		//enqueue for sending on next dis_send_loop
+		if (!sensor_send_queue) sensor_send_queue = newStack(struct dis_sensor);
+		struct dis_sensor ds;
+		ds.ev = ev;
+		ds.butStatus2 = butStatus2;
+		ds.status = status;
+		veccopy3f(ds.posn3, posn3);
+		veccopy3f(ds.norm3, norm3);
+		//node addresses may be different in different app instances
+		//so we rely on DEF name
+		//but DEF name can be a medium long string, not good for pdu transmission
+		//so we convert to 4 byte int with a hash function
+		int OK = TRUE;
+		const char* def = getNodeName(fromNode);
+		if (!def) {
+			printf("No DEF name for from nodetype %s", stringNodeType(fromNode->_nodeType));
+			OK = FALSE;
+		}else
+			ds.fromNode = hash37(def == NULL ? "" : def);
+		//printf("send_fromnode def %s has %d ", def, ds.fromNode);
+		def = getNodeName(dataNode);
+		if (!def) {
+			printf("No DEF name for data nodetype %s", stringNodeType(fromNode->_nodeType));
+			OK = FALSE;
+		}else
+			ds.dataNode = hash37(def);
+		//printf("send_datanode def %s has %d \n", def, ds.dataNode);
+		if(OK)
+			stack_push(struct dis_sensor, sensor_send_queue, ds);
+	}
+}
+
+//struct Vector* sensors = NULL; //2023 multiplayer
+//void dis_registerSensor(struct X3D_Node* sensor) {
+//	//2023 multiplayer
+//	//call this from somewhere we handle sensor events
+//	if (!sensors) sensors = newVector(struct X3D_Node*, 10);
+//	for (int i = 0; i < sensors->n; i++)
+//		if (sensor == vector_get(struct X3D_Node*, sensors, i)) return; //already registered
+//	vector_pushBack(struct X3D_Node*, sensors, sensor);
+//}
+int getSensorCount();
+void getSensor(int k, struct X3D_Node** fromnode, struct X3D_Node** datanode);
+
+int dis_pdus2sensors(struct Vector* pdus) {
+	//2023 multiplayer
+	//one sensor update per pdu, or as many as we like?
+	//we need DEF or ID that's consistent across application instances
+	//- how about a hash, good for going one way, can't go back
+	//- so will need a list of registered sensors to compare hash(DEF) with .entity
+	int i, ihit;
+	struct Pdu* pdu;
+
+	ihit = 0;
+	if (!pdus || !pdus->n) return ihit;
+	for (i = 0; i < pdus->n; i++)
+	{
+		pdu = vector_get(struct Pdu*, pdus, i);
+		if (pdu->padding == TAG_UNCLAIMED)
+			switch (pdu->pduType) {
+			case PDU_COMMENT:
+			{
+				struct CommentPdu* cpdu;
+				cpdu = (struct CommentPdu*)pdu;
+				//don't loopback
+				if (cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application == fwl_get_DISapplication()
+					&& cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site == fwl_get_DISsite()) {
+					pdu->padding = TAG_SAME_PROGRAM;
+					//if (disverbose()) printf("SNDR ");
+					ihit++;
+					break;
+				}
+				if (disverbose()) {
+					printf("%s ", "COM");
+					printf("A%2d ", cpdu->mySimulationManagementFamilyPdu.originatingEntityID.application);
+					printf("S%2d ", cpdu->mySimulationManagementFamilyPdu.originatingEntityID.site);
+				}
+
+				//find matching sensor
+				struct VariableDatum* vr = cpdu->variableDatums;
+				if (disverbose()) printf("ND%2d ", cpdu->numberOfVariableDatumRecords);
+				//printf("vd count %d\n", cpdu->numberOfVariableDatumRecords);
+				for (int j = 0; j < cpdu->numberOfVariableDatumRecords; j++) {
+					struct dis_sensor* ds = (struct dis_sensor*)vr[j].variableDatums;
+					//printf("ds-fromnode %d ds-datanode %d\n", ds->fromNode, ds->dataNode);
+
+					int nsensor = getSensorCount();
+					//printf("nsensor %d\n", nsensor);
+					if (disverbose()) printf("NS%2d ", nsensor);
+					for (int k = 0; k < nsensor; k++) {
+						struct X3D_Node* fromnode, * datanode;
+						getSensor(k, &fromnode, &datanode);
+						//rather than sending and receiving null terminted DEF strings, we'll use 32 bit int hash values
+						const char *deff, *defd;
+						deff = getNodeName(fromnode);
+						int fromNode, dataNode, OK;
+						OK = TRUE;
+						if (!deff) OK = FALSE;
+						else fromNode = hash37(deff);
+						//printf("recv fromnode def %s hash %d ", def, fromNode);
+						defd = getNodeName(datanode);
+						if (!defd) OK = FALSE;
+						else dataNode = hash37(defd);
+
+						//printf("recv datanode def %s hash %d\n", def, dataNode);
+						int match = OK && ds->fromNode == fromNode && ds->dataNode == dataNode;
+						if (match) {
+							dis_recv_sensor(k, ds->ev, ds->butStatus2, ds->status, ds->posn3, ds->norm3);
+							//printf("recvmatch+");
+							if(disverbose()) printf("F %s D %s B%d S%d ", deff, defd,ds->butStatus2,ds->status);
+							break;
+						}
+					}
+				}
+				pdu->padding = TAG_SENSOR;
+				ihit++;
+				//printf("recv+");
+				if (disverbose()) printf("\n");
+				break;
+			}
+			default:
+				break;
+			}
+	}
+	return ihit;
+}
+static double last_avatar_position[3] = { 0,0,0 };
+static double last_avatar_orientation[4] = { 0,0,0,0 };
+static double avatar_writeInterval = 4.0;
+struct Vector* dis_avatar2pdus() {
+	// 2023 multiplayer experiment: sensor event sharing
+	struct Vector* pdus = NULL;
+	if (1) {
+		//assuming DIS update loop is called from scene root level, 
+		//then modelview should be (at least last frame's) view matrix
+		//viewmatrix vs vp.position/.orientation: viewmatrix is viewpoint agnostic and in world coords.
+		double viewMatrix[16], matinv[16], xyza[4], pointd[3], diff[4];
+		float xyzaf[4], ypr[3];
+		viewer_getview(viewMatrix);
+		vecsetd(pointd, 0.0, 0.0, 0.0);
+		matinverseAFFINE(matinv, viewMatrix);
+
+		transformAFFINEd(pointd, pointd, matinv);
+		//vecscaled(pointd, pointd, -1.0);
+		AFFINEmatrix2axisangled(xyza, viewMatrix);
+		int changed = veclengthd(vecdifd(diff, pointd, last_avatar_position)) > .001 ? 1 : 0;
+		changed = changed || veclengthd(vecdifd(diff, xyza, last_avatar_orientation)) > .001 ? 1 : 0;
+		changed = changed || abs(xyza[3] - last_avatar_orientation[3] > .001) ? 1 : 0;
+		static double last_time = 0.0;
+		if (last_time == 0.0) last_time = TickTime() - avatar_writeInterval;
+		double this_time = TickTime();
+		int heartbeat = FALSE;
+		if (this_time - last_time > avatar_writeInterval) heartbeat = TRUE;
+		if (!changed && ! heartbeat) {
+			return pdus;
+		}
+		last_time = this_time;
+
+		veccopyd(last_avatar_position, pointd);
+		veccopyd(last_avatar_orientation, xyza);
+		last_avatar_orientation[3] = xyza[3];
+		pdus = newVector(struct Pdu*, 6);
+		struct EntityStatePdu* espdu;
+		espdu = (struct EntityStatePdu*)dis_ctor(type_EntityStatePdu);
+		static int icount = 0;
+		if(0) printf("Pdu->type = %d i %d\n", ((struct Pdu*)(espdu))->pduType,icount);
+		icount++;
+		//entity
+		espdu->entityType.category = 77; //SPECIAL CATEGORY 77 FOR AVATARS
+		espdu->entityID.entity = fwl_get_DISapplication(); // application 1:1 avatar, entity = f(application)
+		espdu->entityID.application = fwl_get_DISapplication();
+		espdu->entityType.specific = fwl_get_DISapplication();
+		espdu->entityID.site = fwl_get_DISsite();
+		if(0) printf("kind %d domain %d country %d category %d sub %d specific %d extra %d\n ",
+			espdu->entityType.entityKind, espdu->entityType.domain, espdu->entityType.country,
+			espdu->entityType.category, espdu->entityType.subcategory,
+			espdu->entityType.specific, espdu->entityType.extra);
+
+		espdu->entityLocation.x = pointd[0];
+		espdu->entityLocation.y = pointd[1];
+		espdu->entityLocation.z = pointd[2];
+		double2float(xyzaf, xyza, 4);
+		xyzaf[3] = -xyzaf[3];
+		axisangle2ypr(xyzaf, ypr);
+		espdu->entityOrientation.psi = -ypr[0];  //gimbal.js shows -yaw
+		espdu->entityOrientation.theta = ypr[1];
+		espdu->entityOrientation.phi = ypr[2];
+		//printf("send xyz %lf %lf %lf ypr %f %f %f\n", pointd[0], pointd[1], pointd[2], ypr[0], ypr[1], ypr[2]);
+		stack_push(struct Pdu*, pdus, (struct Pdu*)espdu);
+	}
+
+	return pdus;
+}
 int write_rtp(unsigned char *buf, struct X3D_Node *node);
 void dis_sendloop(){
 	double thistime;
@@ -2341,15 +2697,16 @@ void dis_sendloop(){
 	thistime = TickTime();
 	for(i=0;i<sockets_send->n;i++){
 		struct dis_socket *dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
+		nbytes = 0;
+		struct Vector* pdus;
+
 		if(dsock->registered){
-			nbytes = 0;
 			for(j=0;j<dsock->registered->n;j++){
 				//options:
 				//a. each node maintains its own pdus every frame on update/compile, and are merely sent here
 				//b. on send in here, a function is called to pdu-ize a node before marshaling it
 				//c. like a and b: each node has its own list of pdus for mem, and are updated in here just before send
 				double lasttime, dtime, readInterval, writeInterval, isHeartbeat;
-				struct Vector *pdus;
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 				//printf("registered node type %s\n",stringNodeType(node->_nodeType));
 				dis_get_node_lasttime(node,&lasttime,&readInterval,&writeInterval);
@@ -2363,7 +2720,7 @@ void dis_sendloop(){
 				//if(!isHeartbeat && node_only_transform_changed(node)){
 				//	if(transform_within_DeadReckoningTolerance(node,dtime)) continue;
 				//}
-				printf(".");
+				printf(".\n");
 				lasttime = thistime;
 				dsock->lasttime = thistime; //last time something was sent, not needed
 				if(j==0) {
@@ -2390,8 +2747,18 @@ void dis_sendloop(){
 				nbytes += nb;
 				reset_node_pduchanged(node);
 			}
-			if(nbytes) socksendto(dsock,buf2,nbytes);
 		}
+		pdus = dis_sensors2pdus();
+		nb = dis_write_stream(&buf2[nbytes], pdus);
+		clear_sensor_queue();
+		nbytes += nb;
+		pdus = dis_avatar2pdus();
+		nb = dis_write_stream(&buf2[nbytes], pdus);
+		nbytes += nb;
+		if (nbytes) socksendto(dsock, buf2, nbytes);
+		// Q. where is the garbage collection for pdua vector?
+		// I think the ctor/dtor for pdus works on the pdus themselves. 
+		// But not the pdu vector list I pass around
 	}
 }
 /*	RTP Real-time Transport Protocol
@@ -2670,6 +3037,8 @@ void dis_set_isNetworkMode(struct X3D_Node*node, int networkMode){
 			break;
 	}
 }
+
+
 int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *pdus, int *heard) 
 { 
 	int pdutype, bytesread;
@@ -2698,6 +3067,7 @@ int dis_read_stream(unsigned char * datastream, int streamsize, struct Vector *p
 		carat2 = dis_unmarshal(carat,pdubuf,distype);
 		nbytes = (carat2 - carat);
 		pdu = (struct Pdu*)pdubuf;
+		pdu->padding = TAG_UNCLAIMED;
 		//printf("un-marshed version %d pdutype= %d\n",pdu->protocolVersion,pdu->pduType);
 		vector_pushBack(struct Pdu*,pdus,pdu);
 		//printf("unmarshed bits %d bytes %d\n",nbytes*8,nbytes);
@@ -2822,11 +3192,274 @@ int dis_write_stream(unsigned char * datastream, struct Vector *pdus)
 	return nbytes;
 }
 
+struct X3D_Node* findNodeByName(char* defname) {
+	//its weird we don't have a function for this already, 
+	//  some relating to parser, and some relating to EAI, 
+	//  but we want something thats parser-agnostic and will go through context->defnames.
+	struct X3D_Node* node, *root;
+	struct X3D_Proto* context;
+	node = NULL;
+	root = rootNode();
+	context = X3D_PROTO(root);
+	struct brotoDefpair def;
+	if (context->__DEFnames) {
+		int ndefs = vectorSize(context->__DEFnames);
+		for (int i = 0; i < ndefs; i++) {
+			def = vector_get(struct brotoDefpair, context->__DEFnames, i);
+			//printf("%x %x %s\n",node,def.node,def.name);
+			if (!strcmp(def.name,defname)) {
+				node = def.node;
+				break;
+			}
+		}
+	}
+	return node;
+}
+/* using regular pdu2espdu
+struct Vector* avatars = NULL; //2023 multiplayer
+int dis_pdus2avatars(struct Vector* pdus) {
+	//2023 multiplayer
+	//update avatars of other players, which may involve
+	// adding an avatar, when a new player joins, with a certain appearance
+	// removing an avatar (heartbeat or time since last update > participation_threshold_time ie 5 minutes)
+	// updating avatar pose in world coords
+	// updating avatar articulation, such as walking, standing, reaching - could there be flag combos?
+	int i, ihit;
+	struct Pdu* pdu;
 
+	ihit = 0;
+	if (!pdus) return ihit;
+	for (i = 0; i < pdus->n; i++)
+	{
+		pdu = vector_get(struct Pdu*, pdus, i);
+		if(pdu->padding == TAG_UNCLAIMED)
+		switch (pdu->pduType) {
+		case PDU_ENTITY_STATE:
+		{
+			//ENTITYSTATE category 77 avatar
+			//we assume ENTITY_STATE pdus with category 77 are avatar updates
+
+			struct EntityStatePdu* espdu;
+			espdu = (struct EntityStatePdu*)pdu;
+			if (espdu->entityID.application == fwl_get_DISapplication()
+				&& espdu->entityID.site == fwl_get_DISsite()) {
+				pdu->padding = TAG_SAME_PROGRAM;
+				ihit++;
+				break;
+			}
+			if (espdu->entityType.category != 77) {
+				// not avatar, remains unclaimed
+				break;
+			}
+			static struct X3D_Group* avatar_group = NULL;
+			if(!avatar_group) avatar_group = (struct X3D_Group*)findNodeByName("AvatarHolder");
+			if (!avatar_group) {
+				printf("your scene needs a Group DEF AvatarHolder\n");
+				break;
+			}
+			struct Multi_Node* avatars = &avatar_group->children;
+			struct X3D_EspduTransform* pnode, * tnode;
+			pnode = NULL;
+			for (int j = 0; j < avatars->n; j++) {
+				// 2018.pdf 6.2.80.3 Application Number implied an instance number, 
+				// so should not be same unless loopback testing
+				struct X3D_EspduTransform* tnode = (struct X3D_EspduTransform*)avatars->p[j];
+				int OK = TRUE;
+				//when sending avatars, we set entityID = sending programID
+				if (espdu->entityID.entity != tnode->entityID) OK = FALSE;
+				if (OK) {
+					pnode = tnode;
+					//still TAG_UNCLAIMED
+					break;
+				}
+			}
+			if (!pnode) break;
+			ihit++;
+			pdu->padding = TAG_AVATAR;
+			pnode->_change++; //mark node changed
+			pnode->timestamp = TickTime();
+
+			if (pnode->__geoSystem) {
+				Quaternion qgc2tcs, qtcs2body, qgc2body;
+				struct SFVec3d gd, gc, translate;
+				struct SFVec4d rotate;
+				double localxyz[3], tcsxyz[3], tcs2bodyxyz[3], world2bodyxyz[3];
+				float xyza[4];
+				Geosys* gs;
+				gs = GEOSYS(pnode->__geoSystem);
+				user2gc(gs, &pnode->geoCoords, 1, &gc);
+				//gc2gd(gs,&gc,1,&gd);
+				//gc2tcs_transform(gs,&gd,&translate,&rotate);
+				gc2tcsB_transform(gs, &gc, &translate, &rotate);
+				//somehow get body/entity into world/gc - rotation and translation
+				{
+					//rotation
+					//assumption (Apr 2018 don't know how Xj3d does it, here's dug9's guess):
+					// pdu is world2body
+					// espdutransform.rotation = local2body
+					// - where local is TCS Topocentric Coord System as described for GeoLocation
+					// - and world is GC
+					// local2body = world2local.inverse x world2body
+					// for freewrl world2local is gc2tcs
+					Quaternion qtcs2gc, q;
+					float ypr[3], xyza[4];
+					ypr[0] = -espdu->entityOrientation.psi;
+					ypr[1] = espdu->entityOrientation.theta;
+					ypr[2] = espdu->entityOrientation.phi;
+					ypr2axisangle(ypr, xyza);
+					xyza[3] = -xyza[3];
+					//vecprint4fb("recv xyza",xyza,"\n");
+
+					vrmlrot4f_to_quaternion(&qgc2body, xyza);
+					vrmlrot4d_to_quaternion(&qgc2tcs, rotate.c);
+					quaternion_inverse(&qtcs2gc, &qgc2tcs);
+					quaternion_multiply(&qtcs2body, &qtcs2gc, &qgc2body);
+					quaternion_set(&q, &qtcs2body);
+					quaternion_to_vrmlrot4f(&q, pnode->rotation.c);
+				}
+				{
+					//translation - dug9 debate: could do it one of 2 ways
+					enum transmethod {
+						TRANS_ZERO = 1,
+						TRANS_LOCATION_MINUS_GEOCOORD = 2
+					};
+					//static int transmethod = TRANS_LOCATION_MINUS_GEOCOORD; 
+					static int transmethod = TRANS_ZERO;
+
+					vector3double2vec3d(world2bodyxyz, &espdu->entityLocation);
+					if (transmethod == TRANS_LOCATION_MINUS_GEOCOORD) {
+						//METHOD 1: translation = Location - geoCoords
+						struct SFVec3d world, tcs;
+						veccopyd(world.c, world2bodyxyz);
+						//gc2tcs(gs,&gd,&world,1,&tcs);
+						gc2tcsB(gs, &gc, &world, 1, &tcs);
+						double2float(pnode->translation.c, tcs.c, 3);
+					}
+					else {
+						//TRANS_ZERO
+						//METHOD 2: geoCoords = Location; translation = 000
+						// x smoothing doesn't work if done in translation / tcs space
+						struct SFVec3d world, tcs2, tcs1;
+						double deltatcs[3];
+						float deltap[3];
+						static int want_smoothing = 1;
+						if (want_smoothing) {
+							//gc2tcs(gs,&gd,&gc,1,&tcs1);
+							gc2tcsB(gs, &gc, &gc, 1, &tcs1);
+							veccopyd(world.c, world2bodyxyz);
+							gc2tcs(gs, &gd, &world, 1, &tcs2);
+							gc2tcsB(gs, &gc, &world, 1, &tcs2);
+							vecdifd(deltatcs, tcs1.c, tcs2.c);
+							double2float(deltap, deltatcs, 3);
+							vecadd3f(pnode->_p0.c, pnode->_p0.c, deltap);
+						}
+						gc2user(gs, &world, 1, &pnode->geoCoords);
+						//node->_change++;
+						vecset3f(pnode->translation.c, 0.0f, 0.0f, 0.0f);
+
+					}
+				}
+				// recv geo dead reckoning
+				{
+					float V[3], A[3];
+					// in entity or world, depending on drmethod
+					vector3float2vec3f(V, &espdu->entityLinearVelocity);
+					veccopy3f(pnode->linearVelocity.c, V);
+
+				}
+
+			}
+			else {
+				//non-geosystem scene. Apr 22, 2018 we aren't using this now
+				// -- everything goes through geosystem code above
+				// -- but keeping this until we benchmark against Brutzman
+				//translation - assumes companion scenes will have same parent transform stack
+				//(x, -z, y).
+				pnode->translation.c[0] = espdu->entityLocation.x;
+				pnode->translation.c[1] = espdu->entityLocation.z;
+				pnode->translation.c[2] = -espdu->entityLocation.y;
+				//rotation
+				if (0) {
+					Quaternion qA;
+					float ypr[3];
+					double r[4];
+					float* c = pnode->rotation.c;
+					ypr[0] = espdu->entityOrientation.phi;
+					ypr[1] = espdu->entityOrientation.psi;
+					ypr[2] = espdu->entityOrientation.theta;
+					euler2quat(&qA, ypr[0], ypr[1], ypr[2]);
+					//quaternion_normalize(&qA);
+					//vrmlrot_to_quaternion(&qA,c[0],c[1],c[2],c[3]);
+					quaternion_to_vrmlrot(&qA, &r[0], &r[1], &r[2], &r[3]);
+					c[0] = (float)r[0];
+					c[1] = (float)r[1];
+					c[2] = (float)r[2];
+					c[3] = (float)r[3];
+				}
+				if (1) {
+					float ypr[3];
+					ypr[0] = -espdu->entityOrientation.psi;  //gimbal.js shows -yaw
+					ypr[1] = espdu->entityOrientation.theta;
+					ypr[2] = espdu->entityOrientation.phi;
+					ypr2axisangle(ypr, pnode->rotation.c);
+				}
+				// dead reckoning
+				vector3float2vec3f(pnode->linearVelocity.c, &espdu->entityLinearVelocity);
+
+			}
+			//articuation parameters
+			pnode->articulationParameterArray.n = espdu->numberOfArticulationParameters;
+			//printf("recv art count %d\n",espdu->numberOfArticulationParameters);
+			if (pnode->articulationParameterArray.n) {
+				struct ArticulationParameter* ap;
+				float* pp;
+				int i, np = pnode->articulationParameterArray.n;
+				ap = espdu->articulationParameters;
+				pp = malloc(np * sizeof(float));
+				//printf("received %d articulation parameters:\n",np);
+				for (i = 0; i < np; i++) {
+					//ap[i].parameterTypeDesignator = 0; //0 is articulated part
+					//ap[i].parameterType = 1029; //1024 - rudder + 5 X
+					pp[i] = (float)ap[i].parameterValue;
+					//printf("%d %f\n",i,pp[i]);
+					//ap[i].partAttachedTo = 0;
+					switch (i) {
+					case 0: pnode->articulationParameterValue0_changed = pp[i]; break;
+					case 1: pnode->articulationParameterValue1_changed = pp[i]; break;
+					case 2: pnode->articulationParameterValue2_changed = pp[i]; break;
+					case 3: pnode->articulationParameterValue3_changed = pp[i]; break;
+					case 4: pnode->articulationParameterValue4_changed = pp[i]; break;
+					case 5: pnode->articulationParameterValue5_changed = pp[i]; break;
+					case 6: pnode->articulationParameterValue6_changed = pp[i]; break;
+					case 7: pnode->articulationParameterValue7_changed = pp[i]; break;
+					default:
+						break;
+					}
+				}
+				if (pnode->articulationParameterArray.p) free(pnode->articulationParameterArray.p);
+				pnode->articulationParameterArray.p = pp;
+				//done in generic mark_changed_fields //MARK_EVENT(X3D_NODE(pnode),offsetof(struct X3D_EspduTransform,articulationParameterArray));
+			}
+			pnode->_pduchange_es = TRUE;
+			if (espdu->entityAppearance | 1 << 20) {
+				//http://movesinstitute.org/~mcgredo/MV3500/hla/1278.1-200X%20Draft%2016%20rev%2018.pdf
+				//p.50 no dead reckoning if isFrozen bit is set, bit 21 of entityAppearance
+				//(why can't they just leave dead reckoning parameters 0, and run through formula? H: specs written in 1990s for 80386 processors)
+				//pnode->_isFrozen = TRUE; //pduchange_es = FALSE;
+			}
+		
+		}
+		}
+
+	}
+	return ihit;
+}
+*/
 
 static double lasttime;
 static char buf[32768];
 static struct Vector *pdus = NULL;
+
 void dis_recvloop(){
 	//there are a few ways to do non-blocking recv
 	//1. ioctlsocket non-blocking - set socket to not block
@@ -2864,14 +3497,19 @@ void dis_recvloop(){
 				}
 				pdus->n = 0;
 				dis_read_stream(buf,nbytes,pdus,&heard);
+				for (int j = 0; j < pdus->n; j++) {
+					struct Pdu* pdu = vector_get(struct Pdu*, pdus, j);
+					pdu->padding = TAG_UNCLAIMED; //0
+				}
 				//print some stuff to the console, to prove we got a state update
 				//printf("hallelluha %d\n",count++);
 				//check pdus against all nodes registered on the port
 				// in case the message is for an existing node
 
+				int ihit;
 				if(dsock->registered){
+					//printf("dsock.registered.n %d\n", dsock->registered->n);
 					for(j=0;j<dsock->registered->n;j++){
-						int ihit;
 						struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
 						//check site and application ID
 						//distribute to registered nodes by entityID
@@ -2904,16 +3542,30 @@ void dis_recvloop(){
 						}
 					}
 				}
-				if(nhit == 0){
+				//2023 multiplayer>>
+				ihit = dis_pdus2sensors(pdus);
+				nhit += ihit;
+				//<<2023 multiplayer
+				int counts[9] = { 0,0,0,0,0,0,0,0,0 };
+				for (int j = 0; j < pdus->n; j++) {
+					struct Pdu* pdu = vector_get(struct Pdu*, pdus, j);
+					counts[pdu->padding]++;
+				}
+				//TAG_UNCLAIMED = 0
+				if(0) printf("counts U%d S%d E%d M%d r%d t%d s%d A%d S%d\n",
+					counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7], counts[8]);
+				if(nhit < pdus->n){
 					// any 'left-over' pdus might be 'entity discovery' candidates
-					printf("leftovers ...");
+					if(0) printf("leftovers %d avatarhits %d pdus %d",pdus->n - nhit, ihit, pdus->n);
 					nhit = dis_pdus2newnode(dsock,sockem, pdus);
-					printf(" %d used\n",nhit);
+					if(0) printf(" %d used\n",nhit);
 				}
 			}
 		}while(more);
 		if(dsock->registered){
+#define RETIRE_TIME 300.0 //5 MINUTES?
 			//check if any node listeners have gone inactive
+			//2023 multiplayer sensors don't go stale. avatars do
 			struct X3D_DISEntityManager* sockem = NULL;
 			for(j=0;j<dsock->registered->n;j++){
 				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
@@ -2922,28 +3574,38 @@ void dis_recvloop(){
 				}
 				if(sockem) break;
 			}
-			for(j=0;j<dsock->registered->n;j++){
+			for (j = 0; j < dsock->registered->n; j++) {
 				//update isActive
-				double readinterval, writeinterval, lasttime;
-				struct X3D_Node *node = vector_get(struct X3D_Node*,dsock->registered,j);
-				dis_get_node_lasttime(node,&lasttime,&readinterval,&writeinterval);
-				if(thistime - lasttime > 5.0) {
-					 //5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
-					dis_set_isActive(node,FALSE);
-				}
-				//if its been several (?) heartbeat increments since we last heard from an entity
-				// the DIS specs talk about removing (opposite of adding by 'entity discovery')
-				if(thistime - lasttime > (5.0 * 3) ){
-					//if in entitymanager state.entities, removeChildren
-					int ihit = 0;
-					if(sockem && node->_nodeType == NODE_EspduTransform ){
-						ihit = dis_entity_retire(sockem,node);
+				struct X3D_Node* node = vector_get(struct X3D_Node*, dsock->registered, j);
+				if (node->_nodeType != NODE_DISEntityManager) {
+					double readinterval, writeinterval, lasttime;
+					dis_get_node_lasttime(node, &lasttime, &readinterval, &writeinterval);
+					//printf("%d %s %lf %lf %lf %lf setting isActive false\n", j, stringNodeType(node->_nodeType), readinterval, writeinterval, lasttime, thistime);
+					double timeout = RETIRE_TIME;
+					if (node->_nodeType == NODE_EspduTransform) {
+						struct X3D_EspduTransform* espdu = (struct X3D_EspduTransform*)node;
+						if (!espdu->isNetworkWriter) {
+							timeout = 5.0;
+						}
 					}
-					if(ihit == 1) {
-						printf(" retired one\n");
-						//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+					if (thistime - lasttime > timeout) {
+						//5 second rule: if a node recvs nothing for 5 seconds, turn isActive to FALSE.
+						dis_set_isActive(node, FALSE);
 					}
-					//if(ihit == -1) printf(" cetiree not in EM list\n");
+					//if its been several (?) heartbeat increments since we last heard from an entity
+					// the DIS specs talk about removing (opposite of adding by 'entity discovery')
+					if (thistime - lasttime > (timeout * 3)) {
+						//if in entitymanager state.entities, removeChildren
+						int ihit = 0;
+						if (sockem && node->_nodeType == NODE_EspduTransform) {
+							ihit = dis_entity_retire(sockem, node);
+						}
+						if (ihit == 1) {
+							printf(" retired one\n");
+							//printf("thisttime %lf lasttime %lf\n",thistime,lasttime);
+						}
+						//if(ihit == -1) printf(" cetiree not in EM list\n");
+					}
 				}
 			}
 			if(sockem && sockem->removedEntities.n) {
@@ -2966,11 +3628,12 @@ void dis_open_socket(struct dis_socket* dsock){
 	}
 
 }
-void *dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
+void * dis_register(struct X3D_Node* node,char *address,int applicationID,int entityID,char *multicastRelayHost,
 		int multicastRelayPort,
 		char *networkMode, int port,double readInterval,int rtpHeaderExpected,int siteID,double writeInterval){
 	void *preg; //something to store in the node, to say which socket its registerd in
 	int inetworkmode = 0;
+	int sport = port + fwl_get_testset();
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
 	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
 	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
@@ -2985,7 +3648,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		dsock = NULL;
 		for(i=0;i<sockets_recv->n;i++){
 			dsock = vector_get_ptr(struct dis_socket,sockets_recv,i);
-			if(!strcmp(dsock->address,address) && dsock->port == port){
+			if(!strcmp(dsock->address,address) && dsock->port == sport){
 				//if(dsock->registered){
 				//	for(j=0;j<dsock->registered->n;j++){
 				//		we assume its not registered
@@ -3002,7 +3665,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 			vector_pushBack(struct dis_socket,sockets_recv,asock);
 			dsock = vector_get_ptr(struct dis_socket,sockets_recv,sockets_recv->n-1);
 			dsock->address = address;
-			dsock->port = port;
+			dsock->port = sport;
 			dsock->multicastRelayHost = multicastRelayHost;
 			dsock->multicastRelayPort = multicastRelayPort;
 			dsock->idir = inetworkmode;
@@ -3023,7 +3686,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 		dsock = NULL;
 		for(i=0;i<sockets_send->n;i++){
 			dsock = vector_get_ptr(struct dis_socket,sockets_send,i);
-			if(!strcmp(dsock->address,address) && dsock->port == port){
+			if(!strcmp(dsock->address,address) && dsock->port == sport){
 				//if(dsock->registered){
 				//	for(j=0;j<dsock->registered->n;j++){
 				//		we assume its not registered
@@ -3040,7 +3703,7 @@ void *dis_register(struct X3D_Node* node,char *address,int applicationID,int ent
 			vector_pushBack(struct dis_socket,sockets_send,asock);
 			dsock = vector_get_ptr(struct dis_socket,sockets_send,sockets_send->n-1);
 			dsock->address = address;
-			dsock->port = port;
+			dsock->port = sport;
 			dsock->multicastRelayHost = multicastRelayHost;
 			dsock->multicastRelayPort = multicastRelayPort;
 			dsock->idir = inetworkmode;
@@ -3078,6 +3741,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	//IDEA: save a duplicate of the node in _oldNode field, so can compare 1:1 with any field
 
 	int inetworkmode = 0;
+	int sport = port + fwl_get_testset();
 	if(!strcmp(networkMode,"standAlone")) inetworkmode = 0;
 	else if(!strcmp(networkMode,"networkReader")) inetworkmode = 1;
 	else if(!strcmp(networkMode,"networkWriter")) inetworkmode = 2;
@@ -3085,7 +3749,7 @@ int dis_check_socket_change(struct dis_socket* dsock,char *address, int port,
 	if(dsock == NULL) return TRUE; //need to register
 	if(inetworkmode != dsock->idir) return TRUE; //change of direction
 	if(strcmp(address,dsock->address)) return TRUE; //change of address
-	if(port != dsock->port) return TRUE; //change of port
+	if(sport != dsock->port) return TRUE; //change of port
 	if(strcmp(multicastRelayHost,dsock->multicastRelayHost)) return TRUE; 
 	if(multicastRelayPort != dsock->multicastRelayPort) return TRUE;
 
@@ -3485,9 +4149,25 @@ void compile_DIS_network(struct X3D_EspduTransform *node){
 	}
 	if(!node->_registered){
 		void *psock;
-		psock = dis_register(X3D_NODE(node),node->address->strptr,node->applicationID,node->entityID,node->multicastRelayHost->strptr,
-		node->multicastRelayPort,
-		node->networkMode->strptr, node->port,node->readInterval,node->rtpHeaderExpected,node->siteID,node->writeInterval);
+		node->address->strptr = strdup( fwl_get_DISaddress() ? fwl_get_DISaddress() : node->address->strptr );
+		//if (!strcmp(node->address->strptr, "localhost")) {
+		//	//node->address->strptr = "127.0.0.1";
+		//	struct hostent* hp = gethostbyname(node->address->strptr);
+		//	printf("official host name %s\n", hp->h_name);
+		//}
+		node->multicastRelayHost->strptr = strdup("");
+		node->port = fwl_get_DISport()? fwl_get_DISport():node->port;
+		node->siteID = fwl_get_DISsite()? fwl_get_DISsite():node->siteID ;
+		node->applicationID = fwl_get_DISapplication() ? fwl_get_DISapplication() : node->applicationID;
+		//printf("address %s port %d site %d app %d\n", node->address->strptr, node->port, node->siteID, node->applicationID);
+		psock = dis_register(X3D_NODE(node),
+			node->address->strptr,
+			node->applicationID,
+			node->entityID, node->multicastRelayHost->strptr, node->multicastRelayPort,
+			node->networkMode->strptr, node->port, 
+			node->readInterval, node->rtpHeaderExpected, 
+			node->siteID, 
+			node->writeInterval);
 		node->_registered = TRUE;
 		node->_dsock = psock;
 	}
@@ -3707,18 +4387,6 @@ void compile_EspduTransform0(struct X3D_EspduTransform *node){
 	shallow_copy_node(node->_oldState,X3D_NODE(node));
 
 }
-//void prep_EspduTransform0(struct X3D_EspduTransform *node){
-//	//if(!renderstate()->render_vp) {
-//		geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
-//		/* did either we or the Viewpoint move since last time? */
-//		//RECORD_DISTANCE
-//		//if(renderstate()->render_boxes) extent6f_draw(node->_extent);
-//	//}
-//
-//}
-//void fin_EspduTransform0(struct X3D_EspduTransform *node){
-//	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-//}
 
 void compile_DISEntityManager0(struct X3D_DISEntityManager *node){
 	//we use the same _pduchange flags and _oldState for both receiving and sending
@@ -4119,11 +4787,13 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 
 	if(!renderstate()->render_vp) {
 		/* do we actually have any thing to rotate/translate/scale?? */
-
+		push_transform_local_identity();
 
 		if (node->__do_anything) {
 
 			FW_GL_PUSH_MATRIX();
+			FW_GL_PUSH_MATRIX(); //this is to get us a separate 4x4 matrix just for the stuff here
+			FW_GL_LOAD_IDENTITY(); // .. wehich we will save for child_Transform to propagate its bbox up to its extent
 
 			/* TRANSLATION */
 			if (node->__do_trans)
@@ -4155,10 +4825,17 @@ void prep_EspduTransform (struct X3D_EspduTransform *node) {
 			/* REVERSE CENTER */
 			if (node->__do_center)
 				FW_GL_TRANSLATE_F(-node->center.c[0],-node->center.c[1],-node->center.c[2]);
-		} 
 
-		RECORD_DISTANCE
-		if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+			{
+				double mat[16];
+
+				FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat); //we got our local transform saved
+				FW_GL_POP_MATRIX();
+				FW_GL_TRANSFORM_D(mat); //now apply the above to prep for child_Tranform
+				reset_transform_local(mat);
+			}
+
+		} 
 	}
 
 }
@@ -4168,6 +4845,7 @@ void fin_EspduTransform (struct X3D_EspduTransform *node) {
 	OCCLUSIONTEST
 
 	if(!renderstate()->render_vp) {
+		pop_transform_local();
 		if (node->__do_anything) {
 			FW_GL_POP_MATRIX();
 		}
@@ -4272,7 +4950,6 @@ void render_detonation(struct X3D_EspduTransform *node){
 }
 void dis_register_collide(struct X3D_Node* node,double *transform);
 void child_EspduTransform (struct X3D_EspduTransform *node) {
-	//LOCAL_LIGHT_SAVE
 	CHILDREN_COUNT
 	OCCLUSIONTEST
 
@@ -4285,38 +4962,19 @@ void child_EspduTransform (struct X3D_EspduTransform *node) {
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelviewMatrix);
 		dis_register_collide(X3D_NODE(node),modelviewMatrix);
 	}
-	//if(node->__sibAffectors.n)
-	//	printf("have transform sibaffectors\n");
 	prep_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 
-
-	//profile_start("local_light_kids");
-	/* do we have a local light for a child? */
-//	LOCAL_LIGHT_CHILDREN(node->_sortedChildren);
-	//profile_end("local_light_kids");
-	/* now, just render the non-directionalLight children */
-
-	/* printf ("Transform %d, flags %d, render_sensitive %d\n",
-			node,node->_renderFlags,render_sensitive); */
-
-	#ifdef CHILDVERBOSE
-		printf ("transform - doing normalChildren\n");
-	#endif
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
 
 	normalChildren(node->_sortedChildren);
-
 	//render munitions
 	render_munitions(node);
 	//render detonations
 	render_detonation(node);
 	//render collisions
 
+	fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,TRUE);
 
-	#ifdef CHILDVERBOSE
-		printf ("transform - done normalChildren\n");
-	#endif
-
-//	LOCAL_LIGHT_OFF
 	fin_sibAffectors((struct X3D_Node*)node,&node->__sibAffectors);
 }
 
@@ -4345,21 +5003,18 @@ void child_TransmitterPdu (struct X3D_TransmitterPdu *node) {
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_SignalPdu (struct X3D_SignalPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 void child_ReceiverPdu (struct X3D_ReceiverPdu *node) { 
 	COMPILE_IF_REQUIRED
 	geoprep(GEOSYS(node->__geoSystem),&node->geoCoords);
 	//do stuff
 	geofin(GEOSYS(node->__geoSystem),&node->geoCoords);
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
 }
 
 //<< RADIO
@@ -4418,24 +5073,27 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 				//      and sending to the .addEntities list
 				//print_entitymapping(anode);
 				struct X3D_DISEntityTypeMapping *anode = (struct X3D_DISEntityTypeMapping *)node->addEntities.p[j];
-				for(i=0;i<node->mapping.n;i++){
-					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)node->mapping.p[i];
+				struct Multi_Node* mapping = &node->mapping;
+				if (mapping->n == 0) mapping = &node->children;
+				for(i=0;i<mapping->n;i++){
+					struct X3D_DISEntityTypeMapping *bnode = (struct X3D_DISEntityTypeMapping *)mapping->p[i];
 					//printf("compare %d",i);
 					//print_entitymapping(bnode);
 					jscore = 0;
-					if(anode->domain == bnode->domain) jscore++;
-					if(anode->category == bnode->category) jscore++;
-					if(anode->country == bnode->country) jscore++;
-					if(anode->kind == bnode->kind) jscore++;
-					if(anode->extra == bnode->extra) jscore++;
-					if(anode->subcategory == bnode->subcategory) jscore++;
-					if(anode->specific == bnode->specific) jscore++;
+					if (!bnode->kind || anode->kind == bnode->kind) jscore++;
+					if (!bnode->domain || anode->domain == bnode->domain) jscore++;
+					if (!bnode->country || anode->country == bnode->country) jscore++;
+					if (!bnode->category || anode->category == bnode->category) jscore++;
+					if (!bnode->subcategory || anode->subcategory == bnode->subcategory) jscore++;
+					if (!bnode->specific || anode->specific == bnode->specific) jscore++;
+					if (!bnode->extra || anode->extra == bnode->extra) jscore++;
 					if(jscore > iscore){
 						iscore = jscore;
 						ibest = i;
 						best = bnode;
 					}
 				}
+				printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
 				if(ibest > -1){
 					applicationID = node->applicationID;
 					siteID = node->siteID;
@@ -4457,19 +5115,24 @@ void child_DISEntityManager(struct X3D_DISEntityManager *node){
 					//printf("compare %d",i);
 					//print_entitymapping(bnode);
 					jscore = 0;
-					if(anode->entityDomain == bnode->domain) jscore++;
-					if(anode->entityCategory == bnode->category) jscore++;
-					if(anode->entityCountry == bnode->country) jscore++;
-					if(anode->entityKind == bnode->kind) jscore++;
-					if(anode->entityExtra == bnode->extra) jscore++;
-					if(anode->entitySubCategory == bnode->subcategory) jscore++;
-					if(anode->entitySpecific == bnode->specific) jscore++;
+					if (!bnode->kind || anode->entityKind == bnode->kind) jscore++;
+					if (!bnode->domain || anode->entityDomain == bnode->domain) jscore++;
+					if (!bnode->country || anode->entityCountry == bnode->country) jscore++;
+					if (!bnode->category || anode->entityCategory == bnode->category) jscore++;
+					if (!bnode->subcategory || anode->entitySubCategory == bnode->subcategory) jscore++;
+					if (!bnode->specific || anode->entitySpecific == bnode->specific) jscore++;
+					if(!bnode->extra || anode->entityExtra == bnode->extra) jscore++;
 					if(jscore > iscore){
 						iscore = jscore;
 						ibest = i;
 						best = bnode;
 					}
 				}
+				//printf("etm  %d %d %d %d %d %d %d\n", best->kind, best->domain, best->country, best->category, 
+				//	best->subcategory, best->specific, best->extra);
+				//printf("es   %d %d %d %d %d %d %d\n", anode->entityKind, anode->entityDomain, anode->entityCountry, 
+				//	anode->entityCategory, anode->entitySubCategory, anode->entitySpecific, anode->entityExtra);
+				//printf("\niscore %d ibest %d best.url %s\n", iscore, ibest, best->url.p[0]->strptr);
 				if(ibest > -1){
 					applicationID = anode->applicationID;
 					siteID = anode->siteID;
@@ -4691,6 +5354,46 @@ void dis_register_collide(struct X3D_Node* node,double *transform){
 	}
 
 }
+void dis_initialize() {
+	//this is for the 2023 experimental multiplayer sensor synchronization and avatar update methods
+	//it relies on freewrl commandline parameter values for DIS, rather than in-scene DIS node field values
+	static int once = 0;
+	if (!once) {
+		// load default dis_socket
+		int sport = fwl_get_DISport() + fwl_get_testset();
+		char* address = strdup(fwl_get_DISaddress());
+		int site = fwl_get_DISsite();
+		int application = fwl_get_DISapplication();
+
+		struct dis_socket dsock, * psock;
+		//create a recv socket
+		if (!sockets_recv) sockets_recv = newVector(struct dis_socket, 10);
+		memset(&dsock, 0, sizeof(struct dis_socket));
+		vector_pushBack(struct dis_socket, sockets_recv, dsock);
+		psock = vector_get_ptr(struct dis_socket, sockets_recv, sockets_recv->n - 1);
+		psock->address = address;
+		psock->port = sport;
+		psock->multicastRelayHost = strdup("");// multicastRelayHost;
+		psock->multicastRelayPort = 0; // multicastRelayPort;
+		psock->idir = 1;
+		//open port
+		dis_open_socket(psock);
+
+		//create a send socket
+		if (!sockets_send) sockets_send = newVector(struct dis_socket, 10);
+		memset(&dsock, 0, sizeof(struct dis_socket));
+		vector_pushBack(struct dis_socket, sockets_send, dsock);
+		psock = vector_get_ptr(struct dis_socket, sockets_send, sockets_send->n - 1);
+		psock->address = address;
+		psock->port = sport;
+		psock->multicastRelayHost = strdup("");// multicastRelayHost;
+		psock->multicastRelayPort = 0;// multicastRelayPort;
+		psock->idir = 2;
+		//open port
+		dis_open_socket(psock);
+		once = 1;
+	}
+}
 #else //WITH_DIS
 
 void compile_DISEntityManager(struct X3D_DISEntityManager *node){}
@@ -4705,7 +5408,9 @@ void compile_EspduTransform (struct X3D_EspduTransform *node) {}
 void prep_EspduTransform(struct X3D_EspduTransform *node){}
 void fin_EspduTransform(struct X3D_EspduTransform *node){}
 void child_EspduTransform(struct X3D_EspduTransform *node){}
-
+void dis_initialize() {}
+void dis_send_sensor(struct X3D_Node* fromNode, struct X3D_Node* dataNode, int ev, int butStatus2,
+	int status, float* posn3, float* norm3) {}
 #endif //WITH_DIS
 
 void fwl_sendreceive_DIS(){
@@ -4737,6 +5442,7 @@ void fwl_sendreceive_DIS(){
 	if(allow_DIS){
 #ifdef WITH_DIS
 		//printf("yo from fwl_sendreceive_DIS\n");
+		dis_initialize();
 		dis_collide();
 		dis_sendloop();
 		dis_recvloop();

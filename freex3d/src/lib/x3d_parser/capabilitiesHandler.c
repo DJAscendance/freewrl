@@ -56,11 +56,11 @@ static const int capabilities[] = {
 	COM_Texturing,	3, 		/* May 12, 2009 */
 	COM_Geospatial,	2, 		/* May 12, 2009 */
 	COM_CADGeometry,	2, 	/* July 10 2013 */
-	COM_EnvironmentalEffects,	3, /* May 12, 2009 */
+	COM_EnvironmentalEffects,	4, /* May 12, 2009 */
 	COM_Shape,	4, 		/* May 12, 2009 */
 	COM_Texturing3D,	2, 	/* Sept 4, 2016 */
 	COM_PointDeviceSensor,	1, 	/* May 12, 2009 */
-	COM_HAnim,	1, 		/* Nov 2016 */
+	COM_HAnim,	3, 		/* Nov 2020 */
 	COM_RigidBodyPhysics,	2, 	/* Nov 2016 */
 	COM_Core,		2,	/* October 29, 2008 */
 	COM_Layout,	2, 		/* Jan 2016 */
@@ -75,7 +75,8 @@ static const int capabilities[] = {
 	COM_ParticleSystems,	3, 	/* Nov 2016 */
 	COM_Sound,	1, 		/* May 12, 2009 */
 	COM_VolumeRendering,  4, /* Oct 1, 2016 */
-	COM_ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2, /* Feb 9, 2020 */
+	COM_MIDI,		3,			/*July 2023*/
 	INT_ID_UNDEFINED, 	INT_ID_UNDEFINED,
 };
 
@@ -93,6 +94,7 @@ static const int CADInterchangeProfile[] = {
 	COM_Navigation,		2,
 	COM_Shaders,		1,
 	COM_CADGeometry,	2,
+	COM_MIDI,			3,
 	INT_ID_UNDEFINED, 		INT_ID_UNDEFINED};
 
 
@@ -123,7 +125,7 @@ static const int FullProfile[] = {
 	COM_EnvironmentalSensor,	3,
 	COM_EnvironmentalEffects,	4,
 	COM_Geospatial,			2,
-	COM_HAnim,			1,
+	COM_HAnim,			3,
 	COM_NURBS,			4,
 	COM_DIS,			2,
 	COM_Scripting,			1,
@@ -138,6 +140,8 @@ static const int FullProfile[] = {
 	COM_Picking,			3,
 	COM_Followers,			1,
 	COM_ParticleSystems,		3,
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2,
+	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -162,6 +166,9 @@ static const int ImmersiveProfile[] = {
 	COM_EnvironmentalEffects,	2,
 	COM_Scripting,			1,
 	COM_EventUtilities,		1,
+	COM_ParticleSystems,		3,
+	COM_TextureProjection, 2, //ProjectiveTextureMapping, 2,
+	COM_MIDI,				3,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -183,7 +190,6 @@ static const int InteractiveProfile[] = {
 	COM_EnvironmentalSensor,	1,
 	COM_EnvironmentalEffects,	1,
 	COM_EventUtilities,		1,
-	COM_Layering,			1,
 	INT_ID_UNDEFINED, 			INT_ID_UNDEFINED};
 
 
@@ -270,10 +276,26 @@ void handleVersion(const char *versionString) {
 
 
 
-void handleMetaDataStringString(struct Uni_String *val1, struct Uni_String *val2) {
+void handleMetaDataStringString(void *ectx, char *name, char *content) {
 	#ifdef CAPABILITIESVERBOSE
 	printf ("handleMetaDataStringString, :%s:, :%s:\n",val1->strptr, val2->strptr);
 	#endif
+	if (ectx) {
+		int nodetype = X3D_NODE(ectx)->_nodeType;
+		if (nodetype == NODE_Proto || nodetype == NODE_Inline) {
+			struct X3D_Proto* ec = (struct X3D_Proto*)ectx;
+			//add to __META section.
+			if (!ec->__META)
+				ec->__META = newVector(struct metarecord, 10);
+
+			struct Vector* metalist = (struct Vector*)ec->__META;
+			struct metarecord mr;
+			//<meta> attributes are optional
+			mr.name = strdup(name ? name : "");
+			mr.content = strdup(content ? content : "");
+			vector_pushBack(struct metarecord, metalist, mr);
+		}
+	}
 }
 
 // UNIT category unitname conversionfactor

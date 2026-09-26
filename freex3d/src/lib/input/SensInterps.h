@@ -47,9 +47,10 @@ do_active_inactive(int *act,
 int
 find_key(int kin, float frac, float *keys);
 
-void
-do_OintScalar(void *node);
-
+void do_OintScalar(void *node);
+void do_OintVector(void* node);
+void do_CoordinateMorph(void* node);
+void do_NormalMorph(void* node);
 void
 do_OintCoord(void *node);
 void do_OintNormal(void *node);
@@ -70,6 +71,8 @@ void do_SquadOrientationInterpolator(void *node);
 
 void do_CollisionTick(void *ptr);
 void do_AudioTick(void *ptr);
+void do_BufferAudioSourceTick(void* ptr);
+void do_OscillatorSourceTick(void* ptr);
 void do_TimeSensorTick(void *ptr);
 void do_ProximitySensorTick(void *ptr);
 void do_GeoProximitySensorTick(void *ptr);
@@ -82,6 +85,7 @@ void do_Anchor( void *ptr, int typ, int but1, int over);
 void do_TouchSensor( void *ptr, int typ, int but1, int over);
 void do_GeoTouchSensor(void *ptr, int typ, int but1, int over);
 void do_PlaneSensor(void *ptr, int typ, int but1, int over);
+void do_MultiTouchSensor(void *ptr, int typ, int but1, int over);
 void do_LineSensor(void *ptr, int typ, int but1, int over);
 void do_PointSensor(void *ptr, int typ, int but1, int over);
 void do_CylinderSensor(void *ptr, int typ, int but1, int over);

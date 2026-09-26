@@ -62,6 +62,7 @@
 #endif
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
 #if defined (INCLUDE_STL_FILES)
 #include "input/convertSTL.h"
 #endif //INCLUDE_STL_FILES
@@ -361,7 +362,7 @@ static void* load_file_mmap(const char *filename)
 		/* file is greater that read's max block size: we must make a loop */
 		blocksz = SSIZE_MAX;
 	} else {
-		blocksz = ss.st_size+1;
+		blocksz = ss.st_size;
 	}
 
 	left2read = ss.st_size; //+1;
@@ -373,6 +374,7 @@ static void* load_file_mmap(const char *filename)
 			/* ok, we have read a block, continue */
 			current += blocksz;
 			left2read -= blocksz;
+			blocksz = min(blocksz,left2read);
 		} else {
 			/* is this the end of the file ? */
 			if (readsz == 0) {
@@ -393,7 +395,13 @@ static void* load_file_mmap(const char *filename)
 	close(fd);
 	fd = 0; //NULL;
 	*blob = text;
-	*len = ss.st_size+1;
+	*len = ss.st_size;
+	//if(1){
+	//	FILE *fp = fopen("C:/tmp/test_output.wrl","wb");
+	//	//fwrite("test string\n",1,strlen("test string\n")+1,fp);
+	//	fwrite(text,1, ss.st_size+1,fp);
+	//	fclose(fp);
+	//}
 	return 1;
 }
 static openned_file_t* load_file_read(const char *filename)

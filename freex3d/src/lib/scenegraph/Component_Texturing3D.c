@@ -178,7 +178,29 @@ int isTex3D(struct X3D_Node *node){
 	}
 	return ret;
 }
-
+int is_or_has_Tex3D(struct X3D_Node* node) {
+	int ret = FALSE;
+	if (!node) return ret;
+	struct X3D_Node** p;
+	p = &node;
+	int n = 1;
+	if (node->_nodeType == NODE_MultiTexture) {
+		struct X3D_MultiTexture* mnode = (struct X3D_MultiTexture*)node;
+		p = mnode->texture.p;
+		n = mnode->texture.n;
+	}
+	for (int i = 0; i < n; i++) {
+		switch (p[i]->_nodeType) {
+			case NODE_PixelTexture3D:
+			case NODE_ComposedTexture3D:
+			case NODE_ImageTexture3D:
+				ret = TRUE; break;
+			default:
+				break;
+		}
+	}
+	return ret;
+}
 void render_PixelTexture3D (struct X3D_PixelTexture3D *node) {
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
@@ -186,10 +208,21 @@ void render_PixelTexture3D (struct X3D_PixelTexture3D *node) {
 void move_texture_to_opengl(textureTableIndexStruct_s* me);
 void render_ImageTexture3D (struct X3D_ImageTexture3D *node) {
 	/* printf ("render_ImageTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
+	if (node->autoRefresh > 0.0) {
+		double dtime = TickTime();
+		double elapsedTime = dtime - node->__lasttime;
+		double runtime = dtime - BrowserStartTime();
+		if (elapsedTime > node->autoRefresh && runtime < node->autoRefreshTimeLimit) {
+			node->__lasttime = dtime;
+			textureTableIndexStruct_s* tti;
+			tti = getTableTableFromTextureNode(X3D_NODE(node));
+			tti->status = TEX_NOTLOADED;
+		}
+	}
+
 	loadTextureNode(X3D_NODE(node),NULL);
 	gglobal()->RenderFuncs.textureStackTop=1; /* not multitexture - should have saved to boundTextureStack[0] */
 }
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 void render_ComposedTexture3D (struct X3D_ComposedTexture3D *node) {
 	/* printf ("render_ComposedTexture, global Transparency %f\n",getAppearanceProperties()->transparency); */
 	if(node && node->_nodeType == NODE_ComposedTexture3D){

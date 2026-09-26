@@ -204,7 +204,7 @@ void compile_Box (struct X3D_Box *node) {
 void render_Box (struct X3D_Box *node) {
 	extern GLfloat boxtex[];		/*  in CFuncs/statics.c*/
 	extern GLfloat boxnorms[];		/*  in CFuncs/statics.c*/
-	extern ushort boxwireindices[];
+	extern int boxwireindices[];
 	struct textureVertexInfo mtf = {boxtex,2,GL_FLOAT,0,NULL,NULL};
 
 	float x = ((node->size).c[0])/2;
@@ -458,7 +458,7 @@ void compile_Cylinder (struct X3D_Cylinder * node) {
 		{
 			//prepare wireframe indices
 			int i3, i6;
-			ushort *lindex = MALLOC(ushort *,indx * 2 * sizeof(ushort));
+			int *lindex = MALLOC(int *,indx * 2 * sizeof(int));
 			for(i=0;i<indx/3;i++){
 				i3 = i*3;
 				i6 = i*6;
@@ -675,7 +675,7 @@ void compile_Cone (struct X3D_Cone *node) {
 	{
 		//prepare wireframe indices
 		int i3, i6;
-		ushort *lindex = MALLOC(ushort *,indx * 2 * sizeof(ushort));
+		int *lindex = MALLOC(int *,indx * 2 * sizeof(int));
 		for(i=0;i<indx/3;i++){
 			i3 = i*3;
 			i6 = i*6;
@@ -792,7 +792,7 @@ void compile_Sphere (struct X3D_Sphere *node) {
 	float t_aa, t_ab, t_sa, t_ca, t_sa1;
 	float t2_aa, t2_ab, t2_sa, t2_ca, t2_sa1;
 	struct SFVec3f *pts;
-	//ushort *pindices;
+	//int *pindices;
 
 	/*  have to regen the shape*/
 	MARK_NODE_COMPILED
@@ -864,8 +864,8 @@ void compile_Sphere (struct X3D_Sphere *node) {
 		glBufferData(GL_ARRAY_BUFFER, myVertexVBOSize, SphVBO, GL_STATIC_DRAW);
 
 		if (node->__SphereIndxVBO == 0) {
-			ushort pindices[TRISINSPHERE*2];
-			ushort *pind; // = pindices;
+			int pindices[TRISINSPHERE*2];
+			int *pind; // = pindices;
 			int row;
 			int indx;
 			pind = pindices;
@@ -888,12 +888,12 @@ void compile_Sphere (struct X3D_Sphere *node) {
 			}
 			node->__pindices = pindices;
  			FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__SphereIndxVBO);
- 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*TRISINSPHERE*2, pindices, GL_STATIC_DRAW);
+ 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*TRISINSPHERE*2, pindices, GL_STATIC_DRAW);
 
 			{
 				//prepare wireframe indices - we'll use the pindices from above, still on the stack
 				int i, i3, i6, ntris;
-				ushort lindex[SPHDIV*SPHDIV*2*3*2];
+				int lindex[SPHDIV*SPHDIV*2*3*2];
 				ntris = SPHDIV * SPHDIV * 2;
 				glGenBuffers(1,(GLuint *) &node->__wireindicesVBO);
 				for(i=0;i<ntris;i++){
@@ -908,7 +908,7 @@ void compile_Sphere (struct X3D_Sphere *node) {
 				}
 				//node->__wireindices = lindex;
  				FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__wireindicesVBO);
- 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*SPHDIV*SPHDIV*2*3, lindex, GL_STATIC_DRAW);
+ 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*SPHDIV*SPHDIV*2*3, lindex, GL_STATIC_DRAW);
 			}
 		}
 
@@ -971,10 +971,10 @@ void render_Sphere (struct X3D_Sphere *node) {
 	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
 		//wireframe triangles
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__wireindicesVBO);
-		sendElementsToGPU(GL_LINES,TRISINSPHERE *3, (ushort *)BUFFER_OFFSET(0)); //node->__wireindices);
+		sendElementsToGPU(GL_LINES,TRISINSPHERE *3, (int *)BUFFER_OFFSET(0)); //node->__wireindices);
 	}else{
 		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, node->__SphereIndxVBO);
-		sendElementsToGPU (GL_TRIANGLES, TRISINSPHERE, (ushort *)BUFFER_OFFSET(0));   //The starting point of the IBO
+		sendElementsToGPU (GL_TRIANGLES, TRISINSPHERE, (int *)BUFFER_OFFSET(0));   //The starting point of the IBO
 	}
 
 	/* turn off */
@@ -1016,21 +1016,25 @@ void render_IndexedFaceSet (struct X3D_IndexedFaceSet *node) {
 	//	else printf("[.%d",count);
 	//	count++;
 	//}
-	COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
-	if (!node->_intern) return;
+	//COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
+	//if (!node->_intern) return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 	//if(print_names) printf("]");
 }
 
 void render_ElevationGrid (struct X3D_ElevationGrid *node) {
-	COMPILE_POLY_IF_REQUIRED (NULL, node->fogCoord, node->color, node->normal, node->texCoord)
+	//COMPILE_POLY_IF_REQUIRED (NULL, node->fogCoord, node->color, node->normal, node->texCoord)
+	if (!compile_poly_if_required(node, NULL, node->fogCoord, node->color, node->normal, node->texCoord))return;
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
 
 void render_Extrusion (struct X3D_Extrusion *node) {
-	COMPILE_POLY_IF_REQUIRED (NULL,NULL,NULL,NULL,NULL)
+	//COMPILE_POLY_IF_REQUIRED (NULL,NULL,NULL,NULL,NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+
 	CULL_FACE(node->solid)
 	render_polyrep(node);
 }
@@ -1116,26 +1120,27 @@ int avatarCollisionVolumeIntersectMBBf(double *modelMatrix, float *minVals, floa
 
 void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 	GLDOUBLE modelMatrix[16];
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	#ifdef RENDERVERBOSE
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	#endif
-	struct X3D_PolyRep pr;
+	struct X3D_PolyRep* pr;
 	prflags flags = 0;
 	int change = 0;
 
 	/* JAS - first pass, intern is probably zero */
-	if (node->_intern == NULL) return;
+	if (!node->_intern || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*) node->_intern;
 
 	/* JAS - no triangles in this text structure */
-	if (node->_intern->ntri == 0) return;
+	if (pr->ntri == 0) return;
 
 	/*save changed state.*/
-	if(node->_intern) change = node->_intern->irep_change;
-	COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL)
+	change = pr->irep_change;
+	//COMPILE_POLY_IF_REQUIRED (NULL, NULL, NULL, NULL, NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
 
-
-	if(node->_intern) node->_intern->irep_change = change;
+	pr->irep_change = change;
 	/*restore changes state, invalidates mk_polyrep work done, so it can be done
 		correclty in the RENDER pass */
 
@@ -1143,19 +1148,17 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		flags = flags | PR_DOUBLESIDED;
 	}
 
-	pr = *(node->_intern);
-
-
 	/* IndexedFaceSets are "different", in that the user specifies points, among
 		other things.  The rendering pass takes these external points, and streams
 		them to make rendering much faster on hardware accel. We have to check to
 		see whether we have got here before the first rendering of a possibly new
 		IndexedFaceSet */
-	if (!pr.actualCoord) {
-		struct Multi_Vec3f* tmp;
-		tmp = getCoordinate(node->coord,"Collision");
-		pr.actualCoord = (float *) tmp->p;
-	}
+	if (!pr->actualCoord) return;
+	//{
+	//	struct Multi_Vec3f* tmp;
+	//	tmp = getCoordinate(node->coord,"Collision");
+	//	pr->actualCoord = (float *) tmp->p;
+	//}
 
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 	/* 
@@ -1222,7 +1225,7 @@ void collide_genericfaceset (struct X3D_IndexedFaceSet *node ){
 		- pr.actualCoord - these are Shape space coordinates
 		They will be transformed into CollisionSpace coordinates by the modelMatrix transform.
 	*/
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr->minVals, pr->maxVals))return;
 	/* passed fast test. Now for gruelling test */
 
 	delta = polyrep_disp2(pr,modelMatrix,flags); //polyrep_disp(abottom,atop,astep,awidth,pr,modelMatrix,flags);
@@ -1341,12 +1344,12 @@ DEBUGGING_CODE}
 struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
 #define FLOAT_TOLERANCE 0.00000001
 void collide_Sphere (struct X3D_Sphere *node) {
-	struct point_XYZ t_orig = {0,0,0}; /*transformed origin*/
-	struct point_XYZ p_orig= {0,0,0} ; /*projected transformed origin */
-	struct point_XYZ n_orig = {0,0,0}; /*normal(unit length) transformed origin */
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 }; /*transformed origin*/
+	struct point_XYZ p_orig= { .x = 0,.y = 0,.z = 0 }; /*projected transformed origin */
+	struct point_XYZ n_orig = { .x = 0,.y = 0,.z = 0 }; /*normal(unit length) transformed origin */
 	GLDOUBLE modelMatrix[16];
 	GLDOUBLE awidth,atop,abottom,dist2;
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	GLDOUBLE radius;
 	struct sNaviInfo *naviinfo;
 	ttglobal tg = gglobal();
@@ -1377,7 +1380,7 @@ void collide_Sphere (struct X3D_Sphere *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		struct point_XYZ radscale;
 		double maxdisp = 0;
 		radscale.x = radscale.y = radscale.z = node->radius;
@@ -1542,10 +1545,10 @@ void collide_Sphere (struct X3D_Sphere *node) {
 void collide_Box (struct X3D_Box *node) {
 	/*easy access, naviinfo.step unused for sphere collisions */
 	struct sNaviInfo *naviinfo;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ kv = {0,0,0};
-	struct point_XYZ ov = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ kv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ ov = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
 	ttglobal tg = gglobal();
@@ -1757,9 +1760,9 @@ void collide_Cone (struct X3D_Cone *node) {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth, atop, abottom, astep, scale, modelMatrix[16];
 	float h,r;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	ttglobal tg = gglobal();
 	ppComponent_Geometry3D p = (ppComponent_Geometry3D)tg->Component_Geometry3D.prv;
@@ -1790,7 +1793,7 @@ void collide_Cone (struct X3D_Cone *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		double maxdisp = 0;
 		struct point_XYZ radscale;
 
@@ -2028,9 +2031,9 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 	struct sNaviInfo *naviinfo;
 	GLDOUBLE awidth,atop,abottom,astep,scale,modelMatrix[16];
 	float h,r;
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ iv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ jv = { .x = 0,.y = 0,.z = 0 };
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	struct point_XYZ delta;
 	ttglobal tg = gglobal();
 	ppComponent_Geometry3D p = (ppComponent_Geometry3D)tg->Component_Geometry3D.prv;
@@ -2060,7 +2063,7 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 		int i;
 		double disp;
 		struct point_XYZ n;
-		struct point_XYZ a,b, dispv, radscale, maxdispv = {0,0,0};
+		struct point_XYZ a,b, dispv, radscale, maxdispv = { .x = 0,.y = 0,.z = 0 };
 		double maxdisp = 0;
 
 		if(!p->collisionCylinder.npts) 
@@ -2146,23 +2149,27 @@ void collide_Cylinder (struct X3D_Cylinder *node) {
 
 void collide_Extrusion (struct X3D_Extrusion *node) {
 	GLDOUBLE modelMatrix[16];
-	struct point_XYZ delta = {0,0,0};
+	struct point_XYZ delta = { .x = 0,.y = 0,.z = 0 };
 	#ifdef RENDERVERBOSE
-	struct point_XYZ t_orig = {0,0,0};
+	struct point_XYZ t_orig = { .x = 0,.y = 0,.z = 0 };
 	#endif
-	struct X3D_PolyRep pr;
+	struct X3D_PolyRep *pr;
 	prflags flags = 0;
 	int change = 0;
 
 	/* JAS - first pass, intern is probably zero */
-	if (node->_intern == NULL) return;
+	if (node->_intern == NULL || node->_intern->itype != 2) return;
+	pr = (struct X3D_PolyRep*) node->_intern;
 	/* JAS - no triangles in this text structure */
-	if (node->_intern->ntri == 0) return;
+	if (pr->ntri == 0) return;
 
 	/*save changed state.*/
-	if(node->_intern) change = node->_intern->irep_change;
-	COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
-	if(node->_intern) node->_intern->irep_change = change;
+	change = pr->irep_change;
+	//COMPILE_POLY_IF_REQUIRED(NULL, NULL, NULL, NULL, NULL)
+	if (!compile_poly_if_required(node, NULL, NULL, NULL, NULL, NULL))return;
+	if (pr->actualCoord == NULL) return; //not compiled yet
+
+	pr->irep_change = change;
 	/*restore changes state, invalidates compile_polyrep work done, so it can be done
 	correclty in the RENDER pass */
 
@@ -2170,7 +2177,6 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 		flags = flags | PR_DOUBLESIDED;
 	}
 	/*	printf("_PolyRep = %d\n",node->_intern);*/
-	pr = *(node->_intern);
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 
 	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
@@ -2182,7 +2188,7 @@ void collide_Extrusion (struct X3D_Extrusion *node) {
 	t_orig.z = modelMatrix[14];
 	#endif
 
-	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr.minVals, pr.maxVals))return;
+	if(!avatarCollisionVolumeIntersectMBBf(modelMatrix, pr->minVals, pr->maxVals))return;
 	delta = polyrep_disp2(pr,modelMatrix,flags); 
 	vecscale(&delta,&delta,-1);
 	accumulate_disp(CollisionInfo(),delta);
@@ -2720,7 +2726,7 @@ void compile_Teapot (struct X3D_Teapot *tnode){
 	if(tnode->__ifsnode == NULL){
 		if(teapotifs == NULL){
 			teapotifs = createNewX3DNode0(NODE_IndexedFaceSet); //IIRC createnewX3DNode0 doesn't add to nodelist or garbage collection
-			teapotifs->_intern = create_polyrep();
+			teapotifs->_intern = (struct X3D_GeomRep*) create_polyrep();
 			teapot_coord = createNewX3DNode0(NODE_Coordinate);
 			teapotifs->creaseAngle = (float)PI;
 			teapotifs->normalPerVertex = FALSE;
@@ -2736,20 +2742,75 @@ void compile_Teapot (struct X3D_Teapot *tnode){
 		make_IndexedFaceSet(tnode->__ifsnode);
 	}
 }
-void rendray_Teapot (struct X3D_Teapot *node){
-	if(node->__ifsnode == NULL) compile_Teapot(node);
-	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
-
-}
 void render_Teapot (struct X3D_Teapot *node){
 	if(node->__ifsnode == NULL) compile_Teapot(node);
 	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
+void rendray_Teapot(struct X3D_Teapot* node) {
+	if (node->__ifsnode == NULL) return; //compile on render pass
+	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+
+}
+
 void collide_Teapot (struct X3D_Teapot *node){
-	if(node->__ifsnode == NULL) compile_Teapot(node);
+	if (node->__ifsnode == NULL) return;
 	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
 }
 
+//PYRAMID
+static struct X3D_IndexedFaceSet *pyramidifs = NULL;
+static struct X3D_Coordinate *pyramid_coord;
+static struct X3D_TextureCoordinate *pyramid_texcoord;
+static int pyramid_coordindex_p [] = {3, 2, 1, 0, -1, 0, 1, 4, -1, 1, 2, 4, -1, 2, 3, 4, -1, 3, 0, 4, -1};
+static int pyramid_coordindex_n = 21;
+static float pyramid_coord_p [] = {-1.0f,-1.0f,1.0f, 1.0f,-1.0f,1.0f, 1.0f,-1.0f,-1.0f, -1.0f,-1.0f,-1.0f, 0.0f,1.0f,0.0f};
+static int pyramid_coord_n = 5; 
+//texture coord rule: first linesegment of face is bottom of image
+static int pyramid_texcoordindex_p [] = {0, 1, 2, 3, -1, 0, 1, 4, -1, 0, 1, 4, -1, 0, 1, 4, -1, 0, 1, 4, -1};
+static int pyramid_texcoordindex_n = 21;
+static float pyramid_texcoord_p [] = {0.0f,0.0f, 1.0f,0.0f, 1.0f,1.0f, 0.0f,1.0f, .5f,1.0f};
+static int pyramid_texcoord_n = 5; 
+struct X3D_PolyRep * create_polyrep();
+void compile_Pyramid (struct X3D_Pyramid *tnode){
+	if(tnode->__ifsnode == NULL){
+		if(pyramidifs == NULL){
+			pyramidifs = createNewX3DNode0(NODE_IndexedFaceSet); //IIRC createnewX3DNode0 doesn't add to nodelist or garbage collection
+			pyramidifs->_intern = (struct X3D_GeomRep*) create_polyrep();
+			pyramid_coord = createNewX3DNode0(NODE_Coordinate);
+			pyramid_texcoord = createNewX3DNode0(NODE_TextureCoordinate);
+			pyramidifs->creaseAngle = 0.0F; //(float)PI;
+			pyramidifs->normalPerVertex = FALSE;
+			pyramidifs->ccw = TRUE;
+			pyramidifs->coord = X3D_NODE(pyramid_coord);
+			pyramid_coord->point.p = (struct SFVec3f*)pyramid_coord_p;
+			pyramid_coord->point.n = pyramid_coord_n;
+			pyramidifs->coordIndex.p = pyramid_coordindex_p;
+			pyramidifs->coordIndex.n = pyramid_coordindex_n;
+
+			pyramid_texcoord->point.p = (struct SFVec2f*)pyramid_texcoord_p;
+			pyramid_texcoord->point.n = pyramid_texcoord_n;
+			pyramidifs->texCoord = X3D_NODE(pyramid_texcoord);
+			pyramidifs->texCoordIndex.p = pyramid_texcoordindex_p;
+			pyramidifs->texCoordIndex.n = pyramid_texcoordindex_n;
+			pyramidifs->solid = tnode->solid;
+		}
+		tnode->__ifsnode = pyramidifs;
+		make_IndexedFaceSet(tnode->__ifsnode);
+	}
+}
+void rendray_Pyramid (struct X3D_Pyramid *node){
+	if (node->__ifsnode == NULL) return;
+	rendray_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+
+}
+void render_Pyramid (struct X3D_Pyramid *node){
+	if(node->__ifsnode == NULL) compile_Pyramid(node);
+	render_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+}
+void collide_Pyramid (struct X3D_Pyramid *node){
+	if(node->__ifsnode == NULL) return;
+	collide_IndexedFaceSet(X3D_INDEXEDFACESET(node->__ifsnode));
+}
 
 
 void delete_glbuffers(struct X3D_Node *node){

@@ -50,7 +50,6 @@ Interps are the "EventsProcessed" fields of interpolators.
 #include "../scenegraph/LinearAlgebra.h"
 #include "../scenegraph/Collision.h"
 #include "../scenegraph/quaternion.h"
-#include "../scenegraph/sounds.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"            /* for finding a texture url in a multi url */
@@ -252,6 +251,166 @@ void do_OintScalar (void *node) {
 	}
 }
 
+/* VectorInterpolator - return MFFloat
+*  proposed by Instant Player team, see 26_Hanim pdf
+*/
+void do_OintVector(void* node) {
+	/* VectorInterpolator - store final value in px->value_changed */
+	struct X3D_VectorInterpolator* px;
+	int kin, kvin, ksize;
+	float* kVs;
+	int counter;
+
+	if (!node) return;
+	px = (struct X3D_VectorInterpolator*)node;
+	kin = px->key.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be an int
+	kVs = px->keyValue.p;
+	//ensure MF space
+	if (px->value_changed.n < ksize) {
+		px->value_changed.p = realloc(px->value_changed.p, ksize * sizeof(float));
+		px->value_changed.n = ksize;
+	}
+	MARK_EVENT(node, offsetof(struct X3D_VectorInterpolator, value_changed));
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p,0,ksize*sizeof(float));
+		return;
+	}
+	if (kin > kvin) kin = kvin; /* means we don't use whole of keyValue, but... */
+
+#ifdef SEVERBOSE
+	printf("VectorInterpolator, kin %d kvin %d, vc %f\n", kin, kvin, px->value_changed);
+#endif
+
+	/* set_fraction less than or greater than keys */
+	if (px->set_fraction <= px->key.p[0]) {
+		memcpy(px->value_changed.p, &kVs[0*ksize], ksize*sizeof(float));
+	}
+	else if (px->set_fraction >= px->key.p[kin - 1]) {
+		//px->value_changed = kVs[kvin - 1];
+		memcpy(px->value_changed.p, &kVs[(kvin - 1) * ksize], ksize * sizeof(float));
+	}
+	else {
+		/* have to go through and find the key before */
+		counter = find_key(kin, (float)(px->set_fraction), px->key.p);
+		float incrementfactor = (px->set_fraction - px->key.p[counter - 1]) /
+			(px->key.p[counter] - px->key.p[counter - 1]);
+		for (int i = 0; i < ksize; i++) {
+			px->value_changed.p[i] =
+				incrementfactor * (kVs[counter*ksize +i] - kVs[(counter - 1)*ksize +i]) +
+				kVs[(counter - 1)*ksize +i];
+		}
+	}
+}
+
+
+
+
+/* from Instant Player paper - see 26_Hanim .pdf "The Morph Node", Alexa, Buhr, Muller / Fraunhofer.
+CoordinateMorpher {
+eventIn MFFloat set_weights
+exposedFieldMFVec3f keyValue []
+eventOut MFVec3f value_changed
+}
+The CoordinateMorpher node linearly interpolates among a
+set of MFVec3f values. Unlike the CoordinateInterpolator it does
+not interpolate two key frames but is able to blend any number of
+shapes. The number of coordinates in the keyValue shall be an
+integer multiple of the number of keyframes in the key field. That
+integer multiple defines how many coordinates will be contained in
+the value_changed eventout slot
+dug9: so instead of find_key, and interpolating between 2, _all_ keyvalues are used in weighted sum.
+out[i] = in[i,j]*weight[j]
+*/
+void do_CoordinateMorph(void* node) {
+	struct X3D_CoordinateMorpher* px;
+	int kin, kvin, ksize;
+	struct SFVec3f* kVs;
+
+	if (!node) return;
+	px = (struct X3D_CoordinateMorpher*)node;
+
+
+	MARK_EVENT(node, offsetof(struct X3D_CoordinateMorpher, value_changed));
+
+	kin = px->set_weights.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be int
+	kVs = px->keyValue.p;
+
+	// ensure space
+	if (ksize != px->value_changed.n) {
+		px->value_changed.n = ksize;
+		px->value_changed.p = realloc(px->value_changed.p, sizeof(struct SFVec3f) * ksize);
+	}
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p, 0, ksize * sizeof(struct SFVec3f));
+		return;
+	}
+	if (kin > kvin) kin = kvin; // means we don't use whole of keyValue
+	struct SFVec3f* vc = px->value_changed.p;
+	struct SFVec3f* kv = px->keyValue.p;
+	float* wt = px->set_weights.p;
+	//big loop do weighted sum
+	float wtvc[3];
+	for (int i = 0; i < ksize; i++) {
+		vecset3f(vc[i].c, 0.0f, 0.0f, 0.0f);
+		for (int j = 0; j < kin; j++) 
+		{
+			vecscale3f(wtvc, kv[j*ksize +i].c, wt[j]);
+			vecadd3f(vc[i].c, vc[i].c, wtvc);
+		}
+	}
+}
+// NormalMorpher same as CoordinateMorpher above, except normalize summed value.
+void do_NormalMorph(void* node) {
+	struct X3D_NormalMorpher* px;
+	int kin, kvin, ksize;
+	struct SFVec3f* kVs;
+
+	if (!node) return;
+	px = (struct X3D_NormalMorpher*)node;
+
+
+	MARK_EVENT(node, offsetof(struct X3D_NormalMorpher, value_changed));
+
+	kin = px->set_weights.n;
+	kvin = px->keyValue.n;
+	ksize = kvin / kin; //should be int
+	kVs = px->keyValue.p;
+
+	// ensure space
+	if (ksize != px->value_changed.n) {
+		px->value_changed.n = ksize;
+		px->value_changed.p = realloc(px->value_changed.p, sizeof(struct SFVec3f) * ksize);
+	}
+
+	/* make sure we have the keys and keyValues */
+	if ((kvin == 0) || (kin == 0)) {
+		memset(px->value_changed.p, 0, ksize * sizeof(struct SFVec3f));
+		return;
+	}
+	if (kin > kvin) kin = kvin; // means we don't use whole of keyValue
+	struct SFVec3f* vc = px->value_changed.p;
+	struct SFVec3f* kv = px->keyValue.p;
+	float* wt = px->set_weights.p;
+	//big loop do weighted sum
+	float wtvc[3];
+	for (int i = 0; i < ksize; i++) {
+		vecset3f(vc[i].c, 0.0f, 0.0f, 0.0f);
+		for (int j = 0; j < kin; j++)
+		{
+			vecscale3f(wtvc, kv[j * ksize + i].c, wt[j]);
+			vecadd3f(vc[i].c, vc[i].c, wtvc);
+		}
+		vecnormalize3f(vc[i].c, vc[i].c);
+	}
+}
 
 void do_OintNormal(void *node) {
 	struct X3D_NormalInterpolator *px;
@@ -1001,6 +1160,12 @@ void do_AudioTick(void *ptr) {
 	/* can we possibly have started yet? */
 	if (!node) return;
 
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_AudioClip, enabled));
+	}
+	if (!node->enabled) return;
+
 	if(node->__inittime == 0.0)
 		node->__inittime = TickTime();
 
@@ -1062,7 +1227,150 @@ void do_AudioTick(void *ptr) {
 		MARK_EVENT (ptr, offsetof(struct X3D_AudioClip, elapsedTime));
 	}
 }
+void do_BufferAudioSourceTick(void* ptr) {
+	struct X3D_BufferAudioSource* node = (struct X3D_BufferAudioSource*)ptr;
+	int 	oldstatus;
+	double duration; /* gcc and params - make all doubles to do_active_inactive */
+	/* can we possibly have started yet? */
+	if (!node) return;
 
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, enabled));
+	}
+	if (!node->enabled) return;
+
+	if (node->__inittime == 0.0)
+		node->__inittime = TickTime();
+
+	if (TickTime() < node->startTime) {
+		return;
+	}
+
+	oldstatus = node->isActive;
+
+	if (node->__sourceNumber < 0) return;
+	///* is this audio wavelet initialized yet? */
+	//if (node->__sourceNumber == -1) {
+	//	locateAudioSource (node);
+	//	/* printf ("do_AudioTick, node %d sn %d\n", node, node->__sourceNumber);  */
+	//}
+
+	///* is this audio ok? if so, the sourceNumber will range
+	// * between 0 and infinity; if it is BADAUDIOSOURCE, bad source.
+	// * check out locateAudioSource to find out reasons */
+	//if (node->__sourceNumber == BADAUDIOSOURCE) return;
+
+	/* call common time sensor routine */
+	do_active_inactive(
+		&node->isActive, &node->__inittime, &node->startTime,
+		&node->stopTime, node->loop, 0.0,
+		0.0, node->elapsedTime);
+
+	if (oldstatus != node->isActive) {
+		/* push @e, [$t, "isActive", node->{isActive}]; */
+		if (node->isActive == 1) {
+			/* force code below to generate event */
+			//node->__ctflag = 10.0;
+			node->__lasttime = TickTime();
+			node->elapsedTime = 0.0;
+		}
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isActive));
+	}
+
+	if (node->isActive) {
+		if (node->pauseTime > node->startTime) {
+			if (node->resumeTime < node->pauseTime && !node->isPaused) {
+				node->isPaused = TRUE;
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isPaused));
+			}
+			else if (node->resumeTime > node->pauseTime && node->isPaused) {
+				node->isPaused = FALSE;
+				node->__lasttime = TickTime();
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_BufferAudioSource, isPaused));
+			}
+		}
+	}
+	if (node->isActive == 1 && node->isPaused == FALSE) {
+		double dtime = TickTime();
+		node->elapsedTime += dtime - node->__lasttime;
+		node->__lasttime = dtime;
+		//double myFrac = node->elapsedTime / duration;
+		MARK_EVENT(ptr, offsetof(struct X3D_BufferAudioSource, elapsedTime));
+	}
+}
+
+void do_OscillatorSourceTick(void* ptr) {
+	struct X3D_OscillatorSource* node = (struct X3D_OscillatorSource*)ptr;
+	int 	oldstatus, ichange;
+	double duration; /* gcc and params - make all doubles to do_active_inactive */
+	ichange = 0; //set this if any MARK_EVENTS in isActive, isPaused, as the render_OscillatorSource does math on these
+
+	/* can we possibly have started yet? */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, enabled));
+		ichange++;
+	}
+	if (!node->enabled) return;
+
+	if (node->__inittime == 0.0)
+		node->__inittime = TickTime();
+
+	if (TickTime() < node->startTime) {
+		return;
+	}
+
+	oldstatus = node->isActive;
+
+
+	/* call common time sensor routine */
+	//duration = return_Duration(node->__sourceNumber);
+	duration = 0.0;
+	do_active_inactive(
+		&node->isActive, &node->__inittime, &node->startTime,
+		&node->stopTime, TRUE, duration,
+		node->frequency, node->elapsedTime);
+
+	if (oldstatus != node->isActive) {
+		/* push @e, [$t, "isActive", node->{isActive}]; */
+		if (node->isActive == 1) {
+			/* force code below to generate event */
+			//node->__ctflag = 10.0;
+			node->__lasttime = TickTime();
+			node->elapsedTime = 0.0;
+		}
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isActive));
+		ichange++;
+	}
+
+	if (node->isActive) {
+		if (node->pauseTime > node->startTime) {
+			if (node->resumeTime < node->pauseTime && !node->isPaused) {
+				node->isPaused = TRUE;
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isPaused));
+				ichange++;
+			}
+			else if (node->resumeTime > node->pauseTime && node->isPaused) {
+				node->isPaused = FALSE;
+				node->__lasttime = TickTime();
+				MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_OscillatorSource, isPaused));
+				ichange++;
+			}
+		}
+	}
+	if (node->isActive == 1 && node->isPaused == FALSE) {
+		double dtime = TickTime();
+		node->elapsedTime += dtime - node->__lasttime;
+		node->__lasttime = dtime;
+		//double myFrac = node->elapsedTime / duration;
+		MARK_EVENT(ptr, offsetof(struct X3D_OscillatorSource, elapsedTime));
+		//ichange++;
+	}
+	if (ichange) node->_ichange++;
+}
 
 
 /* Similar to AudioClip, this is the Play, Pause, Stop, Resume code
@@ -1086,8 +1394,15 @@ void do_MovieTextureTick( void *ptr) {
 	/* can we possibly have started yet? */
 	if (!node) return;
 
-	if(node->__inittime == 0.0)
-		node->__inittime = TickTime();
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node), offsetof(struct X3D_MovieTexture, enabled));
+	}
+	if (!node->enabled) return;
+
+
+	if(node->__init_time == 0.0)
+		node->__init_time = TickTime();
 
 	if(TickTime() < node->startTime) {
 		return;
@@ -1101,7 +1416,7 @@ void do_MovieTextureTick( void *ptr) {
 
 	oldstatus = node->isActive;
 	do_active_inactive (
-		&node->isActive, &node->__inittime, &node->startTime,
+		&node->isActive, &node->__init_time, &node->startTime,
 		&node->stopTime,node->loop,duration,
 		speed,node->elapsedTime);
 
@@ -1109,7 +1424,7 @@ void do_MovieTextureTick( void *ptr) {
 		if (node->isActive == 1) {
 			/* force code below to generate event */
 			//node->__ctflag = 10.0;
-			node->__lasttime = TickTime();
+			node->__last_time = TickTime();
 			node->elapsedTime = 0.0;
 		}
 		MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isActive));
@@ -1122,15 +1437,15 @@ void do_MovieTextureTick( void *ptr) {
 				MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isPaused));
 			}else if(node->resumeTime > node->pauseTime && node->isPaused){
 				node->isPaused = FALSE;
-				node->__lasttime = TickTime();
+				node->__last_time = TickTime();
 				MARK_EVENT (X3D_NODE(node), offsetof(struct X3D_MovieTexture, isPaused));
 			}
 		}
 	}
 	if(node->isActive && node->isPaused == FALSE) {
 		double dtime = TickTime();
-		node->elapsedTime += dtime - node->__lasttime;
-		node->__lasttime = dtime; 
+		node->elapsedTime += dtime - node->__last_time;
+		node->__last_time = dtime; 
 		
 		//frac = node->__ctex;
 
@@ -1212,45 +1527,6 @@ void do_MovieTextureTick( void *ptr) {
 
 *****************************************************************************/
 
-float fclamp(float fval, float fstart, float fend) { 
-	float fret = fval;
-	fret = fval > fend? fend : fval;		//min(fval,fend)
-	fret = fret < fstart ? fstart : fret;	//max(fval,fstart)
-	return fret;
-}
-float *vecclamp2f(float *fval, float *fstart, float *fend){
-	int i;
-	for(i=0;i<2;i++){
-		if(fstart[i] <= fend[i])
-			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
-	}
-	return fval;  //so you can chain
-}
-float *vecclamp3f(float *fval, float *fstart, float *fend){
-	int i;
-	for(i=0;i<3;i++){
-		if(fstart[i] <= fend[i])
-			fval[i] = fclamp(fval[i],fstart[i],fend[i]);
-	}
-	return fval;  //so you can chain
-}
-// #define APPROX(a,b) (fabs((a)-(b))<0.00000001)
-int approx3f(float *a, float *b){
-	float tol = 0.00000001;
-	int i, iret = TRUE;
-	for(i=0;i<3;i++){
-		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
-	}
-	return iret;
-}
-int approx4f(float *a, float *b){
-	float tol = 0.00000001;
-	int i, iret = TRUE;
-	for(i=0;i<4;i++){
-		iret = iret && (fabs(a[i] - b[i]) < tol) ? iret : FALSE;
-	}
-	return iret;
-}
 void do_TouchSensor ( void *ptr, int ev, int but1, int over) {
 
 	struct X3D_TouchSensor *node = (struct X3D_TouchSensor *)ptr;
@@ -1420,13 +1696,28 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
 
 	}
-	else if ((ev == MotionNotify) && (node->isActive) && but1) {
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
+
+		/* autoOffset? */
+		if (node->autoOffset) {
+#ifdef LINESENSOR_FLOAT_OFFSET
+			node->offset = node->_origPoint.c[1];
+#else
+			veccopy3f(node->offset.c, node->translation_changed.c);
+#endif
+			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, offset));
+		}
+	}
+	if ((ev == MotionNotify || ev == ButtonPress) && (node->isActive) && but1) {
 		float xxxoffset, xxxorigin;
 		//float diroffset[3], nondiroffset[3];
 		/* trackpoint changed */
 		veccopy3f(node->_oldtrackPoint.c,trackpoint);
 		
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c) || ev == ButtonPress) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, trackPoint_changed));
 
@@ -1475,21 +1766,7 @@ void do_LineSensor(void *ptr, int ev, int but1, int over) {
 		//save current for use in mouse-up auto-offset
 		node->_origPoint.c[1] = xxx;
 	}
-	else if (ev == ButtonRelease) {
-		/* set isActive false */
-		node->isActive = FALSE;
-		MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, isActive));
 
-		/* autoOffset? */
-		if (node->autoOffset) {
-#ifdef LINESENSOR_FLOAT_OFFSET
-			node->offset = node->_origPoint.c[1];
-#else
-			veccopy3f(node->offset.c,node->translation_changed.c);
-#endif
-			MARK_EVENT(ptr, offsetof(struct X3D_LineSensor, offset));
-		}
-	}
 
 }
 
@@ -1545,12 +1822,15 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 		float distance = veclength3f(vecdif3f(tt,rposn,norm));
 		//printf("dist0 = %f\n",distance);
 		veccopy3f(trackpoint,rposn); 
+		//unconditionally send trackpoint_changed
 		veccopy3f(node->_origPoint.c,trackpoint); 
+		veccopy3f(node->_oldtrackPoint.c, trackpoint);
+		veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
 
 		/* set isActive true */
 		node->isActive = TRUE;
 		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
-
 	}
 	else if ((ev == MotionNotify) && (node->isActive) && but1) {
 		/* trackpoint changed */
@@ -1600,6 +1880,9 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 		/* set isActive false */
 		node->isActive = FALSE;
 		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, isActive));
+		//unconditionally re-send trackpoint_changed
+		MARK_EVENT(ptr, offsetof(struct X3D_PointSensor, trackPoint_changed));
+
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
@@ -1608,14 +1891,28 @@ void do_PointSensor(void *ptr, int ev, int but1, int over) {
 	}
 
 }
-
+struct ID_point {
+int ID;
+float p[3];
+int reset;
+};
+int lookup_ID(struct ID_point* idp, int n, int touchID){
+	int j = -1;
+	for(int i=0;i<n;i++){
+		if(idp[i].ID == touchID) {
+			j = i; break;
+		}
+	}
+	return j;
+}
 /* void do_PlaneSensor (struct X3D_PlaneSensor *node, int ev, int over) {*/
 void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	struct X3D_PlaneSensor *node;
 	float mult, nx, ny, trackpoint[3], inverserotation[4], *posn;
 	float tr[3];
 	int tmp, imethod;
-
+	int touchID;
+	struct ID_point drag_point, *dp, *op;
 	ttglobal tg;
 	UNUSED(over);
 	node = (struct X3D_PlaneSensor *)ptr;
@@ -1643,6 +1940,17 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 	if (!node->enabled) return;
 	tg = gglobal();
 
+	tg = gglobal();
+	if(!node->_orig_point){
+		node->_orig_point = malloc(1 *sizeof(struct ID_point));
+		memset(node->_orig_point,0,sizeof(struct ID_point));
+		op = (struct ID_point*)node->_orig_point;
+		op->reset = TRUE;
+	}
+	op = (struct ID_point*)node->_orig_point;
+	dp = &drag_point;
+	touchID = tg->RenderFuncs.touchID;
+
 	/* only do something when button pressed */
 	/* if (!but1) return; */
 	if (but1){
@@ -1664,76 +1972,1117 @@ void do_PlaneSensor ( void *ptr, int ev, int but1, int over) {
 		//-- we harmonize with x3dom and view3dscene 
 		veccopy4f(inverserotation,node->axisRotation.c);
 		inverserotation[3] = -inverserotation[3];
+		veccopy3f(dp->p,trackpoint);
+		dp->ID = touchID;
 		//axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
 	}
 
 	if ((ev==ButtonPress) && but1) {
 		/* record the current position from the saved position */
-		struct SFColor op;
+		if(touchID == op->ID || op->reset == TRUE ){
+			veccopy3f(op->p,trackpoint);
+			op->ID = touchID;
+			op->reset = TRUE; //FALSE;
+			/* set isActive true */
+			node->isActive=TRUE;
+			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+		}
+
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		if (touchID == op->ID) {
+			//printf("release %d\n",touchID);
+			node->isActive = FALSE;
+			MARK_EVENT(ptr, offsetof(struct X3D_PlaneSensor, isActive));
+			op->reset = TRUE;
+			/* autoOffset? */
+			if (node->autoOffset) {
+				veccopy3f(node->offset.c, node->translation_changed.c);
+
+				MARK_EVENT(ptr, offsetof(struct X3D_PlaneSensor, offset));
+			}
+		}
+	}
+
+	
+	if ((ev==MotionNotify || ev==ButtonPress) && (node->isActive) && but1) {
+		/* hyperhit saved in render_hypersensitive phase */
+		if(dp->ID == op->ID){
+			/* trackpoint changed */
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
+			}
+
+			veccopy3f(node->_oldtrackPoint.c, trackpoint);
+			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
+			if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c) || ev==ButtonPress) {
+				veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
+
+			}
+
+			if(op->reset){
+				veccopy3f(op->p,dp->p);
+				op->reset = FALSE;
+				//printf("reset %d\n",op->ID);
+			}
+			vecdif3f(tr,dp->p,op->p);
+
+			//translation 
+			vecadd3f(tr,tr,node->offset.c);
+			/* clamp translation to max/min position */
+			vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(tr,tr, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldtranslation.c,tr);
+
+			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, translation_changed));
+			}
+		}
+
+	} 
+}
+
+//MIT AND EQUIVALENT PERMISSIVE LICENSE >>>>>>>>>
+// original algos from LINPACK, typed in / transcribed from book LINPACK user's guide
+// to C, then reworked to C++, then reworked back to C
+// single precision float verion
+// matrices - storage interpetation: elements are stored contiguously along each _row_
+
+void s_mat_multiply(float *r, float *a, int nra, int nca, float *b, int ncb){
+	for(int i = 0; i< nra; i++){
+		for(int j=0; j< ncb;j++){
+			r[i*ncb +j] = 0.0f;
+			for(int k= 0;k< nca;k++){
+				r[i*ncb +j] += a[i*nca +k]* b[k*ncb +j];
+			}
+		}
+	}
+}
+void s_mat_transpose(float *r, float *a, int nra, int nca){
+	for(int i=0;i<nra;i++){
+		for(int j=0;j<nca;j++){
+			r[j*nra +i] = a[i*nca +j];
+		}
+	}
+}
+static void saxpy( int n, float *sa, float *sx, float *sy )
+//constant times a vector plus a vector
+{
+	int i;
+
+	if( !n )return;
+	if( (*sa) == 0.0 )return;
+	for( i=0; i< n; i++ )
+	{
+		sy[i] = sy[i] + (*sa)*sx[i];
+	}
+}     
+
+static float sdot( int n, float *sx, float *sy )
+//dot product
+{
+	float stemp;
+	int i;
+	stemp = 0.0;
+
+	if( !n ) return( 0.0 );
+	for( i=0; i< n; i++ )
+	{
+		stemp = stemp + sx[i]*sy[i];
+	}
+	return( stemp );
+}
+
+static void sscal( int n, float *sa, float *sx  )
+//scales a vector by a constant
+{
+	int i;
+
+	if( !n )return;
+	for( i=0; i< n; i++ )
+	{
+		sx[i] = (*sa)*sx[i];
+	}
+}
+
+void sprintnorm(float *N, float *B, int n)
+{
+	int i, j;
+	float *a;
+	printf(" NE.sz= %ld \n", n );
+	for( i=0; i< n; i++ )
+	{
+		a = &N[i*n];
+		for(j=0;j<n;j++) printf(" %4.0lf ", a[j] );
+		printf("\n");
+	}
+	for(j=0;j< n;j++) printf(" %4.0lf ", B[j] );
+		printf("\n");
+
+}
+
+int spofa(float *N, int n) {
+//n   - order of a
+//returns - a is upper triangular
+//info = 0 normal
+//     = k error at row k
+
+	float t, s, *a0, *a1;
+	int j, k;
+	int info;
+	   
+	for( j=0; j<n; j++ )
+	{
+		a0 = &N[j*n];
+		info = j+1;
+		s = 0.0f;
+		// note - this for loop should not execute when j=0 
+		for( k=0; k<j-1; k++ )
+		{
+			a1 = &N[k*n];
+			t = a0[k] - sdot( k, a1, a0 );
+			t = t / a1[k];
+			a0[k] = t;
+			s = s + t*t;
+		}
+		s = a0[j] - s;
+		if( s <= 0.0 ) return info;
+		a0[j] = (float)sqrt( s );
+	}
+	info = 0;
+	return info;
+}
+
+void sposl(float *N, int n, float *B) {
+//solves the system ax = b
+//a[1][n] - matrix column
+//b[n]   
+
+	float t, *a;
+	int k; 
+
+	for( k=0; k<n; k++ )
+	{
+		a = &N[k*n];
+		t= sdot( k, a, B );
+		B[k] = ( B[k] - t )/a[k];
+	}
+
+	for( k=n-1; k>(-1); k-- )
+	{
+		a = &N[k*n];
+		B[k] = B[k]/a[k];
+		t = -B[k];
+		saxpy( k, &t, a, B );
+	}
+}
+
+void spodi(float *N, int n ) 
+//computes inverse - don't need unless doing statistical analysis on fit of data
+{
+	float t, *a0, *a1;
+	int j,k,nj,nk;
+
+	for( k=0; k<n; k++ )
+	{
+		a0 = &N[k*n];
+		a0[k] = 1.0f / a0[k];
+		t = -a0[k];
+		sscal( k, &t, a0 );
+		// note the following loop should not execute when k = n-1 
+		for( j=(k+1); j<n; j++ )
+		{
+			a1 = &N[j*n];
+			t = a1[k];
+			a1[k] = 0.0;
+			nk = k+1;  // takes acount of c starts on [0], and we want 1 elemnt
+			saxpy( nk, &t, a0, a1 );
+		}
+	}
+	// form inverse(r)*transpose(inverse(r)) 
+	for( j=0L; j<n; j++ )
+	{
+		a0 = &N[j*n];
+		// note the following loop should not execute when j =0 
+		for( k=0; k<j; k++ )
+		{
+			a1 = &N[k*n];
+			t = a0[k];
+			nk = k+1;  // takes acount of c starts on [0], and we want 1 elemnt
+			saxpy( nk, &t, a0, a1 );
+		}
+		t = a0[j];
+		nj = j+1;
+		sscal( nj, &t, a0 );
+	}
+}
+
+int least_squares_similarity2D_linpack(float *v0, float *v1, int np, float *param)
+{
+
+	// chapter 2 p.46-48
+	// solve Ax = b (via linear least sqaures)
+	int n, nu;
+	int noisy = 0;
+	//allocate and populate your A and b
+	//b is usually simple vector of x,y,x,y,x,y... however many points you have
+	//A is usually some function of the other point source
+	//x is an implicit vector of unknows - lets call them a,b,c,d,e,f
+	// ie A[1]*x = f(x-,y') = a*x' + b*x'*y" + c*x'**2 + d*y'**2 or something like that
+	// but since you don't know your x [] parameters yet, you leave them out
+	// so that a row of A x column of x gives your formula
+	// we know A, and b.
+	// we want X
+	// AtA*X = At*b
+	// X = inverse(AtxA)*At*b
+	// LU lower upper solvers don't do a full inverse, but they give you what you want X
+
+	// and we have some known points b[] = [x1' y1' x2' y2' x3' y3' x4' y4']
+	// and we have some measured points [x1 y1 x2 y2 x3 y3 x4 y4 ...]
+	// affine 2D - from textbooks
+	//Digital Photogrammetry p.322 shows Affine as well - shows both similartiy and affine interpretation of 6 parameters
+	//Similarity 
+	//a11 = scale*cose 
+	//a12 = -scale*sin
+	//a21 = -a12
+	//a22 = a11
+	//Affine
+	//a11 = sx*cos  (skew mentioned)
+	//a12 = -sy*sin  (skew mentioned)
+	//a21 = sx*sin
+	//a22 = sy*cos
+	// here the similarity is 4 parameters (equivalent to a scale, a rotation, and x,y translation)
+	// let unknow parameters X = [a b c d]
+	// A[i  ]*X = x*a - y*b + 1*c + 0*d = b[0]
+	// A[i+1}*X = y*a + x*b + 0*c + 1*d = b[1] 
+	// OR
+	// A[i  ] = [x -y  1  0]
+	// A[i+1] = [y  x  0  1]
+	// with a = cos*scale, b = sin*scale
+	// and if you have 2 points, you'd have 4 rows in A[]
+
+	n = 2*np; //number of observations = number of points, x xy 2 each
+	nu = 4; //number of unknowns to solve: for a 2D similarity transform, its 4 unknows: 1 rotation, 1 scale, xy 2 translations
+	static float *p1 = NULL;
+	static float *N = NULL;
+	static float *at = NULL;
+	static float *a = NULL;
+	static float *B = NULL;
+
+	p1 = realloc(p1, n*sizeof(float)); // 2 points, xy each
+	a = realloc(a, nu*n*sizeof(float)); //4 unknowns, n = 2 x np observations
+	at = realloc(at, n*nu*sizeof(float)); // A transpose
+	N = realloc(N, nu*nu*sizeof(float)); //normal equation Nu = B, u = inverse(N)xB
+	B = realloc(B, nu*sizeof(float));   // B = At x b
+
+	for(int i=0;i<np;i++){
+		int j=2*i;
+		p1[j+0] = v1[3*i +0];
+		p1[j+1] = v1[3*i +1];
+	}
+	if(noisy){
+		printf("b=\n");
+		for(int i=0;i<n;i++){
+			printf("[ %f ]\n",p1[i]);
+		}
+	}
+	// [p1.x] = A[ x -y 1 0] [a]
+	// [p1.y]    [y  x  0 1] [b]
+	//                       [c]
+	//                       [d]
+	// b = Ax
+	// x = inverse(AtA)*Atb
+	// 
+	for(int i=0;i < np; i++){
+		int ii,jj;
+		ii = (2*i+0)*4;
+		jj = (2*i+1)*4;
+		a[ii + 0] = v0[i*3 +0];  
+		a[ii + 1] = -v0[i*3 +1];
+		a[ii + 2] = 1.0f;
+		a[ii + 3] = 0.0f;
+		a[jj + 0] = v0[i*3 +1];
+		a[jj + 1] = v0[i*3 +0];
+		a[jj + 2] = 0.0f;
+		a[jj + 3] = 1.0f;
+	}
+	if(noisy){
+		printf("a=\n");
+		for(int i=0; i<n; i++){
+			printf("[ ");
+			for(int j=0; j<nu; j++) printf("%f ",a[i*nu +j]);
+			printf("]\n");
+		}
+	}
+
+	// now need to 'square up' for least squares
+	// N = at x a
+	// B = at x b
+	s_mat_transpose(at,a,n,nu);
+
+
+	if(noisy){
+		printf("At\n");
+		for(int i=0; i< nu;i++){
+			printf("[ ");
+			for(int j=0; j < n; j++) printf("%f ",at[i*n +j]);
+			printf(" ]\n");
+		}
+	}
+	s_mat_multiply(N,at,nu,n,a,nu);
+	if(noisy){
+		printf("N\n");
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			for(int j=0;j<nu; j++)	printf("%f ",N[i*nu +j]);
+			printf(" ]\n");
+		}
+	}
+	s_mat_multiply(B,at,nu,n,p1,1);
+	if(noisy){
+		printf("B=Atb\n");
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			printf("%f ",B[i]);
+			printf(" ]\n");
+		}
+	}
+	int info = spofa(N,nu);
+	if(info){
+		printf("spofa info %d\n",info);
+		return info;
+	}
+	if(noisy){
+		printf("N after spofa factirung\n");
+		for(int i=0;i<nu;i++){
+			printf("[ ");
+			for(int j=0;j<nu; j++)	printf("%f ",N[i*nu +j]);
+			printf(" ]\n");
+		}
+	}
+
+	sposl(N,nu,B);
+
+	if(noisy)printf("solved a=%f b=%f c=%f d=%f\n",B[0],B[1],B[2],B[3]);
+	//if(noisy)printf("should be 1 0 1 1\n");
+	float scale = sqrt(B[0]*B[0] + B[1]*B[1]);
+	float anglerad = atan2(B[1]/scale,B[0]/scale);
+	float angledeg = anglerad *180.0f/3.141596f;
+	if(noisy)printf("scale=%f angle=%f\n",scale,angledeg);
+	
+	if(noisy)printf("translation x= %f y= %f \n",B[2],B[3]);
+	//x given back in output b, your original A is destroyed
+	param[0] = scale; //x scale
+	param[1] = scale; //y scale
+	param[2] = anglerad;
+	param[3] = B[2];
+	param[4] = B[3];
+
+	return 0;
+}
+
+// <<<<   MIT AND EQUIVALENT PERMISSIVE LICENSE
+int scale_constrained_2D(float *v00, float *v11, int np, float *param, float *minScale, float *maxScale){
+	//v0 has origs, v1 has drags
+	float p0[3], p1[3], delta_orig[3], delta_drag[3], angle, drag0[3], drag1[3], scale[2], iso_scale;
+	float v0[6],v1[6];
+	veccopy3f(p0,v00);
+	for(int i=0;i<2;i++){
+		vecdif3f(&v0[i*3],&v00[i*3],p0);
+		vecdif3f(&v1[i*3],&v11[i*3],p0);
+	}
+	vecdif3f(delta_orig,&v0[3],v0);
+	vecdif3f(delta_drag,&v1[3],v1);
+	vecdif3f(drag0,v1,v0);
+	vecdif3f(drag1,&v1[3],&v0[3]);
+	{
+		//isotropic scale
+		float scale_orig, scale_drag, scale;
+		scale_orig = veclength2f(delta_orig);
+		scale_drag = veclength2f(delta_drag);
+		iso_scale = scale_drag / scale_orig;
+	}
+	scale[0] = min(maxScale[0],max(minScale[0],iso_scale));
+	scale[1] = min(maxScale[1],max(minScale[1],iso_scale));
+	int need_aniso = scale[0] != scale[1]? TRUE : FALSE;
+	if(need_aniso){
+		//anisotropic scale
+		float scale_orig[2], scale_drag[2], scale[2];
+		scale[0] = delta_drag[0] / delta_orig[0];
+		scale[1] = delta_drag[1] / delta_orig[1];
+		scale[0] = min(maxScale[0],max(minScale[0],scale[0]));
+		scale[1] = min(maxScale[1],max(minScale[1],scale[1]));
+	}
+	delta_drag[0] *= 1.0/scale[0];
+	delta_drag[1] *= 1.0/scale[1];
+	angle = vecangle2f(delta_orig,delta_drag);
+	float x,y, xx, yy;
+	xx = p0[0];
+	yy = p0[1];
+	xx = xx*scale[0];
+	yy = yy*scale[1];
+	x =  (cos(angle)*xx - sin(angle)*yy);
+	y =  (sin(angle)*xx + cos(angle)*yy);
+	xx = x; yy = y;
+	xx -= v1[0];
+	yy -= v1[1];
+
+	param[0] = scale[0];
+	param[1] = scale[1];
+	param[2] = angle;
+	param[3] = -( xx- p0[0]);
+	param[4] = -( yy- p0[1]);
+
+	return 1;
+}
+
+void mainloop_update_touch_hyperhit_matrix(int touchID, double *netTao);
+void mainloop_reset_touch_hyperhit(int touchID);
+
+#include "Decompose.h"
+void do_MultiTouchSensor ( void *ptr, int ev, int but1, int over) {
+	struct X3D_MultiTouchSensor *node;
+	float nx, ny, trackpoint[3], inverserotation[4], *posn;
+	float tr[3];
+	int tmp, imethod, touchID;
+
+	ttglobal tg;
+	UNUSED(over);
+	node = (struct X3D_MultiTouchSensor *)ptr;
+#ifdef SENSVERBOSE
+	ConsoleMessage("%lf: TS ",TickTime());
+	if (ev==ButtonPress) ConsoleMessage("ButtonPress ");
+	else if (ev==ButtonRelease) ConsoleMessage("ButtonRelease ");
+	else if (ev==KeyPress) ConsoleMessage("KeyPress ");
+	else if (ev==KeyRelease) ConsoleMessage("KeyRelease ");
+	else if (ev==MotionNotify) ConsoleMessage("MotionNotify ");
+	else ConsoleMessage("ev %d ",ev);
+	
+	if (but1) ConsoleMessage("but1 TRUE "); else ConsoleMessage("but1 FALSE ");
+	if (over) ConsoleMessage("over TRUE "); else ConsoleMessage("over FALSE ");
+	ConsoleMessage ("\n");
+#endif
+
+	/* if not enabled, do nothing */
+	if (!node) return;
+
+	if (node->__oldEnabled != node->enabled) {
+		node->__oldEnabled = node->enabled;
+		MARK_EVENT(X3D_NODE(node),offsetof (struct X3D_PlaneSensor, enabled));
+	}
+	if (!node->enabled) 
+		return;
+	tg = gglobal();
+	if(!node->_orig_points){
+		node->_orig_points = malloc(32 *sizeof(struct ID_point));
+		node->_drag_points = malloc(32 *sizeof(struct ID_point));
+	}
+	struct ID_point *op = (struct ID_point*)node->_orig_points;
+	struct ID_point *dp = (struct ID_point*)node->_drag_points;
+	touchID = tg->RenderFuncs.touchID;
+
+	/* only do something when button pressed */
+	/* if (!but1) return; */
+	if (but1){
+		float v[3], t1[3];
+		float N[3] = { 0.0f, 0.0f, 1.0f }; //plane normal, in plane-local
+		float NS[3]; //plane normal, in sensor-local after axisRotation
+
+		//STRATEGY FOR MULTITOUCH: 
+		//MARK EVENT for a single touch, then over-write it with 
+		// multitouch results if a second touch shows up on the swame rendering frame/loop
+		if(node->_drag_count > 31) 
+			return; //how many fingers you you have?
+		if(tg->Mainloop.iframe != node->_lastframe){
+			node->_drag_count = 0; //we re-count drags on every frame
+			node->_lastframe = tg->Mainloop.iframe;
+		}
+		//bearing (A,B) in sensor-local
+		// A=posn, B=norm - norm is a point. To get a direction vector v = (B - A)
+		//ConsoleMessage("hsp = %f %f %f \n", tg->RenderFuncs.hyp_save_posn[0], tg->RenderFuncs.hyp_save_posn[1], tg->RenderFuncs.hyp_save_posn[2]);
+		vecnormalize3f(v, vecdif3f(t1, tg->RenderFuncs.hyp_save_norm, tg->RenderFuncs.hyp_save_posn));
+		//rotate plane normal N, in plane-local to plane normal NS in sensor-local using axisRotation
+		axisangle_rotate3f(NS,N, node->axisRotation.c);
+		//a plane P dot N = d = const, for any point P on plane. Our plane is in plane-local coords, 
+		// so we could use P={0,0,0} and P dot N = d = 0
+		posn = tg->RenderFuncs.hyp_save_posn;
+		//printf("%d %f %f \n",tg->RenderFuncs.touchID,posn[0],posn[1]);
+		if (!line_intersect_planed_3f(posn, v, NS, 0.0f, trackpoint, NULL))
+			return; //looking at plane edge-on / parallel, no intersection
+		//is rotating the trackpoint/translation_changed opposite sense to rotating the virtual geometry?
+		//-- we harmonize with x3dom and view3dscene 
+		veccopy4f(inverserotation,node->axisRotation.c);
+		inverserotation[3] = -inverserotation[3];
+		//axisangle_rotate3f(trackpoint, trackpoint, inverserotation);
+		veccopy3f(dp[node->_drag_count].p,trackpoint);
+		dp[node->_drag_count].ID = touchID;
+		node->_drag_count++;
+	}
+	if ((ev==ButtonPress) && but1) {
+		/* record the current position from the saved position */
+		//struct SFColor op;
 		float *posn;
 		posn = tg->RenderFuncs.hyp_save_posn;
 
-		veccopy3f(op.c, trackpoint);
-		memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
-		veccopy3f(node->_origPoint.c,op.c);
-
-		/* set isActive true */
-		node->isActive=TRUE;
-		MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
-
-	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
-		/* hyperhit saved in render_hypersensitive phase */
-		nx = trackpoint[0]; ny = trackpoint[1];
-		#ifdef SEVERBOSE
-		ConsoleMessage ("now, mult %f nx %f ny %f op %f %f %f\n",mult,nx,ny,
-			node->_origPoint.c[0],node->_origPoint.c[1],
-			node->_origPoint.c[2]);
-		#endif
-
-		/* trackpoint changed */
-		if(!node->sensorLocalOutput){
-			axisangle_rotate3f(trackpoint,trackpoint, inverserotation);
-		}
-
-		veccopy3f(node->_oldtrackPoint.c, trackpoint);
-		/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
-		if(!approx3f(node->_oldtrackPoint.c,node->trackPoint_changed.c)) {
-			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
-			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, trackPoint_changed));
-
-		}
-
-		/* clamp translation to max/min position */
-		tr[0] = nx - node->_origPoint.c[0] + node->offset.c[0];
-		tr[1] = ny - node->_origPoint.c[1] + node->offset.c[1];
-		tr[2] = node->offset.c[2];
-
-		vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
-		if(!node->sensorLocalOutput){
-			axisangle_rotate3f(tr,tr, node->axisRotation.c);
-		}
-		veccopy3f(node->_oldtranslation.c,tr);
-
-		if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
-			veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
-			MARK_EVENT(ptr, offsetof (struct X3D_PlaneSensor, translation_changed));
-		}
-
-	} else if (ev==ButtonRelease) {
-		/* set isActive false */
-		node->isActive=FALSE;
-		MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, isActive));
+		//op[node->_orig_count].reset = TRUE;
+		//veccopy3f(ip[*touchpoin])
+		//memcpy((void *)&node->_origPoint, (void *)&op,sizeof(struct SFColor));
+		//if(node->_touchcount == 1)
+		//	veccopy3f(node->_origPoint.c,op.c);
+		//else if(node->_touchcount == 2)
+		//	veccopy3f(node->_origPoint2.c,op.c);
 
 		/* autoOffset? */
 		if (node->autoOffset) {
 			veccopy3f(node->offset.c,node->translation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, offset));
+			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, rotationOffset));
+			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, scaleOffset));
+			if(1){
+				//if have 2 multitouch drags, and lift one, and we write the offsets
+				// then we need to update the hyperhit matrx for the remaining drag
+				// so it remains in sync with the offsets
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+				if(node->_lastTao == NULL){
+					node->_lastTao = malloc(16*sizeof(double));
+					matidentity4d(node->_lastTao);
+				}
+				double lastTaoInv[16], netTao[16];
+				matinverseAFFINE(lastTaoInv,node->_lastTao);
+				matmultiplyAFFINE(netTao,lastTaoInv,Tao);
+				for(int i=0;i<node->_orig_count;i++){
+					mainloop_update_touch_hyperhit_matrix(op[i].ID,netTao);
+				}
+				memcpy(node->_lastTao,Tao,16*sizeof(double));
+				if(1){
+					double dd[3];
+					float2double(dd,trackpoint,3);
+					transformAFFINEd(dd,dd,netTao);
+					double2float(trackpoint,dd,3);
+				}
+			}
+		}
 
-			MARK_EVENT (ptr, offsetof (struct X3D_PlaneSensor, offset));
+		//veccopy3f(op.c, trackpoint);
+		veccopy3f(op[node->_orig_count].p,trackpoint);
+		op[node->_orig_count].ID = touchID;
+		op[node->_orig_count].reset = FALSE; //TRUE;
+		//printf("(A %d)",touchID);
+		node->_orig_count++;
+
+		for(int k=0;k<node->_orig_count;k++){
+			op[k].reset = TRUE;
+		}
+
+
+		//printf("but down\n");
+		/* set isActive true */
+		node->isActive=TRUE;
+		MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, isActive));
+
+	} else if ((ev==MotionNotify) && (node->isActive) && but1) {
+		/* hyperhit saved in render_hypersensitive phase */
+		//the calling function setup_picking() in mainloop is in a tight loop 
+		// over the number of touches in the current frame, and sends one touch at 
+		// at a time. So we wait and accumulate all the ongoing/current-frame drags/touches
+		// before doing real work.
+		if(node->_drag_count == node->_orig_count) {
+			float rot4[4]= {0.0f, 0.0f, 1.0f, 0.0f};
+			float scale3[3] = {1.0f,1.0f,1.0f};
+
+			nx = trackpoint[0]; ny = trackpoint[1];
+			#ifdef SEVERBOSE
+			ConsoleMessage ("now, nx %f ny %f op %f %f %f\n",nx,ny,
+				node->_origPoint.c[0],node->_origPoint.c[1],
+				node->_origPoint.c[2]);
+			#endif
+
+			/* trackpoint changed */
+			int ndrag = node->_drag_count;
+			node->trackPoints_changed.p = realloc(node->trackPoints_changed.p, ndrag*(sizeof(struct SFVec3f)));
+			node->trackPoints_changed.n = ndrag;
+			node->touches_changed.p = realloc(node->touches_changed.p,ndrag*(sizeof(int)));
+			node->touches_changed.n = ndrag;
+
+			for(int i=0; i<ndrag; i++){
+				struct ID_point* dragp = &((struct ID_point*)node->_drag_points)[i];
+				struct SFVec3f* p = (struct SFVec3f*)&node->trackPoints_changed.p[i];
+				int *itouch = &(node->touches_changed.p[i]);
+				if(!node->sensorLocalOutput){
+					axisangle_rotate3f(p->c,dragp->p, inverserotation);
+				}
+				*itouch = dragp->ID;
+			}
+			/*printf(">%f %f %f\n",nx,ny,node->_oldtrackPoint.c[2]); */
+			MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, trackPoints_changed));
+			MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, touches_changed));
+
+
+			//compute any translation, rotation, scaling 
+			switch(node->_drag_count){
+				case 0: break;
+				case 1: //translation only
+				{
+					//printf("case1 ");
+					int j = lookup_ID(op,node->_orig_count,touchID);
+					//printf("%d ",j);
+					if(j > -1){
+						if(op[j].reset){
+							veccopy3f(op[j].p,dp[0].p);
+							op[j].reset = FALSE;
+							//printf("(Q %d)",op[j].ID);
+						}
+						vecdif3f(tr,dp[0].p,op[j].p);
+						if(0){
+							vecprint3fb("tr_comp",tr,"\n");
+							vecprint3fb("sc_comp",scale3,"\n");
+							vecprint4fb("rt_comp",rot4,"\n");
+						}
+
+					}
+				}
+				break;
+				case 2: //translation, rotation 1 scale (similarity)
+				case 3: //translation, rotation, 2 scale (affine) maybe using least squares
+				default:
+				{
+					//printf("case2\n");
+					//we'll use the first 2 points and solve for single scale, rotation, xy translation (4 param)
+					//but more gnerally you could use least squares, and solve a closest fit 
+					// affine (2 scalea, shear, rot, xytrans = 6param, needs 3+ touches)
+					// to any number of points/touches
+					int j0 = lookup_ID(op,node->_orig_count,dp[0].ID);
+					int j1 = lookup_ID(op,node->_orig_count,dp[1].ID);
+					//printf("j0,j1 %d %d ^ dp ID 0,1 %d %d $ op ID j01 %d %d ",j0,j1,dp[0].ID, dp[1].ID,op[j0].ID,op[j1].ID);
+					if(j0 < 0 || j1 < 0){
+						printf("ouch missing a touch point we should have \n");
+						getchar();
+					}
+					if(j0 > -1 && j1 > -1){
+						float dif0[3],dif1[3],dif[3];
+						float *drag1,*drag0,*orig1,*orig0;
+						drag1 = dp[1].p; drag0=dp[0].p;
+						orig1 = op[j1].p; orig0 = op[j0].p;
+						if(op[j0].reset){
+							veccopy3f(op[j0].p,dp[0].p);
+							op[j0].reset = FALSE;
+							//printf("R1 ");
+						}
+						if(op[j1].reset){
+							veccopy3f(op[j1].p,dp[1].p);
+							op[j1].reset = FALSE;
+							//printf("R2 ");
+						}
+
+						vecdif3f(dif0,drag0,orig0);
+						vecdif3f(dif1,drag1,orig1);
+						vecadd3f(dif,dif0,dif1);
+						vecscale3f(tr,dif,.5f);
+
+
+						if(1) {
+							// least squares 
+							float v0[6], v1[6], param[5];
+							int np = 2;
+							veccopy3f(&v0[0*3 +0],orig0);
+							veccopy3f(&v0[1*3 +0],orig1);
+							veccopy3f(&v1[0*3 +0],drag0);
+							veccopy3f(&v1[1*3 +0],drag1);
+							memset(param,0,5*sizeof(float));
+							param[0] = param[1] = 1.0f;
+							if(0) for(int k=0;k<2;k++){
+								printf("%f %f | %f %f\n",v0[k*2],v0[k*2+1], v1[k*2],v1[k*2+1]);
+							}
+							if(1){
+								least_squares_similarity2D_linpack(v0,v1,np,param);
+							}else{
+								scale_constrained_2D(v0,v1,np,param,node->minScale.c,node->maxScale.c);
+							}
+							rot4[3] = param[2];
+							float scalex = param[0];
+							float scaley = param[1];
+							vecset3f(scale3,scalex,scaley,1.0f);
+							veccopy2f(tr,&param[3]);
+							if(0){
+								vecprint3fb("tr_comp",tr,"\n");
+								vecprint3fb("sc_comp",scale3,"\n");
+								vecprint4fb("rt_comp",rot4,"\n");
+							}
+							if(0){
+								// test using params computed above:
+								//   goal convert orig -> Tca -> drag using params
+								double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16];
+								double dd[3], dd0[3], scaled[3], rotd[4], trand[3], dangle;
+								float tca_orig[3], tr1[3];
+								//test: can we create a transform and transform origs to drags?
+								//Tcomputation_above
+								float2double(scaled,scale3,3);
+								matscale(temp1,scaled[0],scaled[1],scaled[2]);
+								float2double(rotd,rot4,4);
+								matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+								float2double(trand,tr,3);
+								mattranslate(temp3,trand[0],trand[1],trand[2]);
+
+								matmultiplyAFFINE(temp4,temp1,temp2);
+								matmultiplyAFFINE(Tca,temp4,temp3);
+								// orign -> Tca -> drag
+								float2double(dd0,orig0,3);
+								transformAFFINEd(dd,dd0,Tca);
+								double2float(tca_orig,dd,3);
+								vecprint3fb("torig0 ",tca_orig,"\n");
+								vecprint3fb("drag0  ",drag0,"\n");
+
+								float2double(dd0,orig1,3);
+								transformAFFINEd(dd,dd0,Tca);
+								double2float(tca_orig,dd,3);
+								vecprint3fb("torig1 ",tca_orig,"\n");
+								vecprint3fb("drag1  ",drag1,"\n");
+							}
+
+						}else if(1) {
+							// did not work properly.
+							// what I should have done:
+							// TRS = TCRS=C like x3d transform breakout
+							// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/group.html#Transform 
+							// tjem tp get the summary transform T from the TCRS-C
+							// would muliply all those to geterh as 4x4 transform
+							// then use matrix_decompose - see below.
+							// apply each value to intermediate coords before computing next
+							//scale
+							float dd00[3],dd01[3],dd10[3], dd11[3], dorig[3],ddrag[3], scale;
+							vecdif3f(dd00,orig0,tr);
+							vecdif3f(dd01,drag0,tr);
+							vecdif3f(dd10,orig1,tr);
+							vecdif3f(dd11,drag1,tr);
+							vecdif3f(dorig,orig1,orig0);
+							vecdif3f(ddrag,drag1,drag0);
+							scale = veclength3f(ddrag)/veclength3f(dorig);
+							
+							vecset3f(scale3,scale,scale,1.0f);
+
+							vecscale3f(dorig,dorig,scale);
+							vecscale3f(ddrag,ddrag,scale);
+
+							//angle
+							float angle00, angle01, angle10, angle11, angle0, angle1, angle;
+							angle0 = atan2(dorig[1],dorig[0]);
+							angle1 = atan2(ddrag[1],ddrag[0]);
+							angle = angleNormalized(angle1 - angle0);
+							rot4[3] = angle;
+
+							if(0){
+							// TRS = TxCxRxSx(-C)
+							// with C = (drag1 - drag0)/2 or (orig1 - orig0)/2
+							// then T = T + {C - RxS(-C)}
+							float center0[3], center[3], deltac[3];
+							vecadd3f(center,drag1,drag0);
+							//vecprint3fb("drag1",drag1," ");
+							//vecprint3fb("drag0",drag0,"\n");
+							//printf("scale %f ",scale);
+							vecscale3f(center0,center,.5f*scale);
+							//vecprint3fb("center scaled",center0," ");
+							axisangle_rotate3f(center0,center0,rot4);
+							//vecprint3fb("center rot4",center0,"\n");
+							vecdif3f(deltac,center,center0);
+							vecprint3fb("celtac",deltac,"\n");
+							vecadd3f(tr,tr,deltac);
+							}
+
+
+						}
+					}
+				}
+				break;
+			}
+
+
+			// apply auto-offsets from last buttonRelease to current outputs
+			if(0){
+				//not working well for multitouch with rotation and scale 
+				vecadd3f(tr,tr,node->offset.c);
+				vecmult3f(scale3,scale3,node->scaleOffset.c);
+				axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
+			}
+			else if(1){
+				// Tout = Tcomputed_above X TautoOffset
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+
+				//Tcomputation_above
+				float2double(scaled,scale3,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,rot4,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,tr,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tca,temp4,temp3);
+				//Tout
+				matmultiply(Tout, Tca, Tao);
+
+				//break up / decompose matrix Tout into translation, rotation, scale
+				if(1){
+					//using Graphics Gems IV polar decomposition of affine matrices
+					// https://webdocs.cs.ualberta.ca/~graphics/books/GraphicsGems/gemsiv/polar_decomp/
+					HMatrix A;
+					double ToutTranspose[16];
+					mattranspose(ToutTranspose,Tout);
+					double2float(A[0],ToutTranspose,16);
+					AffineParts parts;
+					decomp_affine(A, &parts);
+					veccopy3f(tr,&parts.t.x);
+					veccopy3f(scale3,&parts.k.x);
+					Quaternion qq;
+					Quat q = parts.q;
+					qq.x = q.x; qq.y = q.y; qq.z = q.z; qq.w = q.w;
+					quaternion_to_vrmlrot4f(&qq,rot4);
+					rot4[3] = rot4[3];
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+				else if(0){
+					// using least squares; by transforming 2 arbitrary points using Tout, 
+					// then using least squares to solve for combined 2D similatrity transform param (like we do above)
+					double d[3];
+					float p0[9], p1[9];
+					vecset3f(p0,0.0f,0.0f,0.0f);
+					vecset3f(&p0[3],1.0f,0.0f,0.0f);
+					vecset3f(&p0[6],0.0f,1.0f,0.0f);
+					for(int k=0;k<3;k++){
+						float2double(d,&p0[k*3],3);
+						transformAFFINEd(d,d,Tout);
+						double2float(&p1[k*3],d,3);
+					}
+					float param[5];
+					least_squares_similarity2D_linpack(p0,p1,2,param);
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
+					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+				else if(1){
+					// using direct method; by transforming 2 arbitrary points using Tout, 
+					// then direct metho to solve for combined 2D similatrity transform param (like we do above)
+					// works a bit
+					double d[3];
+					float p0[9], p1[9];
+					vecset3f(p0,0.0f,0.0f,0.0f);
+					vecset3f(&p0[3],1.0f,0.0f,0.0f);
+					vecset3f(&p0[6],0.0f,1.0f,0.0f);
+					for(int k=0;k<3;k++){
+						float2double(d,&p0[k*3],3);
+						transformAFFINEd(d,d,Tout);
+						double2float(&p1[k*3],d,3);
+					}
+					float param[5];
+					scale_constrained_2D(p0,p1,2,param,node->minScale.c,node->maxScale.c);
+
+					rot4[3] = param[2];
+					float scalex = param[0];
+					float scaley = param[1];
+					//if(1) printf("Tout lsq scale %f angle %f tr %f %f\n",scale,param[1],param[2],param[3]);
+					vecset3f(scale3,scalex,scaley,1.0f);
+					veccopy2f(tr,&param[3]);
+					if(0){
+						vecprint3fb("tr_Tout",tr,"\n");
+						vecprint3fb("sc_Tout",scale3,"\n");
+						vecprint4fb("rt_Tout",rot4,"\n");
+					}
+
+				}
+
+						
+			}
+
+
+			//translation 
+			//vecadd3f(tr,tr,node->offset.c);
+			/* clamp translation to max/min position */
+			vecclamp2f(tr,node->minPosition.c,node->maxPosition.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(tr,tr, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldtranslation.c,tr);
+
+			if(!approx3f(node->_oldtranslation.c,node->translation_changed.c)) {
+				veccopy3f(node->translation_changed.c, (void *) node->_oldtranslation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, translation_changed));
+				//vecprint3fb("tran_chng ",node->translation_changed.c,"\n");
+				
+			}
+
+			//scale
+			//vecmult3f(scale3,scale3,node->scaleOffset.c);
+			/* clamp scale to max/min scale */
+			vecclamp2f(scale3,node->minScale.c,node->maxScale.c);
+			if(!node->sensorLocalOutput){
+				axisangle_rotate3f(scale3,scale3, node->axisRotation.c);
+			}
+			veccopy3f(node->_oldscale.c,scale3);
+
+			if(!approx3f(node->_oldscale.c,node->scale_changed.c)) {
+				veccopy3f(node->scale_changed.c, (void *) node->_oldscale.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, scale_changed));
+				//vecprint3fb("sca_chng ",node->scale_changed.c,"\n");
+			}
+
+			//rotation
+			//axisangle_rotate4f(rot4,rot4,node->rotationOffset.c);
+			veccopy4f(node->_oldrotation.c,rot4);
+
+			if(!approx4f(node->_oldrotation.c,node->rotation_changed.c)) {
+				veccopy4f(node->rotation_changed.c, (void *) node->_oldrotation.c);
+				MARK_EVENT(ptr, offsetof (struct X3D_MultiTouchSensor, rotation_changed));
+				//vecprint4fb("rot_chg",node->rotation_changed.c,"\n");
+			}
+
+		} //if drag_count == orig_count
+	} else if (ev==ButtonRelease) {
+		
+		//delete released touch from orig_points
+		for(int i=0;i<node->_orig_count;i++){
+			//if(op[i].ID != touchID) mainloop_reset_touch_hyperhit(op[i].ID);
+
+			if(op[i].ID == touchID){
+				for(int j=i+1;j<node->_orig_count;j++)
+					op[j-1] = op[j];
+				node->_orig_count--;
+				//printf("(D %d)",touchID);
+				break;
+			}
+		}
+		for(int i=0;i<node->_drag_count;i++){
+			if(dp[i].ID == touchID){
+				for(int j=i+1;j<node->_drag_count;j++)
+					dp[j-1] = dp[j];
+				node->_drag_count--;
+				//printf("(D %d)",touchID);
+				break;
+			}
+		}
+		// reset orig_points = drag_points so they are 'starting over'
+		// (otherwise you'll see a jump as drag averages change wildly)
+		for(int i=0;i<node->_orig_count;i++){
+			op[i].reset = TRUE;
+			//mainloop_reset_touch_hyperhit(op[i].ID);
+			//printf("(P %d)",op[i].ID);
+		}
+		//tg->RenderFuncs.hyperhit = FALSE;
+
+		/* set isActive false if no active touches left*/
+		if(node->_orig_count < 1){
+			node->isActive=FALSE;
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, isActive));
+			if(node->_lastTao == NULL)
+				node->_lastTao = malloc(16*sizeof(double));
+			matidentity4d(node->_lastTao);
+		}
+		/* autoOffset? */
+		if (node->autoOffset) {
+			veccopy3f(node->offset.c,node->translation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, offset));
+			veccopy4f(node->rotationOffset.c,node->rotation_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, rotationOffset));
+			veccopy3f(node->scaleOffset.c,node->scale_changed.c);
+			MARK_EVENT (ptr, offsetof (struct X3D_MultiTouchSensor, scaleOffset));
+			if(1){
+				//if have 2 multitouch drags, and lift one, and we write the offsets
+				// then we need to update the hyperhit matrx for the remaining drag
+				// so it remains in sync with the offsets
+				double Tao[16], Tca[16], Tout[16], temp1[16], temp2[16], temp3[16], temp4[16], scaled[3], rotd[4], trand[3], dangle;
+				//TautoOffset
+				float2double(scaled,node->scaleOffset.c,3);
+				matscale(temp1,scaled[0],scaled[1],scaled[2]);
+				float2double(rotd,node->rotationOffset.c,4);
+				matrotate(temp2,rotd[3],rotd[0],rotd[1],rotd[2]);
+				float2double(trand,node->offset.c,3);
+				mattranslate(temp3,trand[0],trand[1],trand[2]);
+				matmultiplyAFFINE(temp4,temp1,temp2);
+				matmultiplyAFFINE(Tao,temp4,temp3);
+				if(node->_lastTao == NULL){
+					node->_lastTao = malloc(16*sizeof(double));
+					matidentity4d(node->_lastTao);
+				}
+				double lastTaoInv[16], netTao[16];
+				matinverseAFFINE(lastTaoInv,node->_lastTao);
+				matmultiplyAFFINE(netTao,lastTaoInv,Tao);
+				for(int i=0;i<node->_orig_count;i++){
+					mainloop_update_touch_hyperhit_matrix(op[i].ID,netTao);
+				}
+				memcpy(node->_lastTao,Tao,16*sizeof(double));
+
+			}
 		}
 	}
 
 }
-
+//float *extent6f_translate3f(float *eout6, float *ein6, float *p3);
+//float *extent6f_copy(float *eout6, float *ein6);
+//static float testextent [] = {.05f, -.05f, .05f, -.05f, .05f, -.05f};
+//static float testextent2 [] = {.15f, -.15f, .15f, -.15f, .15f, -.15f};
+//void extent6f_draw(float *extent);
+void draw_bbox(float *center, float *size);
+void render_MultiTouchSensor(struct X3D_MultiTouchSensor *node){
+	// how to 'see' a sensor> how about drawing its touch points in sensor-space?
+	if(0){
+		// draw small box for ButtonPress orig
+		if(1) if(node->_orig_count > 0){
+			float size[3]; //ee[6];
+			struct ID_point *op = (struct ID_point*)node->_orig_points;
+			for(int i=0;i< node->_orig_count; i++){
+				//extent6f_translate3f(ee,testextent,op[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(op[i].p,vecset3f(size,.2f,.2f,.2f));
+			}
+		}
+		// draw bigger box for MotionNotify drag
+		if(1) if(node->_drag_count > 0){
+			float size[3]; //ee[6];
+			struct ID_point *dp = (struct ID_point*)node->_drag_points;
+			for(int i=0;i< node->_drag_count; i++){
+				//extent6f_translate3f(ee,testextent2,dp[i].p);
+				//extent6f_draw(ee);
+				draw_bbox(dp[i].p,vecset3f(size,.8f,.8f,.2f));
+			}
+		}
+	}
+}
 
 /* void do_Anchor (struct X3D_Anchor *node, int ev, int over) {*/
 void do_Anchor ( void *ptr, int ev, int but1, int over) {
@@ -1863,7 +3212,17 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		node->isActive=TRUE;
 		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
 
-	}else if ((ev == MotionNotify) && (node->isActive)) {
+	}
+	else if (ev == ButtonRelease) {
+		/* set isActive false */
+		node->isActive = FALSE;
+		MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, isActive));
+		/* save auto offset of rotation */
+		if (node->autoOffset) {
+			node->offset = node->rotation_changed.c[3];
+		}
+	}
+	if ((ev == MotionNotify || ev == ButtonPress) && (node->isActive)) {
 		float trackpoint[3], rotation4f[4];
 		//specs > cylsensor: "trackPoint_changed events represent the unclamped intersection points 
 		// on the surface of the invisible cylinder or disk"
@@ -1936,20 +3295,12 @@ void do_CylinderSensor ( void *ptr, int ev, int but1, int over) {
 		if(!node->sensorLocalOutput)
 			axisangle_rotate3f(trackpoint, trackpoint, node->axisRotation.c);
 		veccopy3f(node->_oldtrackPoint.c,trackpoint);
-		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c)) {
+		if(!approx3f(node->_oldtrackPoint.c, node->trackPoint_changed.c) || ev == ButtonPress) {
 			veccopy3f(node->trackPoint_changed.c, node->_oldtrackPoint.c);
 			MARK_EVENT(ptr, offsetof(struct X3D_CylinderSensor, trackPoint_changed));
 		}
 
-	} else if (ev==ButtonRelease) {
-		/* set isActive false */
-		node->isActive=FALSE;
-		MARK_EVENT (ptr, offsetof (struct X3D_CylinderSensor, isActive));
-		/* save auto offset of rotation */
-		if (node->autoOffset) {
-			node->offset = node->rotation_changed.c[3];
-		}
-	}
+	} 
 }
 // see Mainloop.c get_hyperhit() for more explanation:
 // in sensor-node-local coordinates (not quite sensor-local if sensor node has axisRotation):
@@ -2140,7 +3491,8 @@ void do_SphereSensor ( void *ptr, int ev, int but1, int over) {
 		if (node->autoOffset) {
 			veccopy4f(node->offset.c,node->rotation_changed.c);
 		}
-	} else if ((ev==MotionNotify) && (node->isActive)) {
+	} 
+	if ((ev==MotionNotify || ev==ButtonPress) && (node->isActive)) {
 		
 		float dotProd;
 		float newRad;

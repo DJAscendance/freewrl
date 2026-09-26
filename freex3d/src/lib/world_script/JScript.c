@@ -442,6 +442,8 @@ void sm_JSCreateScriptContext(int num) {
 
 	_context = JS_NewContext(p->runtime, STACK_CHUNK_SIZE);
 	if (!_context) freewrlDie("JS_NewContext failed");
+	JS_SetContextPrivate(_context, ScriptControl->script->ShaderScriptNode->_executionContext); //Q. will it be helpful in any X3DScene (aka vrml context) functions?
+
 	#ifdef DEBUG
 	unsigned int opts = JS_GetOptions(_context);
 	printf("options %x\n",opts);
@@ -2609,7 +2611,13 @@ void setField_javascriptEventOut(struct X3D_Node *tn,unsigned int tptr,  int fie
 
 				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
-				mynode = X3D_NODE(atol(strp));
+#ifndef _x64
+				//mynode = X3D_NODE(atol(strp));
+				sscanf(strp, "%zu", (size_t*)mynode);
+#else
+				//mynode = X3D_NODE(atoll(strp));
+				sscanf(strp, "%zu", (size_t*)mynode);
+#endif
 #if JS_VERSION >= 185
 				JS_free(scriptContext,strpp);
 #endif
@@ -2824,7 +2832,13 @@ void setField_javascriptEventOut_B(union anyVrml* any,
 
 				/* printf ("convertingthe following string to a pointer :%s:\n",strp); */
 
-				mynode = X3D_NODE(atol(strp));
+#ifndef _x64
+				//mynode = X3D_NODE(atol(strp));
+				sscanf(strp, "%zu", (size_t*)&mynode);
+#else
+				//mynode = X3D_NODE(atoll(strp));
+				sscanf(strp, "%zu", (size_t*)&mynode);
+#endif
 #if JS_VERSION >= 185
 				JS_free(scriptContext,strpp);
 #endif
@@ -3390,6 +3404,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 				/* create a new SFInt32 object */
 
 				ip = (int *)ip_in;
+				//Q. should this be OBJECT_TO_JSVAL_IMPL(JSObject *obj) ?
 				newjsval = INT_TO_JSVAL((int)ip); /* NOTE--this is assigning the pointer itself as an int, not its content */
 				ip_in = offsetPointer_deref(int *,ip_in,elementlen);
 
@@ -3466,6 +3481,7 @@ void sm_set_one_MFElementType(int tonode, int toname, int dataType, void *Data, 
 			elementlen = (int) sizeof (void *);
 			for (x=0; x<datalen; x++) {
 				ip = ip_in;
+				//Q. should this be OJBECT_TO_JSVAL?
 				newjsval = INT_TO_JSVAL((int)ip); /* NOTE--assigning pointer itself as int, not its content */
 				ip_in = offsetPointer_deref(double *,ip_in,elementlen);
 

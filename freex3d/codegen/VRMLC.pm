@@ -8,9 +8,9 @@
 use strict;
 use warnings;
 
-require 'VRMLFields.pm';
-require 'VRMLNodes.pm';
-require 'VRMLRend.pm';
+require './VRMLFields.pm';
+require './VRMLNodes.pm';
+require './VRMLRend.pm';
 
 
 sub open_codegen_file(*;$)
@@ -54,10 +54,11 @@ my $interalNodeCommonFields =
                "       int _hit; \n"                   	.
                "       int _change; \n"                	.
 	       "       int _ichange; \n"		.
+	       "       char * _fieldchange; \n"		.
                "       struct Vector* _parentVector; \n"  .
 	       "       double _dist; /*sorting for blending */ \n".
 	       "       float _extent[6]; /* used for boundingboxes - +-x, +-y, +-z */ \n" .
-               "       struct X3D_PolyRep *_intern; \n"              	.
+               "       struct X3D_GeomRep *_intern; \n"              	.
                "       int referenceCount; /* if this reaches zero, nobody wants it anymore */ \n".
 	       "       int _defaultContainer; /* holds the container */\n".
 	       "       void* _gc; /* ptr to vector of ptrs to free */\n".
@@ -392,6 +393,8 @@ sub gen {
 
 	push @genFuncs1, "\n/* Table of built-in fieldIds */\n       const char *FIELDNAMES[] = {\n";
 
+	# push @str, "#define FIELDNAMES_NONE $fieldNameCount\n";
+	# $fieldNameCount ++;
 	foreach (sort keys %totalfields) {
 		#print "totalfields $_\n";
 		push @str, "#define FIELDNAMES_".$_."	$fieldNameCount\n";
@@ -998,7 +1001,7 @@ sub gen {
 	push @str, "\n/* Table of built-in nodeIds */\nextern const char *NODES[];\n";
 	push @str, "extern const int NODES_COUNT;\n";
 
-	push @genFuncs1, "\n/* Table of Node Types */\n       const char *NODES[] = {\n";
+	push @genFuncs1, "\n/* Table of Node Types */\nconst char *NODES[] = {\n";
 
         push @str, "\n/* and now the structs for the nodetypes */ \n";
 	for(@sortedNodeList) {
@@ -1015,10 +1018,42 @@ sub gen {
 	push @str, "const char *stringNodeType(int st);\n";
 
 
+
+	# make table of containerFields (as hint for x3d parsing when scene file doesn't specific cnotainerField)
+	#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
+	#if (true) { #exists $VRML::Rend::defaultContainerType{$node} ) {
+		push @str, "\n/* Table of defaultContainerFields for x3d parsing */\nextern const short NODE_DEFAULT_CONTAINER[][7];\n";
+		push @genFuncs1, "const short NODE_DEFAULT_CONTAINER[][7] = {\n";
+		for(@sortedNodeList) {
+			my $containerCount = 0;
+			my $lencount = 0;
+			if(exists($VRML::Rend::defaultContainerType{$_})) {
+				$lencount = scalar(@ {$VRML::Rend::defaultContainerType{$_}});
+			}
+			my $nextchar = "{";
+			for(my $i=0; $i<7; $i++) {
+				push @genFuncs1, $nextchar;
+				if($i < $lencount) {
+					push @genFuncs1, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$_}[$i];
+				}else{
+					push @genFuncs1, "0";
+				}
+				$nextchar = ",";
+			}
+			push @genFuncs1, "},\n";
+		}
+		push @genFuncs1, "};\n";
+	# } else {
+		# print "defaultContainerType for $node missing\n";
+	# }
+
+
+
 	###################
 	# create the virtual tables for each node.
 	push @str, "\n/* First, a generic struct, contains only the common elements - nicknames for convenience */\n".
 	"struct X3D_Node {\n". $interalNodeCommonFields .  "};\n".
+	"#define X3D_POINTPROPERTIES(node) ((struct X3D_PointProperties*)node)\n".
 	"#define X3D_LINEPROPERTIES(node) ((struct X3D_LineProperties*)node)\n".
 	"#define X3D_FILLPROPERTIES(node) ((struct X3D_FillProperties*)node)\n".
 	"#define X3D_TEXTURE_TRANSFORM(node) ((struct X3D_TextureTransform*)node)\n".
@@ -1060,6 +1095,7 @@ sub gen {
 	"#define X3D_POINTLIGHT(node) ((struct X3D_PointLight*)node)\n".
 	"#define X3D_SPOTLIGHT(node) ((struct X3D_SpotLight*)node)\n".
 	"#define X3D_DIRECTIONALLIGHT(node) ((struct X3D_DirectionalLight*)node)\n".
+	"#define X3D_ENVIRONMENTLIGHT(node) ((struct X3D_EnvironmentLight*)node)\n".
 	"#define X3D_INDEXEDFACESET(node) ((struct X3D_IndexedFaceSet*)node)\n".
 	"#define X3D_INDEXEDLINESET(node) ((struct X3D_IndexedLineSet*)node)\n".
 	"#define X3D_ELEVATIONGRID(node) ((struct X3D_ElevationGrid*)node)\n".
@@ -1075,6 +1111,7 @@ sub gen {
 	"#define X3D_VIEWPORT(node) ((struct X3D_Viewport*)node)\n".
 	"#define X3D_LAYOUT(node) ((struct X3D_Layout*)node)\n".
 	"#define X3D_LAYERSET(node) ((struct X3D_LayerSet*)node)\n".
+	"#define X3D_AUDIO(node) ((struct X3D_AudioNode*)node)\n",
 
 
 	"#define X3D_GEOORIGIN(node) ((struct X3D_GeoOrigin*)node)\n".
@@ -1094,8 +1131,10 @@ sub gen {
 	"#define X3D_IMAGETEXTURE(node) ((struct X3D_ImageTexture*)node)\n".
 	"#define X3D_TEXTUREPROPERTIES(node) ((struct X3D_TextureProperties*)node)\n".
 	"#define X3D_PIXELTEXTURE(node) ((struct X3D_PixelTexture*)node)\n".
-	"#define X3D_TEXTUREPROJECTORPERSPECTIVE(node) ((struct X3D_TextureProjectorPerspective*)node)\n",
+	"#define X3D_BUFFERTEXTURE(node) ((struct X3D_BufferTexture*)node)\n".
+	"#define X3D_TEXTUREPROJECTOR(node) ((struct X3D_TextureProjector*)node)\n",
 	"#define X3D_TEXTUREPROJECTORPARALLEL(node) ((struct X3D_TextureProjectorParallel*)node)\n",
+	"#define X3D_TEXTUREPROJECTORPOINT(node) ((struct X3D_TextureProjectorPoint*)node)\n",
 
 	"void mark_event (struct X3D_Node *from, int totalptr);\n".
 	"#undef DEBUG_VALIDNODE\n".
@@ -1144,14 +1183,16 @@ sub gen {
 	"/* create a new node of type. This can be generated by Perl code, much as the Structs.h is */\n".
 	"void *createNewX3DNode0 (int nt) {\n".
 	"	void * tmp;\n".
+	"	int size;\n".
 	"	struct X3D_Box *node;\n".
 	"\n".
 	"	tmp = NULL;\n".
+	"	size = 0;\n".
 	"	switch (nt) {\n";
 
 	for (@sortedNodeList) {
 		push @genFuncs2,
-			"		case NODE_$_ : {tmp = MALLOC (struct X3D_$_ *, sizeof (struct X3D_$_)); break;}\n";
+			"		case NODE_$_ : {tmp = MALLOC (struct X3D_$_ *, size = sizeof (struct X3D_$_)); break;}\n";
 	}
 	push @genFuncs2, "		default: {printf (\"createNewX3DNode = unknown type %d, this will fail\\n\",nt); return NULL;}\n";
 
@@ -1164,6 +1205,7 @@ sub gen {
 	"	node->_renderFlags = 0; /*sensitive, etc */\n".
 	"	node->_hit = 0;\n".
 	"	node->_change = NODE_CHANGE_INIT_VAL; \n".
+	"	node->_fieldchange = malloc(size/32); \n".
 	"	node->_parentVector = newVector(struct X3D_Node*, 1);\n".
 	"	node->_ichange = 0;\n".
 	"	node->_dist = -10000.0; /*sorting for blending */\n".
@@ -1203,39 +1245,40 @@ sub gen {
 			push @genFuncs2, "\t\t\t$cf;\n";
 		}
 
-	# rig in the default container for X3D parsing.
-	#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
-	if (exists $VRML::Rend::defaultContainerType{$node} ) {
-		#push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
-		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = ";
-		my $containerCount = 0;
-		my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$node}});
-		#push @genFuncs2, "$lencount ";
-		for(my $i=0;$i<$lencount;$i++) {
-			if($i < 3) {  #just 1 or 2 for now
-				if ($i == 1 || $i == 2) {
-					push @genFuncs2, " + (";
-				}
-				push @genFuncs2, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}[$i];
-				if ($i == 1) {
-					push @genFuncs2, " << 10)";
-				}
-				if ($i == 2) {
-					push @genFuncs2, " << 20)"; #squeezing 3 into 32 bits, 10 bits each, so FIELDNAMES_ can only go up to 1023, currently ~960 jan 2017
-				}
-			}
-		}
-		#push @genFuncs2, $VRML::Rend::defaultContainerType{$node}[0];
-		push @genFuncs2, ";\n";
-	} else {
-		print "defaultContainerType for $node missing\n";
-	}
+		# rig in the default container for X3D parsing.
+		#if (exists $VRML::Rend::defaultContainerType{$node}[0]) {
+		# if (exists $VRML::Rend::defaultContainerType{$node} ) {
+			# #push @genFuncs2, "\t\t\ttmp2->_defaultContainer = FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}.";\n";
+			# push @genFuncs2, "\t\t\ttmp2->_defaultContainer = ";
+			# my $containerCount = 0;
+			# my $lencount = scalar(@ {$VRML::Rend::defaultContainerType{$node}});
+			# #push @genFuncs2, "$lencount ";
+			# for(my $i=0;$i<$lencount;$i++) {
+				# if($i < 3) {  #just 1 or 2 for now
+					# if ($i == 1 || $i == 2) {
+						# push @genFuncs2, " + (";
+					# }
+					# push @genFuncs2, "FIELDNAMES_".$VRML::Rend::defaultContainerType{$node}[$i];
+					# if ($i == 1) {
+						# push @genFuncs2, " << 10)";
+					# }
+					# if ($i == 2) {
+						# push @genFuncs2, " << 20)"; #squeezing 3 into 32 bits, 10 bits each, so FIELDNAMES_ can only go up to 1023, currently ~960 jan 2017
+					# }
+				# }
+			# }
+			# #push @genFuncs2, $VRML::Rend::defaultContainerType{$node}[0];
+			# push @genFuncs2, ";\n";
+		# } else {
+			# print "defaultContainerType for $node missing\n";
+		# }
+		push @genFuncs2, "\t\t\ttmp2->_defaultContainer = 0;\n";
 
 		push @genFuncs2,"\t\tbreak;\n\t\t}\n";
 	}
 	push @genFuncs2, "\t};\n";
 
-
+      push @genFuncs2, "\tadd_empty_proto_vectors(tmp);\n";
 	push @genFuncs2, "\treturn tmp;\n}\n";
 
 	push @genFuncs2,
@@ -1618,8 +1661,11 @@ END_NODE(NodeName)
 #ifndef __FREEWRL_STRUCTS_H__
 #define __FREEWRL_STRUCTS_H__
 
-#include <system_threads.h>
+//#include <system_threads.h>
 struct point_XYZ {GLDOUBLE x,y,z;};
+union upoint_XYZ { struct point_XYZ p; GLDOUBLE c[3]; };
+// initialize like this: 	union upoint_XYZ uxyz = { .c = {1,2,3} }; 
+// or this: uxyz = {.p.x = 1, .p.y = 2, .p.z = 3 };
 struct orient_XYZA {GLDOUBLE x,y,z,a;};
 
 struct X3D_Virt {
@@ -1642,43 +1688,6 @@ struct Uni_String {
 	int touched;
 };
 
-
-/* Internal representation of IndexedFaceSet, Text, Extrusion & ElevationGrid:
- * set of triangles.
- * done so that we get rid of concave polygons etc.
- */
-struct X3D_PolyRep { /* Currently a bit wasteful, because copying */
-	int irep_change;
-	int ccw;	/* ccw field for single faced structures */
-	int ntri; /* number of triangles */
-	int streamed;	/* is this done the streaming pass? */
-
-	/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
-	GLuint *cindex;   /* triples (per triangle) */
-	GLuint *colindex;   /* triples (per triangle) */
-	GLuint *norindex;
-	GLuint *tcindex; /* triples or null */
-	ushort *tri_indices;
-	ushort *wire_indices;
-
-	float *actualCoord; /* triples (per point) */
-	float *actualFog; /* float (per point) */
-	float *color; /* triples or null */
-	float *normal; /* triples or null */
-	float *flat_normal; /*triples or null*/
-	int last_normal_type; /* 0=regular 1=flat last normal type we put in the vbo normal buffer */
-	int last_index_type; /* 0=regular 1=wire last vertex index type we put in the vbo index buffer */
-	float *GeneratedTexCoords[4];	/* triples (per triangle) of texture coords if there is no texCoord node */
-	int ntexdim[4];  /* number of texture coordinate dimensions, normally 2 xy, 3 xyz, 4 xyzw */
-	int ntcoord;		/* number of multitextureCoordinates */
-	int tcoordtype; /* type of texture coord node - is this a NODE_TextureCoordGenerator... */
-	int texgentype; /* if we do have a TextureCoordinateGenerator, what "TCGT_XXX" type is it? */
-	GLfloat minVals[3];		/* for collision and default texture coord generation */
-	GLfloat maxVals[3];		/* for collision and default texture coord generation */
-	GLfloat transparency;		/* what the transparency value was during compile, put in color array if RGBA colors */
-	int isRGBAcolorNode;		/* color was originally an RGBA, DO NOT re-write if transparency changes */
-	GLuint VBO_buffers[VBO_COUNT];		/* VBO indexen */
-};
 
 ';
 

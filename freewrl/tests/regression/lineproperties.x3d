@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "http://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile='Immersive' version='3.3'>
+  <head>
+    <component name='Shape' level='2'/>
+    <meta name='description' content='LineProperties. Rows top to bottom: default line, linewidthScaleFactor 1, linewidthScaleFactor 5, dashed (linetype 2) at width 3. On a macOS OpenGL core context lines are 1 pixel wide whatever the requested width (FreeWRL logs one warning); the dashed pattern must still show. Pass: four visible yellow lines, the last one dashed, no GL errors, no crash.'/>
+  </head>
+  <Scene>
+    <Viewpoint position='0 0 6' description='front'/>
+    <Transform translation='0 1.5 0'>
+      <Shape>
+        <Appearance><Material emissiveColor='1 1 0'/></Appearance>
+        <IndexedLineSet coordIndex='0 1 -1'><Coordinate point='-2 0 0 2 0 0'/></IndexedLineSet>
+      </Shape>
+    </Transform>
+    <Transform translation='0 0.5 0'>
+      <Shape>
+        <Appearance><Material emissiveColor='1 1 0'/><LineProperties linewidthScaleFactor='1'/></Appearance>
+        <IndexedLineSet coordIndex='0 1 -1'><Coordinate point='-2 0 0 2 0 0'/></IndexedLineSet>
+      </Shape>
+    </Transform>
+    <Transform translation='0 -0.5 0'>
+      <Shape>
+        <Appearance><Material emissiveColor='1 1 0'/><LineProperties linewidthScaleFactor='5'/></Appearance>
+        <IndexedLineSet coordIndex='0 1 -1'><Coordinate point='-2 0 0 2 0 0'/></IndexedLineSet>
+      </Shape>
+    </Transform>
+    <Transform translation='0 -1.5 0'>
+      <Shape>
+        <Appearance><Material emissiveColor='1 1 0'/><LineProperties linetype='2' linewidthScaleFactor='3'/></Appearance>
+        <IndexedLineSet coordIndex='0 1 -1'><Coordinate point='-2 0 0 2 0 0'/></IndexedLineSet>
+      </Shape>
+    </Transform>
+  </Scene>
+</X3D>

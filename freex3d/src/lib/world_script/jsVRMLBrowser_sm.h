@@ -37,7 +37,7 @@ extern double BrowserFPS;                               /* defined in VRMLC.pm *
 #define BROWMAGIC 12345
 
 JSBool VrmlBrowserInit(JSContext *context, JSObject *globalObj, BrowserNative *brow);
-
+JSBool loadAuxiliaryClasses(JSContext* context, JSObject* globalObj);
 
 #if JS_VERSION < 185
 JSBool VrmlBrowserGetName(JSContext *cx,

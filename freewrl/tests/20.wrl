@@ -2,6 +2,10 @@
 
 # test of Material transparency, with an overlaid texture.
 
+
+# put a Group here to enable sorting of nodes
+Group { children [
+
 # put a cone in the centre;
 Shape {
 	appearance Appearance {
@@ -21,7 +25,7 @@ Transform { translation 0 0 -3 children Shape {
 		}
 	}
 	geometry Box {
-		size 3 3 1
+		size 1 3 1
 	}
 } }
 
@@ -41,7 +45,7 @@ Transform { translation 0 0 2.4 children Shape {
 
 ]}
 
-
+]} # end of main group.
 
 # Animation clock
 	DEF Clock1 TimeSensor { cycleInterval 20.0 loop TRUE },

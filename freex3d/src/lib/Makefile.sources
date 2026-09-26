@@ -177,6 +177,8 @@ scenegraph/Component_VRML1.c \
 scenegraph/Component_VolumeRendering.c \
 scenegraph/Component_PTM.c \
 scenegraph/VeraMono_ttf.c \
+scenegraph/gltf_loader.c \
+scenegraph/cgltf.h \
  \
 input/EAI_C_CommonFunctions.c \
 input/EAIEventsIn.c \
@@ -193,6 +195,8 @@ input/convert1To2.c \
 input/convertSTL.c \
 input/convertSTL.h \
 input/SCKHeaders.h \
+input/Decompose.c \
+input/Decompose.h \
  \
 opengl/RenderTextures.c \
 opengl/Textures.h \

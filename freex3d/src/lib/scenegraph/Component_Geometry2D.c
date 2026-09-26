@@ -48,6 +48,7 @@ X3D Geometry2D  Component
 #include "Component_Shape.h"
 #include "../scenegraph/RenderFuncs.h"
 #include "../x3d_parser/Bindable.h"
+#include "Polyrep.h"
 
 #include <float.h>
 #if defined(_MSC_VER) && _MSC_VER < 1500
@@ -90,15 +91,22 @@ void compile_##myType (struct X3D_##myType *node){ \
 	MARK_NODE_COMPILED \
 }
 /***********************************************************************************/
+void* set_LineRep(void *_linerep, struct SFVec3f *points, struct SFVec2f *points2D, 
+		struct SFColorRGBA *colorRgba, struct SFColor *color, float *fog,
+		int nsegments, int *counts, int *starts, int *skindex);
+void clear_LineRep(void *_linerep);
+void render_LineRep(struct X3D_LineRep *linerep);
 
 void compile_Arc2D (struct X3D_Arc2D *node) {
        /*  have to regen the shape*/
 	struct SFVec2f *tmpptr_a, *tmpptr_b;
 	int tmpint;
+	static int start[1];
 
 	MARK_NODE_COMPILED
 	
 	tmpint = 0;
+	clear_LineRep(node->_intern);
 	tmpptr_a = createLines (node->startAngle, node->endAngle, node->radius, NONE, &tmpint, node->_extent);
 
 	/* perform the switch - worry about threading here without locking */
@@ -108,6 +116,8 @@ void compile_Arc2D (struct X3D_Arc2D *node) {
 	node->__numPoints = tmpint;
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
+	start[0] = 0;
+	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start, NULL);
 	
 }
 
@@ -119,11 +129,9 @@ void render_Arc2D (struct X3D_Arc2D *node) {
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
+	    LIGHTING_OFF
+	    DISABLE_CULL_FACE
+		render_LineRep((struct X3D_LineRep*)node->_intern);
 		tg->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -144,7 +152,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	int tmpint;
 	int simpleDisc;
 	int closure;
-	ushort *lindex;
+	int *lindex;
 	float start, end, radius, angle, angle_increment;
 	int numPoints, arcpoints;
 
@@ -194,7 +202,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	tmpint = SEGMENTS_PER_CIRCLE+2;
 	fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints));
 	tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (numPoints)); 
-	lindex = MALLOC (ushort *, sizeof(ushort) * (numPoints*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+	lindex = MALLOC (int *, sizeof(int) * (numPoints*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
 	//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
 	//vector_pushBack(void*,node->_gc,lindex);
 
@@ -237,6 +245,7 @@ void compile_ArcClose2D (struct X3D_ArcClose2D *node){
 	ofp = node->__points.p;
 	otp = node->__texCoords.p;
 	node->__points.p = sfp;
+	node->__points.n = numPoints;
 	node->__texCoords.p = stp;
 	node->__simpleDisk = simpleDisc;
 	node->__numPoints = numPoints;
@@ -344,17 +353,91 @@ void render_ArcClose2D_LINE (struct X3D_ArcClose2D *node) {
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
-// rendray_ArcClose2D
+int isLeftSide2f(float* p1, float* p2, float* px) {
+//https://en.wikipedia.org/wiki/Cross_product 
+//vector 1 v1 = b - a
+//vector 2 v2 = c - a
+//sin(angle) = | v2xv1 / (| v1 | *| v2 | ) |
+
+	float v1[3];
+	float v2[3];
+	float v3[3];
+	vecset3f(v1, 0.0f, 0.0f, 0.0f);
+	vecset3f(v2, 0.0f, 0.0f, 0.0f);
+	vecdif2f(v1, p2, p1);
+	vecdif2f(v2, px, p1);
+	veccross3f(v3, v1, v2);
+	vecscale3f(v3, v3, 1.0f / (veclength3f(v1) * veclength3f(v2)));  //sine(angle)
+	float sineangle = v3[2];
+	return sineangle < 0 ? -1 : (sineangle > 0 ? 1 : 0); //1 left -1 right 0 on-line
+}
+BOOL angleCounterClockwiseBetween(float a0, float a1, float angle) {
+	// a0 < angle < a1 ? TRUE : FALSE
+	// technique - get them all +ve angles and a1, angle > a0
+	// but I invented this technique in 5 minutes, if not working please fix - dug9
+	float na0, na1, nangle; //normalized angles
+	na0 = atan2(sin(a0), cos(a0)) + 2*PI;
+	na1 = atan2(sin(a1), cos(a1)) + 2*PI;
+	nangle = atan2(sin(angle), cos(angle)) + 2*PI;
+	if (na1 < na0) na1 += 2 * PI;
+	if (nangle < na0) nangle += 2 * PI;
+	if (nangle > na0 && nangle < na1) return TRUE;
+	return FALSE;
+}
+void rendray_ArcClose2D(struct X3D_ArcClose2D* node) {
+	//copy from rendray_Cylinder and hack
+	float r, a0,a1, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	r = node->radius;
+	a0 = node->startAngle;
+	a1 = node->endAngle;
+	z = 0.0f;
+	/* Caps */
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float rhit2 = cx * cx + cy * cy;
+			if (r * r > rhit2 ) {
+				//inside circle
+				float angle = atan2(cy, cx);
+				if(angleCounterClockwiseBetween(a0,a1,angle)){
+					//inside pie
+					if(!strcmp(node->closureType->strptr,"PIE"))
+						rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dpie");
+					else {
+						//closuretype chord
+						//hypothesis if hitpoint is to the right of clockwise chord [start - end], then its inside
+						float p1[2], p2[2], px[2];
+						p1[0] = r * cos(a0);
+						p1[1] = r * sin(a0);
+						p2[0] = r * cos(a1);
+						p2[1] = r * sin(a1);
+						px[0] = cx;
+						px[1] = cy;
+						if (isLeftSide2f(p1, p2, px) < 0) {
+							rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "arcclose2dchord");
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 /***********************************************************************************/
 
 void compile_Circle2D (struct X3D_Circle2D *node) {
 	struct SFVec2f *tmpptr_a, *tmpptr_b;
 	int tmpint;
-
+	static int start[1];
        /*  have to regen the shape*/
 	MARK_NODE_COMPILED
-		
+	
+	clear_LineRep(node->_intern);
 	tmpptr_a = createLines (0.0f, 0.0f, node->radius, NONE, &tmpint,node->_extent);
 
 	/* perform the switch - worry about threading here without locking */
@@ -364,6 +447,8 @@ void compile_Circle2D (struct X3D_Circle2D *node) {
 	node->__numPoints = tmpint;
 	FREE_IF_NZ (tmpptr_b);
 	/* switch completed */
+	start[0] = 0;
+	node->_intern = set_LineRep(node->_intern,NULL,node->__points.p,NULL,NULL,NULL,1,&node->__numPoints,start,NULL);
 }
 
 void render_Circle2D (struct X3D_Circle2D *node) {
@@ -374,11 +459,9 @@ void render_Circle2D (struct X3D_Circle2D *node) {
 		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
 			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->__points.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->__numPoints);
+	    LIGHTING_OFF
+	    DISABLE_CULL_FACE
+		render_LineRep((struct X3D_LineRep*)node->_intern);
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
@@ -386,7 +469,15 @@ void render_Circle2D (struct X3D_Circle2D *node) {
 /***********************************************************************************/
 
 
-COMPILE_AND_GET_BOUNDS(Polyline2D,lineSegments)
+//COMPILE_AND_GET_BOUNDS(Polyline2D,lineSegments)
+float * extent6f_from_box2fn(float *extent6,float *p, int n);
+void compile_Polyline2D (struct X3D_Polyline2D *node){
+	static int start[1];
+	extent6f_from_box2fn(node->_extent,(float*)node->lineSegments.p,node->lineSegments.n);
+	MARK_NODE_COMPILED
+	start[0] = 0;
+	node->_intern = set_LineRep(node->_intern,NULL,node->lineSegments.p,NULL,NULL,NULL,1,&node->lineSegments.n,start,NULL);
+}
 
 void render_Polyline2D (struct X3D_Polyline2D *node){
 	ttglobal tg = gglobal();
@@ -400,34 +491,41 @@ void render_Polyline2D (struct X3D_Polyline2D *node){
 	        LIGHTING_OFF
 	        DISABLE_CULL_FACE
 
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->lineSegments.p);
-        	sendArraysToGPU (GL_LINE_STRIP, 0, node->lineSegments.n);
+		render_LineRep((struct X3D_LineRep*)node->_intern);
 		gglobal()->Mainloop.trisThisLoop += node->lineSegments.n;
 	}
 }
 
 /***********************************************************************************/
 
-COMPILE_AND_GET_BOUNDS(Polypoint2D,point)
+void compile_Polypoint2D(struct X3D_Polypoint2D* node) {
+	int npoint = 0;
+	float* points = NULL;
+
+	/* do nothing, except get the extents here */
+	MARK_NODE_COMPILED
+	if (node->point.n > 0) {
+		points = (float *)node->point.p;
+		npoint = node->point.n;
+	}
+	findExtentInCoord0(X3D_NODE(node), npoint, points, 2);
+	if(npoint)
+		node->_intern = set_PointRep(node->_intern, points, 2, npoint, NULL, 4,0,NULL,0);
+}
 
 void render_Polypoint2D (struct X3D_Polypoint2D *node){
 	ttglobal tg = gglobal();
 
 	COMPILE_IF_REQUIRED
-	if (node->point.n>0) {
-		/* for BoundingBox calculations */
-		setExtent( node->EXTENT_MAX_X, node->EXTENT_MIN_X, 
-			node->EXTENT_MAX_Y, node->EXTENT_MIN_Y, 0.0f,0.0f,X3D_NODE(node));
 
-	        LIGHTING_OFF
-	        DISABLE_CULL_FACE
+		LIGHTING_OFF
+		DISABLE_CULL_FACE
+	setExtent(node->EXTENT_MAX_X, node->EXTENT_MIN_X, node->EXTENT_MAX_Y,
+			node->EXTENT_MIN_Y, node->EXTENT_MAX_Z, node->EXTENT_MIN_Z,
+			X3D_NODE(node));
 
-
-		FW_GL_VERTEX_POINTER (2,GL_FLOAT,0,(GLfloat *)node->point.p);
-        	sendArraysToGPU (GL_POINTS, 0, node->point.n);
-		gglobal()->Mainloop.trisThisLoop += node->point.n;
-	}
+	if (!node->_intern) return;
+	render_PointRep(node->_intern);
 }
 
 /***********************************************************************************/
@@ -440,12 +538,12 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	//GLfloat *stp;
 	struct SFVec2f *ofp, *otp;
 	//GLfloat *otp;
-	int i,j,k;
+	int i, j, k, m;
 	GLfloat id;
 	GLfloat od;
 	int tmpint;
 	int simpleDisc;
-	ushort *lindex;
+	int *lindex;
 
 	MARK_NODE_COMPILED
 
@@ -464,7 +562,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		tmpint = SEGMENTS_PER_CIRCLE+2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint));
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //(GLfloat *, sizeof(GLfloat) * 2 * (tmpint));
-		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
+		lindex = MALLOC (int *, sizeof(int) * (tmpint*2)*2); //over malloc by a few. should be nsegs * 2 lines/seg * 2 lineEnds/line
 		//if(!node->_gc) node->_gc = newVector(void *,4); H: FreeWRLPTR gets freed, no need for _gc
 		//vector_pushBack(void*,node->_gc,lindex);
 
@@ -473,7 +571,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		(*tp).c[0] = 0.5f; (*tp).c[1] = 0.5f; tp++;
 		id = 2.0f;
 
-		for (i=SEGMENTS_PER_CIRCLE,j=1,k=0; i >= 0; i--,j++,k+=4) {
+		for (i=SEGMENTS_PER_CIRCLE,j=1,k=0,m=0; i >= 0; i--,j++,k+=4,m++) {
 			(*fp).c[0] = node->outerRadius * sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
 			(*fp).c[1] = node->outerRadius * cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
@@ -487,12 +585,13 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 			(*tp).c[1] = 0.5f + (cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE))/id);	
 			tp++;
 		}
+
 		node->__wireindices = lindex;
 	} else {
 		tmpint = (SEGMENTS_PER_CIRCLE+1) * 2;
 		fp = sfp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * 2 * tmpint);
 		tp = stp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof(GLfloat) * 2 * tmpint);
-		lindex = MALLOC (ushort *, sizeof(ushort) * (tmpint*2) *2); //over malloc by a few, should be (nseg-1)*4 lines/seg * 2 lineEnds per line
+		lindex = MALLOC (int *, sizeof(int) * (tmpint*2) *2); //over malloc by a few, should be (nseg-1)*4 lines/seg * 2 lineEnds per line
 		//if(!node->_gc) node->_gc = newVector(void *,4);
 		//vector_pushBack(void*,node->_gc,lindex);
 
@@ -500,7 +599,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 		od = 2.0f;
 		id = node->outerRadius * 2.0f / node->innerRadius;
 
-		for (i=SEGMENTS_PER_CIRCLE,j=0,k=0; i >= 0; i--,j+=2,k+=8) {
+		for (i=SEGMENTS_PER_CIRCLE,j=0,k=0,m=0; i >= 0; i--,j+=2,k+=8,m++) {
 			(*fp).c[0] = node->innerRadius * (float) sinf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));
 			(*fp).c[1] = node->innerRadius * (float) cosf(((float)PI * 2.0f * (float)i)/((float)SEGMENTS_PER_CIRCLE));	
 			fp++;
@@ -533,6 +632,7 @@ void compile_Disk2D (struct X3D_Disk2D *node){
 	ofp = node->__points.p;
 	otp = node->__texCoords.p;
 	node->__points.p = sfp;
+	node->__points.n = tmpint;
 	node->__texCoords.p = stp;
 	node->__simpleDisk = simpleDisc;
 	node->__numPoints = tmpint;
@@ -581,7 +681,28 @@ void render_Disk2D (struct X3D_Disk2D *node){
 		gglobal()->Mainloop.trisThisLoop += node->__numPoints;
 	}
 }
-//rendray_Disk2D
+void rendray_Disk2D(struct X3D_Disk2D* node) {
+	//copy from rendray_Cylinder and hack
+	float ri,ro, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	ri = node->innerRadius;
+	ro = node->outerRadius;
+	z = 0.0f;
+	/* Caps */
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float rhit2 = cx * cx + cy * cy;
+			if (ro * ro > rhit2 && ri * ri < rhit2) {
+				rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "disk2d");
+			}
+		}
+	}
+}
 
 /***********************************************************************************/
 
@@ -591,7 +712,7 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	GLfloat maxY, minY;
 	GLfloat Ssize, Tsize;
 	int i,j;
-	ushort *lindex;
+	int *lindex;
 	struct SFVec2f *fp; //GLfloat *fp;
 	int tmpint;
 
@@ -611,7 +732,7 @@ void compile_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	FREE_IF_NZ (node->__texCoords.p);
 	node->__texCoords.p = fp = MALLOC (struct SFVec2f *, sizeof(struct SFVec2f) * (tmpint)); //MALLOC (GLfloat *, sizeof (GLfloat) * tmpint * 2);
 	node->__texCoords.n = tmpint;
-	node->__wireindices = lindex = MALLOC (ushort *, sizeof(ushort)*(tmpint+1)*2); //over malloc a bit, should be: pts = lines, lines * 2 ends/line
+	node->__wireindices = lindex = MALLOC (int *, sizeof(int)*(tmpint+1)*2); //over malloc a bit, should be: pts = lines, lines * 2 ends/line
 	/* find min/max values for X and Y axes */
 	minY = minX = FLT_MAX;
 	maxY = maxX = -FLT_MAX;
@@ -679,6 +800,45 @@ void render_TriangleSet2D (struct X3D_TriangleSet2D *node){
 	}
 }
 //rendray_TriangleSet2D
+void rendray_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+	//copy from rendray_Cylinder and hack
+	float r, a0, a1, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	z = 0.0f;
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			float px[2];
+			px[0] = cx;
+			px[1] = cy;
+			int iside[3];
+			struct SFVec2f* pp = node->vertices.p;
+			for (int i = 0; i < node->vertices.n; i += 3) {
+				//assuming clockwise vertices around triangle,
+				//if hitpoint is to the right of all 3 triangle sides, its inside
+				iside[0] = isLeftSide2f(pp[i].c, pp[i + 1].c, px);
+				iside[1] = isLeftSide2f(pp[i + 1].c, pp[i + 2].c, px);
+				iside[2] = isLeftSide2f(pp[i + 2].c, pp[i].c, px);
+				//printf("i %d isides %d %d %d\n", i, iside[0], iside[1], iside[2]);
+				if (iside[0] <= 0 && iside[1] <=0 && iside[2] <= 0) {
+					rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "triangleset2d");
+					break;
+				}
+				//assuming counter-clockwise vertices around triangle,
+				//if hitpoint is to the left of all 3 triangle sides, its inside
+				if (iside[0] >= 0 && iside[1] >= 0 && iside[2] >= 0) {
+					rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "triangleset2d");
+					break;
+				}
+
+			}
+		}
+	}
+}
 
 
 /***********************************************************************************/
@@ -742,15 +902,34 @@ void render_Rectangle2D (struct X3D_Rectangle2D *node) {
 	/* do the array drawing; sides are simple 0-1-2-3, 4-5-6-7, etc quads */
 	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
 		//wireframe triangles
-		static ushort wireindices [] = { 0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3 };
+		static int wireindices [] = { 0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3 };
 		sendElementsToGPU(GL_LINES,6*2,wireindices); //(nseg -1)*4 = (npts-2)*2 = npts*2 -4
 	}else{
 		sendArraysToGPU (GL_TRIANGLES, 0, 6);
 	}
 	gglobal()->Mainloop.trisThisLoop += 2;
 }
-// rendray_Rectangle2D
 
+void rendray_Rectangle2D(struct X3D_Rectangle2D* node) {
+	//copy from rendray_Cylinder and hack
+	float sx,sy, z;
+	struct point_XYZ t_r1, t_r2;
+	get_current_ray(&t_r1, &t_r2);
+
+	sx = node->size.c[0];
+	sy = node->size.c[1];
+	z = 0.0f;
+	if (!ZEQ) {
+		float zrat0 = (float)ZRAT(z);
+		if (TRAT(zrat0)) {
+			float cx = (float)MRATX(zrat0);
+			float cy = (float)MRATY(zrat0);
+			if (fabs(cx) < fabs(sx) && fabs(cy) < fabs(sy)) {
+				rayhit(zrat0, cx, cy, z, 0, 0, 1, -1, -1, "disk2d");
+			}
+		}
+	}
+}
 /***********************************************************************************/
 //http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/geometry2D.html#ArcClose2D
 // "the angle starts at +x and goes toward +y"
@@ -869,85 +1048,258 @@ static void *createLines (float start, float end, float radius, int closed, int 
 	return (void *)points;
 }
 
-
-
-
-void collide_TriangleSet2D (struct X3D_TriangleSet2D *node) {
-	UNUSED (node);
-}
-
-void collide_Disk2D (struct X3D_Disk2D *node) {
-	UNUSED (node);
-}
-
-void collide_Rectangle2D (struct X3D_Rectangle2D *node) {
-	/* Modified Box code. */
-	struct sNaviInfo *naviinfo;
-	GLDOUBLE awidth, atop, abottom, astep, modelMatrix[16];
-	struct point_XYZ iv = {0,0,0};
-	struct point_XYZ jv = {0,0,0};
-	struct point_XYZ kv = {0,0,0};
-	struct point_XYZ ov = {0,0,0};
-	struct point_XYZ delta;
+struct point_XYZ get_poly_disp_2(struct point_XYZ* p, int num, struct point_XYZ n);
+#define FLOAT_TOLERANCE 0.00000001
+void collide_Rectangle2D(struct X3D_Rectangle2D* node) {
+	GLDOUBLE modelMatrix[16];
 
 	ttglobal tg = gglobal();
-	/*easy access, naviinfo.step unused for sphere collisions */
-	naviinfo = (struct sNaviInfo*)tg->Bindable.naviinfo;
-	awidth = naviinfo->width; /*avatar width*/
-	atop = naviinfo->width; /*top of avatar (relative to eyepoint)*/
-	abottom = -naviinfo->height; /*bottom of avatar (relative to eyepoint)*/
-	astep = -naviinfo->height+naviinfo->step;
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
 
-
-	iv.x = node->size.c[0];
-	jv.y = node->size.c[1]; 
-	kv.z = 0.0;
-	ov.x = -(node->size.c[0])/2; ov.y = -(node->size.c[1])/2; ov.z = 0.0;
-
-	/* get the transformed position of the Box, and the scale-corrected radius. */
+	// get the transformed position of the Box, and the scale-corrected radius. 
 	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 
-	matmultiplyAFFINE(modelMatrix,modelMatrix,FallInfo()->avatar2collision); 
-	//dug9july2011 matmultiply(modelMatrix,FallInfo()->avatar2collision,modelMatrix); 
-
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
 	{
-		/*  minimum bounding box MBB test in avatar/collision space */
-		double shapeMBBmin[3], shapeMBBmax[3], dsize[3];
-		//int i;
-		float2double(dsize,node->size.c,3);
-		vecscaled(shapeMBBmax,dsize,.5);
-		vecscaled(shapeMBBmax,dsize,-.5);
-		//for(i=0;i<3;i++)
-		//{
-		//	shapeMBBmin[i] = DOUBLE_MIN(-(node->size.c[i])*.5,node->size.c[i]*.5);
-		//	shapeMBBmax[i] = DOUBLE_MAX(-(node->size.c[i])*.5,node->size.c[i]*.5);
-		//}
-		if(!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
 	}
-	/* get transformed box edges and position */
-	transform(&ov,&ov,modelMatrix);
-	transform3x3(&iv,&iv,modelMatrix);
-	transform3x3(&jv,&jv,modelMatrix);
-	transform3x3(&kv,&kv,modelMatrix);
+	struct SFVec2f vertices[4];
+	vertices[0].c[0] = -node->size.c[0] * .5f;
+	vertices[0].c[1] = -node->size.c[1] * .5f;
+	vertices[1].c[0] = -node->size.c[0] * .5f;
+	vertices[1].c[1] =  node->size.c[1] * .5f;
+	vertices[2].c[0] =  node->size.c[0] * .5f;
+	vertices[2].c[1] =  node->size.c[1] * .5f;
+	vertices[3].c[0] =  node->size.c[0] * .5f;
+	vertices[3].c[1] = -node->size.c[1] * .5f;
 
-	delta = box_disp(abottom,atop,astep,awidth,ov,iv,jv,kv);
+	union upoint_XYZ pts[4], nn, v1, v2;
+	double disp;
+	for (int j = 0; j < 4; j++) {
+		float2double(pts[j].c, vertices[j].c, 2);
+		pts[j].p.z = 0.0;
+		transform(&pts[j].p, &pts[j].p, modelMatrix);
+	}
+	vecdifd(v1.c, pts[1].c, pts[0].c);
+	vecdifd(v2.c, pts[3].c, pts[0].c);
+	veccrossd(nn.c, v2.c, v1.c);
+	union upoint_XYZ dispv;
+	dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 4, nn.p);
+	disp = vecdot(&dispv.p, &dispv.p);
 
-	vecscale(&delta,&delta,-1);
+	//keep result only if:
+	// displacement is positive
+	// displacement is smaller than minimum displacement up to date
+	if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+		maxdisp = disp;
+		maxdispv = dispv;
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
 
-	accumulate_disp(CollisionInfo(),delta);
+	accumulate_disp(CollisionInfo(), maxdispv.p);
 
+}
 
-	#ifdef COLLISIONVERBOSE
-	if((fabs(delta.x) != 0. || fabs(delta.y) != 0. || fabs(delta.z) != 0.))
-		printf("COLLISION_BOX: (%f %f %f) (%f %f %f)\n",
-		ov.x, ov.y, ov.z,
-		delta.x, delta.y, delta.z
-		);
-	if((fabs(delta.x != 0.) || fabs(delta.y != 0.) || fabs(delta.z) != 0.))
-		printf("iv=(%f %f %f) jv=(%f %f %f) kv=(%f %f %f)\n",
-		iv.x, iv.y, iv.z,
-		jv.x, jv.y, jv.z,
-		kv.x, kv.y, kv.z
-		);
-	#endif
+void collide_TriangleSet2D(struct X3D_TriangleSet2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	for(int i=0;i<node->vertices.n;i+=3){
+		union upoint_XYZ pts[3], nn, v1, v2;
+		double disp;
+		for (int j = 0; j < 3; j++) {
+			float2double(pts[j].c, node->vertices.p[i + j].c, 2);
+			pts[j].p.z = 0.0;
+			transform(&pts[j].p, &pts[j].p, modelMatrix);
+		}
+		vecdifd(v1.c, pts[1].c, pts[0].c);
+		vecdifd(v2.c, pts[2].c, pts[0].c);
+		veccrossd(nn.c, v2.c, v1.c);
+		union upoint_XYZ dispv;
+		dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+		disp = vecdot(&dispv.p, &dispv.p);
+
+		//keep result only if:
+		// displacement is positive
+		// displacement is smaller than minimum displacement up to date
+		if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+			maxdisp = disp;
+			maxdispv = dispv;
+		}
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
+}
+
+void collide_ArcClose2D(struct X3D_ArcClose2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	union upoint_XYZ pts[3], nn, v1, v2;
+	double disp;
+
+	//triangle fan point:
+	float2double(pts[0].c, node->__points.p[0].c, 2);
+	pts[0].p.z = 0.0;
+	transform(&pts[0].p, &pts[0].p, modelMatrix);
+	//triangle fan starts at point[1]
+	for (int i = 1; i < node->__points.n; i++) {
+		float2double(pts[1].c, node->__points.p[i].c, 2);
+		pts[1].p.z = 0.0;
+		transform(&pts[1].p, &pts[1].p, modelMatrix);
+		float2double(pts[2].c, node->__points.p[2].c, 2);
+		pts[2].p.z = 0.0;
+		transform(&pts[2].p, &pts[2].p, modelMatrix);
+
+		vecdifd(v1.c, pts[1].c, pts[0].c);
+		vecdifd(v2.c, pts[2].c, pts[0].c);
+		veccrossd(nn.c, v2.c, v1.c);
+		union upoint_XYZ dispv;
+		dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+		disp = vecdot(&dispv.p, &dispv.p);
+
+		//keep result only if:
+		// displacement is positive
+		// displacement is smaller than minimum displacement up to date
+		if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+			maxdisp = disp;
+			maxdispv = dispv;
+		}
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
+}
+
+void collide_Disk2D(struct X3D_Disk2D* node) {
+	GLDOUBLE modelMatrix[16];
+
+	ttglobal tg = gglobal();
+	union upoint_XYZ maxdispv = { .c = {0,0,0} };
+	double maxdisp = 0.0;
+
+	// get the transformed position of the Box, and the scale-corrected radius. 
+	FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+	matmultiplyAFFINE(modelMatrix, modelMatrix, FallInfo()->avatar2collision);
+	{
+		// minimum bounding box MBB test in avatar/collision space
+		float center[3], size[3], bboxmin[3], bboxmax[3];
+		extent6f2bbox(node->_extent, center, size);
+		vecdif3f(bboxmin, center, size);
+		vecadd3f(bboxmax, center, size);
+		double shapeMBBmin[3], shapeMBBmax[3];
+		float2double(shapeMBBmin, bboxmin, 3);
+		float2double(shapeMBBmax, bboxmax, 3);
+		if (!avatarCollisionVolumeIntersectMBB(modelMatrix, shapeMBBmin, shapeMBBmax))return;
+	}
+	union upoint_XYZ pts[3], nn, v1, v2;
+	double disp;
+
+	if (node->__simpleDisk) {
+		//simple disk with TRIANGLE_FAN
+		//fan point:
+		float2double(pts[0].c, node->__points.p[0].c, 2);
+		pts[0].p.z = 0.0;
+		transform(&pts[0].p, &pts[0].p, modelMatrix);
+		//triangle fan starts at point[1]
+		for (int i = 1; i < node->__points.n; i++) {
+			float2double(pts[1].c, node->__points.p[i].c, 2);
+			pts[1].p.z = 0.0;
+			transform(&pts[1].p, &pts[1].p, modelMatrix);
+			float2double(pts[2].c, node->__points.p[2].c, 2);
+			pts[2].p.z = 0.0;
+			transform(&pts[2].p, &pts[2].p, modelMatrix);
+
+			vecdifd(v1.c, pts[1].c, pts[0].c);
+			vecdifd(v2.c, pts[2].c, pts[0].c);
+			veccrossd(nn.c, v2.c, v1.c);
+			union upoint_XYZ dispv;
+			dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+			disp = vecdot(&dispv.p, &dispv.p);
+
+			//keep result only if:
+			// displacement is positive
+			// displacement is smaller than minimum displacement up to date
+			if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+				maxdisp = disp;
+				maxdispv = dispv;
+			}
+		}
+	}else{ 
+		//donut disk with TRIANGLE_STRIP
+		for (int i = 0; i < node->__points.n -1; i++) {
+			for (int j = 0; j < 3; j++) {
+				float2double(pts[j].c, node->__points.p[i + j].c, 2);
+				pts[j].p.z = 0.0;
+				transform(&pts[j].p, &pts[j].p, modelMatrix);
+			}
+			vecdifd(v1.c, pts[1].c, pts[0].c);
+			vecdifd(v2.c, pts[2].c, pts[0].c);
+			veccrossd(nn.c, v2.c, v1.c);
+			union upoint_XYZ dispv;
+			dispv.p = get_poly_disp_2((struct point_XYZ*)pts, 3, nn.p);
+			disp = vecdot(&dispv.p, &dispv.p);
+
+			//keep result only if:
+			// displacement is positive
+			// displacement is smaller than minimum displacement up to date
+			if ((disp > FLOAT_TOLERANCE) && (disp > maxdisp)) {
+				maxdisp = disp;
+				maxdispv = dispv;
+			}
+		}
+	}
+	vecscale(&maxdispv.p, &maxdispv.p, -1);
+
+	accumulate_disp(CollisionInfo(), maxdispv.p);
+
 }

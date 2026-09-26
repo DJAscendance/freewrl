@@ -105,7 +105,23 @@ GLuint esLoadShader ( GLenum type, const char *shaderSrc )
    	return 0;
 
    // Load the shader source
+#ifdef FW_GL_CORE_PROFILE
+   {
+      // these sources are GLSL ES 1.00 / GLSL 1.10 (no #version); a core profile needs 1.40+
+      // gl_FragColor is renamed in place (same length) because redefining gl_ names is reserved
+      static const char *vs_prelude = "#version 410 core\n#define attribute in\n#define varying out\n";
+      static const char *fs_prelude = "#version 410 core\n#define varying in\n#define texture2D texture\nout vec4 fw_FragColor;\n";
+      const char *srcs[2];
+      char *body = STRDUP(shaderSrc), *fc;
+      while ((fc = strstr(body, "gl_FragColor"))) memcpy(fc, "fw_FragColor", 12);
+      srcs[0] = type == GL_VERTEX_SHADER ? vs_prelude : fs_prelude;
+      srcs[1] = body;
+      glShaderSource ( shader, 2, srcs, NULL );
+      FREE(body);
+   }
+#else
    glShaderSource ( shader, 1, &shaderSrc, NULL );
+#endif
    
    // Compile the shader
    glCompileShader ( shader );
@@ -370,7 +386,6 @@ typedef struct {
 	pmenuItem_t *item;   //holds icon specifics, and meaning: Action
 	GLfloat vert[12];	//bar designed coordinates
 	int action; //over-ride of the menuitem action if needed
-	int butrect[4];
 } barItem;
 
 typedef struct {
@@ -383,7 +398,7 @@ typedef struct {
 	GLuint textureID;
 	GLfloat *vert;
 	//GLfloat *tex;
-	GLushort *ind;
+	GLuint *ind;
 	int blankItem;
 	bool top; // true: menu appears at top of screen, else bottom
 	int yoffset; // computed position of menu y
@@ -400,6 +415,8 @@ typedef struct {
 } FXY;
 #include <list.h>
 static ivec4 defaultViewport = {0,0,400,400};
+#define LENOPTIONS 40
+
 typedef struct pstatusbar{
 	int loopcount;// = 0;
 	int hadString;// = 0;
@@ -433,7 +450,7 @@ typedef struct pstatusbar{
 	char messagebar[200];
 	int bmfontsize;// = 2; /* 0,1 or 2 */
 	int optionsLoaded;// = 0;
-	char * optionsVal[35];
+	char * optionsVal[LENOPTIONS]; //lenOptions
 	int osystem;// = 3; //mac 1btn = 0, mac nbutton = 1, linux game descent = 2, windows =3
 	XY bmWH;// = {10,15}; /* simple bitmap font from redbook above, width and height in pixels */
 	int bmScale; //1 or 2 for the hud pixel fonts, changes between ..ForOptions and ..Regular 
@@ -541,7 +558,8 @@ static void init_ProgramObject(){
    p->textureLoc = glGetUniformLocation ( p->programObject, "Texture0" );
    p->color4fLoc = glGetUniformLocation ( p->programObject, "Color4f" );
 }
-static int lenOptions   = 30;
+static int lenOptions   = 35;
+
 void statusbar_clear(struct tstatusbar *t){
 	//public
 	//private
@@ -711,7 +729,7 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	GLfloat x,y,z;
     GLfloat *vert;
     GLfloat *tex;
-    GLushort* ind;
+    GLuint* ind;
 	int sizeoftex, sizeofvert, sizeofind;
 
 	// construct triangle list
@@ -721,10 +739,10 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	len1 = 2*len + 1;
 	sizeofvert = len1 * sizeof(GLfloat) * 4 * 3;
 	sizeoftex = len1 * sizeof(GLfloat) * 4 * 2;
-	sizeofind = len1 * sizeof(GLshort) * 2 * 3;
+	sizeofind = len1 * sizeof(GLuint) * 2 * 3;
 	vert = (GLfloat*)alloca(sizeofvert); //2 new vertex, 3D
 	tex  = (GLfloat*)alloca(sizeoftex); //4 new texture coords, 2D
-	ind  = (GLushort*)alloca(sizeofind); //2 triangles, 3 points each
+	ind  = (GLuint*)alloca(sizeofind); //2 triangles, 3 points each
 	x=y=z = 0.0f;
 	x = sx;
 	y = sy;
@@ -783,7 +801,7 @@ void printString3_old(GLfloat sx, GLfloat sy, char *s, int len)
 	glEnableVertexAttribArray ( p->texCoordLoc );
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_SHORT, ind );
+	glDrawElements ( GL_TRIANGLES, i*3*2, GL_UNSIGNED_INT, ind );
 
 	//glDisableVertexAttribArray( p->texCoordLoc );
 	//glDisableVertexAttribArray ( p->positionLoc );
@@ -809,7 +827,7 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 	GLfloat x,y,z;
     GLfloat vert[12];
     GLfloat tex[8];
-    GLushort ind[6];
+    GLuint ind[6];
 	int sizeoftex, sizeofvert, sizeofind;
 
 	// construct triangle list
@@ -873,7 +891,7 @@ void printString3(GLfloat sx, GLfloat sy, char *s, int len)
 			glVertexAttribPointer ( p->texCoordLoc, 2, GL_FLOAT,
 								   GL_FALSE, 0, tex );  //fails - p->texCoordLoc is 429xxxxx - garbage
 
-			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind );
+			glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind );
 		}
 	}
 	//glDisableVertexAttribArray ( p->positionLoc );
@@ -923,6 +941,8 @@ char * optionsText[] = {
 "  up-down",
 "  anaglyph",
 "  shutter",
+"  cardboard",
+"  quadrant",
 "Eyebase - object space",
 "\36       \37",
 "Your Eyebase = fiducials",
@@ -937,16 +957,19 @@ char * optionsText[] = {
 "colorScheme:",
 "",
 "target FPS \36    \37",
-"  emulate multitouch (mousewheel)",
+"  mouse   emulate-multitouch   multitouch   gesture",
 "pickray eye:",
 "  left  right  either",
 "screen orientation \36    \37",
 "shading style:",
 "  flat  gouraud  phong  wire",
 "  draw bounding boxes",
+"  show viewpoints",
 "depth slices  auto  1   2   3",
 "  allow DIS",
-"mat modulation  none  matxtex  matxcpvxtex",
+"texture modulate or replace mat.diffuse:",
+"  by file_version   v3.3- replace   v4.0+ modulate",
+"  draw rig",
 NULL,
 };
 //0123456789012345678901234567890
@@ -974,6 +997,7 @@ int fwl_getOrientation();
 int fwl_getOrientation2();
 void fwl_setOrientation2(int degrees);
 int fwl_getShadingStyle();
+
 void initOptionsVal()
 {
 	int i,j,k,m, iside, ieither, shadingStyle;
@@ -984,7 +1008,7 @@ void initOptionsVal()
 	for(i=0;i<lenOptions;i++)
 	{
 		if(!p->optionsVal[i])
-			p->optionsVal[i] = MALLOC(char*, 48);
+			p->optionsVal[i] = MALLOC(char*, 55);
 		for(j=0;j<48;j++) p->optionsVal[i][j] = ' ';
 		p->optionsVal[i][47] = '\0';
 	}
@@ -993,8 +1017,10 @@ void initOptionsVal()
 	p->optionsVal[3][0] = 034; //[]
 	p->optionsVal[4][0] = 034; //[]
 	p->optionsVal[5][0] = 034; //[]
+	p->optionsVal[6][0] = 034; //[]
+	p->optionsVal[7][0] = 034; //[]
 
-	if(!(viewer->sidebyside || viewer->updown || viewer->anaglyph || viewer->shutterGlasses))
+	if(!(viewer->sidebyside || viewer->updown || viewer->anaglyph || viewer->shutterGlasses || viewer->cardboard || viewer->quadrant))
 		p->optionsVal[1][0] = 035; //[*] '*';
 	if(viewer->sidebyside)
 		p->optionsVal[2][0] = 035; //[*] '*';
@@ -1004,61 +1030,82 @@ void initOptionsVal()
 		p->optionsVal[4][0] = 035; //[*] '*';
 	if(viewer->shutterGlasses)
 		p->optionsVal[5][0] = 035; //[*] '*';
-	sprintf(p->optionsVal[7],"  %4.3f",viewer->eyedist); //.eyebase); //.060f);
-	sprintf(p->optionsVal[9],"  %4.3f",viewer->screendist); //.6f);
+	if(viewer->cardboard)
+		p->optionsVal[6][0] = 035; //[*] '*';
+	if(viewer->quadrant)
+		p->optionsVal[7][0] = 035; //[*] '*';
+	sprintf(p->optionsVal[9],"  %4.3f",viewer->eyedist); //.eyebase); //.060f);
+	sprintf(p->optionsVal[11],"  %4.3f",viewer->screendist); //.6f);
 	//sprintf(p->optionsVal[7],"  %4.3f",viewer->stereoParameter); //.toein.4f);
 	for(i=0;i<3;i++){
 		for(j=0;j<3;j++){
 			k = getAnaglyphPrimarySide(j,i);
-			p->optionsVal[12+i][j+1] = (k ? 035 : ' ');
+			p->optionsVal[14+i][j+1] = (k ? 035 : ' ');
 		}
 	}
 	fwl_get_sbh_pin(&p->statusbar_pinned,&p->menubar_pinned);
-	p->optionsVal[15][0] = p->statusbar_pinned ? 035 : 034; 
-	p->optionsVal[16][0] = p->menubar_pinned ? 035 : 034; 
-	sprintf(p->optionsVal[18]," %s ",fwl_get_ui_colorschemename());
-	sprintf(p->optionsVal[19],"            %4d",abs(fwl_get_target_fps()));
-	p->optionsVal[20][0] = 034; //[]
-	if(fwl_get_emulate_multitouch())
-		p->optionsVal[20][0] = 035; //[*] '*';
+	p->optionsVal[17][0] = p->statusbar_pinned ? 035 : 034; 
+	p->optionsVal[18][0] = p->menubar_pinned ? 035 : 034; 
+	sprintf(p->optionsVal[20]," %s ",fwl_get_ui_colorschemename());
+	sprintf(p->optionsVal[21],"            %4d",abs(fwl_get_target_fps()));
+	// 0123456789 123456789 123456789 123456789 123456789
+	//"  mouse   emulate-multitouch   multitouch   gesture",,
+	p->optionsVal[22][0] = p->optionsVal[22][8] = p->optionsVal[22][29] = p->optionsVal[22][42] = 034; //[]
+	switch(fwl_get_touchtype()){
+		case 0: p->optionsVal[22][0] = 035; break; //[*] '*';
+		case 1: p->optionsVal[22][8] = 035; break; 
+		case 2: p->optionsVal[22][29] = 035; break; 
+		case 3: p->optionsVal[22][42] = 035; break; 
+		default: break;
+	}
 	fwl_getPickraySide(&iside,&ieither);
-	p->optionsVal[22][1] = p->optionsVal[22][7] = p->optionsVal[22][14] = 034;
-	if(iside==0) p->optionsVal[22][1] = 035;
-	else p->optionsVal[22][7] = 035;
-	if(ieither) p->optionsVal[22][14] = 035;
-	sprintf(p->optionsVal[23],"                    %4d",fwl_getOrientation2());
+	p->optionsVal[24][1] = p->optionsVal[24][7] = p->optionsVal[24][14] = 034;
+	if(iside==0) p->optionsVal[24][1] = 035;
+	else p->optionsVal[24][7] = 035;
+	if(ieither) p->optionsVal[24][14] = 035;
+	sprintf(p->optionsVal[25],"                    %4d",fwl_getOrientation2());
 	shadingStyle = fwl_getShadingStyle();
-	p->optionsVal[25][1] = p->optionsVal[25][7] = p->optionsVal[25][16] = p->optionsVal[25][23] =034;
+	p->optionsVal[27][1] = p->optionsVal[27][7] = p->optionsVal[27][16] = p->optionsVal[27][23] =034;
 	switch(shadingStyle){
-		case 0: p->optionsVal[25][1]  = 035; break;
-		case 1: p->optionsVal[25][7]  = 035; break;
-		case 2: p->optionsVal[25][16] = 035; break;
-		case 3: p->optionsVal[25][23] = 035; break;
+		case 0: p->optionsVal[27][1]  = 035; break;
+		case 1: p->optionsVal[27][7]  = 035; break;
+		case 2: p->optionsVal[27][16] = 035; break;
+		case 3: p->optionsVal[27][23] = 035; break;
 		default:
 			break;
 	}
-	p->optionsVal[26][0] = 034; //[]
+	p->optionsVal[28][0] = 034; //[]
 	if(fwl_getDrawBoundingBoxes())
-		p->optionsVal[26][0] = 035; //[*] '*';
+		p->optionsVal[28][0] = 035; //[*] '*';
+	p->optionsVal[29][0] = 034; //[]
+	if(fwl_getShowViewpoints())
+		p->optionsVal[29][0] = 035; //[*] '*';
 	m = fwl_get_depth_slices();
-	p->optionsVal[27][13] = p->optionsVal[27][19] = p->optionsVal[27][23] = p->optionsVal[27][27] =034;
+	p->optionsVal[30][13] = p->optionsVal[30][19] = p->optionsVal[30][23] = p->optionsVal[30][27] =034;
 	switch(m){
 		// 012345678901234567890123456789  13 19 23 27
-		case 0: p->optionsVal[27][13] = 035; break; //[*]
-		case 1: p->optionsVal[27][19] = 035; break; //[*]
-		case 2: p->optionsVal[27][23] = 035; break; //[*]
-		case 3: p->optionsVal[27][27] = 035; break; //[*]
+		case 0: p->optionsVal[30][13] = 035; break; //[*]
+		case 1: p->optionsVal[30][19] = 035; break; //[*]
+		case 2: p->optionsVal[30][23] = 035; break; //[*]
+		case 3: p->optionsVal[30][27] = 035; break; //[*]
 	}
-	p->optionsVal[28][0] = 034; //[]
+	p->optionsVal[31][0] = 034; //[]
 	if(fwl_get_allow_DIS())
-		p->optionsVal[28][0] = 035; //[*] '*';
+		p->optionsVal[31][0] = 035; //[*] '*';
 	m = fwl_get_modulation();
-	p->optionsVal[29][15] = p->optionsVal[29][21] = p->optionsVal[29][30] =034;
+	//"eeeee            ffffffff          ggggggg",
+	// 0123456789 123456789 123456789 123456789 123456789 	123456789 
+	//"  by file_version   v3.3- replace   v4.0+ modulate",
+	p->optionsVal[33][0] = p->optionsVal[33][19] = p->optionsVal[33][35] =034;
 	switch(m){
-		case 0: p->optionsVal[29][15] = 035; break; //[*]
-		case 1: p->optionsVal[29][21] = 035; break; //[*]
-		case 2: p->optionsVal[29][30] = 035; break; //[*]
+		case 0: p->optionsVal[33][0] = 035; break; //[*]
+		case 1: p->optionsVal[33][19] = 035; break; //[*]
+		case 2: p->optionsVal[33][35] = 035; break; //[*]
 	}
+	p->optionsVal[34][0] = 034; //[]
+	if (fwl_getDrawRig())
+		p->optionsVal[34][0] = 035; //[*] '*';
+
 	p->optionsLoaded = 1;
 }
 void updateOptionsVal()
@@ -1075,8 +1122,10 @@ char * optionsCase[] = {
 "44444444",
 "33333333",
 "11111111",
+"55555555",
+"66666666",
 "       ",
-"55     66",
+"AA     BB",
 "              ",
 "DDEEEEEFF",
 "        ",
@@ -1089,16 +1138,19 @@ char * optionsCase[] = {
 "        ",
 "99999999",
 "          KK    LL",
-"GGGGGGGGGGG",
+"hhhhhh iiiiiiiiiiiiiiiiiii  jjjjjjjjjjj  kkkkkkkkkk",
 " ",
 "MM    NN     OO",
 "                  PP    QQ",
 " ",
 "RR    SS       TT     UU",
 "VVVVVVVVVV",
+"XXXXXXXXXX",
 "            aa    bb  cc  dd",
 "WWWWWWWWWW",
-"              eeee  ffff     gggg",
+" ",
+"eeeee            ffffffff          ggggggg",
+"YYYYYYYYYY",
 NULL,
 };
 
@@ -1225,6 +1277,8 @@ int handleOptionPress(int mouseX, int mouseY)
 	case '2': 
 	case '3': 
 	case '4': 
+	case '5': 
+	case '6': 
 		toggleOrSetStereo(opt-'0');
 		break;
 	case '7': 
@@ -1256,13 +1310,13 @@ int handleOptionPress(int mouseX, int mouseY)
 		setAnaglyphPrimarySide(opt-'x',2); //L,R,N
 		//setAnaglyphSideColor(opt,1);
 		break;
-	case '5': {
+	case 'A': {
 		/* eyebase */
 		printf("reduce eyebase");
 		viewer->eyedist *= .9;
 		updateEyehalf();
 		break;}
-	case '6': {
+	case 'B': {
 		/* eyebase */
 		printf("increase eyebase");
 		viewer->eyedist *= 1.1;
@@ -1274,10 +1328,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		viewer->screendist -= .02; //*= .9;
 		updateEyehalf();
 		break;}
-	case 'G': {
-		fwl_set_emulate_multitouch(1 - fwl_get_emulate_multitouch());
-		break;
-		}
+	case 'h': fwl_set_touchtype(0); break;
+	case 'i': fwl_set_touchtype(1); break;
+	case 'j': fwl_set_touchtype(2); break;
+	case 'k': fwl_set_touchtype(3); break;
 	case 'E': {
 		/* screendist */
 		printf("set screendist");
@@ -1355,6 +1409,10 @@ int handleOptionPress(int mouseX, int mouseY)
 		fwl_setDrawBoundingBoxes(1 - fwl_getDrawBoundingBoxes());
 		break;
 		}
+	case 'X': {
+		fwl_setShowViewpoints(1 - fwl_getShowViewpoints());
+		break;
+		}
 	case 'a':
 	case 'b':
 	case 'c':
@@ -1374,6 +1432,10 @@ int handleOptionPress(int mouseX, int mouseY)
 			fwl_set_modulation(opt - 'e');
 		}
 		break;
+	case 'Y': {
+		fwl_setDrawRig(1 - fwl_getDrawRig());
+		break;
+	}
 
 	default: 
 		break;
@@ -1619,6 +1681,7 @@ ACTION_YAWPITCH,
 ACTION_ROLL,
 ACTION_XY,
 ACTION_DIST,
+ACTION_PAN,
 ACTION_SHIFT,
 ACTION_HOVER,
 ACTION_PEDAL,
@@ -1652,6 +1715,7 @@ char *help;
 {ACTION_SPHERICAL, "SPHERICAL {pan,zoom}"},
 {ACTION_TURNTABLE, "TURNTABLE"},
 {ACTION_LOOKAT, "LOOKAT"},
+{ACTION_PAN,"PAN"},
 {ACTION_YAWZ, "FLY yaw-z"},
 {ACTION_YAWPITCH, "FLY yaw-pitch"},
 {ACTION_ROLL, "FLY roll"},
@@ -1702,7 +1766,7 @@ void convertPng2hexAlpha()
 	*/
 	int w,h,ii,size;
 	static int mbuts = 1; //2; //8; // 17;
-	static char * butFnames[] = {"viewall.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
+	static char * butFnames[] = {"pan.png"}; //{"pedal.png"}; //{"shift.png","sensor.png"}; //{"YAWZ.png"}; // {"lookat.png","explore.png","spherical.png","turntable.png","XY.png","ROLL.png","YAWPITCH.png","YAWZ.png"}; //{"tilt.png"}; //{"tplane.png","rplane.png","walk.png","fly.png","examine.png","level.png","headlight.png","collision.png","prev.png","next.png","help.png","messages.png","options.png","reload.png","url.png","file.png","blank.png"};//"flyEx.png",
 	textureTableIndexStruct_s butts;
 
 	FILE* out = fopen("hudIcons_octalpha_h","w+");
@@ -1835,7 +1899,7 @@ void initButtons()
 		static GLubyte * buttonlist [] = {
 			walk, fly, examine,
 			yawz, xy, yawpitch, roll,
-			explore, spherical, turntable, lookat, distance, viewall,
+			explore, spherical, turntable, lookat, pan, distance, viewall,
 			shift, hover, pedal, level, headlight,
 			collision, prev, next, help, messages, 
 			options, reload, url, file, blank
@@ -1843,15 +1907,15 @@ void initButtons()
 		static int actionlist [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
 			ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_DIST, ACTION_VIEWALL,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_PAN, ACTION_DIST, ACTION_VIEWALL,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, 
 			ACTION_COLLISION, ACTION_PREV,ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, 
 			ACTION_OPTIONS,ACTION_RELOAD, ACTION_URL, ACTION_FILE, ACTION_BLANK,
 			};
-		static int NACTION = 28; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
+		static int NACTION = 29; //must match buttonlist and actionlist count, and be <= MAXBUT defined above
 		//radiosets are to indicate what things are deselected (if any) when another thing is selected
-		static int radiosets [][9] = {
-			{8,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_DIST},
+		static int radiosets [][10] = {
+			{9,ACTION_FLY,ACTION_WALK,ACTION_EXAMINE,ACTION_EXPLORE,ACTION_SPHERICAL,ACTION_TURNTABLE,ACTION_LOOKAT,ACTION_PAN,ACTION_DIST},
 			{3,ACTION_MESSAGES,ACTION_OPTIONS,ACTION_HELP}, 
 			//{4,ACTION_YAWZ, ACTION_XY, ACTION_YAWPITCH, ACTION_ROLL}, 
 			{0},
@@ -1866,7 +1930,7 @@ void initButtons()
 
 		static int mainbar_linux [] = {
 			ACTION_WALK, ACTION_FLY, ACTION_EXAMINE,
-			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_DIST,
+			ACTION_EXPLORE, ACTION_SPHERICAL, ACTION_TURNTABLE, ACTION_LOOKAT, ACTION_VIEWALL, ACTION_PAN, ACTION_DIST,
 			ACTION_SHIFT, ACTION_HOVER, ACTION_PEDAL, ACTION_LEVEL, ACTION_HEADLIGHT, ACTION_COLLISION, ACTION_PREV,
 			ACTION_NEXT, ACTION_HELP, ACTION_MESSAGES, ACTION_OPTIONS, 
 			//ACTION_RELOAD, ACTION_URL, 
@@ -1903,7 +1967,7 @@ void initButtons()
 		memset(p->pmenu.lumalpha,0,32*32*2 *buttonAtlasSquared);
 		p->pmenu.vert= MALLOC(GLfloat*, 3*4*buttonAtlasSquared*sizeof(GLfloat));
 //		p->pmenu.tex = MALLOC(GLfloat*, 2*4*buttonAtlasSquared*sizeof(GLfloat));
-		p->pmenu.ind = MALLOC(GLushort*, 3*2*buttonAtlasSquared*sizeof(GLushort));
+		p->pmenu.ind = MALLOC(GLuint*, 3*2*buttonAtlasSquared*sizeof(GLuint));
 		p->pmenu.yoffset = 0;
 		if(p->pmenu.top) p->pmenu.yoffset = p->vport.H - p->buttonSize; //32.0f;
 		for(i=0;i<p->pmenu.nitems;i++)
@@ -2045,13 +2109,7 @@ void initButtons()
 			int j, k, mi, mv, kv;
 			GLfloat dx;
 			FXY xyxy[2];
-			int bz = p->buttonSize;
-		
-			//pixel coord boxes, for mouse picking of buttons
-			p->pmenu.bitems[i].butrect[0] = 5+(i*bz);	/* lower left  x */
-			p->pmenu.bitems[i].butrect[1] = 0;			/* lower left  y */
-			p->pmenu.bitems[i].butrect[2] = 5+(i*bz)+bz;/* upper right x */
-			p->pmenu.bitems[i].butrect[3] = bz;			/* upper right y */
+			//screen position and mouse picking come from the current layout, see updateButtonVertices() and menubarButtonAt()
 
 			mv = i*3*4;
 			mi = i*3*2;
@@ -2087,12 +2145,12 @@ void initButtons()
 			// 1-3
 			// |/|
 			// 0-2
-			p->pmenu.ind[mi +0] = (GLushort)(i*4) +0;
-			p->pmenu.ind[mi +1] = (GLushort)(i*4) +1;
-			p->pmenu.ind[mi +2] = (GLushort)(i*4) +3;
-			p->pmenu.ind[mi +3] = (GLushort)(i*4) +0;
-			p->pmenu.ind[mi +4] = (GLushort)(i*4) +3;
-			p->pmenu.ind[mi +5] = (GLushort)(i*4) +2;
+			p->pmenu.ind[mi +0] = (GLuint)(i*4) +0;
+			p->pmenu.ind[mi +1] = (GLuint)(i*4) +1;
+			p->pmenu.ind[mi +2] = (GLuint)(i*4) +3;
+			p->pmenu.ind[mi +3] = (GLuint)(i*4) +0;
+			p->pmenu.ind[mi +4] = (GLuint)(i*4) +3;
+			p->pmenu.ind[mi +5] = (GLuint)(i*4) +2;
 
 			//assign icon+action to menubar button location
 			for(j=0;j<p->pmenu.nitems;j++){
@@ -2232,6 +2290,10 @@ void setMenuButton_navModes(int type, int dragchord)
 			iaction = ACTION_DIST;
 			newval = 1;
 			break;
+		case VIEWER_PAN:
+			iaction = ACTION_PAN;
+			newval = 1;
+			break;
 		case VIEWER_FLY:
 #if defined(QNX) || defined(KIOSK)//|| defined(_MSC_VER)
 			iaction = ACTION_FLY2;
@@ -2325,13 +2387,34 @@ void updateConsoleStatus()
 	}
 }
 
+/* Menu bar geometry, shared by drawing and hit testing so the two always agree.
+   Buttons are square, p->buttonSize pixels, laid out left to right from x=0; with two rows
+   the first (bottom) row holds the first (n+1)/2 buttons. */
+static int menubarRowLength(ppstatusbar p){
+	return p->buttonRows > 1 ? (p->pmenu.nbitems + 1)/p->buttonRows : p->pmenu.nbitems;
+}
+static void menubarCell(ppstatusbar p, int i, int *col, int *row){
+	int rowlen = menubarRowLength(p);
+	*row = rowlen > 0 ? i / rowlen : 0;
+	*col = i - *row * rowlen;
+}
+/* index of the button under menu bar pixel (x, y), y up from the bar's bottom edge, or -1 */
+static int menubarButtonAt(ppstatusbar p, int x, int y){
+	int bz = p->buttonSize, rowlen = menubarRowLength(p), col, row, i;
+	if(bz <= 0 || x < 0 || y < 0) return -1;
+	col = x / bz;
+	row = y / bz;
+	if(row >= p->buttonRows || col >= rowlen) return -1;
+	i = row * rowlen + col;
+	return i < p->pmenu.nbitems ? i : -1;
+}
 
 int handleButtonOver(int mouseX, int mouseY)
 {
 	/* called from mainloop > fwl_handle_aqua to
 	a) detect a button over and
 	b) highlight underneath the button*/
-	int i, x, y, ihalf;
+	int x, y;
 	ppstatusbar p;
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
@@ -2346,27 +2429,7 @@ int handleButtonOver(int mouseX, int mouseY)
 	else
 		y = mouseY - p->pmenu.yoffset;
 
-	p->isOver = -1;
-
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
-	for(i=0;i<p->pmenu.nbitems;i++)
-	{
-		int j,xx,yy,butrect[4];
-		for(j=0;j<4;j++) butrect[j] = p->pmenu.bitems[i].butrect[j];
-		xx = x;
-		yy = y;
-		if(i >= ihalf){
-			xx = x + ihalf * p->buttonSize;
-			yy = y - p->buttonSize; 
-		}
-		if(xx > butrect[0] && xx < butrect[2]
-		&& yy > butrect[1] && yy < butrect[3] )
-		{
-			/* printf("%d",i); */  /* is over */
-			p->isOver = i;
-			break;
-		}
-	}
+	p->isOver = menubarButtonAt(p, x, y);
 	return p->isOver; // == -1 ? 0 : 1;
 }
 char *frontend_pick_URL(void);
@@ -2401,7 +2464,7 @@ int handleButtonRelease(int mouseX, int mouseY)
 	b) toggle the button icon and
 	c) set the related option
 	*/
-	int i,x,y,ihit,iaction,ihalf;
+	int i,x,y,ihit,iaction,hit;
     //int j, oldval;
 	ppstatusbar p;
 	ttglobal tg = gglobal();
@@ -2416,20 +2479,11 @@ int handleButtonRelease(int mouseX, int mouseY)
 		y = p->vport.H - mouseY;
 	else
 		y = mouseY - p->pmenu.yoffset;
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
+	hit = menubarButtonAt(p, x, y);
 	ihit = -1;
 	for(i=0;i<p->pmenu.nbitems;i++)
 	{
-		int j,xx,yy,butrect[4];
-		for(j=0;j<4;j++) butrect[j] = p->pmenu.bitems[i].butrect[j];
-		xx = x;
-		yy = y;
-		if(i >= ihalf){
-			xx = x + ihalf * p->buttonSize;
-			yy = y - p->buttonSize; 
-		}
-		if(xx > butrect[0] && xx < butrect[2]
-		&& yy > butrect[1] && yy < butrect[3] )
+		if(i == hit)
 		{
 			ihit = i;
 			iaction = p->pmenu.bitems[i].item->action;
@@ -2480,6 +2534,8 @@ int handleButtonRelease(int mouseX, int mouseY)
 					fwl_set_viewer_type(VIEWER_SPHERICAL); break;
 				case ACTION_TURNTABLE:
 					fwl_set_viewer_type(VIEWER_TURNTABLE); break;
+				case ACTION_PAN:
+					fwl_set_viewer_type(VIEWER_PAN); break;
 				case ACTION_DIST:
 					fwl_set_viewer_type(VIEWER_DIST); break;
 				case ACTION_SHIFT:	 fwl_setShift(p->pmenu.bitems[i].item->butStatus); break;
@@ -2554,7 +2610,7 @@ int handleButtonRelease(int mouseX, int mouseY)
 }
 void updateButtonVertices()
 {
-	int i,j,k,kv,mv,ihalf;
+	int i,j,k,kv,mv,bz;
 	float xx,yy;
     //int zz;
 	FXY xy;
@@ -2565,23 +2621,19 @@ void updateButtonVertices()
 	//p->pmenu.yoffset = (float) yoff_button; //0.0f;
 	if(p->pmenu.top) p->pmenu.yoffset = (p->vport.H - p->buttonSize - p->pmenu.yoffset); //32.0f;
 
-	ihalf = (p->pmenu.nbitems + 1)/p->buttonRows;
+	//the button size changes with the window width (see updateSBHRows), so lay out every frame
+	bz = p->buttonSize;
 	for(i=0;i<p->pmenu.nbitems;i++)
 	{
-		int button_xoff, button_yoff;
+		int col, row;
 		kv = 0;
-		button_yoff = button_xoff = 0;
-		if(i >= ihalf){
-			//for phones / narrow / portrait stack 2 rows of buttons
-			button_yoff = p->buttonSize; 
-			button_xoff = -(ihalf * p->buttonSize);
-		}
+		menubarCell(p, i, &col, &row); //narrow / portrait windows stack 2 rows of buttons
 		for(j=0;j<2;j++)
 			for(k=0;k<2;k++)
 			{
-				xx = p->pmenu.bitems[i].vert[kv +0];
-				yy = p->pmenu.bitems[i].vert[kv +1];
-				xy = screen2normalizedScreen(xx + button_xoff,yy + p->pmenu.yoffset + button_yoff + p->side_bottom);
+				xx = (float)((col + j) * bz);
+				yy = (float)((row + k) * bz);
+				xy = screen2normalizedScreen(xx,yy + p->pmenu.yoffset + p->side_bottom);
 				mv = i*3*4;
 				p->pmenu.vert[mv+kv +0] = xy.x;
 				p->pmenu.vert[mv+kv +1] = xy.y;
@@ -2643,7 +2695,7 @@ void renderButtons()
 						GL_FALSE, 0, p->pmenu.items[p->pmenu.nitems-1].tex );   //nitems -1 should be the blank texture
 			glEnableVertexAttribArray ( p->positionLoc );
 			glEnableVertexAttribArray ( p->texCoordLoc );
-			glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
+			glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_INT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
 		}
 		// render triangles
 
@@ -2664,7 +2716,7 @@ void renderButtons()
 		glUniform4f(p->color4fLoc,colorButtonIcon[0],colorButtonIcon[1],colorButtonIcon[2],colorButtonIcon[3]);
 		glEnableVertexAttribArray ( p->positionLoc );
 		glEnableVertexAttribArray ( p->texCoordLoc );
-		glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
+		glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_INT, p->pmenu.ind ); //first 6 should be 0 1 3 0 3 2
 
 		/* old one-shot
 		// Load the vertex position
@@ -2704,7 +2756,7 @@ GLfloat cursorTex[] = {
 	0.0f, 0.0f,
 	1.0f, 1.0f,
 	1.0f, 0.0f};
-	GLushort ind[] = {0,1,2,3,4,5};
+	GLuint ind[] = {0,1,2,3,4,5};
 	//GLint pos, tex;
 	FXY fxy;
 	XY xy;
@@ -2762,7 +2814,7 @@ GLfloat cursorTex[] = {
 
 	// Set the base map sampler to texture unit to 0
 	glUniform1i ( p->textureLoc, 0 );
-	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_SHORT, ind ); //just render the active ones
+	glDrawElements ( GL_TRIANGLES, 3*2, GL_UNSIGNED_INT, ind ); //just render the active ones
 
 	//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -2848,13 +2900,20 @@ void updateSBHRows(){
 	ppstatusbar p;
 	ttglobal tg = gglobal();
 	p = (ppstatusbar)tg->statusbar.prv;
-	//I think there's a 5 pixel lead gap, 2x=10
-	if(p->vport.W < ((p->buttonSize * p->pmenu.nbitems) + 10)){ 
-		p->buttonRows = 2;
-		p->statusBarRows = 1; //not sure I need 2
-	}else{
+	//called after update_density() set the nominal button size.
+	//Keep one row of buttons, shrunk to fit the window width down to 3/4 of the nominal size;
+	//narrower windows (phones, portrait) stack two rows, shrunk if needed to fit.
+	int n = p->pmenu.nbitems;
+	int nominal = p->buttonSize;
+	p->statusBarRows = 1;
+	if(n <= 0 || p->vport.W >= nominal * n){
 		p->buttonRows = 1;
-		p->statusBarRows = 1;
+	}else if(p->vport.W / n >= (nominal * 3) / 4){
+		p->buttonRows = 1;
+		p->buttonSize = p->vport.W / n;
+	}else{
+		p->buttonRows = 2;
+		p->buttonSize = min(nominal, p->vport.W / ((n + 1) / 2));
 	}
 }
 int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
@@ -2960,7 +3019,7 @@ int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
 				//if( p->screenHeight - mouseYY > 0 ){
 				if(overMenubar(p,mouseY)){
 					//setArrowCursor();
-					if(showAction(p, ACTION_HELP)){
+					if(TRUE || showAction(p, ACTION_HELP)) {
 						int ib_over;
 						ib_over = handleButtonOver(mouseX,mouseYY);
 						if(ib_over > -1)
@@ -2976,6 +3035,7 @@ int handleStatusbarHud1(int mev, int butnum, int mouseX, int mouseY, int windex)
 			else
 			{
 				p->showButtons = p->menubar_pinned;
+				update_status(NULL);
 			}
 		}
 		//if(p->showOptions)
@@ -3078,6 +3138,7 @@ int statusbar_getClipPlane(){
 
 }
 char *getDistBar();
+
 void drawStatusBar() 
 {
 	/* drawStatusBar() is called just before swapbuffers in mainloop so anything that you want to render 2D
@@ -3200,48 +3261,60 @@ M       void toggle_collision()                             //"
 			sblen -= 4; //FPS chars - (9+7); //get number of chars left after touch status and vp status
 			sslen = 0;
 			{
+				char *ppss = getSensorStatus();
 				pp = get_status(); // p->buffer;
 				/* print status bar text - things like PLANESENSOR */
 				//printString2(-1.0f + xy.x*5.0f, side_bottom_f, pp);
 				sslen = strlen(pp);
+				if (!sslen) {
+					pp = ppss;
+					sslen = strlen(ppss);
+				}
 				printString2(-1.0f, side_bottom_f, pp);
 				p->hadString = 1;
 			}
 			{
-				int len, istart,istart1,ilen,lenk,lenkk;
+				int len, istart, istart1, ilen, lenk, lenkk; // , bound, reachable, count, index;
 				char *strfps, *strdist, *strstatus, *strAkeys;
-				
+				//static char statusplus[100], splus[20];
 				//squeeze status and optionally keychord into remaining space
 				strAkeys = fwl_getKeyChord(); //keychord like YAWZ or YAWPITCH
 				lenkk = lenk = strlen(strAkeys); //9 maximum
 
 				strstatus = getMenuStatus(); //viewpoint name, other status
-				len = strlen(strstatus);
-				ilen = len;
+				//strstatus = fwl_requestedVPname(&bound, &reachable,&count,&index);
+				//if (strstatus) {
+					len = strlen(strstatus);
+					//memcpy(statusplus, strstatus, len + 1);
+					//sprintf(splus, " %c%c %d/%d", bound ? 'B' : '_', reachable ? 'R' : '_', index, count);
+					//strcat(statusplus, splus);
+					//len = strlen(statusplus);
+					ilen = len;
 
-				istart1 = sslen +1; //minimum start location
-				if(max(istart1,35) + len + 9 < sblen) {
-					lenkk = 9; //lots of room for keychord and status
-					istart = max(istart1,35);
-				}else if(istart1 + len + 9 < sblen){
-					lenkk = 9;
-					istart = istart1;
-				}else if(istart1 + len + lenkk < sblen){
-					istart = istart1;
-					lenkk= lenkk;
-				}else if(p->buttonRows == 2){
-					istart = istart1;
-					lenkk = 0; //mobile portrait, don't need keychord
-					ilen = sblen - istart;
-				}else{
-					istart = istart1;
-					lenkk = lenkk;
-					ilen = sblen - istart - lenkk;
-				}
-				//istart2 = min(35,sblen - len);
-				//istart = max(istart1, istart2);
-				//ilen = max(0,min(len,sblen-istart));
-				printString3(-1.0f + xy.x*istart, side_bottom_f, strstatus,ilen);
+					istart1 = sslen +1; //minimum start location
+					if(max(istart1,35) + len + 9 < sblen) {
+						lenkk = 9; //lots of room for keychord and status
+						istart = max(istart1,35);
+					}else if(istart1 + len + 9 < sblen){
+						lenkk = 9;
+						istart = istart1;
+					}else if(istart1 + len + lenkk < sblen){
+						istart = istart1;
+						lenkk= lenkk;
+					}else if(p->buttonRows == 2){
+						istart = istart1;
+						lenkk = 0; //mobile portrait, don't need keychord
+						ilen = sblen - istart;
+					}else{
+						istart = istart1;
+						lenkk = lenkk;
+						ilen = sblen - istart - lenkk;
+					}
+					//istart2 = min(35,sblen - len);
+					//istart = max(istart1, istart2);
+					//ilen = max(0,min(len,sblen-istart));
+					printString3(-1.0f + xy.x * istart, side_bottom_f, strstatus, ilen);
+				//}
 
 				if(lenkk){
 					//on mobile, you tend not to use keychords - just touch, and in portrait, with statusBarRows == 1 its too crowded

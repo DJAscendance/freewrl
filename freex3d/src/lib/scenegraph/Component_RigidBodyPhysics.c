@@ -988,19 +988,19 @@ void rbp_run_physics(){
 							mask |= dContactBounce;
 						}else if(!strcmp(ap,"USER_FRICTION")){
 							mask |= dContactFDir1;
-						}else if(!strcmp(ap,"FRICTION_COEFFICIENT-2")){
+						}else if(!strcmp(ap,"FRICTION_COEFFICIENT-2") || !strcmp(ap, "FRICTION_COEFFICIENT_2")){
 							mask |= dContactMu2;
 						}else if(!strcmp(ap,"ERROR_REDUCTION")){
 							mask |= dContactSoftERP;
 						}else if(!strcmp(ap,"CONSTANT_FORCE")){
 							mask |= dContactSoftCFM;
-						}else if(!strcmp(ap,"SPEED-1")){
+						}else if(!strcmp(ap,"SPEED-1") || !strcmp(ap, "SPEED_1")){
 							mask |= dContactMotion1;
-						}else if(!strcmp(ap,"SPEED-2")){
+						}else if(!strcmp(ap,"SPEED-2") || !strcmp(ap, "SPEED_2")){
 							mask |= dContactMotion2;
-						}else if(!strcmp(ap,"SLIP-1")){
+						}else if(!strcmp(ap,"SLIP-1") || !strcmp(ap, "SLIP_1")){
 							mask |= dContactSlip1;
-						}else if(!strcmp(ap,"SLIP-2")){
+						}else if(!strcmp(ap,"SLIP-2") || !strcmp(ap, "SLIP_2")){
 							mask |= dContactSlip2;
 						}
 					}
@@ -1430,8 +1430,14 @@ void rbp_run_physics(){
 									veccopy3f(jnt->__old_axis2.c,jnt->axis2.c);
 								}
 								jnt->_forceout = forceout_from_names(jnt->forceOutput.n,jnt->forceOutput.p);
-								dJointSetHinge2Param (jnt->_joint,dParamBounce1,jnt->stopBounce1);
-								dJointSetHinge2Param (jnt->_joint,dParamStopERP1,jnt->stopErrorCorrection1);
+								if (X3D_PROTO(jnt->_executionContext)->__specversion >= 400) {
+									dJointSetHinge2Param(jnt->_joint, dParamBounce1, jnt->stop1Bounce);
+									dJointSetHinge2Param(jnt->_joint, dParamStopERP1, jnt->stop1ErrorCorrection);
+								}
+								else {
+									dJointSetHinge2Param(jnt->_joint, dParamBounce1, jnt->stopBounce1);
+									dJointSetHinge2Param(jnt->_joint, dParamStopERP1, jnt->stopErrorCorrection1);
+								}
 								dJointSetHinge2Param (jnt->_joint,dParamSuspensionERP,jnt->suspensionErrorCorrection);
 								dJointSetHinge2Param (jnt->_joint,dParamSuspensionCFM,jnt->suspensionForce);
 
@@ -2043,7 +2049,6 @@ void prep_CollidableShape(struct X3D_Node *_node){
 				if (node->__do_rotation) {
 					FW_GL_ROTATE_RADIANS(node->rotation.c[3], node->rotation.c[0],node->rotation.c[1],node->rotation.c[2]);
 				}
-				RECORD_DISTANCE
 			}
 		}
 	}

@@ -29,26 +29,26 @@ General header for VRML-parser (lexer/parser)
 #define __FREEWRL_CPARSE_GENERAL_H__
 
 /* Typedefs for VRML-types. */
-typedef int	vrmlBoolT;
-typedef struct SFColor	vrmlColorT;
-typedef struct SFColorRGBA	vrmlColorRGBAT;
 typedef float	vrmlFloatT;
+typedef int	    vrmlBoolT;
 typedef int 	vrmlInt32T;
-typedef struct Multi_Int32	vrmlImageT;
-typedef struct X3D_Node*	vrmlNodeT;
-typedef struct SFRotation	vrmlRotationT;
-typedef struct Uni_String*	vrmlStringT;
 typedef double	vrmlTimeT;
 typedef double	vrmlDoubleT;
+typedef struct X3D_Node* vrmlNodeT;
+typedef struct SFColor	vrmlColorT;
+typedef struct SFColorRGBA	vrmlColorRGBAT;
+typedef struct SFRotation	vrmlRotationT;
 typedef struct SFVec2f	vrmlVec2fT;
+typedef struct SFVec3f	vrmlVec3fT;
+typedef struct SFVec4f	vrmlVec4fT;
 typedef struct SFVec2d	vrmlVec2dT;
 typedef struct SFVec3d  vrmlVec3dT;
-typedef struct SFVec4f	vrmlVec4fT;
 typedef struct SFVec4d	vrmlVec4dT;
-typedef struct SFColor	vrmlVec3fT;
+typedef struct Uni_String* vrmlStringT;
+typedef struct SFImage	vrmlImageT;
 typedef struct SFMatrix3f	vrmlMatrix3fT;
-typedef struct SFMatrix3d vrmlMatrix3dT;
 typedef struct SFMatrix4f	vrmlMatrix4fT;
+typedef struct SFMatrix3d vrmlMatrix3dT;
 typedef struct SFMatrix4d vrmlMatrix4dT;
 
 /* This is an union to hold every vrml-type */

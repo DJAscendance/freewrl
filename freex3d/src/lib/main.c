@@ -78,12 +78,6 @@ void fwl_OSX_initializeParameters(const char* initialURL) {
 		myParams.verbose = FALSE;
 
 		/* Default values */
-#ifdef OLDCODE
-		OLDCODE fwl_setp_height(400);
-		OLDCODE fwl_setp_eai(FALSE);
-		OLDCODE fwl_setp_fullscreen(FALSE);
-
-#endif //OLDCODE
 		ConsoleMessage("forcing EAI");
 		myParams.enableEAI = TRUE;
 
@@ -175,33 +169,6 @@ char *strForeslash2back(char *str) {
 #endif
 	return str;
 }
-
-#ifdef OLDCODE
-
-Sept 23 2013
-With Doug Sanden (correctly) moving FreeWRL to multi-invocation, the global parameter "fwl_params"
-is now local, and options are set within this. 
-
-OLDCODEvoid fwl_setp_width		(int foo)	{ fwl_params.width = foo; }
-OLDCODEvoid fwl_setp_height		(int foo)	{ fwl_params.height = foo; }
-OLDCODEvoid fwl_setp_winToEmbedInto	(void* foo)	{ fwl_params.winToEmbedInto = foo; }
-OLDCODEvoid fwl_setp_fullscreen	(bool foo)	{ fwl_params.fullscreen = foo; }
-OLDCODEvoid fwl_setp_multithreading	(bool foo)	{ fwl_params.multithreading = foo; }
-OLDCODEvoid fwl_setp_eai		(bool foo)	{ fwl_params.enableEAI = foo; }
-OLDCODEvoid fwl_setp_verbose		(bool foo)	{ fwl_params.verbose = foo; }
-OLDCODE//void fwl_setp_collision		(int foo)	{ fwl_params.collision = foo; }
-OLDCODE
-OLDCODEint	fwl_getp_width		(void)	{ return fwl_params.width; }
-OLDCODEint	fwl_getp_height		(void)	{ return fwl_params.height; }
-OLDCODElong int fwl_getp_winToEmbedInto (void)	{ return fwl_params.winToEmbedInto; }
-OLDCODEbool	fwl_getp_fullscreen	(void)	{ return fwl_params.fullscreen; }
-OLDCODEbool	fwl_getp_multithreading	(void)	{ return fwl_params.multithreading; }
-OLDCODEbool	fwl_getp_eai		(void)	{ return fwl_params.enableEAI; }
-OLDCODEbool	fwl_getp_verbose	(void)	{ return fwl_params.verbose; }
-OLDCODE//int	fwl_getp_collision	(void)	{ return fwl_params.collision; }
-OLDCODE
-OLDCODE//static ttglobal fwl_instance_parameters = NULL;
-#endif //OLDCODE
 
 void* fwl_init_instance() {
 
@@ -311,6 +278,37 @@ void splitpath_local_suffix(const char *url, char **local_name, char **suff) {
 				if (localname[i] == '.') {
 					localname[i] = '\0';
 					*suff = STRDUP(&localname[i+1]);
+					break;
+				}
+			}
+		}
+	}
+}
+void splitpath3(const char* url, char** folder, char** local_name, char** suff) {
+	//takes a http or file path, and gives back just the scene name and suffix
+	//ie file://E:/tests/1.wrl -> local_name = "1" suff = "wrl"
+	*local_name = NULL;
+	*suff = NULL;
+	if (url) {
+		int i, len;
+		char* localname;
+		len = (int)strlen(url);
+		localname = NULL;
+		for (i = len - 1; i >= 0; i--) {
+			if (url[i] == '/')
+				break;
+			localname = (char*)&url[i];
+		}
+		*folder = strndup(url, i);
+		if (localname) {
+			*local_name = STRDUP(localname);
+			localname = *local_name;
+			len = (int)strlen(localname);
+			*suff = NULL;
+			for (i = len - 1; i >= 0; i--) {
+				if (localname[i] == '.') {
+					localname[i] = '\0';
+					*suff = STRDUP(&localname[i + 1]);
 					break;
 				}
 			}

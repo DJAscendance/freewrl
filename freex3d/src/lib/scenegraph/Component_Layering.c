@@ -32,6 +32,7 @@ X3D Layering Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "LinearAlgebra.h"
 
 #include "../x3d_parser/Bindable.h"
 #include "Children.h"
@@ -280,8 +281,12 @@ void child_LayerSet(struct X3D_Node * node){
 			}
 
 			layerId = layerset->order.p[ii];
-			isActive = layerId == tg->Bindable.activeLayer;
+			//check if its a valid ordinal 
 			i0 = max(0,layerId -1);
+			if(i0 < 0 || i0 > layerset->layers.n -1) 
+				continue; //skip if we don't have an ordinal to match
+
+			isActive = layerId == tg->Bindable.activeLayer;
 			layer = (struct X3D_Layer*)layerset->layers.p[i0];
 
 			if(rs->render_sensitive == VF_Sensitive){
@@ -377,6 +382,54 @@ void child_LayerSet(struct X3D_Node * node){
 // pre: push vport
 // render: render itself 
 // post/fin: pop vport
+// Apr 2020 - decided to put in some isotropic scale correction - like STRETCH for the LayoutLayer
+// just looks at the current and parent viewports to see any change of aspect, and corrects for it
+void pushaspect(Stack *vportstack, ivec4 vport){
+	ivec4 lastp = stack_top(ivec4,vportstack); //parent context viewport
+	float aspect_last = (float)lastp.W/(float)lastp.H;
+	float aspect = (float)vport.W/(float)vport.H;
+	double change = aspect/aspect_last;
+	double mat[16], mat2[16];
+	if(1){
+		//apply aspect-change-stretch-scale to projection matrix
+		fw_glGetDoublev(GL_PROJECTION_MATRIX, mat);
+		FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_PUSH_MATRIX();
+		loadIdentityMatrix(mat2);
+		if(change > 0.0)
+			mat2[0] = 1.0/change;
+		matmultiplyFULL(mat,mat,mat2);
+		fw_glSetDoublev(GL_PROJECTION_MATRIX, mat);
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+
+	}else{
+		//or apply to modelview matrix
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		fw_glGetDoublev(GL_MODELVIEW_MATRIX, mat);
+		FW_GL_PUSH_MATRIX();
+		loadIdentityMatrix(mat2);
+		if(change > 0.0)
+			mat2[0] = 1.0/change;
+			//matscale(mat2,1.0,1.0,1.0);
+		matmultiplyFULL(mat,mat,mat2);
+		fw_glSetDoublev(GL_MODELVIEW_MATRIX, mat);
+
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	}
+}
+void popaspect(){
+	if(1){
+		//apply aspect-change-stretch-scale to projection matrix
+		FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_POP_MATRIX();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	}else{
+		//or apply to modelview matrix
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_POP_MATRIX();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+	}
+}
 void prep_Viewport(struct X3D_Node * node){
 	if(node && node->_nodeType == NODE_Viewport){
 		Stack *vportstack;
@@ -413,6 +466,7 @@ void prep_Viewport(struct X3D_Node * node){
 					vport.H = 0;
 				}
 			}
+			pushaspect(vportstack,vport);
 			pushviewport(vportstack, vport);
 			if(currentviewportvisible(vportstack)){
 				setcurrentviewport(vportstack);
@@ -423,19 +477,22 @@ void prep_Viewport(struct X3D_Node * node){
 
 }
 
-void child_Viewport(struct X3D_Node * node){
-	if(node && node->_nodeType == NODE_Viewport){
+void child_Viewport(struct X3D_Node * nodein){
+	if(nodein && nodein->_nodeType == NODE_Viewport){
 		Stack *vportstack;
-		struct X3D_Viewport * viewport;
+		struct X3D_Viewport * viewport, *node;
 		ttglobal tg;
 		tg = gglobal();
 
-		viewport = (struct X3D_Viewport *)node;
+		viewport = node = (struct X3D_Viewport *)nodein;
+
 		vportstack = (Stack *)tg->Mainloop._vportstack;
 
 		if(currentviewportvisible(vportstack)){
 			prep_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
+			prep_BBox((struct BBoxFields*)&node->bboxCenter);
 			normalChildren(viewport->children);
+			fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
 			fin_sibAffectors((struct X3D_Node*)node,&viewport->__sibAffectors);
 		}
 	}
@@ -459,6 +516,7 @@ void fin_Viewport(struct X3D_Node * node){
 			vportstack = (Stack *)tg->Mainloop._vportstack;
 
 			//pop viewport
+			popaspect();
 			popviewport(vportstack);
 			setcurrentviewport(vportstack);
 			upd_ray();

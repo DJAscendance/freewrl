@@ -79,8 +79,8 @@ union {
 	struct elements {
 		int elements_mode;
 		int elements_count;
-		//GLenum elements_type;
-		ushort *elements_indices;
+		GLenum elements_type;
+		void *elements_indices;
 	} elements;
 };
 } draw_call_params;
@@ -89,29 +89,7 @@ typedef struct pRenderFuncs{
 	int profile_entry_count;
 	struct profile_entry profile_entries[100];
 	int profiling_on;
-	float light_linAtten[MAX_LIGHT_STACK];
-	float light_constAtten[MAX_LIGHT_STACK];
-	float light_quadAtten[MAX_LIGHT_STACK];
-	float light_spotCutoffAngle[MAX_LIGHT_STACK];
-	float light_spotBeamWidth[MAX_LIGHT_STACK];
-	shaderVec4 light_amb[MAX_LIGHT_STACK];
-	shaderVec4 light_dif[MAX_LIGHT_STACK];
-	shaderVec4 light_pos[MAX_LIGHT_STACK];
-	shaderVec4 light_spec[MAX_LIGHT_STACK];
-	shaderVec4 light_spotDir[MAX_LIGHT_STACK];
-    float light_radius[MAX_LIGHT_STACK];
-	GLint lightType[MAX_LIGHT_STACK]; //0=point 1=spot 2=directional
-	/* Rearrange to take advantage of headlight when off */
-	int nextFreeLight;// = 0;
-	int refreshLightUniforms;
-	unsigned int currentLoop;
-	unsigned int lastLoop;
-	unsigned int sendCount;
-	//int firstLight;//=0;
-	/* lights status. Light HEADLIGHT_LIGHT is the headlight */
-	GLint lightOnOff[MAX_LIGHT_STACK];
-	GLint lightChanged[MAX_LIGHT_STACK]; //optimization
-	GLint lastShader;
+
 	//int cur_hits;//=0;
 	void *empty_group;//=0;
 	//struct point_XYZ ht1, ht2; not used
@@ -121,7 +99,8 @@ typedef struct pRenderFuncs{
 	struct Vector *libraries; //vector of extern proto library scenes in X3D_Proto format that are parsed shallow (not instanced scenes) - the library protos will be in X3D_Proto->protoDeclares vector
 	struct X3D_Anchor *AnchorsAnchor;// = NULL;
 	struct currayhit rayHit; //,rayHitHyper;
-	struct trenderstate renderstate;
+	//struct trenderstate renderstate;
+	Stack* renderstate;
 	int renderLevel;
 
 	// which Shader is currently in use?
@@ -131,7 +110,7 @@ typedef struct pRenderFuncs{
 	Stack *ray_stack;
 	Stack *shaderflags_stack;
 	Stack *fog_stack;
-	Stack *localLight_stack;
+	Stack* ectx_stack; //executionContext
 
 	//struct point_XYZ t_r1,t_r2,t_r3; /* transformed ray */
 	struct point_XYZ3 t_r123;
@@ -167,12 +146,7 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		ppRenderFuncs p = (ppRenderFuncs)t->prv;
 		p->profile_entry_count = 0;
 		p->profiling_on = 0; //toggle on with '.' on keyboard
-		/* which arrays are enabled, and defaults for each array */
-		/* Rearrange to take advantage of headlight when off */
-		p->nextFreeLight = 0;
-		p->refreshLightUniforms = 0;
-		//p->firstLight = 0;
-		//p->cur_hits=0;
+
 		p->empty_group=0;
 		p->rootNode=NULL;	/* scene graph root node */
 		p->libraries=newVector(void3 *,1);
@@ -180,10 +154,10 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		t->rayHit = (void *)&p->rayHit;
 		//t->rayHitHyper = (void *)&p->rayHitHyper;
 		p->renderLevel = 0;
-		p->lastShader = -1;
-		p->currentLoop = 0;
-		p->lastLoop = 10000000;
-		p->sendCount = 0;
+		p->renderstate = newStack(struct trenderstate);
+		struct trenderstate ttr;
+		memset(&ttr, 0, sizeof(struct trenderstate));
+		stack_push(struct trenderstate, p->renderstate, ttr);
 		p->render_geom_stack = newStack(int);
 		p->sensor_stack = newStack(struct currayhit);
 		p->ray_stack = newStack(struct point_XYZ3);
@@ -192,7 +166,7 @@ void RenderFuncs_init(struct tRenderFuncs *t){
 		p->pickablegroupdata_stack = newStack(void*);
 		p->shaderflags_stack = newStack(shaderflagsstruct); //newStack(unsigned int);
 		p->fog_stack = newStack(struct X3D_Node*);
-		p->localLight_stack = newStack(int);
+		p->ectx_stack = newStack(struct X3D_Node*);
 		p->draw_call_params_stack = newStack(draw_call_params);
 		//t->t_r123 = (void *)&p->t_r123;
 		t->hp = (void *)&p->hp;
@@ -358,7 +332,6 @@ void RenderFuncs_clear(struct tRenderFuncs *t){
 	//deleteVector(unsigned int,p->shaderflags_stack);
 	deleteVector(shaderflagsstruct,p->shaderflags_stack);
 	deleteVector(struct X3D_Node*,p->fog_stack);
-	deleteVector(int,p->localLight_stack);
 	deleteVector(draw_call_params,p->draw_call_params_stack);
 }
 void unload_libraryscenes(){
@@ -393,95 +366,44 @@ void unload_libraryscenes(){
 		p->libraries->n = 0;
 	}
 }
-void clearLightTable(){ //unsigned int loop_count){
-	//int i;
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->nextFreeLight = 0;
-	//p->currentLoop = loop_count;
-	p->sendCount = 0;
-	//for(i=0;i<MAX_LIGHT_STACK;i++){
-	//	p->lightChanged[i] = 0;
-	//}
-}
-/* we assume max MAX_LIGHTS lights. The max light is the Headlight, so we go through 0-HEADLIGHT_LIGHT for Lights */
-int nextlight() {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	int rv = p->nextFreeLight;
-	if(rv == HEADLIGHT_LIGHT) { 
-		return -1; 
+
+void transformPositionToEye(float *pos)
+{
+	int i;
+    GLDOUBLE modelMatrix[16], *b;
+	float *a;
+	float aux[4];
+    FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
+
+    /* pre-multiply the light position, as per the orange book, page 216,
+     "OpenGL specifies that light positions are transformed by the modelview
+     matrix when they are provided to OpenGL..." */
+    /* DirectionalLight?  PointLight, SpotLight? */
+
+	// assumes pos[3] = 0.0; only use first 3 of these numbers
+	transformf(aux,pos,modelMatrix);
+
+	for(i=0;i<3;i++){
+		pos[i] = aux[i];
 	}
-	p->lightChanged[rv] = 0;
-	p->nextFreeLight ++;
-	return rv;
 }
 
-/* lightType 0=point 1=spot 2=directional */
-void setLightType(GLint light, int type) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    p->lightType[light] = type;
-}
-void setLightChangedFlag(GLint light) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    p->lightChanged[light] = 1;
-}
+void transformDirectionToEye(float *dir)
+{
+	int i;
+    GLDOUBLE modelMatrix[16], *b;
+	float *a;
+	float aux[4];
+    FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, modelMatrix);
 
-/* keep track of lighting */
-void setLightState(GLint light, int status) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    //ConsoleMessage ("start lightState, light %d, status %d\n",light,status);
-
-    
-    PRINT_GL_ERROR_IF_ANY("start lightState");
-
-	if (light<0) return; /* nextlight will return -1 if too many lights */
-	p->lightOnOff[light] = status;
-    PRINT_GL_ERROR_IF_ANY("end lightState");
+	b = modelMatrix;
+	a = dir;
+	aux[0] = (float) (b[0]*a[0] +b[4]*a[1] +b[8]*a[2] );
+	aux[1] = (float) (b[1]*a[0] +b[5]*a[1] +b[9]*a[2] );
+	aux[2] = (float) (b[2]*a[0] +b[6]*a[1] +b[10]*a[2]);
+	for(i=0;i<3;i++)
+		dir[i] = aux[i];
 }
-
-/* for local lights, we keep track of what is on and off */
-void saveLightState2(int *last) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	*last = p->nextFreeLight;
-} 
-
-void restoreLightState2(int last) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->nextFreeLight = last;
-}
-void refreshLightUniforms(){
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	p->refreshLightUniforms = TRUE;
-}
-int numberOfLights(){
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	int rv = p->nextFreeLight;
-	return rv;
-}
-
-int getLocalLight(){
-	//return top-of-stack Fog or LocalFog
-	int retval = 0;
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	if(p->localLight_stack->n)
-		retval = stack_top(int,p->localLight_stack);
-	return retval;
-}
-void pushLocalLight(int lastlight){
-	//at root level, before render_hier, any bound Fog node
-	//and pop after render_hier
-	//for prep_LocalFog you would call this to push (and pop in fin_LocalFog)
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_push(int,p->localLight_stack,lastlight);
-}
-void popLocalLight(){
-	//
-	ttglobal tg = gglobal();
-	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_pop(int,p->localLight_stack);
-}
-
 
 void transformLightToEye(float *pos, float* dir)
 {
@@ -513,7 +435,7 @@ auxt[0],auxt[1],auxt[2],auxt[3],
 pos[0],pos[1],pos[2],pos[3]);
 */
 
-	for(i=0;i<4;i++){
+	for(i=0;i<3;i++){
 		pos[i] = auxt[i];
 	}
 	b = modelMatrix;
@@ -529,212 +451,6 @@ pos[0],pos[1],pos[2],pos[3]);
 
 }
 
-void fwglLightfv (int light, int pname, GLfloat *params) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	/*printf ("fwglLightfv light: %d ",light);
-	switch (pname) {
-		case GL_AMBIENT: printf ("GL_AMBIENT"); break;
-		case GL_DIFFUSE: printf ("GL_DIFFUSE"); break;
-		case GL_POSITION: printf ("GL_POSITION"); break;
-		case GL_SPECULAR: printf ("GL_SPECULAR"); break;
-		case GL_SPOT_DIRECTION: printf ("GL_SPOT_DIRECTION"); break;
-        case GL_LIGHT_RADIUS: printf ("GL_LIGHT_RADIUS"); break;
-	}
-	printf (" %f %f %f %f\n",params[0], params[1],params[2],params[3]);
-     */
-    
-	//printLTDebug(__FILE__,__LINE__);
-
-
-	switch (pname) {
-		case GL_AMBIENT:
-			memcpy ((void *)p->light_amb[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_DIFFUSE:
-			memcpy ((void *)p->light_dif[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_POSITION:
-			memcpy ((void *)p->light_pos[light],(void *)params,sizeof(shaderVec4));
-			//the following function call assumes spotdir has already been set - set it first from render_light
-
-/*
-ConsoleMessage("fwglLightfv - NOT transforming pos %3.2f %3.2f %3.2f %3.2f spd %3.2f %3.2f %3.2f %3.2f",
-			p->light_pos[light][0],
-			p->light_pos[light][1],
-			p->light_pos[light][2],
-			p->light_pos[light][3],
-			p->light_spotDir[light][0],
-			p->light_spotDir[light][1],
-			p->light_spotDir[light][2],
-			p->light_spotDir[light][3]);
-*/
-			if (light != HEADLIGHT_LIGHT)  transformLightToEye(p->light_pos[light], p->light_spotDir[light]);
-			break;
-		case GL_SPECULAR:
-			memcpy ((void *)p->light_spec[light],(void *)params,sizeof(shaderVec4));
-			break;
-		case GL_SPOT_DIRECTION:
-			//call spot_direction before spot_position, so direction gets transformed above in spot position
-			memcpy ((void *)p->light_spotDir[light],(void *)params,sizeof(shaderVec4));
-			break;
-		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
-	}
-}
-
-void fwglLightf (int light, int pname, GLfloat param) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-
-#ifdef RENDERVERBOSE
-	printf ("fwglLightf light: %d ",light);
-	switch (pname) {
-		case GL_CONSTANT_ATTENUATION: printf ("GL_CONSTANT_ATTENUATION"); break;
-		case GL_LINEAR_ATTENUATION: printf ("GL_LINEAR_ATTENUATION"); break;
-		case GL_QUADRATIC_ATTENUATION: printf ("GL_QUADRATIC_ATTENUATION"); break;
-		case GL_SPOT_CUTOFF: printf ("GL_SPOT_CUTOFF"); break;
-		case GL_SPOT_BEAMWIDTH: printf ("GL_SPOT_BEAMWIDTH"); break;
-	}
-	printf (" %f\n",param);
-#endif
-	
-    
-	switch (pname) {
-		case GL_CONSTANT_ATTENUATION:
-			p->light_constAtten[light] = param;
-			break;
-		case GL_LINEAR_ATTENUATION:
-			p->light_linAtten[light] = param;
-			break;
-		case GL_QUADRATIC_ATTENUATION:
-			p->light_quadAtten[light] = param;
-			break;
-		case GL_SPOT_CUTOFF:
-			p->light_spotCutoffAngle[light] = param;
-            //ConsoleMessage ("setting light_spotCutoffAngle for %d to %f\n",light,param);
-			break;
-		case GL_SPOT_BEAMWIDTH:
-			p->light_spotBeamWidth[light] = param;
-            //ConsoleMessage ("setting light_spotBeamWidth for %d to %f\n",light,param);
-
-			break;
-        case GL_LIGHT_RADIUS:
-            p->light_radius[light] = param;
-            break;
-
-		default: {printf ("help, unknown fwgllightfv param %d\n",pname);}
-	}
-}
-
-
-/* send light info into Shader. if OSX gets glGetUniformBlockIndex calls, we can do this with 1 call 
-	On old pentium with old board in old PCI slot, 8 lights take 1050bytes and 12% of mainloop load
-	3 optimizations reduce the light sending traffic:
-	1. send only active lights 
-		-Android had a problem on startup with this, I changed the flavor a bit - lets see if it works now
-		-cuts from 12% of loop to 4%
-	2. for an active light, send only parameters that light type needs in the shader calc
-		-cuts from 4% of loop to 3%
-	3. if the active light set and shader haven't changed since last shape, don't resend any lights.
-		(active light sets can change during scene graph traversal. But a light itself doesn't change
-		settings during traversal. Just during routing and scripting. So in render_heir 
-		lastShader is set to -1 to trigger a fresh send.
-		- cuts from 3% of loop to .5%
-
-*/
-void sendLightInfo (s_shader_capabilities_t *me) {
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-    int i,j, lightcount, lightsChanged;
-	int lightIndexesToSend[MAX_LIGHTS];
-    		
-	// in case we are trying to render a node that has just been killed...
-	if (me==NULL) return;
-
-	PRINT_GL_ERROR_IF_ANY("BEGIN sendLightInfo");
-	/* if one of these are equal to -1, we had an error in the shaders... */
-	//Optimization 3>> if the shader and lights haven't changed since the last shape,
-	//then don't resend the lights to the shader
-	if(0){
-		lightsChanged = FALSE;
-		for(i=0;i<MAX_LIGHT_STACK;i++){
-			if(p->lightChanged[i]) lightsChanged = TRUE;
-		}
-		if(!lightsChanged && (p->currentShader == p->lastShader)) 
-			return;
-		p->lastShader = p->currentShader;
-		//p->lastLoop = p->currentLoop;
-		//p->sendCount++;
-	}
-	//<<end optimization 3
-	profile_start("sendlight");
-	//GLUNIFORM1I(me->lightcount,lightcount);
-	//GLUNIFORM1IV(me->lightState,MAX_LIGHTS,p->lightOnOff); //don't need with lightcount
-	//GLUNIFORM1IV(me->lightType,MAX_LIGHTS,p->lightType); //need to pack into light struct
-    //GLUNIFORM1FV(me->lightRadius,MAX_LIGHTS,p->light_radius); //need to pack into lightstruct
-	PRINT_GL_ERROR_IF_ANY("MIDDLE1 sendLightInfo");
-    
-    // send in lighting info, but only for lights that are "on"
-	// reason: at 1100+ bytes per shape for 8 lights, it takes up 11.2% of mainloop activity on an old pentium
-	// so this cuts it down to about 200 bytes per shape if you have a headlight and another light.
-
-	lightcount = 0;
-	lightsChanged = FALSE;
-	//by looping from the top down, we'll give headlight first chance,
-	//then local lights pushed onto the stack
-	//then global lights last chance
-	for(i=MAX_LIGHT_STACK-1;i>-1;i--){
-		if(i==HEADLIGHT_LIGHT || i<p->nextFreeLight){
-			if (p->lightOnOff[i]){
-				lightIndexesToSend[lightcount] = i;
-				lightcount++;
-				lightsChanged = lightsChanged || p->lightChanged[i];
-				if(lightcount >= MAX_LIGHTS) break;
-			}
-		}
-	}
-	if(!lightsChanged && (p->currentShader == p->lastShader) && !p->refreshLightUniforms) 
-			return;
-	p->refreshLightUniforms = FALSE;
-	p->lastShader = p->currentShader;
-    for (j=0;j<lightcount; j++) {
-		i = lightIndexesToSend[j];
-		p->lightChanged[i] = 0;
-		// this causes initial screen on Android to fail.
-		// dug9 - I added another parameter lightcount above and in ADSL shader
-		// and pack the lights ie. moving headlight up here so its at 
-		// lightcount-1 instead of MAX_LIGHTS-1 on the GPU.
-		// LMK if breaks android
-		//0 - pointlight
-		//1 - spotlight
-		//2 - directionlight
-		//save a bit of bandwidth by not sending unused parameters for a light type
-		if(p->lightType[i]<2 ){ //not direction
-			shaderVec4 light_Attenuations;
-			light_Attenuations[0] = p->light_constAtten[i];
-			light_Attenuations[1] = p->light_linAtten[i];
-			light_Attenuations[2] = p->light_quadAtten[i];
-			GLUNIFORM3FV(me->lightAtten[j],1,light_Attenuations);
-			//GLUNIFORM1F (me->lightConstAtten[j], p->light_constAtten[i]);
-			//GLUNIFORM1F (me->lightLinAtten[j], p->light_linAtten[i]);
-			//GLUNIFORM1F(me->lightQuadAtten[j], p->light_quadAtten[i]);
-		}
-		if(p->lightType[i]==1 ){ //spot
-			GLUNIFORM1F(me->lightSpotCutoffAngle[j], p->light_spotCutoffAngle[i]);
-			GLUNIFORM1F(me->lightSpotBeamWidth[j], p->light_spotBeamWidth[i]);
-		}
-		if(p->lightType[i]==0){ //point
-			GLUNIFORM1F(me->lightRadius[j],p->light_radius[i]);
-		}
-		GLUNIFORM4FV(me->lightSpotDir[j],1, p->light_spotDir[i]);
-		GLUNIFORM4FV(me->lightPosition[j],1,p->light_pos[i]);
-		GLUNIFORM4FV(me->lightAmbient[j],1,p->light_amb[i]);
-		GLUNIFORM4FV(me->lightDiffuse[j],1,p->light_dif[i]);
-		GLUNIFORM4FV(me->lightSpecular[j],1,p->light_spec[i]);
-		GLUNIFORM1I(me->lightType[j],p->lightType[i]);
-    }
-	GLUNIFORM1I(me->lightcount,lightcount);
-
-	profile_end("sendlight");
-    PRINT_GL_ERROR_IF_ANY("END sendLightInfo");
-}
 
 /* finished rendering thisshape. */
 void finishedWithGlobalShader(void) {
@@ -789,7 +505,7 @@ void enableGlobalShader(s_shader_capabilities_t *myShader) {
 
 
 /* send in vertices, normals, etc, etc... to either a shader or via older opengl methods */
-void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, float *pointer, int texID, char *file, int line){
+void sendAttribToGPU(int myType, int dataSize, int dataType, int normalized, int stride, void *pointer, int texID, char *file, int line){
 
     s_shader_capabilities_t *me = getAppearanceProperties()->currentShaderProperties;
 
@@ -855,7 +571,19 @@ ConsoleMessage ("myType %d, dataSize %d, dataType %d, stride %d\n",myType,dataSi
 
 		}
 			break;
+		case FW_CINDEX_POINTER_TYPE:
+			if (me->Cindex != -1) {
+				//PRINT_GL_ERROR_IF_ANY("");
 
+				glEnableVertexAttribArray(me->Cindex);
+				//PRINT_GL_ERROR_IF_ANY("");
+				//note I in Attrib I Pointer, opengl 3+, prevents conversion of int to float
+				//https://registry.khronos.org/OpenGL-Refpages/gl4/html/glVertexAttribPointer.xhtml
+				glVertexAttribIPointer(me->Cindex, 1, dataType, stride, pointer);
+				//PRINT_GL_ERROR_IF_ANY("");
+
+			}
+			break;
 		default : {printf ("sendAttribToGPU, unknown type in shader\n");}
 	}
 }
@@ -881,7 +609,7 @@ bool setupShader() {
 }
 void sendFogToShader(s_shader_capabilities_t *me);
 void sendClipplanesToShader(s_shader_capabilities_t *me);
-bool setupShaderB() {
+int setupShaderB() {
 
 	s_shader_capabilities_t *mysp = getAppearanceProperties()->currentShaderProperties;
 
@@ -907,12 +635,20 @@ PRINT_GL_ERROR_IF_ANY("BEGIN setupShader");
 #endif
 
 	/* send along lighting, material, other visible properties */
+	//PRINT_GL_ERROR_IF_ANY("BEFORE sendFogToShader");
 	sendFogToShader(mysp);
-	sendClipplanesToShader(mysp);
-	sendMaterialsToShader(mysp);
-	sendMatriciesToShader(mysp);
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendFogToShader");
 
-	return true;
+	sendClipplanesToShader(mysp);
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendClipplanesToShader");
+
+	sendMaterialsToShader(mysp); //and lights
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendMaterialsToShader");
+
+	sendMatriciesToShader(mysp);
+	//PRINT_GL_ERROR_IF_ANY("AFTER sendMatriciesToShader");
+
+	return TRUE;
 }
 
 // for particlephysics component we want to be able to do:
@@ -935,7 +671,7 @@ void saveArraysForGPU(int mode, int first, int count){
 }
 
 
-void saveElementsForGPU(int mode, int count, ushort *indices){
+void saveElementsForGPU0(int mode, int count, int type, void *indices){
 	//we use a vector/stack because IndexedLineSet and LineSet call several times
 	// for one polyline vbo
 	draw_call_params params;
@@ -947,39 +683,49 @@ void saveElementsForGPU(int mode, int count, ushort *indices){
 	params.elements.elements_count = count;
 	params.elements.elements_mode = mode;
 	params.elements.elements_indices = indices;
+	params.elements.elements_type = type; //can be UNSIGNED_INT or GL_UNSIGNED_SHORT;
 	stack_push(draw_call_params,p->draw_call_params_stack,params);
 }
-
-void reallyDrawOnce(){
+//void saveElementsForGPU(int mode, int count, ushort* indices) {
+//	saveElementsForGPU0(mode, count, GL_UNSIGNED_SHORT,indices);
+//}
+void reallyDrawOnce() {
 	//particle system will call this
 	//H: this might be a bit like glDrawMultiElements - a list of more primitive triangle fans etc that would make up a 3D shape
 	int i;
-	draw_call_params *params;
+	draw_call_params* params;
 	ppRenderFuncs p;
 	ttglobal tg = gglobal();
 	p = (ppRenderFuncs)tg->RenderFuncs.prv;
-
-	for(i=0;i<vectorSize(p->draw_call_params_stack);i++){
-		params = vector_get_ptr(draw_call_params,p->draw_call_params_stack,i);
-		if(params->calltype == 1){
-			// in msvc you can do try catch in flat C, but not recommended in general - use c++
-			// but works when testing/debugging if the video driver is throwing c++ exceptions
-			// because we're sending it junk, to stop it from vapor-crashing 
-			// https://msdn.microsoft.com/en-us/library/1deeycx5.aspx
-			#define CATCH_GLDRAWARRAYS_THROWS 1
-			#if defined(CATCH_GLDRAWARRAYS_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
-			__try {
-				glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
+	int loc_side = glGetUniformLocation(p->currentShader,"material_side");
+	int twosided = getAppearanceProperties()->twosided;
+	int nsides = twosided ? 2 : 1;
+	if (!twosided) glUniform1i(loc_side, 0);
+	for (int k = 0; k < nsides; k++) {
+		if(twosided) glUniform1i(loc_side, k+1); 
+		for (i = 0; i < vectorSize(p->draw_call_params_stack); i++) {
+			params = vector_get_ptr(draw_call_params, p->draw_call_params_stack, i);
+			if (params->calltype == 1) {
+				// in msvc you can do try catch in flat C, but not recommended in general - use c++
+				// but works when testing/debugging if the video driver is throwing c++ exceptions
+				// because we're sending it junk, to stop it from vapor-crashing 
+				// https://msdn.microsoft.com/en-us/library/1deeycx5.aspx
+#define CATCH_GLDRAWARRAYS_THROWS 1
+#if defined(CATCH_GLDRAWARRAYS_THROWS) && defined(_MSC_VER) && defined(W_DEBUG)
+				__try {
+					glDrawArrays(params->arrays.arrays_mode, params->arrays.arrays_first, params->arrays.arrays_count);
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					printf("\n ouch from reallyDrawOnce glDrawArrays \n");
+					printf("i= %d n= %d", i, vectorSize(p->draw_call_params_stack));
+				}
+#else
+				glDrawArrays(params->arrays.arrays_mode, params->arrays.arrays_first, params->arrays.arrays_count);
+#endif
 			}
-			__except(EXCEPTION_EXECUTE_HANDLER) {
-				printf("\n ouch from reallyDrawOnce glDrawArrays \n");
-				printf("i= %d n= %d",i,vectorSize(p->draw_call_params_stack));
+			else if (params->calltype == 2) {
+				glDrawElements(params->elements.elements_mode, params->elements.elements_count, params->elements.elements_type, params->elements.elements_indices);
 			}
-			#else
-			glDrawArrays(params->arrays.arrays_mode,params->arrays.arrays_first,params->arrays.arrays_count);
-			#endif
-		}else if(params->calltype == 2){
-			glDrawElements(params->elements.elements_mode,params->elements.elements_count,GL_UNSIGNED_SHORT,params->elements.elements_indices);
 		}
 	}
 	//p->draw_call_params_stack->n = 0;
@@ -1026,7 +772,7 @@ void sendArraysToGPU (int mode, int first, int count) {
 
 
 
-void sendElementsToGPU (int mode, int count, ushort *indices) {
+void sendElementsToGPU (int mode, int count, int *indices) {
     #ifdef RENDERVERBOSE
 	printf ("sendElementsToGPU start\n"); 
     #endif
@@ -1034,7 +780,7 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 	if (setupShader()){
 		profile_start("draw_el");
 //        glDrawElements(mode,count,GL_UNSIGNED_SHORT,indices);
-		saveElementsForGPU(mode,count,indices);
+		saveElementsForGPU0(mode,count,GL_UNSIGNED_INT, indices);
 		profile_end("draw_el");
 	}
 
@@ -1044,50 +790,21 @@ void sendElementsToGPU (int mode, int count, ushort *indices) {
 }
 
 
-void initializeLightTables() {
-	int i;
-        float pos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-        float dif[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        float shin[] = { 0.0f, 0.0f, 0.0f, 1.0f }; /* light defaults - headlight is here, too */
-        float As[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-
-      PRINT_GL_ERROR_IF_ANY("start of initializeightTables");
-
-	for(i=0; i<MAX_LIGHT_STACK; i++) {
-                p->lightOnOff[i] = TRUE;
-                setLightState(i,FALSE);
-            
-		FW_GL_LIGHTFV(i, GL_SPOT_DIRECTION, pos);
-       		FW_GL_LIGHTFV(i, GL_POSITION, pos);
-       		FW_GL_LIGHTFV(i, GL_AMBIENT, As);
-       		FW_GL_LIGHTFV(i, GL_DIFFUSE, dif);
-       		FW_GL_LIGHTFV(i, GL_SPECULAR, shin);
-         	FW_GL_LIGHTF(i, GL_CONSTANT_ATTENUATION,1.0f);
-       		FW_GL_LIGHTF(i, GL_LINEAR_ATTENUATION,0.0f);
-       		FW_GL_LIGHTF(i, GL_QUADRATIC_ATTENUATION,0.0f);
-       		FW_GL_LIGHTF(i, GL_SPOT_CUTOFF,0.0f);
-       		FW_GL_LIGHTF(i, GL_SPOT_BEAMWIDTH,0.0f);
-           	FW_GL_LIGHTF(i, GL_LIGHT_RADIUS, 100000.0); /* just make it large for now*/ 
-            
-            	PRINT_GL_ERROR_IF_ANY("initizlizeLight2.10");
-        }
-        setLightState(HEADLIGHT_LIGHT, TRUE);
-
-    LIGHTING_INITIALIZE
-	
-
-    PRINT_GL_ERROR_IF_ANY("end initializeLightTables");
-}
-
-
 ttrenderstate renderstate()
 {
 	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
-	return &p->renderstate;
+	return stack_top_ptr(struct trenderstate,p->renderstate);
 }
-
-
+void push_new_renderstate() {
+	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
+	struct trenderstate ttr;
+	memset(&ttr, 0, sizeof(struct trenderstate));
+	stack_push(struct trenderstate, p->renderstate,ttr);
+}
+void pop_renderstate() {
+	ppRenderFuncs p = (ppRenderFuncs)gglobal()->RenderFuncs.prv;
+	stack_pop(struct trenderstate, p->renderstate);
+}
 //true statics:
 GLint viewport[4] = {-1,-1,2,2};  //pseudo-viewport - doesn't change, used in glu unprojects
 /* These two points (r2,r1) define a ray in pick-veiwport window coordinates 
@@ -1096,7 +813,7 @@ GLint viewport[4] = {-1,-1,2,2};  //pseudo-viewport - doesn't change, used in gl
 	- in setup_pickray(pick=TRUE,,) the projMatrix is modified for the pick-ray-viewport
 	- when unprojecting geometry-local xyz to bearing-local/pick-viewport-local, use pseudo-viewport defined above
 */
-struct point_XYZ r1 = {0,0,-1}, r2 = {0,0,0}, r3 = {0,1,0}; //r3 y direction in case needed for testing
+struct point_XYZ r1 = {.x=0,.y=0,.z=-1}, r2 = {.x=0,.y=0,.z=0}, r3 = {.x=0,.y=1,.z=0}; //r3 y direction in case needed for testing
 
 
 struct X3D_Anchor *AnchorsAnchor()
@@ -1275,7 +992,7 @@ for (i=0; i<16; i++) printf ("%4.3lf ",projMatrix[i]); printf ("\n");
 		//feature-AFFINE_GLU_UNPROJECT
 		//FLOPs	112 double:	matmultiplyAFFINE 36, matinverseAFFINE 49, 3x transform (affine) 9 =27
 		GLDOUBLE  mvpi[16]; //mvp[16],
-		struct point_XYZ r11 = {0.0,0.0,1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
+		struct point_XYZ r11 = {.x=0.0,.y=0.0,.z=1.0}; //note viewpoint/avatar Z=1 behind the viewer, to match the glu_unproject method WinZ = -1
 		{
 			//PointSensor needs an original camera axis (not modified pickray camera)
 			// to use as a plane normal to intersect the pickray/bearing with
@@ -1369,7 +1086,12 @@ int pickrayHitsMBB(struct X3D_Node *node){
 
 void update_node(struct X3D_Node *node) {
 	int i;
-	
+	static int depth = 0;
+	depth++;
+	if(depth > 50){
+		depth--;
+		return;
+	}
 #ifdef VERBOSE
 	printf ("update_node for %d %s nparents %d renderflags %x\n",node, stringNodeType(node->_nodeType),node->_nparents, node->_renderFlags); 
 	if (node->_nparents == 0) {
@@ -1405,6 +1127,8 @@ void update_node(struct X3D_Node *node) {
 			update_node(n);
 		}
 	}
+	depth--;
+	return;
 }
 
 /*********************************************************************
@@ -1546,6 +1270,29 @@ void popShaderFlags(){
 	stack_pop(shaderflagsstruct,p->shaderflags_stack);
 
 }
+struct X3D_Node* get_executionContext() {
+	//return top-of-stack executionContext
+	struct X3D_Node* retval = NULL;
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	if (p->ectx_stack->n)
+		retval = stack_top(struct X3D_Node*, p->ectx_stack);
+	return retval;
+}
+void push_executionContext(struct X3D_Node* broto) {
+	//push when entering child_broto (child_proto which is also child_scene, or child_inline), pop on exit
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	stack_push(struct X3D_Node*, p->ectx_stack, broto);
+
+}
+void pop_executionContext() {
+	//
+	ttglobal tg = gglobal();
+	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	stack_pop(struct X3D_Node*, p->ectx_stack);
+
+}
 struct X3D_Node *getFogParams(){
 	//return top-of-stack Fog or LocalFog
 	struct X3D_Node *retval = NULL;
@@ -1620,8 +1367,9 @@ void get_current_ray(struct point_XYZ* p1, struct point_XYZ* p2){
 void push_render_geom(int igeom){
 	ttglobal tg = gglobal();
 	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
-	stack_push(int,p->render_geom_stack,p->renderstate.render_geom);
-	p->renderstate.render_geom = igeom;
+	ttrenderstate rs = renderstate();
+	stack_push(int,p->render_geom_stack,rs->render_geom);
+	rs->render_geom = igeom;
 }
 void pop_render_geom(){
 	int igeom;
@@ -1629,7 +1377,8 @@ void pop_render_geom(){
 	ppRenderFuncs p = (ppRenderFuncs)tg->RenderFuncs.prv;
 	igeom = stack_top(int,p->render_geom_stack);
 	stack_pop(int,p->render_geom_stack);
-	p->renderstate.render_geom = igeom;
+	ttrenderstate rs = renderstate();
+	rs->render_geom = igeom;
 }
 void push_sensor(struct X3D_Node *node){
 	ttglobal tg = gglobal();
@@ -1657,9 +1406,12 @@ void pop_sensor(){
 
 }
 int getWindex();
-int render_foundLayerViewpoint();
+int render_foundSelectedViewpoint();
 void extent6f_draw(float *extent);
 static int draw_extents = TRUE;
+int is_vp_new_way();
+void wrap_Shape(struct X3D_Node* node);
+void* peek_shape();
 void render_node(struct X3D_Node *node) {
 	struct X3D_Virt *virt;
 
@@ -1725,23 +1477,29 @@ void render_node(struct X3D_Node *node) {
 	// leaf-node filtering (we still do the transform-children stack)
 	// if we are doing Viewpoints, and we don't have a Viewpoint, don't bother doing anything here *
 	//if (renderstate()->render_vp == VF_Viewpoint) { 
-	if (p->renderstate.render_vp == VF_Viewpoint) { 
+	if (renderstate()->render_vp == VF_Viewpoint) {
 		//if(tg->Bindable.activeLayer == 0)  //no Layerset nodes
-		if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint) { 
-			#ifdef RENDERVERBOSE
-			printf ("doing Viewpoint, but this  node is not for us - just returning\n"); 
-			p->renderLevel--;
-			#endif
-			return; 
-		} 
-		if(p->renderstate.render_vp == VF_Viewpoint && render_foundLayerViewpoint()){ 
+		//if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint && virt->children == NULL) { 
+		if (!is_vp_new_way()) {
+			//mystery renderflags not propagated up chain with new way
+			// and we're planning do breadth searches when boundvp != selectedvp (including unreachable LOD children)
+			// so we'll try without this
+			if ((node->_renderFlags & VF_Viewpoint) != VF_Viewpoint) {
+#ifdef RENDERVERBOSE
+				printf("doing Viewpoint, but this  node is not for us - just returning\n");
+				p->renderLevel--;
+#endif
+				return;
+			}
+		}
+		if(renderstate()->render_vp == VF_Viewpoint && render_foundSelectedViewpoint()){ 
 			//on vp pass, just find first DEF/USE of bound viewpoint
 			return;
 		}
 	}
 
 	/* are we working through global PointLights, DirectionalLights or SpotLights, but none exist from here on down? */
-	if (p->renderstate.render_light ) { 
+	if (renderstate()->render_light) {
 		if((node->_renderFlags & VF_globalLight) != VF_globalLight) { 
 	#ifdef RENDERVERBOSE
 			printf ("doing globalLight, but this  node is not for us - just returning\n"); 
@@ -1750,13 +1508,14 @@ void render_node(struct X3D_Node *node) {
 			return; 
 		}
 	}
-	justGeom = p->renderstate.render_geom && !p->renderstate.render_sensitive && !p->renderstate.render_blend;
+	justGeom = renderstate()->render_geom && !renderstate()->render_sensitive && !renderstate()->render_blend;
 	pushed_ray = FALSE;
 	pushed_sensor = FALSE;
 
 	if(virt->prep) {
 		//transform types will pushmatrix and multiply in their translation.rotation,scale here (and popmatrix in virt->fin)
 		DEBUG_RENDER("rs 2\n");
+		PRINT_GL_ERROR_IF_ANY("prep start"); PRINT_NODE(node, virt);
 		profile_start("prep");
 		if(justGeom)
 			profile_start("prepgeom");
@@ -1764,26 +1523,24 @@ void render_node(struct X3D_Node *node) {
 		profile_end("prep");
 		if(justGeom)
 			profile_end("prepgeom");
-		//if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
+		//if(renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		//	push_ray(); //upd_ray(); 
 		//	pushed_ray = TRUE;
 		//}
-		PRINT_GL_ERROR_IF_ANY("prep"); PRINT_NODE(node,virt);
-		if(p->renderstate.render_boxes) extent6f_draw(node->_extent);
-
+		PRINT_GL_ERROR_IF_ANY("prep end"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive) {
+	if(renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive) {
 		push_ray(); //upd_ray(); 
 		pushed_ray = TRUE;
 	}
-	if(p->renderstate.render_proximity && virt->proximity) {
+	if(renderstate()->render_proximity && virt->proximity) {
 		DEBUG_RENDER("rs 2a\n");
 		profile_start("proximity");
 		virt->proximity(node);
 		profile_end("proximity");
 		PRINT_GL_ERROR_IF_ANY("render_proximity"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_geom && ((node->_renderFlags & VF_USE) == VF_USE) && !p->renderstate.render_picking){
+	if(renderstate()->render_geom && ((node->_renderFlags & VF_USE) == VF_USE) && !renderstate()->render_picking){
 		//picking sensor, transform sensor and generally any USE_NODE-USE_NODE scenario
 		//ideally we would come in here once per scenegraph USE per frame, even when stereo or quad views
 		//because we want to work in world coordinates (not view coordinates) so by the time
@@ -1800,7 +1557,7 @@ void render_node(struct X3D_Node *node) {
 			usehit_add2(node,modelviewMatrix,getpickablegroupdata());
 		}
 	}
-	if(p->renderstate.render_picking && node->_nodeType == NODE_Shape ){
+	if(renderstate()->render_picking && node->_nodeType == NODE_Shape ){
 		//this is for when called from Component_Picking.c on a partial scenegraph,
 		//to get geometry nodes in the usehitB list
 		//I put vrit->rendray as a way to detect if its geometry, is there a better way?
@@ -1815,7 +1572,7 @@ void render_node(struct X3D_Node *node) {
 		}
 	}
 	
-	if(p->renderstate.render_collision && virt->collision) {
+	if(renderstate()->render_collision && virt->collision) {
 		DEBUG_RENDER("rs 2b\n");
 		profile_start("collision");
 		virt->collision(node);
@@ -1823,27 +1580,31 @@ void render_node(struct X3D_Node *node) {
 		PRINT_GL_ERROR_IF_ANY("render_collision"); PRINT_NODE(node,virt);
 	}
 
-	if(p->renderstate.render_geom && !p->renderstate.render_sensitive && !p->renderstate.render_picking && virt->rend) {
+	if(renderstate()->render_geom && !renderstate()->render_sensitive && !renderstate()->render_picking && virt->rend) {
 			DEBUG_RENDER("rs 3\n");
 			PRINT_GL_ERROR_IF_ANY("BEFORE render_geom"); PRINT_NODE(node,virt);
 			profile_start("rend");
-			virt->rend(node);
+			if (getSAI_X3DNodeType(node->_nodeType) == X3DGeometryNode && peek_shape() == NULL)
+				wrap_Shape(node); // printf("geom node\n");
+			//void wrap_Shape(struct X3D_Node* node)
+			else
+				virt->rend(node);
 			profile_end("rend");
 			PRINT_GL_ERROR_IF_ANY("render_geom"); PRINT_NODE(node,virt);
 	}
-	if(p->renderstate.render_other && virt->other )
+	if(renderstate()->render_other && virt->other )
 	{
 		virt->other(node);
 	} //other
 
-	if(p->renderstate.render_sensitive && ((node->_renderFlags & VF_Sensitive)|| Viewer()->LookatMode ==2)) {
+	if(renderstate()->render_sensitive && ((node->_renderFlags & VF_Sensitive)|| Viewer()->LookatMode ==2)) {
 		DEBUG_RENDER("rs 5\n");
 		profile_start("sensitive");
 		push_sensor(node);
 		pushed_sensor = TRUE;
 		profile_end("sensitive");
 	}
-	if(p->renderstate.render_geom && p->renderstate.render_sensitive && !tg->RenderFuncs.hypersensitive && virt->rendray) {
+	if(renderstate()->render_geom && renderstate()->render_sensitive && !tg->RenderFuncs.hypersensitive && virt->rendray) {
 		DEBUG_RENDER("rs 6\n");
 		profile_start("rendray");
 		if(pickrayHitsMBB(node))
@@ -1853,7 +1614,7 @@ void render_node(struct X3D_Node *node) {
 	}
 
 	/* May 16 2016: now we don't come into render_hier on hypersensitive
-    if((p->renderstate.render_sensitive) && (tg->RenderFuncs.hypersensitive == node)) {
+    if((renderstate()->render_sensitive) && (tg->RenderFuncs.hypersensitive == node)) {
 		DEBUG_RENDER("rs 7\n");
 		p->hyper_r1 = p->t_r123.p1; //tg->RenderFuncs.t_r1;
 		p->hyper_r2 = p->t_r123.p2; //tg->RenderFuncs.t_r2;
@@ -1864,7 +1625,7 @@ void render_node(struct X3D_Node *node) {
 	/* start recursive section */
     if(virt->children) { 
 		DEBUG_RENDER("rs 8 - has valid child node pointer\n");
-		//if(! (p->renderstate.render_vp == VF_Viewpoint && render_foundLayerViewpoint())){ //on vp pass, just find first DEF/USE of bound viewpoint
+		//if(! (renderstate()->render_vp == VF_Viewpoint && render_foundLayerViewpoint())){ //on vp pass, just find first DEF/USE of bound viewpoint
 			//printf("children ");
 			virt->children(node);
 		//}
@@ -1875,7 +1636,7 @@ void render_node(struct X3D_Node *node) {
     }
 	/* end recursive section */
 
-	if(p->renderstate.render_other && virt->other)
+	if(renderstate()->render_other && virt->other)
 	{
 	}
 
@@ -1892,7 +1653,7 @@ void render_node(struct X3D_Node *node) {
 		profile_end("fin");
 		if(justGeom)
 			profile_end("fingeom");
-		//if(p->renderstate.render_sensitive && virt == &virt_Transform) {
+		//if(renderstate()->render_sensitive && virt == &virt_Transform) {
 		//	upd_ray();
 		//}
 		PRINT_GL_ERROR_IF_ANY("fin"); PRINT_NODE(node,virt);
@@ -1939,6 +1700,14 @@ void add_parent(struct X3D_Node *node, struct X3D_Node *parent, char *file, int 
 	parent->_renderFlags = parent->_renderFlags | node->_renderFlags;
 
 	/* add it to the parents list */
+	for(int i=0;i<node->_parentVector->n;i++)
+	{
+		struct X3D_Node * parent2 = vector_get(struct X3D_Node*,node->_parentVector,i);
+		if(parent == parent2){
+			//printf("ouch adding the same parent twice\n");
+			return;
+		}
+	}
 	vector_pushBack (struct X3D_Node*,node->_parentVector, parent);
 	/* tie in sensitive nodes */
 	itype = getTypeNode(node);
@@ -2019,9 +1788,9 @@ void push_globalRenderFlags(){
 		case 2: shaderflags.base |= SHADINGSTYLE_PHONG; break;
 		case 3: shaderflags.base |= SHADINGSTYLE_WIRE; break;
 		default:
-			shaderflags.base |= SHADINGSTYLE_GOURAUD; break;
+			shaderflags.base |= SHADINGSTYLE_PHONG; break;
 	}
-	if(tg->Component_PTM.globalProjector){
+	if(tg->Component_TextureProjector.globalProjector){
 		shaderflags.base |= HAVE_PROJECTIVETEXTURE;
 	}
 	pushShaderFlags(shaderflags); //push nodified copy
@@ -2041,9 +1810,40 @@ void pop_globalRenderFlags(){
 			popFogParams();
 		}
 	}
-	tg->Component_PTM.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
+	tg->Component_TextureProjector.globalProjector = 0; //watch outL if you do ashort-cut stereo with 2 render_heir(geom) then this shoulod be zeroed after last one or on next frame start
 
 }
+struct what_string {
+int iwhat;
+char *cwhat;
+} what_strings [] = {
+{VF_Viewpoint,"Viewpoint"},
+{VF_Geom,"Geom"},
+{VF_globalLight,"globalLight"},
+{VF_Sensitive,"Sensitive"},
+{VF_Picking,"Picking"},
+{VF_Blend,"Blend"},
+{VF_Proximity,"Proximit"},
+{VF_Collision,"Collision"},
+{VF_Other,"Other"},
+{VF_Cube,"Cube"},
+{VF_Background,"Background"},
+{0,NULL},
+};
+void rwhat_printf(int rwhat){
+	struct what_string *ws;
+	int k = 0;
+	ws = &what_strings[k];
+	while(ws->cwhat){
+		if(rwhat & ws->iwhat) printf("%s ",ws->cwhat);
+		k++;
+		ws = &what_strings[k];
+	}
+	if (k) printf("\n");
+
+}
+void render_headlight();
+void clear_vp_reachable_flags();
 void render_hier(struct X3D_Node *g, int rwhat) {
 	/// not needed now - see below struct point_XYZ upvec = {0,1,0};
 	/// not needed now - see below GLDOUBLE modelMatrix[16];
@@ -2057,6 +1857,21 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	memset(&shaderflags,0,sizeof(shaderflagsstruct));
 	pushShaderFlags(shaderflags);
 
+	
+	/*
+	printf ("start of render_hier, rwhat %x, node has %x ",rwhat, g->_renderFlags);
+	if ((g->_renderFlags & VF_Viewpoint) == VF_Viewpoint) printf ("VF_Viewpoint ");
+	if ((g->_renderFlags & VF_Geom) == VF_Geom) printf ("VF_Geom ");
+	if ((g->_renderFlags & VF_localLight) == VF_localLight) printf ("VF_localLight ");
+	if ((g->_renderFlags & VF_Sensitive) == VF_Sensitive) printf ("VF_Sensitive ");
+	if ((g->_renderFlags & VF_Blend) == VF_Blend) printf ("VF_Blend ");
+	if ((g->_renderFlags & VF_Proximity) == VF_Proximity) printf ("VF_Proximity ");
+	if ((g->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision ");
+	if ((g->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
+	if ((g->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
+	printf ("\n");
+	*/
+
 	rs->render_vp = rwhat & VF_Viewpoint;
 	rs->render_geom =  rwhat & VF_Geom;
 	rs->render_light = rwhat & VF_globalLight;
@@ -2068,9 +1883,12 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	rs->render_other = rwhat & VF_Other;
 	rs->render_cube = rwhat & VF_Cube;
 	rs->render_background = rwhat & VF_Background;
-	rs->render_boxes = (rwhat & VF_Geom) && fwl_getDrawBoundingBoxes();
-	//p->nextFreeLight = 0;
-	p->lastShader = -1; //in sendLights,and optimization
+	rs->render_depth = rwhat & VF_Depth;
+	rs->rwhat = rwhat;
+
+	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
+
+
 	tg->RenderFuncs.hitPointDist = -1;
 
 
@@ -2089,16 +1907,20 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 	printf("Render_hier node=%d what=%d\n", g, rwhat);
 #endif
 
-
+	if (rs->render_light) {
+		render_headlight();
+	}
 	if (rs->render_sensitive) {
 		upd_ray();
 	}
 	if(rs->render_blend || rs->render_geom){
 		push_globalRenderFlags();
-
 	}
 	profile_start("render_hier");
+	//push_group_extent_default();
 	render_node(X3D_NODE(g));
+	//pop_group_extent(); // up where parents are
+	//rwhat_printf(rwhat);
 	profile_end("render_hier");
 	if(rs->render_blend || rs->render_geom){
 		pop_globalRenderFlags();
@@ -2107,7 +1929,100 @@ void render_hier(struct X3D_Node *g, int rwhat) {
 
 
 }
+void render_hier2(struct X3D_Node* g, int rwhat) {
+	// used for sub-scenegraph rendering ie depth maps from render_Light > render_shadowmap
 
+	ppRenderFuncs p;
+	shaderflagsstruct shaderflags;
+	ttglobal tg = gglobal();
+	ttrenderstate rs;
+	p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	push_new_renderstate();
+	rs = renderstate();
+	memset(&shaderflags, 0, sizeof(shaderflagsstruct));
+	pushShaderFlags(shaderflags);
+
+
+	/*
+	printf ("start of render_hier, rwhat %x, node has %x ",rwhat, g->_renderFlags);
+	if ((g->_renderFlags & VF_Viewpoint) == VF_Viewpoint) printf ("VF_Viewpoint ");
+	if ((g->_renderFlags & VF_Geom) == VF_Geom) printf ("VF_Geom ");
+	if ((g->_renderFlags & VF_localLight) == VF_localLight) printf ("VF_localLight ");
+	if ((g->_renderFlags & VF_Sensitive) == VF_Sensitive) printf ("VF_Sensitive ");
+	if ((g->_renderFlags & VF_Blend) == VF_Blend) printf ("VF_Blend ");
+	if ((g->_renderFlags & VF_Proximity) == VF_Proximity) printf ("VF_Proximity ");
+	if ((g->_renderFlags & VF_Collision) == VF_Collision) printf ("VF_Collision ");
+	if ((g->_renderFlags & VF_globalLight) == VF_globalLight) printf ("VF_globalLight ");
+	if ((g->_renderFlags & VF_hasVisibleChildren) == VF_hasVisibleChildren) printf ("VF_hasVisibleChildren ");
+	printf ("\n");
+	*/
+
+	rs->render_vp = rwhat & VF_Viewpoint;
+	rs->render_geom = rwhat & VF_Geom;
+	rs->render_light = rwhat & VF_globalLight;
+	rs->render_sensitive = rwhat & VF_Sensitive;
+	rs->render_picking = rwhat & VF_Picking;
+	rs->render_blend = rwhat & VF_Blend;
+	rs->render_proximity = rwhat & VF_Proximity;
+	rs->render_collision = rwhat & VF_Collision;
+	rs->render_other = rwhat & VF_Other;
+	rs->render_cube = rwhat & VF_Cube;
+	rs->render_background = rwhat & VF_Background;
+	rs->render_depth = rwhat & VF_Depth;
+
+	//printf ("render_hier, render_geom %x render_blend %x\n",rs->render_geom, rs->render_blend);
+
+
+	//tg->RenderFuncs.hitPointDist = -1;
+
+
+#ifdef RENDERVERBOSE
+	printf("render_hier vp %d geom %d light %d sens %d blend %d prox %d col %d\n",
+		rs->render_vp, rs->render_geom, rs->render_light, rs->render_sensitive, rs->render_blend, rs->render_proximity, rs->render_collision);
+#endif
+
+	if (!g) {
+		/* we have no geometry yet, sleep for a tiny bit */
+		//usleep(1000);
+		return;
+	}
+
+#ifdef RENDERVERBOSE
+	printf("Render_hier node=%d what=%d\n", g, rwhat);
+#endif
+
+	if (rs->render_light) {
+		render_headlight();
+	}
+	//if (rs->render_sensitive) {
+	//	upd_ray();
+	//}
+	//if (rs->render_blend || rs->render_geom) {
+	//	push_globalRenderFlags();
+	//}
+	//if (rs->render_geom)
+	//	clear_vp_reachable_flags();
+	//profile_start("render_hier");
+	//push_group_extent_default();
+	render_node(X3D_NODE(g));
+	//pop_group_extent(); // up where parents are
+	//rwhat_printf(rwhat);
+	//profile_end("render_hier");
+	//if (rs->render_blend || rs->render_geom) {
+	//	pop_globalRenderFlags();
+	//}
+	popShaderFlags();
+	pop_renderstate();
+
+}
+void clear_renderstate(){
+	ppRenderFuncs p;
+	ttglobal tg = gglobal();
+	ttrenderstate rs;
+	p = (ppRenderFuncs)tg->RenderFuncs.prv;
+	rs = renderstate();
+	memset(rs,0,sizeof(ttrenderstate));
+}
 
 /******************************************************************************
  *
@@ -2145,6 +2060,9 @@ void *returnInterpolatorPointer (int nodeType) {
 		case NODE_ColorInterpolator: do_interp = do_ColorInterpolator; break;
 		case NODE_PositionInterpolator: do_interp = do_PositionInterpolator; break;
 		case NODE_CoordinateInterpolator: do_interp = do_OintCoord; break;
+		case NODE_VectorInterpolator: do_interp = do_OintVector; break;
+		case NODE_CoordinateMorpher: do_interp = do_CoordinateMorph; break;
+		case NODE_NormalMorpher: do_interp = do_NormalMorph; break;
 		case NODE_NormalInterpolator: do_interp = do_OintNormal; break;
 		case NODE_EaseInEaseOut: do_interp = do_EaseInEaseOut; break;
 		case NODE_SplinePositionInterpolator: do_interp = do_SplinePositionInterpolator; break;

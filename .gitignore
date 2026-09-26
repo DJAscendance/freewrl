@@ -11,6 +11,7 @@ ipch
 *.sdf
 .vs/
 Thumbs.db
+*.web3dit
 *.opensdf
 *.VC.db
 #make ignore:
@@ -21,11 +22,12 @@ Thumbs.db
 *.lo
 *.la
 *.pc
+*.in
 .deps/
 .dirstamp
 .libs/
 Makefile
-Makefile.in
+#Makefile.in
 # linux_appimage folder
 *.AppDir
 *.AppImage
@@ -52,3 +54,6 @@ freex3d/src/message/freewrl_msg
 freex3d/src/message/internal_version.c
 freex3d/src/sound/freewrl_snd
 freex3d/src/sound/internal_version.c
+#macOS
+.DS_Store
+visual-test-out/

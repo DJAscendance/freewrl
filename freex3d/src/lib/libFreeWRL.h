@@ -39,8 +39,11 @@
 #define ButtonPress     4
 #define ButtonRelease   5
 #define MotionNotify    6
+#define ButtonRecycle   7  //touch devices release + recycle / hide up-drags
 #define MapNotify       19
 #endif
+#else
+#define ButtonRecycle   7  //touch devices release + recycle / hide up-drags
 #endif
 
 
@@ -78,7 +81,9 @@ typedef struct freewrl_params {
 	int height;
 	int xpos;
 	int ypos;
-	long int winToEmbedInto;
+	int wnum;
+	long * winToEmbedInto;
+	int touchtype;
 	bool fullscreen;
 	bool multithreading;
 	bool enableEAI;
@@ -113,8 +118,8 @@ bool fwl_initFreeWRL(freewrl_params_t *params);
 void closeFreeWRL();
 void terminateFreeWRL();
 
-int fwl_parse_geometry_string(const char *geometry, int *out_width, int *out_height, 
-			      int *out_xpos, int *out_ypos);
+int fwl_parse_geometry_string(const char* geometry, int* out_width, int* out_height,
+	int* out_xpos, int* out_ypos, int* out_wnum);
 
 /**
  * General functions
@@ -143,6 +148,9 @@ bool Anchor_ReplaceWorld();
 #define VIEWER_YAWPITCH 15
 #define VIEWER_ROLL 16
 #define VIEWER_DIST 17
+//Geo variants, TTABLE above OK
+#define VIEWER_PAN  18
+#define VIEWER_ZOOM 19
 
 #define CHORD_YAWZ 0
 #define CHORD_YAWPITCH 1
@@ -191,8 +199,9 @@ int fwg_get_unread_message_count(void);
 char *fwg_get_last_message();
 void fwl_set_logfile(char *);
 void fwl_set_nameTest(char *);
-void fwl_set_testPath(char *);
-void fwl_set_jsengine(char *);
+void fwl_set_skinning(char);
+void fwl_setShowViewpoints(int show); //defined in ui/common.c, used by bin/options.c
+void fwl_setDrawRig(int draw);
 
 #if defined(_ANDROID)
 int DROIDDEBUG( const char*pFmtStr, ...);
@@ -251,9 +260,9 @@ void fwl_updateScreenDim(int wi, int he);
 void fwl_doQuitAndWait();
 void fwl_set_viewer_type(const int type);
 
-//void fwl_set_modeRecord();
-//void fwl_set_modeFixture();
-//void fwl_set_modePlayback();
+void fwl_set_modeRecord();
+void fwl_set_modePlayback();
+void set_MIDITransport(int method);
 
 #define CHANNEL_EAI 0
 //OLDCODE #define CHANNEL_MIDI 1
@@ -289,6 +298,9 @@ void fwl_init_Shutter(void);
 void fwl_init_SideBySide(void);
 
 void fwl_init_UpDown(void);
+void fwl_init_cardboard(void);
+void fwl_init_quadrant(void);
+void fwl_setOrientation2(int degrees);
 void fwl_set_AnaglyphParameter(const char *optArg);
 void fwl_set_StereoParameter(const char *optArg);
 void fwl_setDrawBoundingBoxes(int drawbb);
@@ -412,8 +424,8 @@ void fwl_setHover(int hover);
 int fwl_getPedal();
 void fwl_setPedal(int pedal);
 int fwl_getCtrl();
-void fwl_set_emulate_multitouch(int ion);
-int fwl_get_emulate_multitouch();
+void fwl_set_touchtype(int ion);
+int fwl_get_touchtype();
 
 // a few function prototypes from around libfreewrl
 void fwl_setConsole_writePrimitive(int ibool);
@@ -436,9 +448,14 @@ void *fwl_resitem_getDownloadThread(void *res);
 void *fwl_resitem_getGlobal(void *res);
 
 void fwl_init_DIS();
+void fwl_set_testset(int iset);
 int fwl_get_allow_DIS();
 void fwl_set_allow_DIS(int allow);
-
+void fwl_set_DISverbose(int verbose);
+void fwl_set_DISaddress(char* address);
+void fwl_set_DISport(int port);
+void fwl_set_DISsite(int site);
+void fwl_set_DISapplication(int app);
 
 int file2blob(void *res);
 #ifdef SSR_SERVER

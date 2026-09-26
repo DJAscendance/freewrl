@@ -36,12 +36,6 @@ Global includes.
 #define EXTENT_MAX_Z _extent[4]
 #define EXTENT_MIN_Z _extent[5]
 
-#define RECORD_DISTANCE \
-	{\
-	ttrenderstate rs = renderstate();\
-	if (rs->render_geom && (!rs->render_blend)) {record_ZBufferDistance (X3D_NODE(node)); }\
-	}
-
 /* no occlusion queries right now - need to work on the shader implementation 
     of occlusion culling */ 
 
@@ -111,8 +105,8 @@ void endOcclusionQuery(struct X3D_VisibilitySensor* node, int render_geometry);
 void moveAndRotateThisPoint(struct point_XYZ *mypt, double x, double y, double z, double *MM);
 void setExtent(float maxx, float minx, float maxy, float miny, float maxz, float minz, struct X3D_Node *me);
 void printmatrix(GLDOUBLE* mat);
-void propagateExtent(struct X3D_Node *me);
-void record_ZBufferDistance(struct X3D_Node *node);
+
+void record_ZBufferDistance(struct X3D_Node *, void *);
 void OcclusionStartofRenderSceneUpdateScene(void);
 void OcclusionCulling (void);
 void zeroOcclusion(void);
@@ -145,6 +139,31 @@ float *extent6f_rotate4d(float *eout6, float *ein6, double *vrot4);
 float *extent6f_mattransform4d(float *eout6,float *ein6, double *mat4);
 void extent6f_printf(float *extent6);
 void extent6f_draw(float *extent); //in CursorDraw.c
+void bbox2extent6f(float* center, float *size, float *extent6);
+void extent6f2bbox(float *extent6, float* center, float *size);
+void draw_bbox(float *center, float *size);
+
+float *orientedBBox_mattransformAFFINE4d(float *p3fn24, float *obb12, double *mat4);
+float *orientedBBox2vec3fn(float *p3fn24, float *obb12);
+int extent6f_point_inside(float *extent6, float *pd);
 
 
+struct Planed {
+	double normal[3];
+	double p[3]; //redundant but convenient
+	double d;
+};
+enum {
+	NEARP =0,
+	FARP,
+	BOTTOM,
+	TOP,
+	LEFT,
+	RIGHT,
+};
+void setFrustumPlanes(double *mvpMatrix, struct Planed *pl);
+int frustum_point_inside(struct Planed *frustum_planes, double *p);
+int frustum_generate_corner_points(struct Planed *frustum_planes, float *pf24n);
+int plane_intersect_plane_intersect_plane(struct Planed *p1, struct Planed *p2, struct Planed *p3, double *point);
+int frustum_box_inside(struct Planed *frustum_planes, float *corners3f, int np);
 #endif /* __FREEWRL_FRUSTUM_H__ */

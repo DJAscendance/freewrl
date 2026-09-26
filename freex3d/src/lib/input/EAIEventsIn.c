@@ -943,7 +943,7 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 					ctype = findFieldInNODES(ctmp);
 					if (ctype > -1) {
 						/* yes, use C only to create this node */
-						sprintf (ctmp, "%ld",(long int) createNewX3DNode(ctype));
+						sprintf (ctmp, "%zu", (size_t)createNewX3DNode(ctype));
 						outBufferCat(ctmp);
 						/* set ra to 0 so that the sprintf below is not used */
 						ra = 0;
@@ -957,7 +957,7 @@ printf ("registering, field_id %d, node_id %d, field_type %d, listener_id %d\n",
 
 
 				for (rb = 0; rb < retGroup->children.n; rb++) {
-					sprintf (ctmp,"%ld ", (long int) retGroup->children.p[rb]);
+					sprintf (ctmp,"%zu ", (size_t)retGroup->children.p[rb]);
 					outBufferCat(ctmp);
 printf ("Possible EAI problem, children of container group should have this parent removed\n");
 
@@ -1004,7 +1004,7 @@ printf ("Possible EAI problem, children of container group should have this pare
 		if (eaiverbose) {	
 			printf ("end of command, remainder %d chars ",(int)strlen(&EAI_BUFFER_CUR));
 #ifdef _MSC_VER
-			printf ("and :%s: thread %lu\n",(&EAI_BUFFER_CUR),(unsigned long) pthread_self().p);
+			printf ("and :%s: thread %zu\n",(&EAI_BUFFER_CUR), (size_t) pthread_self().p);
 #else
 			printf ("and :%s: thread %lu\n",(&EAI_BUFFER_CUR),(unsigned long) pthread_self());
 #endif

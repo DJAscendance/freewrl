@@ -16,6 +16,7 @@
 #include <display.h>
 #include <main/headers.h>
 #include <windows.h>
+#include <windowsx.h>
 #include <shlwapi.h>
 
 #include <internal.h>
@@ -811,8 +812,93 @@ static void win32_clipboard_paste() {
 		}
 	} 
 }
+//touch >>
+// This function is used to return an index given an ID
+int GetContactIndex(int dwID, int *idLookup, int maxpoints){
+	//starting at index 1 (0 reserved for mouse)
+  for (int i=1; i < maxpoints; i++){
+    if (idLookup[i] == -1){
+      idLookup[i] = dwID;
+      return i;
+    }else{
+      if (idLookup[i] == dwID){
+        return i;
+      }
+    }
+  }
+  // Out of contacts
+  return -1;
+}
+//<< touch
+//gesture >>
 
+LRESULT DecodeGesture(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
+    // Create a structure to populate and retrieve the extra message info.
+    GESTUREINFO gi;  
+    
+    ZeroMemory(&gi, sizeof(GESTUREINFO));
+    
+    gi.cbSize = sizeof(GESTUREINFO);
 
+    BOOL bResult  = GetGestureInfo((HGESTUREINFO)lParam, &gi);
+    BOOL bHandled = FALSE;
+
+    if (bResult){
+        // now interpret the gesture
+        switch (gi.dwID){
+           case GID_ZOOM:
+               // Code for zooming goes here     
+               bHandled = TRUE;
+               break;
+           case GID_PAN:
+               // Code for panning goes here
+               bHandled = TRUE;
+               break;
+           case GID_ROTATE:
+               // Code for rotation goes here
+               bHandled = TRUE;
+               break;
+           case GID_TWOFINGERTAP:
+               // Code for two-finger tap goes here
+               bHandled = TRUE;
+               break;
+           case GID_PRESSANDTAP:
+               // Code for roll over goes here
+               bHandled = TRUE;
+               break;
+           default:
+               // A gesture was not recognized
+               break;
+        }
+    }else{
+        DWORD dwErr = GetLastError();
+        if (dwErr > 0){
+            //MessageBoxW(hWnd, L"Error!", L"Could not retrieve a GESTUREINFO structure.", MB_OK);
+        }
+    }
+    //if (bHandled){
+    //    return 0;
+    //}else{
+    //    return DefWindowProc(hWnd, message, wParam, lParam);
+    //}
+	return 0;
+  }
+void onGestureNotify(HWND hWnd){
+	GESTURECONFIG config = { 0 };
+	config.dwWant =GC_ALLGESTURES | GC_ROTATE; // GC_ROTATE;
+	config.dwID = GID_ROTATE;
+	config.dwBlock = 0;
+
+	BOOL result = SetGestureConfig(
+		hWnd,
+		0,
+		1,
+		&config,
+		sizeof(GESTURECONFIG)
+	);
+
+}
+//<< gesture
 
 void fwl_set_clipboard_copy( void (*fn)(char *));
 void fwl_set_clipboard_paste( void (*fn));
@@ -830,6 +916,11 @@ LRESULT CALLBACK PopupWndProc(
     PAINTSTRUCT ps;
     LONG lRet = 1; 
     RECT rect; 
+	//touch>>
+	UINT cInputs;
+	PTOUCHINPUT pInputs;
+	POINT ptInput;   
+	//<<touch
 	int keyraw;
     int mev;
     int butnum;
@@ -852,7 +943,6 @@ static int shiftState = 0;
 	}
     //ghWnd = hWnd;
     switch( msg ) {
-
     case WM_CREATE: 
 	//printf("wm_create\n");
 	//fv_create_GLcontext();
@@ -1082,13 +1172,115 @@ static int shiftState = 0;
 	 * There should be no internal forwarding of the message, 
 	 * since DefWindowProc propagates it up the parent chain 
 	 * until it finds a window that processes it.
+	 * https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousewheel
 	 */
-	if(!(wParam & (MK_SHIFT | MK_CONTROL))) {
+	if(1) { //if(!(wParam & (MK_SHIFT | MK_CONTROL))) {
+		int fwKeys, zDelta;
+		fwKeys = GET_KEYSTATE_WPARAM(wParam);
+		//we might not want wheel and MMB at the same time:
+		// user might mean just MMB but accidently wheel it too
+		//if(fwKeys & MK_MBUTTON) break;
+		zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 	    /* gcWheelDelta -= (short) HIWORD(wParam); windows snippet */
-	    gcWheelDelta = (short) HIWORD(wParam);
+	    //gcWheelDelta = (short) HIWORD(wParam);
 	    mev = MotionNotify;
-	    break;
+		//linux convention 
+		butnum = 0;
+		if( zDelta < 0 ) butnum = 4; //scroll wheel up (in linux)
+		else if(zDelta > 0) butnum  = 5; //scroll wheel down
+		//printf("wheel %d \n",(int)zDelta);
+		if(0){
+			int xPos, yPos;
+			fwKeys = GET_KEYSTATE_WPARAM(wParam);
+			zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+			xPos = GET_X_LPARAM(lParam); 
+			yPos = GET_Y_LPARAM(lParam);
+			printf("wheel delta %d CTRL=%c SHFT=%c xyPos %d %d BUT %c%c%c X%c%c\n",zDelta,
+			fwKeys & MK_CONTROL ? 'C' : '_', 
+			fwKeys & MK_SHIFT ? 'S' : '_', 
+			//fwKeys & MK_ALT ? 'A' : '_', //doesnt work, and docs don't show it
+			xPos, yPos, 
+			fwKeys & MK_LBUTTON ? 'L' : '_', 
+			fwKeys & MK_MBUTTON ? 'M' : '_', 
+			fwKeys & MK_RBUTTON ? 'R' : '_', 
+			fwKeys & MK_XBUTTON1 ? 'X' : '_',
+			fwKeys & MK_XBUTTON2 ? 'X' : '_'
+			);
+		}
 	}
+    break;
+
+	//WM_TOUCH needs capable device and minimum windows 7 and one way to tell: is it x64 (we're in windows code) - that's vista and beyond. close enough,
+	// although there are x86 versions of windows 8.1 etc.
+//#if defined(_M_AMD64) || defined(_M_X64)
+	// touch >>
+	//https://docs.microsoft.com/en-us/windows/win32/wintouch/detecting-and-tracking-multiple-touch-points
+	case WM_TOUCH:  
+	{
+		#define MAXPOINTS 20
+		static int idLookup[MAXPOINTS];
+		static int initialized = 0;
+		printf("got a WM_TOUCH index x y action\n");
+		static TOUCHINPUT pInputs[MAXPOINTS];  //if you open multiple windows in the same (future?) freewrl instance, then this can't be static
+		if(!initialized){
+			initialized = 1;
+			for(int i=0;i<MAXPOINTS;i++) idLookup[i] = -1;
+		}
+		cInputs = LOWORD(wParam);
+		cInputs = min(20,cInputs);
+		//pInputs = new TOUCHINPUT[cInputs];
+		if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs, sizeof(TOUCHINPUT))){
+			for (int i=0; i < (int)(cInputs); i++){
+				int index, cursorStyle, touchAction;
+				TOUCHINPUT ti = pInputs[i];
+				index = GetContactIndex(ti.dwID,idLookup,MAXPOINTS);
+				if (ti.dwID != 0 && index < MAXPOINTS){                            
+					// Do something with your touch input handle
+					ptInput.x = TOUCH_COORD_TO_PIXEL(ti.x);
+					ptInput.y = TOUCH_COORD_TO_PIXEL(ti.y);
+					ScreenToClient(hWnd, &ptInput);
+					touchAction = MotionNotify;
+					if (ti.dwFlags & TOUCHEVENTF_UP) touchAction = ButtonRecycle; //ButtonRelease;
+					if (ti.dwFlags & TOUCHEVENTF_DOWN) touchAction = ButtonPress;
+					if (ti.dwFlags & TOUCHEVENTF_UP){
+						printf("touch up ID %d ",index);
+						//points[index][0] = -1;
+						//points[index][1] = -1;                
+					}else{
+						printf("x %d y %d ID %d ",ptInput.x,ptInput.y,index);
+						//points[index][0] = ptInput.x;
+						//points[index][1] = ptInput.y;                
+					}
+					printf("[%d %d %d %d]\n",index,ptInput.x,ptInput.y,touchAction);
+					cursorStyle = fwl_handle_touch(touchAction, index, ptInput.x, ptInput.y, 0);
+				}
+			}
+		}
+		// If you handled the message and don't want anything else done with it, you can close it
+		CloseTouchInputHandle((HTOUCHINPUT)lParam);
+		//delete [] pInputs;
+		break;
+	}
+	//<< touch
+//#endif
+	case WM_GESTURENOTIFY:
+		onGestureNotify(hWnd);
+	break;
+
+	case WM_GESTURE:
+	{
+		// https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-gestures
+		// Insert handler code here to interpret the gesture.
+		int iretg;            
+		iretg = DecodeGesture(hWnd, msg, wParam, lParam);
+		printf("got a WM_GESTURE\n");
+		break;
+	}
+	case WM_HSCROLL:
+	case WM_VSCROLL:
+	printf("got a WM_SCROLL\n");
+	break;
+
 
 	/* falls through to default ? */
 
@@ -1223,7 +1415,9 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	DWORD wStyle   = 0;
 	HWND  ghWnd;   
     //RECT rect; 
-	int width, height;
+	int width, height, xpos, ypos, wnum;
+	char appname[30];
+	int haveTOUCH;
     int nCmdShow = SW_SHOW;
 	
 	//printf("starting createWindow32\n"); 
@@ -1282,6 +1476,14 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	//height = gglobal()->display.height + 34;  // and 26 for the menu bar
 	width = d->width;
 	height = d->height;
+	xpos = d->xpos > -1 ? d->xpos : CW_USEDEFAULT;
+	ypos = d->ypos > -1 ? d->ypos : CW_USEDEFAULT;
+	strcpy(appname, "freeWRL");
+	if (d->wnum > -1) {
+		//future comparison testing app may need to differentiate between the multiple windows it launches
+		//so in -g WxH+xpos+ypos_wnum the wnum would be a small int
+		sprintf_s(appname, 30, "freeWRL%d", d->wnum);
+	}
 	if (!d->fullscreen){
 		width += 8;  //windows gui eats 4 on each side
 		height += 34;  // and 26 for the menu bar
@@ -1291,11 +1493,11 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
 	wStyle |= WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	//wStyle |= WS_EX_ACCEPTFILES; //drag & drop target (but needs OLE32.dll etc https://msdn.microsoft.com/en-us/library/windows/desktop/bb776905(v=vs.85).aspx
 
-	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", "freeWRL", 
+	ghWnd = CreateWindowEx( WS_EX_APPWINDOW, "FreeWrlAppClass", appname, //"freeWRL", 
 			    /* ghWnd = CreateWindow( "GenericAppClass", "Generic Application", */
 			    wStyle, //WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 
-			    CW_USEDEFAULT, 
-			    CW_USEDEFAULT, 
+			    xpos, 
+			    ypos, 
 			    width, 
 			    height, 
 			    NULL, 
@@ -1308,9 +1510,29 @@ HWND create_main_window0(freewrl_params_t * d) //int argc, char *argv[])
         return NULL; 
 
     //printf("made a window\n");
-
+	haveTOUCH = 0;
+//#if defined(_M_AMD64) || defined(_M_X64)
+   // register the window for touch instead of gestures
+   // needs to be windows7+
+   {
+		// https://docs.microsoft.com/en-us/windows/win32/wintouch/getting-started-with-multi-touch-messages
+		// test for touch
+		//int value = GetSystemMetrics(SM_DIGITIZER);
+		//if (value & NID_READY){ /* stack ready */}
+		//if (value  & NID_MULTI_INPUT){
+			/* digitizer is multitouch */ 
+			//printf("Multitouch device found\n");
+			//}
+			//if (value & NID_INTEGRATED_TOUCH){ /* Integrated touch */}
+			// TOUCHTYPE_MULTITOUCH == 2 TOUCHTYPE_GESTURE == 3
+			if(d->touchtype == 2){
+				RegisterTouchWindow(ghWnd, 0);
+				haveTOUCH = 1;
+			}
+		//}
+   }
+//#endif 
     //GetClientRect(ghWnd, &rect); 
-   
     ShowWindow( ghWnd, SW_SHOW); /* SW_SHOWNORMAL); /*nCmdShow );*/
     //printf("showed window\n");
 	//d->winToEmbedInto = (long int)ghWnd;
@@ -1345,8 +1567,8 @@ int fv_create_main_window2(freewrl_params_t * d, freewrl_params_t *share) //int 
 #endif
 	if(!d->frontend_handles_display_thread){
 		//printf("wintoembedinto 1=%d\n",d->winToEmbedInto);
-		if( d->winToEmbedInto < 1) //INT_ID_UNDEFINED) sometimes 0 or -1
-			d->winToEmbedInto = (long)create_main_window0(d); //argc, argv);
+		if( (long)(size_t)d->winToEmbedInto < 1) //INT_ID_UNDEFINED) sometimes 0 or -1
+			d->winToEmbedInto = (long *)create_main_window0(d); //argc, argv);
 		//printf("wintoembedinto 2=%d\n",d->winToEmbedInto);
 		if( d->winToEmbedInto )
 		{
@@ -1367,5 +1589,89 @@ int fv_create_main_window2(freewrl_params_t * d, freewrl_params_t *share) //int 
 	}
 	return TRUE;
 }
+
+#ifdef HAVE_XINPUT
+// windows xinput game controller 
+// https://docs.microsoft.com/en-us/windows/win32/xinput/xinput-game-controller-apis-portal
+#include <xinput.h>
+void poll_game_controllers(){
+	DWORD dwResult;    
+	for (DWORD i=0; i< XUSER_MAX_COUNT; i++ )
+	{
+		XINPUT_STATE state;
+		ZeroMemory( &state, sizeof(XINPUT_STATE) );
+
+		// Simply get the state of the controller from XInput.
+		dwResult = XInputGetState( i, &state );
+
+		if( dwResult == ERROR_SUCCESS )
+		{
+			// Controller is connected 
+				static int once = 0;
+				if(!once)
+					printf("game controller connected!\n");
+				once = 1;
+
+		}
+		else
+		{
+				// Controller is not connected 
+				static int once = 0;
+				if(!once)
+					printf("no game controller\n");
+				once = 1;
+		}
+	}
+}
+#else //HAVE_XINPUT
+void poll_game_controllers(){}
+#endif //HAVE_XINPUT
+
+
+char *get_key_val(char *key);
+#ifdef SSR_SERVER
+void SSR_reply(void * tg);
+void dequeue_SSR_request(void * tg);
+static int run_ssr;
+static run_ssr = FALSE;
+
+#endif
+void initialize_ssr_server(){
+#ifdef SSR_SERVER
+	if(!run_ssr) {
+		//if this is ssr server running, it does a few quirky things like doing slow looping
+		char *running_ssr = get_key_val("SSR");
+		if(running_ssr)
+			if(!strcmp(running_ssr,"true"))
+				run_ssr = TRUE;
+		//printf("in desktop.c run_ssr = %d\n",run_ssr);
+	}
+#endif //SSR_SERVER
+}
+void poll_ssr_server(){
+#ifdef SSR_SERVER
+		if(run_ssr){
+			SSR_reply(gglobal());
+			dequeue_SSR_request(gglobal());
+		}
+#endif
+}
+
+void platform_initialize_input_devices(){
+	initialize_ssr_server();
+
+}
+void platform_poll_input_devices(){
+	//win32 message pump - works here for desktop freewrl and npapi, ActiveX plugins, 
+	// because those all use _DisplayThread here. 
+	// (winGLES2 project which uses EGL 'front end' has its own win32 message pump, 
+	// and doesn't call this _displayThread)
+
+	poll_ssr_server();
+	fwMessageLoop(); 
+	poll_game_controllers();
+
+}
+
 
 #endif /* _MSC_VER */

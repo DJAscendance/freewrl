@@ -53,8 +53,10 @@ struct textureTableIndexStruct {
 	GLint magFilter; //needed in TEX3D frag shader for Z
 	int textureNumber;
 	int channels; //number of original image file image channels/components 0=no texture default, 1=Intensity 2=IntensityAlpha 3=RGB 4=RGBA
+	int no_gl; //if 1, skips move_to_opengl and keeps the texdata
 };
 typedef struct textureTableIndexStruct textureTableIndexStruct_s;
+textureTableIndexStruct_s* getTableTableFromTextureNode(struct X3D_Node* textureNode);
 
 //extern textureTableIndexStruct_s* loadThisTexture;
 //extern GLuint defaultBlankTexture;
@@ -98,7 +100,7 @@ struct X3D_Node *getThis_textureTransform();
 extern int fwl_isTextureLoaded(int texno);
 extern int isTextureAlpha(int n);
 extern int display_status;
-
+int is_cubeMap(struct X3D_Node* node);
 
 /* appearance does material depending on last texture depth */
 #define NOTEXTURE 0
@@ -116,5 +118,10 @@ void bind_image(int type, struct Uni_String *parenturl, struct Multi_String url,
 /* other function protos */
 void init_multitexture_handling(void);
 
+
+//RenderTextures.c
+void clear_textureUnit_used();
+int next_textureUnit();
+int bind_or_share_next_textureUnit(const int samplerType, GLint texture);
 
 #endif /* __FREEWRL_TEXTURES_H__ */

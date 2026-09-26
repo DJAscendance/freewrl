@@ -145,6 +145,7 @@ typedef struct iiglobal //InstanceGlobal
 		int HaveSensitive;// = FALSE;
 		int AllowNavDrag;
 		int trisThisLoop;
+		unsigned int iframe;
 		int clipPlane;// = 0;
 		int SHIFT; //state of shift key up = 0, down = 1
 		int CTRL; //state of ctrl key up = 0, down = 1
@@ -235,7 +236,7 @@ typedef struct iiglobal //InstanceGlobal
 		unsigned int defaultBlankTexture;
 		void *prv;
 	}Textures;
-	struct tComponent_PTM{
+	struct tComponent_TextureProjector{
 		/*
 		GLint _projTexGenMatCam0_Location;
 		GLint _MultiprojTexGenMatCam_Location[4];
@@ -248,7 +249,7 @@ typedef struct iiglobal //InstanceGlobal
 		//bool ProjActive;
 		int globalProjector;
 		void *prv;
-	}Component_PTM;
+	}Component_TextureProjector;
 	struct tPluginSocket{
 		void *prv;
 	}PluginSocket;
@@ -261,6 +262,9 @@ typedef struct iiglobal //InstanceGlobal
 	struct tComponent_CubeMapTexturing{
 		void *prv;
 	}Component_CubeMapTexturing;
+	struct tComponent_Lighting {
+		void* prv;
+	}Component_Lighting;
 	struct tComponent_EnvironSensor{
 		void *prv;
 	}Component_EnvironSensor;
@@ -332,6 +336,12 @@ iOLDCODE	}Component_Networking;
 	struct tComponent_VolumeRendering{
 		void *prv;
 	}Component_VolumeRendering;
+	struct tComponent_MIDI {
+		void* prv;
+	}Component_MIDI;
+	struct tComponent_Grouping{
+		void *prv;
+	}Component_Grouping;
 	struct tRenderFuncs{
 		#ifdef OLDCODE
 		OLDCODE char *OSX_last_world_url_for_reload;
@@ -346,6 +356,7 @@ iOLDCODE	}Component_Networking;
 		float hyp_save_posn[3];
 		float hyp_save_norm[3];
 		float ray_save_posn[3]; //getRayHit() > last intersection of pickray/bearing with geometry, transformed into the coordinates of the geometry
+		int touchID;
 		float camera_axis[3];
 		void *hypersensitive;//= 0; 
 		int hyperhit;// = 0;
@@ -457,6 +468,9 @@ iOLDCODE	}Component_Networking;
 		int CDATA_Text_curlen;// = 0;
 		void *prv;
 	}X3DParser;
+	struct tgltf_loader{
+		void *prv;
+	}gltf_loader;
 	struct tcommon{
 		void *prv;
 	}common;

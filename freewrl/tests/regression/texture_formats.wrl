@@ -1,0 +1,15 @@
+#VRML V2.0 utf8
+# Image formats: one Box per decoder. Left to right: JPEG, PNG, GIF.
+# Pass: all three boxes show their image (beach photo, brick, bookcase); none is white or
+# untextured, and the console has no "failed to load" line.
+Viewpoint { position 0 0 7 description "front" }
+NavigationInfo { headlight TRUE }
+Transform { translation -2.2 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "../helpers/beach.jpg" } }
+	geometry Box { size 1.6 1.6 1.6 } } }
+Transform { translation 0 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "../helpers/brick.png" } }
+	geometry Box { size 1.6 1.6 1.6 } } }
+Transform { translation 2.2 0 0 rotation 1 1 0 0.5 children Shape {
+	appearance Appearance { material Material { } texture ImageTexture { url "../helpers/bookcase.gif" } }
+	geometry Box { size 1.6 1.6 1.6 } } }

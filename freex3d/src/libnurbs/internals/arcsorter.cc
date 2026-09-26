@@ -37,6 +37,10 @@
  *
  */
 
+#if defined(__unix__) && !defined(ANDROIDNDK)
+#include "GL/glu.h"
+#endif
+
 #ifndef __gluarcsorter_c_
 #define __gluarcsorter_c_
 

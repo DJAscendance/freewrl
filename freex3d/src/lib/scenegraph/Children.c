@@ -82,13 +82,16 @@ void normalChildren(struct Multi_Node ch) {
 			} else if (p->_nodeType == NODE_PointLight) {
 				if (X3D_POINTLIGHT(p)->global == TRUE) 
 					render_node(p);
-			} else if (p->_nodeType == NODE_TextureProjectorPerspective) {
-				if (X3D_TEXTUREPROJECTORPERSPECTIVE(p)->global == TRUE) 
+			} else if (p->_nodeType == NODE_TextureProjector) {
+				if (X3D_TEXTUREPROJECTOR(p)->global == TRUE) 
 					render_node(p);
 			} else if (p->_nodeType == NODE_TextureProjectorParallel) {
 				if (X3D_TEXTUREPROJECTORPARALLEL(p)->global == TRUE) 
 					render_node(p);
-			} else 
+			} else if (p->_nodeType == NODE_TextureProjectorPoint) {
+				if (X3D_TEXTUREPROJECTORPOINT(p)->global == TRUE)
+					render_node(p);
+			} else
 				render_node(p);
 		}
 	}
@@ -98,23 +101,26 @@ void normalChildren(struct Multi_Node ch) {
 /* used to tell the rendering pass that, there is/used to be nodes
  * of interest down the branch. Eg, Transparent nodes - no sense going
  * through it all when rendering only for nodes. */
+int is_vp_new_way();
 
 /* void update_renderFlag (struct X3D_Node *p, int flag) { */
 //void  update_renderFlagB (struct X3D_Node *p, int flag, char *fi, int li) {
 void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 	int i;
-
+	static int depth = 0;
 	/* send notification up the chain */
 	
-//JAS 	printf ("start of update_renderFlag from %d for %p (%s) flag %x parents %d\n",li,p, stringNodeType(p->_nodeType),
-//JAS 			flag, vectorSize(p->_parentVector)); 
-//JAS if (p->_nodeType == NODE_Shape) {
-//JAS printf ("... and this one is our Shape...\n");
-//JAS 	for (i = 0; i < vectorSize(p->_parentVector); i++) {
-//JAS 		struct X3D_Node *me = vector_get(struct X3D_Node *,p->_parentVector, i);
-//JAS 		printf ("Shape parent %d is %p, type %s\n",i,me,stringNodeType(me->_nodeType));
-//JAS 	}
-//JAS }
+	#ifdef VERBOSE
+ 	printf ("start of update_renderFlag from %d for %p (%s) flag %x parents %d\n",li,p, stringNodeType(p->_nodeType),
+ 	 		flag, vectorSize(p->_parentVector)); 
+ 	if (p->_nodeType == NODE_Shape) {
+	 printf ("... and this one is our Shape...\n");
+ 	    for (i = 0; i < vectorSize(p->_parentVector); i++) {
+ 		struct X3D_Node *me = vector_get(struct X3D_Node *,p->_parentVector, i);
+ 		printf ("Shape parent %d is %p, type %s\n",i,me,stringNodeType(me->_nodeType));
+ 	    }
+ 	}
+	#endif //VERBOSE
 
 
 	
@@ -127,7 +133,6 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 	//	ConsoleMessage ("update_renderFlag, p NULL from %s:%d\n",fi,li);
 	//	return;
 	//}
-
 	p->_renderFlags = p->_renderFlags | flag;
 
 	if (p->_parentVector == NULL) {
@@ -156,44 +161,141 @@ void  update_renderFlagB (struct X3D_Node *p, int flag, int li) {
 			markForDispose(p, TRUE);
 			return;
 		}
+		depth++;
+		if(depth < 50){
+			// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
+			switch (me->_nodeType) {
 
-		// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
-		switch (me->_nodeType) {
+				case NODE_Switch:
+					if (is_Switchchild_inrange(X3D_SWITCH(me),p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
 
-			case NODE_Switch:
-				if (is_Switchchild_inrange(X3D_SWITCH(me),p)) {
-					/* printf ("switch, this is the chosen node\n"); */
+				case NODE_LOD:
+					/* works for both X3D and VRML syntax; compare with the "_selected" field */
+					if (is_vp_new_way() || p == X3D_LODNODE(me)->_selected) {
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
+
+				case NODE_GeoLOD:
+					if (is_GeoLODchild_inrange(X3D_GEOLOD(me),p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						update_renderFlagB(me,flag, __LINE__);
+					}
+					break;
+
+				//case NODE_CADLayer:
+				//	if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
+				//		update_renderFlagB(me,flag, __LINE__);
+				//	}
+				//	break;
+
+				default:
+
 					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_LOD:
-				/* works for both X3D and VRML syntax; compare with the "_selected" field */
-				if (p == X3D_LODNODE(me)->_selected) {
-					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_GeoLOD:
-				if (is_GeoLODchild_inrange(X3D_GEOLOD(me),p)) {
-					/* printf ("switch, this is the chosen node\n"); */
-					update_renderFlagB(me,flag, __LINE__);
-				}
-				break;
-
-			case NODE_CADLayer:
-                if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
-                    update_renderFlagB(me,flag, __LINE__);
-				}
-                break;
-
-			default:
-
-				update_renderFlagB(me,flag, __LINE__);
+			}
 		}
+		depth--;
 	} // referenceCount check
 	}
 	/* printf ("finished update_RenderFlag for %d\n",p); */
+}
+int  update_renderFlagC(struct X3D_Node* p, int flag, int setaction) {
+	int i;
+	static int depth = 0;
+	// send notification up the chain
+	// just for vp and vp_new_way for LOD proposed spec change:
+	//  when user choses a VP (viewpoint) under an LOD child that's unchosen, 
+	//  the VP will be chosen and bound, and the LOD choice will change to match
+	// that means 2 changes: 1) user requested VP under LOD must succeed in binding
+	//   and 2) the LOD choice must change
+	// here we attempt both.
+	// setaction = 0 clear = 1 set 
+	// -- allows us to unset a path for the last bound vp, so we can try again with different vp
+	int iret = 0; //0 - unsuccessful/did not reach rootNode() 1= successful / reached rootNode
+
+	if (setaction)
+		p->_renderFlags = p->_renderFlags | flag; //unconditionally set flag
+	else
+		p->_renderFlags = p->_renderFlags & (0xFFFF ^ flag); //unconditionally unset flag
+
+
+	if (p->_parentVector == NULL || vectorSize(p->_parentVector) == 0) {
+		//ConsoleMessage ("update_renderFlag, %p->parentVector NULL  refcount %d (%s) from %s:%d\n",p,p->referenceCount,stringNodeType(p->_nodeType),fi,li);
+		if (p == rootNode()) iret = 1;
+		return iret;
+	}
+
+	for (i = 0; i < vectorSize(p->_parentVector); i++) {
+		struct X3D_Node* me = vector_get(struct X3D_Node*, p->_parentVector, i);
+
+		// JAS printf ("update_renderFlagB, reference count for parent %p is %d\n",me,me->referenceCount);
+		if (me->referenceCount > 0) {
+
+			// JAS printf ("update_renderFlagB, line %d node type %p %s\n",__LINE__,me,stringNodeType(me->_nodeType));
+
+			if (me == NULL) {
+				ConsoleMessage("update_renderFlag, me  NULL for child %d", i);
+				markForDispose(p, TRUE);
+				return iret;
+			}
+
+			if (me->_parentVector == NULL) {
+
+				// JAS printf ("update_renderFlagB, warning, for node %p (%s), pv %d, child has null parentVector\n",p,stringNodeType(p->_nodeType),i);
+				ConsoleMessage("warning, for node %p (%s), pv %d, child has null parentVector\n", p, stringNodeType(p->_nodeType), i);
+				markForDispose(p, TRUE);
+				return iret;
+			}
+			depth++;
+			if (depth < 50) {
+				// printf ("node %d type %s has node %d  type %s for a parent\n",p,stringNodeType(p->_nodeType),me,stringNodeType(me->_nodeType));  
+				switch (me->_nodeType) {
+
+				case NODE_Switch:
+					if (is_Switchchild_inrange(X3D_SWITCH(me), p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						iret = update_renderFlagC(me, flag, setaction);
+					}
+					break;
+
+				case NODE_LOD:
+					/* works for both X3D and VRML syntax; compare with the "_selected" field */
+					if (is_vp_new_way() || p == X3D_LODNODE(me)->_selected) {
+						iret = update_renderFlagC(me, flag, setaction);
+						if (iret && setaction) {
+							X3D_LODNODE(me)->_selected = p; //vp_new_way proposed by Don: user selecting a VP under an unchosen LOD child would set that child as selected
+							X3D_LODNODE(me)->_lastMethod = 1; //tells proximity_LOD to skip distance tests till viewpoint finishes slerping
+							//printf("updateRenderflagsC setting LOD_selected = %p\n", p);
+						}
+					}
+					break;
+
+				case NODE_GeoLOD:
+					if (is_GeoLODchild_inrange(X3D_GEOLOD(me), p)) {
+						/* printf ("switch, this is the chosen node\n"); */
+						iret = update_renderFlagC(me, flag, setaction);
+					}
+					break;
+
+					//case NODE_CADLayer:
+					//	if (is_CADLayerchild_inrange(X3D_CADLAYER(me),p)) {
+					//		update_renderFlagC(me,flag, setaction);
+					//	}
+					//	break;
+
+				default:
+					iret = update_renderFlagC(me, flag, setaction);
+				}
+			}
+			depth--;
+		} // referenceCount check
+	}
+	/* printf ("finished update_RenderFlag for %d\n",p); */
+	return iret;
 }
 void  UPDATE_RENDERFLAG (struct X3D_Node *p, int flag, char *fi, int li){ 
 	if (p==NULL) {

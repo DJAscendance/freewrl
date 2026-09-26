@@ -55,6 +55,9 @@ struct Vector* newVector_(int elSize, int initSize,char *,int);
 
 /* Ensures there's at least one space free. */
 void vector_ensureSpace_(int, struct Vector*, char *fi, int line);
+void testVector_(int elSize, struct Vector* me);
+#define testVector(type,me) \
+ testVector_(sizeof(type),me);
 
 /* Element retrieval. */
 #define vector_get(type, me, ind) \
@@ -144,6 +147,10 @@ typedef struct Vector Stack;
 /* Top of stack */
 #define stack_top(type, me) \
  vector_get(type, me, vectorSize(me)-1)
+
+#define stack_top_ptr(type, me) \
+ vector_get_ptr(type, me, vectorSize(me)-1)
+
 
 /* Is the stack empty? */
 #define stack_empty(me) \

@@ -37,6 +37,7 @@ X3D Environmental Sensors Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../ui/common.h"
 
 #include "LinearAlgebra.h"
 #include "Component_Geospatial.h"
@@ -83,7 +84,13 @@ static void rendVisibilityBox (struct X3D_VisibilitySensor *node);
 //#define PROXIMITYSENSOR(type,center,initializer1,initializer2) 
 void render_ProximitySensor (struct X3D_ProximitySensor *node) {
 	//just for rendering the extent/bounding box
-	if(renderstate()->render_boxes) extent6f_draw(node->_extent);
+	//equivalent ot setExtent:
+	bbox2extent6f(node->center.c,node->size.c,node->_extent);
+	if(renderstate()->render_geom && fwl_getDrawBoundingBoxes()) {
+		draw_bbox(node->center.c,node->size.c);
+	}
+	//propagate bbox up one level
+	union_group_extent(node->_extent); //
 }
 void proximity_ProximitySensor (struct X3D_ProximitySensor *node) {
 	/* Viewer pos = t_r2 */
@@ -93,10 +100,10 @@ void proximity_ProximitySensor (struct X3D_ProximitySensor *node) {
 	struct point_XYZ dr2r3;
 	struct point_XYZ nor1,nor2;
 	struct point_XYZ ins;
-	static const struct point_XYZ yvec = {0,0.05,0};
-	static const struct point_XYZ zvec = {0,0,-0.05};
-	static const struct point_XYZ zpvec = {0,0,0.05};
-	static const struct point_XYZ orig = {0,0,0};
+	static const struct point_XYZ yvec = {.x=0,.y=0.05,.z=0};
+	static const struct point_XYZ zvec = {.x=0,.y=0,.z=-0.05};
+	static const struct point_XYZ zpvec = {.x=0,.y=0,.z=0.05};
+	static const struct point_XYZ orig = {.x=0,.y=0,.z=0};
 	struct point_XYZ t_zvec, t_yvec, t_orig, t_center;
 	GLDOUBLE modelMatrix[16];
 	GLDOUBLE projMatrix[16];
@@ -491,7 +498,6 @@ void other_VisibilitySensor (struct X3D_VisibilitySensor *node) {
 		}
 
 		rs = renderstate();
-		RECORD_DISTANCE
 
 		if (rs->render_blend) { 
 
@@ -764,10 +770,10 @@ void do_TransformSensorTick (void *ptr) {
 				//-see if AABB intersect
 				if( overlapMBBs(memin, memax, uumin, uumax) ){
 					//-if so take action
-					static const struct point_XYZ yvec = {0,0.05,0};
-					static const struct point_XYZ zvec = {0,0,-0.05};
-					static const struct point_XYZ zpvec = {0,0,0.05};
-					static const struct point_XYZ orig = {0,0,0};
+					static const struct point_XYZ yvec = {.x=0,.y=0.05,.z=0};
+					static const struct point_XYZ zvec = {.x=0,.y=0,.z=-0.05};
+					static const struct point_XYZ zpvec = {.x=0,.y=0,.z=0.05};
+					static const struct point_XYZ orig = {.x=0,.y=0,.z=0};
 					struct point_XYZ t_zvec, t_yvec, t_orig; //, t_center;
 					struct point_XYZ nor1,nor2;
 					struct point_XYZ ins;

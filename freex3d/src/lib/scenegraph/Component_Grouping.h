@@ -26,4 +26,7 @@ void prep_Transform (struct X3D_Transform *node);
 void fin_Transform (struct X3D_Transform *node);
 void child_Transform (struct X3D_Transform *node);
 
+int peek_group_visible();
+void pop_group_visible();
+
 #endif /* __FREEWRL_SCENEGRAPH_COMPONENT_GROUPING_H__ */

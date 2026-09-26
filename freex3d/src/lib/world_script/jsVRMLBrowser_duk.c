@@ -249,18 +249,32 @@ struct string_int lookup_X3DConstants[] = {
 	{"MFVec2f",FIELDTYPE_MFVec2f},
 	{"SFVec3f",FIELDTYPE_SFVec3f},
 	{"MFVec3f",FIELDTYPE_MFVec3f},
+	{"SFVec4f",FIELDTYPE_SFVec4f},
+	{"MFVec4f",FIELDTYPE_MFVec3f},
+	{"SFVec2d",FIELDTYPE_SFVec2d},
+	{"MFVec2d",FIELDTYPE_MFVec2d},
 	{"SFVec3d",FIELDTYPE_SFVec3d},
 	{"MFVec3d",FIELDTYPE_MFVec3d},
+	{"SFVec4d",FIELDTYPE_SFVec4d},
+	{"MFVec4d",FIELDTYPE_MFVec4d},
 	{"SFRotation",FIELDTYPE_SFRotation},
 	{"MFRotation",FIELDTYPE_MFRotation},
 	{"SFColor",FIELDTYPE_SFColor},
 	{"MFColor",FIELDTYPE_MFColor},
 	{"SFImage",FIELDTYPE_SFImage},
-//	{"MFImage",FIELDTYPE_MFImage},
+	{"MFImage",FIELDTYPE_MFImage},
 	{"SFColorRGBA",FIELDTYPE_SFColorRGBA},
 	{"MFColorRGBA",FIELDTYPE_MFColorRGBA},
 	{"SFString",FIELDTYPE_SFString},
 	{"MFString",FIELDTYPE_MFString},
+	{"SFMatrix3f",FIELDTYPE_SFMatrix3f},
+	{"MFMatrix3f",FIELDTYPE_MFMatrix3f},
+	{"SFMatrix4f",FIELDTYPE_SFMatrix4f},
+	{"MFMatrix4f",FIELDTYPE_MFMatrix4f},
+	{"SFMatrix3d",FIELDTYPE_SFMatrix3d},
+	{"MFMatrix3d",FIELDTYPE_MFMatrix3d},
+	{"SFMatrix4d",FIELDTYPE_SFMatrix4d},
+	{"MFMatrix4d",FIELDTYPE_MFMatrix4d},
 /*
 	{"X3DBoundedObject",},
 	{"X3DMetadataObject",},
@@ -953,6 +967,8 @@ FWPropertySpec (BrowserProperties)[] = {
 	{"currentScene", 7, 'P', 'T'},
 	{NULL,0,0,0},
 };
+
+
 struct proftablestruct {
 	int profileName;
 	const int *profileTable;
@@ -1119,7 +1135,7 @@ struct FWTYPE ComponentInfoArrayType = {
 
 FWPropertySpec (ComponentInfoProperties)[] = {
 	{"name", 0, 'S', 'T'},
-	{"Title", 1, 'S', 'T'},
+	{"title", 1, 'S', 'T'},
 	{"level", 2, 'I', 'T'},
 	{"providerUrl", 3, 'S', 'T'},
 	{NULL,0,0,0},
@@ -1133,7 +1149,7 @@ int ComponentInfoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretv
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	switch (index) {
 		case 0://name
-		case 1://Title
+		case 1://title
 			nameIndex = tableEntry[0];
 			fwretval->_string = COMPONENTS[nameIndex]; 
 			fwretval->itype = 'S';
@@ -1319,8 +1335,9 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	defname = fwpars[0]._string;
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__DEFnames){
-		for(i=0;i<vectorSize(_ec->__DEFnames);i++){
-			bd = vector_get(struct brotoDefpair *,_ec->__DEFnames,i);
+		struct Vector* defnames = (struct Vector*)_ec->__DEFnames;
+		for(i=0;i<vectorSize(defnames);i++){
+			bd = vector_get_ptr(struct brotoDefpair,defnames,i);
 			//Q. is it the DEF we search for, and node we replace, OR
 			//   is it the node we search for, and DEF we replace?
 			if(!strcmp(bd->name,defname)){
@@ -1339,12 +1356,44 @@ int X3DExecutionContext_updateNamedNode(FWType fwtype, void *ec, void *fwn, int 
 		//I guess its an add
 		if(!_ec->__DEFnames)
 			_ec->__DEFnames = newVector(struct brotoDefpair*,4);
-		bd = (struct brotoDefpair*)malloc(sizeof(struct brotoDefpair));
-		bd->node = node;
-		bd->name = strdup(defname);
-		stack_push(struct brotoDefpair *,_ec->__DEFnames,bd);
+		struct brotoDefpair bd2;
+		memset(&bd2, 0, sizeof(struct brotoDefpair));
+		bd2.node = node;
+		bd2.name = strdup(defname);
+		stack_push(struct brotoDefpair,(struct Vector*)_ec->__DEFnames,bd2);
 	}
 	return nr;
+}
+void remove_node_from_parents_children(struct X3D_Node* node) {
+		for (int i = 0; i < vectorSize(node->_parentVector); i++) {
+			struct X3D_Node* pnode = vector_get(struct X3D_Node*, node->_parentVector, i);
+			int type, kind, iifield;
+			union anyVrml* value, *valuer;
+			int kids = getFieldFromNodeAndName(pnode, "children", &type, &kind, &iifield, &value);
+			if(!kids) kids = getFieldFromNodeAndName(pnode, "__children", &type, &kind, &iifield, &value);
+			if(kids){
+				//if(getFieldFromNodeAndName(pnode, "children", &type, &kind, &iifield, &valuer))
+				//	AddRemoveChildren(node, value, (struct X3D_Node**)valuer->mfnode.p, valuer->mfnode.n, 2, __FILE__, __LINE__);
+				//	removeChildren->n = 0;
+				//else {
+				int n = 0;
+				int done = FALSE;
+				for (int j = 0; j < value->mfnode.n; j++) {
+					if (value->mfnode.p[j] == node) {
+						if (!done) {
+							remove_parent(node, pnode);
+							done = TRUE;
+						}
+					}
+					else {
+						value->mfnode.p[n] = value->mfnode.p[j];
+						n++;
+					}
+				}
+				value->mfnode.n = n;
+			}
+		}
+
 }
 int remove_broto_node(struct X3D_Proto *context, struct X3D_Node* node);
 int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
@@ -1358,14 +1407,15 @@ int X3DExecutionContext_removeNamedNode(FWType fwtype, void *ec, void *fwn, int 
 	if(_ec->__DEFnames){
 		struct brotoDefpair *bd;
 		for(i=0;i<vectorSize(_ec->__DEFnames);i++){
-			bd = vector_get(struct brotoDefpair *,_ec->__DEFnames,i);
+			bd = vector_get_ptr(struct brotoDefpair,_ec->__DEFnames,i);
 			if(!strcmp(bd->name,defname)){
 				node = bd->node;
 				//Q. are we supposed to delete the node 
 				//OR are we just supposed to remove the DEF name mapping?
 				//remove DEF name mapping:
-				vector_remove_elem(struct brotoDefpair *,_ec->__DEFnames,i);
+				vector_remove_elem(struct brotoDefpair,_ec->__DEFnames,i);
 				//remove node
+				remove_node_from_parents_children(node);
 				remove_broto_node(_ec,node);
 				break;
 			}
@@ -1435,29 +1485,46 @@ int X3DExecutionContext_getImportedNode(FWType fwtype, void *ec, void *fwn, int 
 
 void update_weakRoutes(struct X3D_Proto *context);
 int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
-	// I think what they mean by updateImportedNode(string,string[,string]) is:
-	//   updateImportedNode(Inline DEF name, Inline's Export AS name [,optional Import AS name])
+	//2023 interpretation of parameters:
+	// string1 is the main scene local DEF name (the AS name)
+	// string2 is the inline export name
+	// no need for 3rd string for inline name:
+	// - if you want to say which inline, use <inline name>.<export name> in string2
+	// - otherwise if no "." it assumes that's the export name and will search for that in all inlines
+	//
 	int i, nr = 0;
 	//broto warning - DEF name list should be per-executionContext
 	struct X3D_Proto *_ec = (struct X3D_Proto *)fwn;
 	struct X3D_Node* node = NULL;
 
-	const char *as, *mxname, *nline;
+	const char* as, * mxname, * impname;
+	char* nline;
 	int found = 0;
 	struct IMEXPORT *mxp;
 
-	nline = fwpars[0]._string;
+	as = fwpars[0]._string;
 	mxname = fwpars[1]._string;
-	as = mxname;
-	if(argc == 3)
-		as = fwpars[2]._string;
+	impname = strdup(mxname);
+	nline = NULL;
+	const char* dot = strstr(mxname, ".");
+	if (dot) {
+		nline = strdup(mxname);
+		nline[dot - mxname] = 0;
+		impname = strdup(&dot[1]);
+	}
+	printf("as [%s] impname [%s] nline [%s]\n", as, impname, nline);
 	node = X3D_NODE(fwpars[1]._web3dval.native);
 	if(_ec->__IMPORTS){
 		for(i=0;i<vectorSize(_ec->__IMPORTS);i++){
 			mxp = vector_get(struct IMEXPORT *,_ec->__IMPORTS,i);
 			//Q. is it the DEF we search for, and node we replace, OR
 			//   is it the node we search for, and DEF we replace?
-			if(!strcmp(nline,mxp->inlinename) && !strcmp(mxp->mxname,mxname)){
+			int inlineOK = !nline || !strcmp(nline, mxp->inlinename);
+			int asOK = !strcmp(as, mxp->as);
+			int impOK = !strcmp(impname, mxp->mxname);
+			if (inlineOK && impOK) {
+				//if (!strcmp(nline, mxp->inlinename) && !strcmp(mxp->mxname, mxname)) {
+				printf("updating import new as [%s] old import [%s] inline [%s]\n", as, impname, nline);
 				mxp->as = strdup(as);
 				found = 1;
 				break;
@@ -1469,9 +1536,10 @@ int X3DExecutionContext_updateImportedNode(FWType fwtype, void *ec, void *fwn, i
 		if(!_ec->__IMPORTS)
 			_ec->__IMPORTS = newVector(struct IMEXPORT *,4);
 		mxp = (struct IMEXPORT *)malloc(sizeof(struct IMEXPORT));
-		mxp->mxname = strdup(mxname);
+		mxp->mxname = strdup(impname);
 		mxp->as = strdup(as);
-		mxp->inlinename = strdup(nline);
+		mxp->inlinename = nline ? strdup(nline) : NULL;
+		printf("adding import mapping as [%s] import [%s] inline [%s]\n", impname, as, nline);
 		stack_push(struct IMEXPORT *,_ec->__IMPORTS,mxp);
 	}
 	update_weakRoutes(_ec);
@@ -1598,23 +1666,75 @@ int X3DScene_removeExportedNode(FWType fwtype, void *ec, void *fwn, int argc, FW
 	}
 	return nr;
 }
+int X3DExecutionContext_toString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int nr = 0;
+	char* value;
+	value = NULL;
+
+	char str[200];
+	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
+	sprintf(str, "%p", (void*)ecc);
+	value = strdup(str);
+	//do a search in the perscene/perexecution context array
+	if (value) {
+		fwretval->_string = value;
+		fwretval->itype = 'S';
+		nr = 1;
+	}
+	return nr;
+
+}
 int X3DScene_setMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
-	const char *name, *value;
+	const char *name, *content;
 	name = fwpars[0]._string;
-	value = fwpars[1]._string;
+	content = fwpars[1]._string;
 	//strdup and put in a global or per-scene or per execution context (name,value) list
+	struct X3D_Proto* _ec = (struct X3D_Proto*)fwn;
+	if (!_ec->__META)
+		_ec->__META = newVector(struct metarecord, 10);
+
+	struct Vector* metalist = (struct Vector*)_ec->__META;
+	struct metarecord* mr;
+	int done = FALSE;
+	for (int i = 0; i < vectorSize(metalist); i++) {
+		mr = vector_get_ptr(struct metarecord, metalist, i);
+		if (!strcmp(mr->name, name)) {
+			mr->content = strdup(content);
+			done = TRUE;
+			break;
+		}
+	}
+	if (!done) {
+		//add
+		struct metarecord mr2;
+		mr2.name = strdup(name);
+		mr2.content = strdup(content);
+		vector_pushBack(struct metarecord, metalist, mr2);
+	}
 	return nr;
 }
 int X3DScene_getMetaData(FWType fwtype, void *ec, void *fwn, int argc, FWval fwpars, FWval fwretval){
 	int nr = 0;
 	const char *name;
-	char *value;
-	value = NULL;
+	char *content;
+	content = NULL;
 	name = fwpars[0]._string;
 	//do a search in the perscene/perexecution context array
-	if(value){
-		fwretval->_string = value;
+	struct X3D_Proto* _ec = (struct X3D_Proto*)fwn;
+	if (_ec->__META) {
+		struct Vector* metalist = (struct Vector*)_ec->__META;
+		struct metarecord* mr;
+		for (int i = 0; i < vectorSize(metalist); i++) {
+			mr = vector_get_ptr(struct metarecord, metalist, i);
+			if (!strcmp(mr->name, name)) {
+				content = strdup(mr->content);
+				break;
+			}
+		}
+	}
+	if(content){
+		fwretval->_string = content;
 		fwretval->itype = 'S';
 		nr = 1;
 	}
@@ -1628,11 +1748,12 @@ static FWFunctionSpec (X3DExecutionContextFunctions)[] = {
 	{"createNode", VRBrowserCreateNodeFromString, 'W',{1,-1,0,"S"}},
 	{"createProto", X3DExecutionContext_createProto, 'W',{1,-1,0,"S"}},
 	{"getImportedNode", X3DExecutionContext_getImportedNode, 'W',{1,-1,0,"S"}},
-	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{3,-1,0,"SSS"}},
+	{"updateImportedNode", X3DExecutionContext_updateImportedNode, '0',{2,-1,0,"SS"}},
 	{"removeImportedNode", X3DExecutionContext_removeImportedNode, '0',{1,-1,0,"S"}},
 	{"getNamedNode", X3DExecutionContext_getNamedNode, 'W',{1,-1,0,"S"}},
 	{"updateNamedNode", X3DExecutionContext_updateNamedNode, '0',{2,-1,0,"SW"}},
 	{"removeNamedNode", X3DExecutionContext_removeNamedNode, '0',{1,-1,0,"S"}},
+	{"toString",X3DExecutionContext_toString,'S',{0,0,0,NULL}},
 	////scene
 	{"setMetaData", X3DScene_setMetaData, '0',{2,-1,0,"SS"}},
 	{"getMetaData", X3DScene_getMetaData, 'S',{1,-1,0,"S"}},
@@ -1816,6 +1937,56 @@ struct FWTYPE X3DRouteArrayType = {
 //SFNode destinationNode;
 //String destinationField;
 //}
+#ifndef JAVASCRIPT_SM
+//jsVRMLBrowser_sm.cpp defines this when SpiderMonkey is built alongside duktape (Windows);
+//duktape-only builds (macOS) need their own copy
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node) {
+	int n = vectorSize(ec->__DEFnames);
+	char* name = NULL;
+	struct brotoDefpair def;
+	for (int i = 0; i < n; i++) {
+		def = vector_get(struct brotoDefpair, ec->__DEFnames, i);
+		if (def.node == node) {
+			name = def.name;
+			break;
+		}
+	}
+	return name;
+}
+#else
+char* lookup_brotoDefname(struct X3D_Proto* ec, struct X3D_Node* node);
+#endif
+int X3DRouteToString(FWType fwtype, void* ec, void* fwn, int argc, FWval fwpars, FWval fwretval) {
+	int nr = 0;
+	char* value;
+	value = NULL;
+
+	char str[200];
+	struct X3D_Proto* ecc = (struct X3D_Proto*)ec;
+	struct brotoRoute* route = (struct brotoRoute*)fwn;
+	//struct brotoRoute* route = vector_get(struct brotoRoute*, ecc->__ROUTES, _index);
+
+	//getSpecificRoute(_index, &fromNode, &fromOffset, &toNode, &toOffset);
+	char* fromName = lookup_brotoDefname(ecc, route->from.node); // parser_getNameFromNode(route->from.node);
+	char* toName = lookup_brotoDefname(ecc, route->from.node); // parser_getNameFromNode(route->to.node);
+	char* fromfield = findFIELDNAMESfromNodeOffset0(route->from.node, route->from.ifield);
+	char* tofield = findFIELDNAMESfromNodeOffset0(route->to.node, route->to.ifield);
+
+	sprintf(str, "[ROUTE %s.%s TO %s.%s]", fromName, fromfield, toName, tofield);
+	value = strdup(str);
+	//do a search in the perscene/perexecution context array
+	if (value) {
+		fwretval->_string = value;
+		fwretval->itype = 'S';
+		nr = 1;
+	}
+	return nr;
+}
+
+FWFunctionSpec(X3DRouteFunctions)[] = {
+	{"toString",	X3DRouteToString, 'S',{0,0,0,NULL}},
+	{0}
+};
 
 FWPropertySpec (X3DRouteProperties)[] = {
 	{"sourceNode", 0, 'W', 'T'},
@@ -1844,7 +2015,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	switch(index){
-	case 0: //fromNode
+	case 0: //sourceNode
 		//fwretval->_web3dval.native = (void*)fromNode; //route->routeFromNode;
 		//((union anyVrml*)fwpars[0]._web3dval.native)->sfnode
 		fwretval->_web3dval.anyvrml = malloc(sizeof(union anyVrml));
@@ -1853,13 +2024,13 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		fwretval->_web3dval.gc = 1;
 		fwretval->itype = 'W';
 		break;
-	case 1: //fromField
+	case 1: //sourceField
 		//fieldname = findFIELDNAMESfromNodeOffset0(fromNode,fromOffset);
 		getFieldFromNodeAndIndexSource(fromNode,fromIndex,fromBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname; //NULL;
 		fwretval->itype = 'S';
 		break;
-	case 2: //toNode
+	case 2: //destinationNode
 		//fwretval->_web3dval.native = (void*)toNode; //route->routeFromNode;
 		fwretval->_web3dval.anyvrml = malloc(sizeof(union anyVrml));
 		fwretval->_web3dval.anyvrml->sfnode = toNode;
@@ -1867,7 +2038,7 @@ int X3DRouteGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 		fwretval->itype = 'W';
 		fwretval->_web3dval.gc = 1;
 		break;
-	case 3: //toField
+	case 3: //destinationField
 		//getFieldFromNodeAndIndex(route->tonodes[0].routeToNode,route->tonodes[0].foffset,&fieldname,&type,&kind,&value);
 		getFieldFromNodeAndIndexSource(toNode,toIndex,toBuiltIn,&fieldname,&type,&kind,&value);
 		fwretval->_string = fieldname;
@@ -1892,7 +2063,7 @@ struct FWTYPE X3DRouteType = {
 	X3DRouteGetter,
 	NULL,
 	0,0, //takes int index in prop
-	NULL,
+	X3DRouteFunctions,
 };
 
 
@@ -1900,17 +2071,18 @@ struct FWTYPE X3DRouteType = {
 int X3DProtoArrayGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	
 	int nr = 0;
+	Stack* parray = (Stack*)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index == -1){
 		int _length;
-		_length = vectorSize(fwn);
+		_length = vectorSize(parray);
 		fwretval->_integer = _length;
 		fwretval->itype = 'I';
 		nr = 1;
 	}else if(index > -1 ){
 		if(index < vectorSize(fwn)){
-			fwretval->_pointer.native = vector_get(void *, fwn, index); //struct X3D_Proto *
-			fwretval->_pointer.gc = 1;
+			fwretval->_pointer.native = (void*)vector_get(struct X3D_Proto *, parray, index); //struct X3D_Proto *
+			fwretval->_pointer.gc = 0;
 			fwretval->_pointer.fieldType = AUXTYPE_X3DProto;
 			fwretval->itype = 'P';
 			nr = 1;
@@ -1970,19 +2142,24 @@ FWPropertySpec (X3DProtoProperties)[] = {
 int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	int nr = 0;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
+	struct ProtoDefinition* pd = (struct ProtoDefinition*)X3D_PROTO(fwn)->__protoDef;
 	switch(index){
 	case 0: //name
-		fwretval->_string = X3D_PROTO(fwn)->__typename; //NULL;
+		fwretval->_string = strdup(pd->protoName); // X3D_PROTO(fwn)->__typename; //NULL;
 		fwretval->itype = 'S';
+		fwretval->_web3dval.gc = 0;
+		nr = 1;
 		break;
 	case 1: //fields
-		fwretval->_web3dval.native = fwn; //we'll get field[i] from the proto later (void*)X3D_PROTO(fwn)->__protoDef; //route->routeFromNode;
+		fwretval->_web3dval.native = pd->iface; // fwn; //we'll get field[i] from the proto later (void*)X3D_PROTO(fwn)->__protoDef; //route->routeFromNode;
 		fwretval->_web3dval.fieldType = AUXTYPE_X3DFieldDefinitionArray;
 		fwretval->itype = 'W';
 		fwretval->_web3dval.gc = 0;
+		nr = 1;
 		break;
 	case 2: //isExternProto
 		fwretval->itype = 'B';
+		fwretval->_web3dval.gc = 0;
 		{
 			unsigned char flag = ciflag_get(X3D_PROTO(fwn)->__protoFlags,3);
 			if(flag == 1)
@@ -1990,6 +2167,8 @@ int X3DProtoGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 			else
 				fwretval->_boolean = FALSE;
 		}
+		nr = 1;
+		break;
 	default:
 		nr = 0;
 	}
@@ -2030,23 +2209,24 @@ int count_fields(struct X3D_Node* node);
 int X3DFieldDefinitionArrayGetter(FWType fwt, int index, void *ec, void *fwn, FWval fwretval){
 	
 	int nr = 0;
-	struct X3D_Node *node = (struct X3D_Node*)fwn;
-
+	//struct X3D_Node *node = (struct X3D_Node*)fwn;
+	Stack* iface = (Stack*)fwn;
 	//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 	if(index == -1){
 		int _length = 0;
 		//I suspect this fieldDefinition stuff is for ProtoDeclares and ExternProtoDeclares only, not builtin or protoInstances or scripts
-		_length = count_fields(node); 
+		_length = vectorSize(iface); // count_fields(node);
 		fwretval->_integer = _length;
 		fwretval->itype = 'I';
 		nr = 1;
 	}else if(index > -1 ){
 		if(index < vectorSize(fwn)){
-			struct tuplePointerInt *tpi = malloc(sizeof(struct tuplePointerInt));
-			tpi->pointer = (void*)node;  
-			tpi->integer = index;
-			fwretval->_pointer.native = tpi; //vector_get(void *, fwn, index); //struct X3D_Proto *
-			fwretval->_pointer.gc = 1;
+			//struct tuplePointerInt *tpi = malloc(sizeof(struct tuplePointerInt));
+			//tpi->pointer = (void*)node;  
+			//tpi->integer = index;
+			struct ProtoFieldDecl* pfield = vector_get(struct ProtoFieldDecl*, iface, index);
+			fwretval->_pointer.native = pfield; //vector_get(void *, fwn, index); //struct X3D_Proto *
+			fwretval->_pointer.gc = 0;
 			fwretval->_pointer.fieldType = AUXTYPE_X3DFieldDefinition;
 			fwretval->itype = 'P';
 			nr = 1;
@@ -2088,33 +2268,38 @@ int X3DFieldDefinitionGetter(FWType fwt, int index, void *ec, void *fwn, FWval f
 	union anyVrml *value;
 	struct X3D_Node* node;
 	const char *fname;
-	struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
-	node = tpi->pointer;
-	ifield = tpi->integer;
+	//struct tuplePointerInt *tpi = (struct tuplePointerInt*)fwn;
+	//node = tpi->pointer;
+	//ifield = tpi->integer;
 	//I suspect FieldDefinitions are for ProtoDeclarations only, 
 	// but freewrl Brotos can use the same function for nodes and declares
-	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
+	struct ProtoFieldDecl* pfield = (struct ProtoFieldDecl*)fwn;
+
+//	if(getFieldFromNodeAndIndexSource(node,ifield,TRUE,&fname,&type,&kind,&value)){
 	//if(getFieldFromNodeAndIndex(node,ifield,&fname,&type,&kind,&value)){
 		//fwretval->itype = 'S'; //0 = null, N=numeric I=Integer B=Boolean S=String, W=Object-web3d O-js Object P=ptr F=flexiString(SFString,MFString[0] or ecmaString)
 		switch(index){
 		case 0: //name
-			fwretval->_string = fname; //NULL;
+			fwretval->_string = pfield->cname; // fname; //NULL;
 			fwretval->itype = 'S';
+			nr = 1;
 			break;
 		case 1: //accessType
-			si = lookup_string_int(lookup_X3DConstants,PROTOKEYWORDS[kind],&konstindex);
-			fwretval->_integer = konstindex; //index into x3dconstants table
+			//si = lookup_string_int(lookup_X3DConstants,PROTOKEYWORDS[pfield->mode],&konstindex);
+			fwretval->_integer = pfield->mode; // konstindex; //index into x3dconstants table
 			fwretval->itype = 'I';
+			nr = 1;
 			break;
 		case 2: //dataType
-			si = lookup_string_int(lookup_X3DConstants,FIELDTYPES[type],&konstindex);
-			fwretval->_integer = konstindex; //index into x3dconstants table
+			//si = lookup_string_int(lookup_X3DConstants,FIELDTYPES[pfield->type],&konstindex);
+			fwretval->_integer = pfield->type; // konstindex; //index into x3dconstants table
 			fwretval->itype = 'I';
+			nr = 1;
 			break;
 		default:
 			nr = 0;
 		}
-	}
+//	}
 	return nr;
 }
 
@@ -2137,7 +2322,8 @@ struct FWTYPE X3DFieldDefinitionType = {
 
 
 
-
+extern struct FWTYPE X3DMatrix3Type;
+extern struct FWTYPE X3DMatrix4Type;
 
 void initVRMLBrowser(FWType* typeArray, int *n){
 	typeArray[*n] = &X3DRouteType; (*n)++;

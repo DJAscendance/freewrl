@@ -60,56 +60,69 @@ shaderflags changed from int to struct { int, int, int }
 */
 
 typedef struct {
-int base;
+unsigned long long base;
 int effects;
 int usershaders; 
 int volume;
+int depth;
+int debug;
 } shaderflagsstruct;
 
 shaderflagsstruct getShaderFlags();
 s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
-
+enum {
+	MAT_NONE = 0,
+	MAT_UNLIT = 1,
+	MAT_REGULAR = 2,
+	MAT_PHYSICAL = 3,
+};
 
 
 #define NO_APPEARANCE_SHADER 0x0001
 #define MATERIAL_APPEARANCE_SHADER 0x0002
 #define TWO_MATERIAL_APPEARANCE_SHADER 0x0004
-#define ONE_TEX_APPEARANCE_SHADER 0x0008
-#define MULTI_TEX_APPEARANCE_SHADER 0x0010
+#define PHYSICAL_MATERIAL_APPEARANCE_SHADER 0x0008
+#define UNLIT_MATERIAL_APPEARANCE_SHADER 0x0010
+#define ONE_TEX_APPEARANCE_SHADER 0x0020
+#define MULTI_TEX_APPEARANCE_SHADER 0x0040
 
 /* PolyRep (etc) color field present */
-#define COLOUR_MATERIAL_SHADER 0x00020
+#define COLOUR_MATERIAL_SHADER 0x00080
 
 /*  - fillProperties present */
-#define FILL_PROPERTIES_SHADER 0x00040
+#define FILL_PROPERTIES_SHADER 0x00100
 
 /*  - lines, points */
-#define HAVE_LINEPOINTS_COLOR 0x0080
-#define HAVE_LINEPOINTS_APPEARANCE 0x00100
+#define HAVE_LINEPOINTS_COLOR 0x00200
+#define HAVE_LINEPOINTS_APPEARANCE 0x00400
 
 /* TextureCoordinateGenerator */
-#define HAVE_TEXTURECOORDINATEGENERATOR 0x00200
+#define HAVE_TEXTURECOORDINATEGENERATOR 0x00800
 
 /* CubeMapTexturing */
-#define HAVE_CUBEMAP_TEXTURE   0x00400
+#define HAVE_CUBEMAP_TEXTURE   0x01000
 /* more OR-able flags for compositing shaders */
-#define FOG_APPEARANCE_SHADER  0X00800
-#define HAVE_FOG_COORDS        0x01000
-#define TEXTURE_REPLACE_PRIOR  0x02000
-#define TEXALPHA_REPLACE_PRIOR 0x04000
-#define CPV_REPLACE_PRIOR      0x08000
-#define SHADINGSTYLE_FLAT      0x10000
-#define SHADINGSTYLE_GOURAUD   0x20000
-#define SHADINGSTYLE_PHONG     0x40000
-#define SHADINGSTYLE_WIRE      0x80000
-#define MAT_FIRST              0x100000
-#define WANT_ANAGLYPH          0x200000
-#define TEX3D_SHADER           0X400000
-#define TEX3D_LAYER_SHADER     0x800000
-#define CLIPPLANE_SHADER       0x1000000
-#define PARTICLE_SHADER        0X2000000
-#define HAVE_UNLIT_COLOR       0x4000000
-#define HAVE_PROJECTIVETEXTURE 0X8000000
+#define FOG_APPEARANCE_SHADER	0X02000
+#define HAVE_FOG_COORDS			0x04000
+#define MODULATE_COLOR			0x08000
+#define MODULATE_ALPHA			0x10000
+#define MODULATE_TEXTURE		0x20000
+#define SHADINGSTYLE_FLAT		0x40000
+#define SHADINGSTYLE_GOURAUD	0x80000
+#define SHADINGSTYLE_PHONG		0x100000
+#define SHADINGSTYLE_WIRE		0x200000
+#define MAT_FIRST				0x400000
+#define WANT_ANAGLYPH			0x800000
+#define TEX3D_SHADER			0X1000000
+#define TEX3D_LAYER_SHADER		0x2000000
+#define CLIPPLANE_SHADER		0x4000000
+#define PARTICLE_SHADER			0X8000000
+#define HAVE_UNLIT_COLOR		0x10000000
+#define HAVE_PROJECTIVETEXTURE	0X20000000
+#define LINE_PROPERTIES_SHADER	0X40000000
+#define POINT_PROPERTIES_SHADER 0x80000000
+#define SKINNING_SHADER			0X100000000
+#define DISPLACER_SHADER		0x200000000
 //can go up to 2^32 - for future components like volume, particle, hanim 
 
 //goes into flags.volume
@@ -143,12 +156,46 @@ s_shader_capabilities_t *getMyShaders(shaderflagsstruct);
 
 
 struct fw_MaterialParameters {
-	float emission[4];
-	float ambient[4];
-	float diffuse[4];
-	float specular[4];
-	float shininess; 
+	float diffuse[3];   //MAT_REGULAR
+	float emissive[3];
+	float specular[3];  //MAT_REGULAR
+	float ambient;      //MAT_REGULAR
+	float shininess;    //MAT_REGULAR
+	float transparency; 
+	float normalScale; // normalScale 1, all
+	float occlusion; // occlusionStrength MAT_REGULAR, MAT_PHYSICAL
+	float baseColor[3]; //MAT_PHYSICAL
+	float metallic;     //MAT_PHYSICAL
+	float roughness;    //MAT_PHYSICAL 
+	int type; //MAT_TYPE: 0 MAT_NONE 1 MAT_EMISSIVE 2 MAT_REGULAR 3 MAT_PHYSICAL
+	// used in frag, for texture maps:
+	int transdex; // which tindex to use for transparency -1 None, else 0-3
+	// multi-te4xtues are dis-aggregated at send-to-shader stage
+	int tindex[10]; //sampler textureUnit[tindex] indexes, 
+	int binding[10]; //for debugging, persists for a child_shape rendering the GL_TEXTURE0+i texture binding point used
+	int mode[10];  //multitexture modulate mode
+	int source[10]; //multitexture modulate mode
+	int func[10]; //multitexture modulate mode
+	int cmap[10]; //index of appropriate varying vec3 texCoord[cmap] to use in frag shader
+	int samplr[10]; // 0=texture2D 1=cubeMap sampler (could have SH sphereical harmonic, cubeShadow, other??) 
+	int nt; // number of single texture maps 0 if none
+	//// [0] normal [1] emissive [2] diffuse OR baseColor [3] specular/shiny OR metallic/roughness [4] ambient
+	//iunit [0] normal [1] emissive [2] occlusion [3] diffuse OR base [4] shininess OR metallicRoughness [5] specular [6] ambient
+	struct X3D_Node *textures[7]; //emissive,normal,[occlusion,{diffuse,ambient,specular,shininess}, or {base,smetallic}]
+	int tcount[7]; // for material.textureXXX if its a single texture 1, if multitexture n
+	int tstart[7]; // where in tindex to start looping
+	//int cindex[7]; //texture coordinate channel
+	char* map[7]; //xxxTextureMapping (pointer / shallow copy, don't free)
+	//int mtex[5];   //flag = 1 if it's a multitexture / needs multitexture functionality applied
+	int mt; // number of multitextures 0 if none, just a CPU-side flag to set MTEX in shader, don't send
 };
+
+// helpers for sharing sampler2D (and texture units)
+void clear_material_samplers();
+int share_or_next_material_sampler_index_2D(GLint texture);
+GLint tunit2D(int index);
+int share_or_next_material_sampler_index_Cube(GLint texture);
+GLint tunitCube(int index);
 
 struct matpropstruct {
 	/* material properties for current shape */
@@ -158,22 +205,37 @@ struct matpropstruct {
 	/* which shader is active; 0 = no shader active */
 	s_shader_capabilities_t *currentShaderProperties;
 
-	float	transparency;
-	GLfloat	emissionColour[3];
+	//float	transparency;
+	//GLfloat	emissionColour[3];
 	GLint	cubeFace;	/* for cubemapping, if 0, not cube mapping */
 	int 	cullFace;	/* is this single-sided or two-sided? Simply used to reduce calls to
 						GL_ENABLE(GL_CULL_FACE), etc */
+	int twosided; //if we have a real Appearance.backMaterial or Appearance.TwoSidedMaterial(deprecated) = 1, else 0. 
 
-	/* for FillProperties, and LineProperties, line type (NOT pointsize) */
-	int algorithm;
+	// FillProperties
 	bool hatchedBool;
 	bool filledBool;
 	GLfloat hatchPercent[2];
-	GLfloat hatchScale[2];
+	GLfloat hatchScale[2]; //non-web3d standard but keep it for now
 	GLfloat hatchColour[4];
+	int hatchAlgo;
 
-	// points now specified in shader, not via an opengl call 
-	GLfloat pointSize;   
+	//LineProperties and linetypes
+	int linetype;
+	float lineperiod;
+	float linewidth; //this goes direct to our frag shader
+	float * linetype_uv;
+	float * linetype_tse;
+	int linestrip_start_style;
+	int linestrip_end_style;
+
+	//PointProperties and PointSet
+	GLfloat pointSize;   //this goes to old opengl internal geometry shader
+	int pointMethod; //0 = GL_POINTS (old, simple way) 1= GL_TRIANGLES (a quad per point sprite, like ParticleSystems)
+	int markerType; //1=Dot 2+ various compiled-in crosses and circles
+	float pointsizeRange[2];
+	float pointsizeAttenuation[3];
+	int pointColorMode;
 
 	//TextureCoordinateGenerator value - a "TCGT_XXX" type
 	int texCoordGeneratorType;
@@ -181,6 +243,7 @@ struct matpropstruct {
 
 struct matpropstruct* getAppearanceProperties();
 void setUserShaderNode(struct X3D_Node *me);
+
 
 #define MIN_NODE_TRANSPARENCY 0.0f
 #define MAX_NODE_TRANSPARENCY 0.99f  /* if 1.0, then occlusion culling will cause flashing */
@@ -230,4 +293,19 @@ void setUserShaderNode(struct X3D_Node *me);
 			   ignore? Lets ignore, for now */ \
 		} \
 	}
+
+enum {
+PM_NONE = 0,  //reserve 0 for render_PointSet to thunk to opengl GL_POINTS when no PointProperties node
+PM_SCREEN = 1,
+PM_OBJECT = 2,
+PM_FANCY = 3,
+}; //pointproperties_pointmethod: constants only (a named variable here is defined in every file that includes this)
+
+/* Component_Shape.c */
+void clear_materialparameters_per_draw_counts();
+void initialize_front_and_back_material_params();
+/* RenderFuncs.c */
+void pushShaderFlags(shaderflagsstruct flags);
+void popShaderFlags();
+
 #endif /* __FREEWRL_SCENEGRAPH_SHAPE_H__ */

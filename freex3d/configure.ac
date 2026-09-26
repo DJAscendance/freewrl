@@ -391,6 +391,10 @@ case "$TARGET" in
 	;;
      *)
         AC_FIND_OPENGL
+        GL_CFLAGS="-DANGLE=1"
+        AC_SUBST(GL_CFLAGS)
+        GL_LIBS="-lGLU -lGL"
+        AC_SUBST(GL_LIBS)
         ;;
 esac
 
@@ -886,6 +890,7 @@ doc/Makefile
 src/Makefile
 src/bin/Makefile
 src/lib/Makefile
+src/libnurbs/Makefile
 src/lib/libFreeWRL.pc
 src/plugin/Makefile
 src/libeai/Makefile

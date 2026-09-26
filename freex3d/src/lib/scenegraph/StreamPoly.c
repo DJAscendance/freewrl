@@ -112,13 +112,13 @@ static GLfloat Zsize = 0.0;
    Used for copying color X3DColorNode values over for streaming the
    structure. */
 
-static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA, GLfloat thisTransparency) {
+static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA) {
 	int i;
 	int pc;
 
 	if (isRGBA) pc = 4; else pc = 3;
 
-	/* if (isRGBA) printf ("do_glColor4fv, isRGBA\n"); else printf ("do_glColor4fv, NOT RGBA, setting alpha to thisTransparency %f\n",thisTransparency); */
+	/* if (isRGBA) printf ("do_glColor4fv, isRGBA\n"); else printf ("do_glColor4fv, NOT RGBA, setting alpha to 1\n"); */
 
 	/* parameter checks */
 	for (i=0; i<pc; i++) {
@@ -135,19 +135,22 @@ static void do_glColor4fv(struct SFColorRGBA *dest, GLfloat *param, int isRGBA, 
 		dest->c[3] = param[3];
 	} else {
 		/* we calculate the transparency of the node. VRML 0.0 = fully visible, OpenGL 1.0 = fully visible */
-		dest->c[3] = 1.0f - thisTransparency;
+		dest->c[3] = 1.0f;
 	}
 	/* printf ("do_glColor4fv, resulting is R %f G %f B %f A %f\n",dest->c[0],dest->c[1],dest->c[2], dest->c[3]); */
 }
 
 
 void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void *normal, struct X3D_TextureCoordinate *texCoordNode) {
-    
+/* takes indexes from make_genericFaceSet -there are 3x number of triangles indexes- 
+   and iterates over the indexes, duplicating the shared vertices, so that vertices count is 3x ntri 
+   -- as is normal count, texcoord count, vertex color count
+*/
 	struct X3D_Node *node;
 	struct X3D_PolyRep *r;
 	int i, j, k, nmtexcoord;
 	int hasc;
-	GLfloat thisTrans;
+	//GLfloat thisTrans;
 
 	struct SFVec3f *points= NULL; int npoints=0;
 	struct SFColor *colors= NULL; int ncolors=0;
@@ -172,18 +175,20 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	bool temp_points = FALSE;
     struct Multi_Vec2f *textureCoordPoint[MAX_MULTITEXTURE];
 	int ntexdim[MAX_MULTITEXTURE];
+	char* map[MAX_MULTITEXTURE];
 	for(k=0;k<MAX_MULTITEXTURE;k++){
 		textureCoordPoint[k] = NULL;
 		newTexCoords[k] = NULL;
 		ntexdim[k] = 2;
+		map[k] = NULL; //TextureCoordinate.mapping added in web3d v4
 	}
 	nmtexcoord = 0; //number of multitextureCoordinates 0-4
 
 	/* get internal structures */
 	node = X3D_NODE(innode);
-	r = node->_intern;
+	r = (struct X3D_PolyRep*) node->_intern;
 	r->actualFog = NULL;
-    
+
 	#ifdef STREAM_POLY_VERBOSE
 	printf ("start spv for %p extents %lf %lf, %lf %lf, %lf %lf\n",node,
 		node->EXTENT_MIN_X,
@@ -274,9 +279,12 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 
 		if (r->tcoordtype == NODE_TextureCoordinate) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
-			textureCoordPoint[0] = &(texCoordNode->point);
-			nmtexcoord = 1;
-			ntexdim[0] = 2;
+			if (texCoordNode) {
+				textureCoordPoint[0] = &(texCoordNode->point);
+				nmtexcoord = 1;
+				ntexdim[0] = 2;
+				map[0] = texCoordNode->mapping ? texCoordNode->mapping->strptr : NULL;
+			}
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate3D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -285,6 +293,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] = (struct Multi_Vec2f*) &(tcn->point);
 			nmtexcoord = 1;
 			ntexdim[0] = 3;
+			map[0] = tcn->mapping ? tcn->mapping->strptr : NULL;
 		}
 		if (r->tcoordtype == NODE_TextureCoordinate4D) {
 			//ConsoleMessage ("have textureCoord, point.n = %d",tc->point.n);
@@ -293,6 +302,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			textureCoordPoint[0] =(struct Multi_Vec2f*) &(tcn->point); 
 			nmtexcoord = 1;
 			ntexdim[0] = 4;
+			map[0] = tcn->mapping ? tcn->mapping->strptr : NULL;
 		}
 
 		if (r->tcoordtype == NODE_MultiTextureCoordinate) {
@@ -305,6 +315,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 						struct X3D_TextureCoordinate * ttcc = (struct X3D_TextureCoordinate*)mtc->texCoord.p[k];
 						textureCoordPoint[k] = &(ttcc->point);
 						ntexdim[k] = 2;
+						map[k] = ttcc->mapping ? ttcc->mapping->strptr : NULL;
 						nmtexcoord++;
 					}
 				}
@@ -314,8 +325,10 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
      
 		// TextureCoordinateGenerator, make the r->texgentype match the TCGT_ definition of the field 
 		if (r->tcoordtype == NODE_TextureCoordinateGenerator) {
-			r->texgentype = findFieldInARR(((struct X3D_TextureCoordinateGenerator *)texCoordNode)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);    
+			struct X3D_TextureCoordinateGenerator* tcg = (struct X3D_TextureCoordinateGenerator*)texCoordNode;
+			r->texgentype = findFieldInARR((tcg)->mode->strptr, TEXTURECOORDINATEGENERATOR, TEXTURECOORDINATEGENERATOR_COUNT);    
 			//ConsoleMessage("have texgen, type %d",r->texgentype);
+			map[0] = tcg->mapping ? tcg->mapping->strptr : NULL;
 		}
 	}
 
@@ -342,9 +355,10 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 
 	// some nodes will generate our tex coords for us, eg GeoElevationGrid
 	if (!r->GeneratedTexCoords[0]) {
-		newTexCoords[0] = MALLOC (float *, sizeof (float)*ntexdim[0]*r->ntri*3); //always malloc at least one
-		for(k=1;k<nmtexcoord;k++)
-			newTexCoords[k] = MALLOC (float *, sizeof (float)*ntexdim[k]*r->ntri*3);
+		newTexCoords[0] = MALLOC(float*, sizeof(float) * ntexdim[0] * r->ntri * 3); //always malloc at least one
+		for (k = 1; k < nmtexcoord; k++){
+			newTexCoords[k] = MALLOC(float*, sizeof(float) * ntexdim[k] * r->ntri * 3);
+		}
 	}
     
 	newcolors=0;	/*  only if we have colours*/
@@ -354,6 +368,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	newtcindex = MALLOC (GLuint *, sizeof (GLuint)*r->ntri*3);
 
 	newpoints = MALLOC (struct SFVec3f *, sizeof (struct SFVec3f)*r->ntri*3);
+
 	if(fogpoints)
 		newfog = MALLOC (float *, sizeof(float)*r->ntri*3);
 
@@ -389,9 +404,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 			if(points) {
 				if (ind >= npoints) { 
 					/* bounds checking... */
-					r->minVals[j]=0.0f;
-					r->maxVals[j]=0.0f;
-					printf ("spv, warning, index %d >= npoints %d\n",ind,npoints);
+					//r->minVals[j]=0.0f;
+					//r->maxVals[j]=0.0f;
+					//printf ("spv, warning, index %d >= npoints %d\n",ind,npoints);
 				} else {
 					if (r->minVals[j] > points[ind].c[j]) r->minVals[j] = points[ind].c[j];
 					if (r->maxVals[j] < points[ind].c[j]) r->maxVals[j] = points[ind].c[j];
@@ -410,44 +425,6 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		defaultTextureMap(node, r);
 	}
 
-
-	/* figure out transparency for this node. Go through scene graph, and looksie for it. */
-	thisTrans = 0.0f; /* 0.0 = solid, OpenGL 1.0 = solid, we reverse it when writing buffers */
-	 
-	// printf ("figuring out what the transparency of this node is \n");
-	// printf ("nt %s\n",stringNodeType(X3D_NODE(node)->_nodeType));
-	
-	/* parent[0] should be a NODE_Shape */
-	if(0){ 
-		//Sept 1, 2016: we are modulating CPV transparency with material transparency 
-		// .. in the UberShader, so we don't need to modulate it here
-		struct X3D_Shape *parent;
-
-		if (node->_parentVector != NULL) {
-			if (vectorSize(node->_parentVector) != 0) {
-				parent = vector_get(struct X3D_Shape *, node->_parentVector, 0);
-				// printf ("nt, parent is of type %s\n",stringNodeType(parent->_nodeType)); 
-				if (parent->_nodeType == NODE_Shape) {
-					struct X3D_Appearance *app;
-					POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *, parent->appearance,app)
-					if (app != NULL)  {
-						// printf ("appearance is of type %s\n",stringNodeType(app->_nodeType)); 
-						if (app->_nodeType == NODE_Appearance) {
-							struct X3D_Material *mat;
-							POSSIBLE_PROTO_EXPANSION(struct X3D_Material *, app->material,mat)
-							if (mat != NULL) {
-								// printf ("material is of type %s\n",stringNodeType(mat->_nodeType)); 
-								if (mat->_nodeType == NODE_Material) {
-									thisTrans = mat->transparency;
-									// printf ("Set transparency to %f\n",thisTrans);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
 
 	/* now, lets go through the old, non-linear polyrep structure, and
 	   put it in a stream format */
@@ -531,9 +508,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					printf ("\n");
 				#endif
 				if (isRGBA)
-					do_glColor4fv(&newcolors[i],oldColorsRGBA[coli].c,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],oldColorsRGBA[coli].c,isRGBA);
 				else
-					do_glColor4fv(&newcolors[i],colors[coli].c,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],colors[coli].c,isRGBA);
 			} else if(r->color) {
 				#ifdef STREAM_POLY_VERBOSE
 					printf ("coloUr");
@@ -541,9 +518,9 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					printf ("\n");
 				#endif
 				if (isRGBA)
-					do_glColor4fv(&newcolors[i],r->color+4*coli,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],r->color+4*coli,isRGBA);
 				else
-					do_glColor4fv(&newcolors[i],r->color+3*coli,isRGBA,thisTrans);
+					do_glColor4fv(&newcolors[i],r->color+3*coli,isRGBA);
 			}
 		}
 
@@ -592,6 +569,8 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					
 					jj = 0;
 					// bounds checking
+					j = min(j, textureCoordPoint[k]->n - 1);
+					/*
 					if (j>=(textureCoordPoint[k]->n)) {
 						//this warning eats frame rate in HAnim
 						static int once = 0;
@@ -604,7 +583,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 						jj = textureCoordPoint[k]->n / max(1,nmtexcoord);
 						j= j % textureCoordPoint[k]->n;
 					}
-
+					*/
 					// textureCoordPoint is a pointer to struct Multi_Vec2f;
 					// struct Multi_Vec2f is struct Multi_Vec2f { int n; struct SFVec2f  *p; };
 					// struct SFVec2f is struct SFVec2f { float c[2]; };
@@ -612,19 +591,22 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 					// get the 2 tex coords from here, and copy them over to newTexCoords
 					ndim = ntexdim[k];
 					me = (float*)textureCoordPoint[k]->p; //[j]; //lets hope struct SFVec2f is same layout as float[2]
-					me = &me[j*ndim];
-					if(jj){
-						//experiment for when not enough texture coordinates
-						newTexCoords[k][i*ndim] = me[0]/(float)(jj); 
-						newTexCoords[k][i*ndim+1] = me[1]/(float)(jj); 
-					}else{
-						newTexCoords[k][i*ndim] = me[0];
-						newTexCoords[k][i*ndim+1] = me[1];
+					if (me) {
+						me = &me[j * ndim];
+						if (jj) {
+							//experiment for when not enough texture coordinates
+							newTexCoords[k][i * ndim] = me[0] / (float)(jj);
+							newTexCoords[k][i * ndim + 1] = me[1] / (float)(jj);
+						}
+						else {
+							newTexCoords[k][i * ndim] = me[0];
+							newTexCoords[k][i * ndim + 1] = me[1];
+						}
+						if (ndim > 2)
+							newTexCoords[k][i * ndim + 2] = me[2]; //me.c[1];
+						if (ndim > 3)
+							newTexCoords[k][i * ndim + 3] = me[3]; //me.c[1];
 					}
-					if(ndim>2)
-						newTexCoords[k][i*ndim+2] = me[2]; //me.c[1];
-					if(ndim>3)
-						newTexCoords[k][i*ndim+3] = me[3]; //me.c[1];
 				} else if(k==0) {
 					/* default textures */
 					/* we want the S values to range from 0..1, and the
@@ -668,6 +650,8 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	FREE_IF_NZ(r->normal);
 	r->normal = (float *)newnorms;
 	FREE_IF_NZ(r->flat_normal);
+	r->oindex = r->cindex;  //transfer cindex to oindex before copying newcindex to cindex, for skinning
+	r->cindex = NULL;
 	FREE_IF_NZ(r->cindex);
 	r->cindex = newcindex;
 	FREE_IF_NZ(r->actualFog);
@@ -688,6 +672,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	}
 	r->ntcoord = nmtexcoord;
 	memcpy(r->ntexdim,ntexdim,4*sizeof(int));
+	memcpy(r->map, map, 4 * sizeof(char*));
 	FREE_IF_NZ(r->color);
 	FREE_IF_NZ(r->colindex);
 
@@ -712,7 +697,7 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 	r->streamed=TRUE;
 
 	/* record the transparency, in case we need to re-do this field */
-	r->transparency = thisTrans;
+	//r->transparency = thisTrans;
 	r->isRGBAcolorNode = isRGBA;
 
 	/* send the data to VBOs if required */
@@ -735,6 +720,30 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[FOG_VBO]);
 		glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(float)*3,r->actualFog, GL_STATIC_DRAW);
 	}
+	if (r->oindex) {
+		//original coordinate indexes, still 3 per triangle, but index into original Coordinate.point.p
+		//used for humanoid skinning in shader fw_Cindex attribute
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 0");
+		if (r->VBO_buffers[CINDEX_VBO] == 0) glGenBuffers(1, &r->VBO_buffers[CINDEX_VBO]);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 1");
+		//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
+		glBindBuffer(GL_ARRAY_BUFFER, r->VBO_buffers[CINDEX_VBO]);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 2");
+		glBufferData(GL_ARRAY_BUFFER, r->ntri * sizeof(int) * 3, r->oindex, GL_STATIC_DRAW);
+		PRINT_GL_ERROR_IF_ANY("Stream OINDEX 3");
+		if (0) {
+			static int once = 0;
+			if (!once)
+				for (int j = 0; j < r->ntri; j++)
+				{
+					printf("[");
+					for (int k = 0; k < 3; k++)
+						printf("%d ", r->oindex[(3 * j) + k]);
+					printf("]");
+				}
+			once = 1;
+		}
+	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[VERTEX_VBO]);
 	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColor)*3,r->actualCoord, GL_STATIC_DRAW);
@@ -747,28 +756,28 @@ void stream_polyrep(void *innode, void *coord, void *fogCoord, void *color, void
 		//because we do glDrawArrays(GL_TRIANGLES,,,) in Polyrep.c which doesn't use indices. 
 		//(glDrawElements uses indices, used below for wireframe)
 		int i;
-		GLushort *to;
+		GLuint *to;
 		unsigned int *from;
 		
-		r->tri_indices = MALLOC(GLushort *, sizeof(GLushort) * r->ntri*3);
+		r->tri_indices = MALLOC(GLuint *, sizeof(GLuint) * r->ntri*3);
 
 		to = r->tri_indices;
 		from = r->cindex;
 
 		for (i=0; i<r->ntri*3; i++) {
 			//printf ("and, index %d is %d\n",i,*from);
-			*to = (GLushort) *from; to++; from++;
+			*to = (GLuint) *from; to++; from++;
 		}
  
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*r->ntri*3,r->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLuint)*r->ntri*3,r->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
 		//FREE_IF_NZ(myindicies);
 	}
 	{
 		//wireframe lines - prepare in case someone does SHADINGSTYLE_WIRE
 		int i, i3, i6;
-		GLushort *lindex;
+		GLuint *lindex;
 		FREE_IF_NZ(r->wire_indices);
-		lindex = MALLOC(GLushort *, sizeof(GLushort) * r->ntri*3*2);
+		lindex = MALLOC(GLuint *, sizeof(GLuint) * r->ntri*3*2);
 		
 		for(i=0;i<r->ntri;i++){
 			i3 = i*3;

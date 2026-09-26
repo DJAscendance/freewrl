@@ -199,22 +199,22 @@ int main (int argc, char **argv)
     fv_params->height = 480;
 
     fv_params->fullscreen = FALSE;
-    fv_params->winToEmbedInto = INT_ID_UNDEFINED;
+	fv_params->winToEmbedInto = (void*)-1; // INT_ID_UNDEFINED;
     fv_params->verbose = FALSE;
  //   fv_params->collision = 1; // if you set it, you need to update ui button with a call
 	//setMenuButton_collision(fv_params->collision);
 	//fwl_init_StereoDefaults();
 
     /* parse command line arguments */
+	start_url = NULL;
+	printf("-h for commandline use\n");
     if (fv_parseCommandLine(argc, argv,fv_params, &url_index)) {
-		if(argc > 1){
+		if(argc > 1 && url_index > -1){
 			start_url = argv[url_index];
 #ifdef _MSC_VER
 			if(start_url)
 				start_url = strBackslash2fore(start_url);
 #endif
-		}else{
-			start_url = NULL;
 		}
     }
 

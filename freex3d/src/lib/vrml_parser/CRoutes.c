@@ -751,6 +751,8 @@ void add_first(struct X3D_Node * node) {
 		case NODE_Collision:			myp = do_CollisionTick;			break;
 		case NODE_MovieTexture:			myp = do_MovieTextureTick;		break;
 		case NODE_AudioClip:			myp = do_AudioTick;				break;
+		case NODE_BufferAudioSource:	myp = do_BufferAudioSourceTick;	break;
+		case NODE_OscillatorSource:		myp = do_OscillatorSourceTick;	break;
 		case NODE_VisibilitySensor:		myp = do_VisibilitySensorTick;	break;
 		case NODE_TransformSensor:		myp = do_TransformSensorTick;	break;
 		case NODE_GeoProximitySensor:	myp = do_GeoProximitySensorTick;break;
@@ -1587,6 +1589,11 @@ void mark_event_B (struct X3D_Node *lastFrom, int lastptr, struct X3D_Node *from
 //	ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
 //	p->ScriptControl = ScriptControl;
 //}
+int getScriptControlCount() {
+
+	ttglobal tg = (ttglobal)gglobal();
+	return tg->CRoutes.max_script_found;
+}
 struct CRscriptStruct *getScriptControlIndex(int actualscript)
 {
 	ppCRoutes p = (ppCRoutes)gglobal()->CRoutes.prv;
@@ -2136,6 +2143,7 @@ int JSparamIndex (const char *name, const char *type, int mod) {
 	JSparamnames[tg->CRoutes.jsnameindex].type = ty;
 	JSparamnames[tg->CRoutes.jsnameindex].kind = mod;
 	JSparamnames[tg->CRoutes.jsnameindex].eventInFunction = NULL;
+	JSparamnames[tg->CRoutes.jsnameindex].traceable = NULL;
 	#ifdef CRVERBOSE
 	printf ("JSparamIndex, returning %d\n",tg->JScript.jsnameindex); 
 	#endif
@@ -2336,6 +2344,51 @@ const char *stringMode(int pkwmode, int cute){
 }
 void print_field_value(FILE *fp, int typeIndex, union anyVrml* value);
 
+//bit functions - don't care about endien-ness as long as we are consistent
+//0-based indexing ie k=0 sets the lowest bit to 1
+void setBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] | (1 << kbit); 
+} 
+  
+void clearBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] & (~(1 << kbit)); 
+} 
+  
+void toggleBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    bitfield[kbyte] = bitfield[kbyte] ^ (1 << kbit); 
+} 
+int testBit(unsigned char *bitfield, int k) 
+{ 
+	int kbit = k % 8;
+	int kbyte = k / 8;
+    return bitfield[kbyte] & (1 << kbit); 
+} 
+void printBits(unsigned char *bitfield, int nbytes){
+	int nbits = nbytes * 8;
+	for(int i=0;i<nbits;i++)
+		printf("%d", testBit(bitfield,i)?1:0);
+}
+
+void flag_fieldchange(struct X3D_Node * toNode,int toOffset){
+	//to help nodes in their compile_ determine which fields changed, we want to set a bit flag
+	//but to keep the math simple, and save some memeory, we assume all fields are some multiple 
+	// of 4 bytes in size ie float is 4, int 4, void* is 4 or 8, vec3f is 3x4, 
+	// so we take the  toOffset (in bytes, from start of node struct) and devide by 4 to get
+	// which bit flag to set (for a field thats 8 or 12 bytes we will waste / leave empty bits)
+	int bit = toOffset / 4; 
+	setBit(toNode->_fieldchange,bit);
+	//printf("%s\n",NODES[toNode->_nodeType]);
+}
+
 void propagate_events_B() {
 	int havinterp;
 	int counter;
@@ -2371,6 +2424,7 @@ void propagate_events_B() {
 	if(debugRoutes)
 		printf("current time=%d routecount=%d\n",p->thisIntTimeStamp,p->CRoutes_Count);
 	//#endif
+
 	do {
 		havinterp=FALSE; /* assume no interpolators triggered */
 
@@ -2488,7 +2542,6 @@ void propagate_events_B() {
 			isize = sizeofSForMF(sftype);
 			if(isMF) len = sizeof(int) + sizeof(void*);
 			else len = isize;
-			
 
 
 			for (to_counter = 0; to_counter < p->CRoutes[counter].tonode_count; to_counter++) {
@@ -2592,6 +2645,7 @@ void propagate_events_B() {
 					cleanFieldIfManaged(type,modeTo,1,toNode,toOffset); //see unlink_node/killNode policy
 
 					shallow_copy_field(type,fromAny,toAny);
+					flag_fieldchange(toNode,toOffset); //May 2020 - want to set a bit for the particular field that changed
 					//if(isMF && sftype == FIELDTYPE_SFNode)
 					//	add_mfparents(toNode,toAny,type);
 					registerParentIfManagedField(type,modeTo,1, toAny, toNode); //see unlink_node/killNode policy

@@ -35,6 +35,7 @@ X3D Particle Systems Component
 #include "../vrml_parser/Structs.h"
 #include "../vrml_parser/CRoutes.h"
 #include "../main/headers.h"
+#include "../opengl/LoadTextures.h"
 
 #include "../world_script/fieldSet.h"
 #include "../x3d_parser/Bindable.h"
@@ -340,10 +341,20 @@ typedef struct {
 	float position[3];
 	float velocity[3];
 	float origin[3]; //zero normally. For boundedphysics, updated on each reflection to be last reflection point.
-	//float direction[3];
-	//float speed;
+	float direction[3]; //normalized last non-zero velocity vector
+	float speed;
 	float mass;
 	float surfaceArea;
+	//mapemitter method
+	int sink; //assigned after birth in MapPhysics, for MapPhysics, MapEmitter
+	int maplocation[2]; //last popmap location in MapPhysics
+	int paused; //HANIM 0= use first motion 1= use second motion
+	double transitionStart[2];
+	double transitionTime[2];
+	double _startTime[2];
+	int lastMotionsEnabled[2];
+	//mapemitter + HAnimPermuter method (could be generalized to more emitters?)
+	int permutationIndex;
 } particle;
 enum {
 	GEOM_QUAD = 1,
@@ -352,6 +363,8 @@ enum {
 	GEOM_SPRITE = 4,
 	GEOM_TRIANGLE = 5,
 	GEOM_GEOMETRY = 6,
+	GEOM_HANIM = 7,
+	GEOM_CHILD = 8,
 };
 struct {
 const char *name;
@@ -363,6 +376,8 @@ int type;
 {"SPRITE",GEOM_SPRITE},
 {"TRIANGLE",GEOM_TRIANGLE},
 {"GEOMETRY",GEOM_GEOMETRY},
+{"HANIM",GEOM_HANIM},
+{"CHILD",GEOM_CHILD},
 {NULL,0},
 };
 int lookup_geomtype(const char *name){
@@ -379,73 +394,77 @@ int lookup_geomtype(const char *name){
 	return iret;
 }
 //GLfloat quadtris [18] = {1.0f,1.0f,0.0f, -1.0f,1.0f,0.0f, -1.0f,-1.0f,0.0f,    1.0f,1.0f,0.0f, -1.0f,-1.0f,0.0f, 1.0f,-1.0f,0.0f};
-GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
-GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
-GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
+static GLfloat quadtris [18] = {-.5f,-.5f,0.0f, .5f,-.5f,0.0f, .5f,.5f,0.0f,   .5f,.5f,0.0f, -.5f,.5f,0.0f, -.5f,-.5f,0.0f,};
+static GLfloat twotrisnorms [18] = {0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,    0.f,0.f,1.f, 0.f,0.f,1.f, 0.f,0.f,1.f,};
+static GLfloat twotristex [12] = {0.f,0.f, 1.f,0.f, 1.f,1.f,    1.f,1.f, 0.f,1.f, 0.f,0.f};
 
 void compile_Shape (struct X3D_Shape *node);
 // COMPILE PARTICLE SYSTEM
-void compile_ParticleSystem(struct X3D_ParticleSystem *node){
-	int i,j, maxparticles;
-	float *vertices; //*boxtris, 
-	Stack *_particles;
+void compile_geom_particle(struct X3D_ParticleSystem* node) {
+	int i, j;
+	float* vertices; //*boxtris, 
 
-	ConsoleMessage("compile_particlesystem\n");
+	//compile shape specifics
+	//ConsoleMessage("compile_particlesystem\n");
 	//delegate to compile_shape - same order to appearance, geometry fields
 	compile_Shape((struct X3D_Shape*)node);
 
-	node->_geometryType = lookup_geomtype(node->geometryType->strptr);
-	if(node->_tris == NULL){
-		node->_tris = MALLOC(void *,18 * sizeof(float));
+	if (node->_tris == NULL) {
+		node->_tris = MALLOC(void*, 18 * sizeof(float));
 		//memcpy(node->_tris,quadtris,18*sizeof(float));
 	}
 	vertices = (float*)(node->_tris);
 	//rescale vertices, in case scale changed
-	for(i=0;i<6;i++){
-		float *vert, *vert0;
-		vert0 = &quadtris[i*3];
-		vert = &vertices[i*3];
-		vert[0] = vert0[0]*node->particleSize.c[0];
-		vert[1] = vert0[1]*node->particleSize.c[1];
+	for (i = 0; i < 6; i++) {
+		float* vert, * vert0;
+		vert0 = &quadtris[i * 3];
+		vert = &vertices[i * 3];
+		vert[0] = vert0[0] * node->particleSize.c[0];
+		vert[1] = vert0[1] * node->particleSize.c[1];
 		vert[2] = vert0[2];
 	}
-	if(node->texCoordRamp){
-		int ml,mq,mt,n;
-		struct X3D_TextureCoordinate *tc = (struct X3D_TextureCoordinate *)node->texCoordRamp;
+
+	if (node->texCoordRamp || node->texCoord) {
+		int ml, mq, mt, n;
+		struct X3D_TextureCoordinate* tc;
+		if (node->texCoordRamp)
+			tc = (struct X3D_TextureCoordinate*)node->texCoordRamp;
+		else
+			tc = (struct X3D_TextureCoordinate*)node->texCoord;
 		n = node->texCoordKey.n;
-		mq = n*4; //quad
-		ml = n*2; //2 pt line
-		mt = n*6; //2 triangles
+		mq = n * 4; //quad
+		ml = n * 2; //2 pt line
+		mt = n * 6; //2 triangles
 
 		//malloc for both lines and tex, in case changed on the fly
-		if(!node->_ttex)
-			node->_ttex = MALLOC(void *,mt*2*sizeof(float));
-		if(!node->_ltex)
-			node->_ltex = MALLOC(void *,ml*2*sizeof(float));
-		if(tc->point.n == mq){
+		if (!node->_ttex)
+			node->_ttex = MALLOC(void*, mt * 2 * sizeof(float));
+		if (!node->_ltex)
+			node->_ltex = MALLOC(void*, ml * 2 * sizeof(float));
+		if (tc->point.n == mq) {
 			//enough tex coords for quads, expand to suit triangles
 			//  4 - 3
 			//  5 / 2  2 triangle config
 			//  0 _ 1
-			float *ttex, *ltex;
+			float* ttex, * ltex;
 			ttex = (float*)node->_ttex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				int k;
-				for(j=0,k=0;j<4;j++,k++){
-					float *p = (float*)(float *)&tc->point.p[i*4 + j];
-					veccopy2f(&ttex[(i*6 + k)*2],p);
-					if(k==0){
-						veccopy2f(&ttex[(i*6 + 5)*2],p); //copy to 5 (last of 0-6 2-triangle)
+				for (j = 0, k = 0; j < 4; j++, k++) {
+					float* p = (float*)(float*)&tc->point.p[i * 4 + j];
+					veccopy2f(&ttex[(i * 6 + k) * 2], p);
+					if (k == 0) {
+						veccopy2f(&ttex[(i * 6 + 5) * 2], p); //copy to 5 (last of 0-6 2-triangle)
 					}
-					if(k==2){
+					if (k == 2) {
 						k++;
-						veccopy2f(&ttex[(i*6 + k)*2],p); //copy 2 to 3 (start of 2nd triangle
+						veccopy2f(&ttex[(i * 6 + k) * 2], p); //copy 2 to 3 (start of 2nd triangle
 					}
 				}
 			}
-			if(0) for(i=0;i<n;i++){
-				for(j=0;j<6;j++)
-					printf("%f %f,",ttex[(i*6 + j)*2 +0],ttex[(i*6 + j)*2 +1]);
+			if (0) for (i = 0; i < n; i++) {
+				for (j = 0; j < 6; j++)
+					printf("%f %f,", ttex[(i * 6 + j) * 2 + 0], ttex[(i * 6 + j) * 2 + 1]);
 				printf("\n");
 			}
 			//for(i=0;i<(n*6*2);i++){
@@ -453,56 +472,76 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 			//}
 
 			ltex = (float*)node->_ltex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				// make something up for lines
-				for(j=0;j<2;j++){
+				for (j = 0; j < 2; j++) {
 					float p[2];
-					struct SFVec2f *sf = (struct SFVec2f *)&tc->point.p[i*4 + j];
+					struct SFVec2f* sf = (struct SFVec2f*)&tc->point.p[i * 4 + j];
 					p[0] = sf->c[0];
-					p[1] = min(sf->c[1],.9999f); //clamp texture here otherwise tends to wrap around
-					veccopy2f(&ltex[(i*2 + j)*2],p);
-					
+					p[1] = min(sf->c[1], .9999f); //clamp texture here otherwise tends to wrap around
+					veccopy2f(&ltex[(i * 2 + j) * 2], p);
+
 				}
 			}
 		}
-		if(tc->point.n == ml){
+		if (tc->point.n == ml) {
 			//enough points for lines
-			float *ttex, *ltex;
+			float* ttex, * ltex;
 
 			ltex = (float*)node->_ltex;
-			for(i=0;i<n;i++){
+			for (i = 0; i < n; i++) {
 				// copy lines straightforwardly
-				for(j=0;j<2;j++){
+				for (j = 0; j < 2; j++) {
 					float p[2];
-					struct SFVec2f *sf = (struct SFVec2f *)&tc->point.p[i*2 + j];
+					struct SFVec2f* sf = (struct SFVec2f*)&tc->point.p[i * 2 + j];
 					p[0] = sf->c[0];
-					p[1] = min(sf->c[1],.9999f); //clamp texture here otherwise tends to wrap around
-					veccopy2f(&ltex[(i*2 + j)*2],p);
+					p[1] = min(sf->c[1], .9999f); //clamp texture here otherwise tends to wrap around
+					veccopy2f(&ltex[(i * 2 + j) * 2], p);
 				}
 			}
-			if(0) for(i=0;i<n;i++){
-				printf("%f %f, %f %f\n",ltex[i*2*2 + 0],ltex[i*2*2 + 1],ltex[i*2*2 + 2],ltex[i*2*2 + 3]);
+			if (0) for (i = 0; i < n; i++) {
+				printf("%f %f, %f %f\n", ltex[i * 2 * 2 + 0], ltex[i * 2 * 2 + 1], ltex[i * 2 * 2 + 2], ltex[i * 2 * 2 + 3]);
 			}
 			//make something up for triangles
 			ttex = (float*)node->_ttex;
-			for(i=0;i<n;i++){
-				float *p;
+			for (i = 0; i < n; i++) {
+				float* p;
 				j = i;
-				p = (float*)(float *)&tc->point.p[j*2 + 0];
-				veccopy2f(&ttex[(i*6 + 0)*2],p); //copy to 0 
-				veccopy2f(&ttex[(i*6 + 5)*2],p); //copy to 5
-				p = (float*)(float *)&tc->point.p[j*2 + 1];
-				veccopy2f(&ttex[(i*6 + 1)*2],p); //copy to 1
+				p = (float*)(float*)&tc->point.p[j * 2 + 0];
+				veccopy2f(&ttex[(i * 6 + 0) * 2], p); //copy to 0 
+				veccopy2f(&ttex[(i * 6 + 5) * 2], p); //copy to 5
+				p = (float*)(float*)&tc->point.p[j * 2 + 1];
+				veccopy2f(&ttex[(i * 6 + 1) * 2], p); //copy to 1
 				j++;
 				j = j == n ? j - 1 : j; //clamp to last
-				p = (float*)(float *)&tc->point.p[j*2 + 1];
-				veccopy2f(&ttex[(i*6 + 2)*2],p); //copy to 2
-				veccopy2f(&ttex[(i*6 + 3)*2],p); //copy to 3
-				p = (float*)(float *)&tc->point.p[j*2 + 0];
-				veccopy2f(&ttex[(i*6 + 4)*2],p); //copy to 4
+				p = (float*)(float*)&tc->point.p[j * 2 + 1];
+				veccopy2f(&ttex[(i * 6 + 2) * 2], p); //copy to 2
+				veccopy2f(&ttex[(i * 6 + 3) * 2], p); //copy to 3
+				p = (float*)(float*)&tc->point.p[j * 2 + 0];
+				veccopy2f(&ttex[(i * 6 + 4) * 2], p); //copy to 4
 			}
 		}
 	}
+}
+void compile_hanim_particle(struct X3D_ParticleSystem* pnode) {
+	struct X3D_HAnimHumanoid* node = (struct X3D_HAnimHumanoid*)pnode->geometry;
+	COMPILE_IF_REQUIRED
+}
+void compile_ParticleSystem(struct X3D_ParticleSystem *node){
+	int i,j, maxparticles;
+	Stack *_particles;
+
+	//compile GEOM type particles
+	node->_geometryType = lookup_geomtype(node->geometryType->strptr);
+	if (node->_geometryType < GEOM_HANIM) {
+		compile_geom_particle(node);
+	}
+	//compile HANIM type particles
+	if (node->_geometryType == GEOM_HANIM) {
+		compile_hanim_particle(node);
+	}
+
+	//compile generic particles
 	maxparticles = min(node->maxParticles,10000);
 	if(node->_particles == NULL)
 		node->_particles = newVector(particle,maxparticles);
@@ -512,13 +551,21 @@ void compile_ParticleSystem(struct X3D_ParticleSystem *node){
 		_particles->data = realloc(_particles->data,maxparticles);
 		_particles->allocn = maxparticles;
 	}
-	node->_lasttime = TickTime();
-	if(node->enabled){
+
+	//compile time-dependent node
+	if(!node->_lasttime || node->enabled && !node->_lastEnabled)
+		node->_lasttime = TickTime();
+	if(node->enabled && !node->_lastEnabled){
 		node->isActive = TRUE;
 		MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_ParticleSystem, isActive));
+	}else if(!node->enabled && node->_lastEnabled){
+		node->isActive = FALSE;
+		MARK_EVENT (X3D_NODE(node),offsetof (struct X3D_ParticleSystem, isActive));
 	}
+	node->_lastEnabled = node->enabled;
 	MARK_NODE_COMPILED
 }
+
 
 //PHYSICS
 void prep_windphysics(struct X3D_Node *physics){
@@ -547,6 +594,10 @@ void apply_windphysics(particle *pp, struct X3D_Node *physics, float dtime){
 		vecscale3f(acceleration,pdir,1.0f/pp->mass);
 		vecscale3f(v2,acceleration,dtime);
 		vecadd3f(pp->velocity,pp->velocity,v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
 
 	}
 }
@@ -559,7 +610,8 @@ void compile_geometry(struct X3D_Node *gnode){
 		case NODE_IndexedFaceSet:
 		{
 			struct X3D_IndexedFaceSet *node = (struct X3D_IndexedFaceSet *)gnode;
-			COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+			//COMPILE_POLY_IF_REQUIRED (node->coord, node->fogCoord, node->color, node->normal, node->texCoord)
+			if (!compile_poly_if_required(node, node->coord, node->fogCoord, node->color, node->normal, node->texCoord))return;
 		}
 		break;
 		default:
@@ -646,6 +698,11 @@ void apply_boundedphysics(particle *pp, struct X3D_Node *physics, float *positio
 				// specs: could use an elasticity factor
 				speed = veclength3f(pp->velocity);
 				vecscale3f(pp->velocity,rn,speed);
+				float flen = veclength3f(pp->velocity);
+				if (flen > 0.0f) {
+					vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+				}
+
 				//do positionChange here, and zero positionchange for calling code
 				vecscale3f(rd,rn,dlength - dlengthi);
 				vecadd3f(pp->position,pnearest,rd);
@@ -676,6 +733,28 @@ void apply_forcephysics(particle *pp, struct X3D_Node *physics, float dtime){
 		vecscale3f(acceleration,px->force.c,1.0f/pp->mass);
 		vecscale3f(v2,acceleration,dtime);
 		vecadd3f(pp->velocity,pp->velocity,v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
+
+	}
+}
+
+void apply_resistancephysics(particle* pp, struct X3D_Node* physics, float dtime) {
+	struct X3D_ResistancePhysicsModel* px = (struct X3D_ResistancePhysicsModel*)physics;
+	//a = F/m;
+	//v += a*dt
+	if (px->enabled && pp->mass != 0.0f) {
+		float deceleration, v2;
+		deceleration = px->force / pp->mass;
+		v2 = 1.0f - deceleration * dtime;
+		vecscale3f(pp->velocity, pp->velocity, v2);
+		float flen = veclength3f(pp->velocity);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, pp->velocity, 1.0f / flen);
+		}
+
 	}
 }
 
@@ -767,6 +846,10 @@ void apply_ConeEmitter(particle *pp, struct X3D_Node *emitter){
 	memcpy(pp->position,e->position.c,3*sizeof(float));
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 
@@ -781,6 +864,10 @@ void apply_ExplosionEmitter(particle *pp, struct X3D_Node *emitter){
 	randomDirection(direction);
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 }
@@ -798,6 +885,10 @@ void apply_PointEmitter(particle *pp, struct X3D_Node *emitter){
 	}
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 	
@@ -913,6 +1004,10 @@ void apply_PolylineEmitter(particle *pp, struct X3D_Node *node){
 	}
 	speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 	vecscale3f(pp->velocity,direction,speed);
+	float flen = veclength3f(direction);
+	if (flen > 0.0f) {
+		vecscale3f(pp->direction, direction, 1.0f / flen);
+	}
 	pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 	pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 
@@ -925,15 +1020,17 @@ void apply_SurfaceEmitter(particle *pp, struct X3D_Node *emitter){
 	struct X3D_Node *node;
 
 	node = e->surface ? e->surface : e->geometry;
-	if(NODE_NEEDS_COMPILING){
-		compile_geometry(X3D_NODE(node));
-	}
 	if(node){
 		int index, ntri;
 		float fraction;
 		float speed;
 		float xyz[3], v1[3],v2[3],v3[3],e1[3],e2[3], normal[3], direction[3];
-		
+
+		if(NODE_NEEDS_COMPILING){
+			compile_geometry(X3D_NODE(node));
+		}
+
+
 		fraction = uniformRand();
 		ntri = getPolyrepTriangleCount(node);
 		if(ntri){
@@ -951,65 +1048,784 @@ void apply_SurfaceEmitter(particle *pp, struct X3D_Node *emitter){
 		memcpy(pp->position,xyz,3*sizeof(float));
 		speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
 		vecscale3f(pp->velocity,direction,speed);
+		float flen = veclength3f(direction);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, direction, 1.0f / flen);
+		}
 		pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
 		pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
 	}
 
 }
-void apply_VolumeEmitter(particle *pp, struct X3D_Node *emitter){
-	struct X3D_VolumeEmitter *e = (struct X3D_VolumeEmitter *)emitter;
-	if(!e->_ifs && e->coord){
-		struct X3D_IndexedFaceSet *ifs;
+
+
+
+void apply_VolumeEmitter(particle* pp, struct X3D_Node* emitter) {
+	struct X3D_VolumeEmitter* e = (struct X3D_VolumeEmitter*)emitter;
+	if (!e->_ifs && e->coord) {
+		struct X3D_IndexedFaceSet* ifs;
 		ifs = createNewX3DNode0(NODE_IndexedFaceSet);
 		ifs->coord = e->coord;
 		ifs->coordIndex = e->coordIndex;
 		compile_geometry(X3D_NODE(ifs));
 		e->_ifs = ifs;
 	}
-	if(e->_ifs){
+	if (e->_ifs) {
 		int nint, i, isInside;
 		float xyz[3], plumb[3], nearest[3], normal[3];
 		float direction[3], speed;
-		struct X3D_IndexedFaceSet *ifs = (struct X3D_IndexedFaceSet *)e->_ifs;
-		
+		struct X3D_IndexedFaceSet* ifs = (struct X3D_IndexedFaceSet*)e->_ifs;
+
 		isInside = FALSE;
-		for(i=0;i<10;i++){
+		for (i = 0; i < 10; i++) {
 			randomPoint3D(xyz);
 			//spread random points over box
 			xyz[0] *= ifs->EXTENT_MAX_X - ifs->EXTENT_MIN_X;
 			xyz[1] *= ifs->EXTENT_MAX_Y - ifs->EXTENT_MIN_Y;
 			xyz[2] *= ifs->EXTENT_MAX_Z - ifs->EXTENT_MIN_Z;
-			veccopy3f(plumb,xyz);
+			veccopy3f(plumb, xyz);
 			plumb[2] = ifs->EXTENT_MIN_Z - 1.0f; //ray end point below box
-			nint = intersect_geometry(e->_ifs,xyz,plumb,nearest,normal);
+			nint = intersect_geometry(e->_ifs, xyz, plumb, nearest, normal);
 			nint = abs(nint) % 2;
-			if(nint == 1){
+			if (nint == 1) {
 				isInside = TRUE;
 				break; //if there's an odd number of intersections, its inside, else even outside
 			}
 		}
-		if(!isInside)
-			vecscale3f(xyz,xyz,0.0f); //emit from 0
+		if (!isInside)
+			vecscale3f(xyz, xyz, 0.0f); //emit from 0
 		//the rest is like point emitter
-		memcpy(pp->position,xyz,3*sizeof(float));
-		if(veclength3f(e->direction.c) < .00001){
+		memcpy(pp->position, xyz, 3 * sizeof(float));
+		if (veclength3f(e->direction.c) < .00001) {
 			randomDirection(direction);
-		}else{
-			memcpy(direction,e->direction.c,3*sizeof(float));
-			vecnormalize3f(direction,direction);
 		}
-		speed = e->speed*(1.0f + uniformRandCentered()*e->variation);
-		vecscale3f(pp->velocity,direction,speed);
-		pp->mass = e->mass*(1.0f + uniformRandCentered()*e->variation);
-		pp->surfaceArea = e->surfaceArea*(1.0f + uniformRandCentered()*e->variation);
+		else {
+			memcpy(direction, e->direction.c, 3 * sizeof(float));
+			vecnormalize3f(direction, direction);
+		}
+		speed = e->speed * (1.0f + uniformRandCentered() * e->variation);
+		vecscale3f(pp->velocity, direction, speed);
+		float flen = veclength3f(direction);
+		if (flen > 0.0f) {
+			vecscale3f(pp->direction, direction, 1.0f / flen);
+		}
+		pp->mass = e->mass * (1.0f + uniformRandCentered() * e->variation);
+		pp->surfaceArea = e->surfaceArea * (1.0f + uniformRandCentered() * e->variation);
 	}
 }
+
+
+// BEGIN HUMANOID PARTICLE SECTION >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+struct rgba { unsigned char r, g, b, a; };
+typedef union {
+	unsigned char bytes[4];
+	struct rgba;
+	short int16[2];
+	int   int32;
+} pix;
+
+unsigned char* sample_image(textureTableIndexStruct_s* tt, float x, float y) {
+	//x, y in range 0.0 to 1.0
+	int px, py, ix, iy;
+	px = tt->x;
+	py = tt->y;
+	ix = (int)( px * x );
+	ix = ix < 0 ? 0 : ix >= tt->x ? tt->x - 1 : ix;
+	iy = (int)(py * y);
+	iy = iy < 0 ? 0 : iy >= tt->y ? tt->y - 1 : iy;
+	unsigned char* pixel = &tt->texdata[(iy * px + ix) * 4]; // tt->channels];
+	return pixel;
+}
+void set_image_pixel_color(unsigned char * image, int cols, int rows, unsigned char * pixel, int x, int y) {
+	memcpy(&image[(y * cols + x) * 4], pixel, 3);
+}
+unsigned char* get_image_pixel_color(unsigned char* image, int cols, int rows, int x, int y) {
+	return &image[(y * cols + x) * 4];
+}
+void set_image_pixel_transparency(unsigned char* image, int cols, int rows, unsigned char transparency, int x, int y) {
+	image[(y * cols + x) * 4 + 3] = transparency;
+}
+unsigned char get_image_pixel_transparency(unsigned char* image, int cols, int rows, int x, int y) {
+	return image[(y * cols + x) * 4 + 3];
+}
+unsigned char get_image_pixel_channel(unsigned char* image, int cols, int rows, int channel, int x, int y) {
+	return image[(y * cols + x) * 4 + channel];
+}
+void set_image_pixel_channel(unsigned char* image, int cols, int rows, unsigned char c, int channel, int x, int y) {
+	image[(y * cols + x) * 4 + channel] = c;
+}
+void print_image_channel(unsigned char* imageRGBA, int channel, int width, int height) {
+	for (int k = 0; k < width; k += 10) printf("%d         ", k / 10);
+	printf("\n");
+	for (int j = 0; j < height; j++) {
+		for (int k = 0; k < width; k++) {
+			unsigned char c = get_image_pixel_channel(imageRGBA, width, height, channel, k, j);
+			if (c)
+				printf("%c", c + 'A');
+			else
+				printf("%c", ' ');
+		}
+		printf(" %2d\n", j);
+	}
+}
+
+
+float* extent4f_clear(float* e) {
+	e[0] = 10000.0f;
+	e[1] = 10000.0f;
+	e[2] = -10000.0f;
+	e[3] = -10000.0f;
+	return e;
+}
+int extent4f_isSet(float* e4) {
+	//extents are set with min > max, so a way to tell
+	// if they are set is to check if min <= max or max >= min
+	int iret;
+	float* e = e4;
+	iret = (e[2] >= e[0] && e[3] >= e[1]) ? TRUE : FALSE;
+	return iret;
+}
+float * extent4f_union_extent4f(float *e4, float *ein4){
+	int i, isa, isb;
+	isa = extent4f_isSet(e4);
+	isb = extent4f_isSet(ein4);
+	if (isa && isb)
+	for (i = 0; i < 2; i++) {
+		e4[i]   = min(e4[i], ein4[i]); //the miniumum of the minimums
+		e4[i+2] = max(e4[i+2], ein4[i+2]); //the maximum of the maximums
+	}
+	else if (isb) veccopy4f(e4, ein4);
+	return e4;
+}
+float* extent4f_union_vec2f(float* extent4, float* p2) {
+	int i, isa, isb;
+	isa = extent4f_isSet(extent4);
+	if (!isa)
+		for (i = 0; i < 2; i++) {
+			extent4[i]   = p2[i];
+			extent4[i+2] = p2[i];
+		}
+	for (i = 0; i < 2; i++) {
+		extent4[i]   = min(extent4[i], p2[i]);
+		extent4[i+2] = max(extent4[i+2], p2[i]);
+	}
+	return extent4;
+}
+void extent4f_printf(float* extent4) {
+	printf("min %f %f max %f %f \n", extent4[0], extent4[1], extent4[2], extent4[3]);
+}
+float* pixel2color3(float * color, unsigned char* pixel) {
+	for (int i = 0; i < 3; i++)
+		color[i] = ((float)(int)pixel[i]) / 255.0f;
+	return color;
+}
+void apply_MapEmitter(particle* pp, struct X3D_Node* emitter) {
+	struct X3D_MapEmitter* e = (struct X3D_MapEmitter*)emitter;
+	vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
+	//give it a random walking speed +- 1m/s from e->speed
+	pp->speed = normalRand() * e->variation + e->speed;
+	pp->speed = pp->speed <= 0.0 ? e->speed : pp->speed;
+	pp->_startTime[0] = pp->_startTime[1] = TickTime(); //for HAnim, but could be used for anything
+	//pp->speed = e->speed;
+
+	pp->sink = -1; //we won't assign a sink until physics, because that's when we count the sinks
+	if (e->functionMap) {
+		//printf("functionMap type %s\n", stringNodeType(e->functionMap->_nodeType));
+		render_node(e->functionMap);
+		textureTableIndexStruct_s* tt = getTableTableFromTextureNode(e->functionMap);
+		if (tt && tt->status >= TEX_READ) {
+			if (e->emitterColor.n)
+			{
+				if (!e->classified) {
+					//make a 2D box around each emitter color area, so we don't have to 
+					// search the whole image pixel by pixel on each frame
+					printf("start classifying emitter..\n");
+					e->eboxes.p = malloc(e->emitterColor.n * sizeof(struct SFVec4f));
+					e->eboxes.n = e->emitterColor.n;
+					e->iboxes.p = malloc(e->emitterColor.n * sizeof(struct SFVec4f));
+					e->iboxes.n = e->emitterColor.n;
+					for (int i = 0; i < e->eboxes.n; i++) {
+						extent4f_clear(e->eboxes.p[i].c);
+						extent4f_clear(e->iboxes.p[i].c);
+					}
+					//for now assume one human-step-sized grid cell is 1m
+					int isteps[2];
+					isteps[0] = (int)(e->gridSize.c[0] + .5f);
+					isteps[1] = (int)(e->gridSize.c[1] + .5f);
+					for(int i=0; i< isteps[0];i++)
+						for (int j = 0; j < isteps[1]; j++) {
+							float x, y, s[3], exy[2], ixy[2];
+							//image sampling coords
+							x = (float)i / (float)e->gridSize.c[0];
+							y = (float)j / (float)e->gridSize.c[1];
+							ixy[0] = x;
+							ixy[1] = y;
+							//scene grid coords in meters
+							exy[0] = (float)i - e->gridSize.c[0]/2.0f;
+							exy[1] = (float)j - e->gridSize.c[1]/2.0f;
+							unsigned char* pixel = sample_image(tt, x, y);
+							pixel2color3(s, pixel);
+
+							for (int k = 0; k < e->emitterColor.n; k++) {
+								float* c = e->emitterColor.p[k].c;
+								int is_close = vecclose3f(s, c, e->colorMatchTolerance);
+								if (is_close) {
+									extent4f_union_vec2f(e->iboxes.p[k].c, ixy);
+									extent4f_union_vec2f(e->eboxes.p[k].c, exy);
+								}
+								//printf("k %d c %f %f %f s %f %f %f close %d\n", k, c[0], c[1], c[2], s[0], s[1], s[2], is_close);
+							}
+
+						}
+					for (int i = 0; i < e->eboxes.n; i++) {
+						extent4f_printf(e->eboxes.p[i].c);
+						extent4f_printf(e->iboxes.p[i].c);
+					}
+					printf("..end classfying emitter\n");
+					e->classified = TRUE;
+				}
+				// emit one from one randomly chosen emitter color area 
+				//  but only from the emitter areas found in the function_map image
+				int valid_regions = 0;
+				for (int i = 0; i < e->iboxes.n; i++)
+					if (extent4f_isSet(e->eboxes.p[i].c)) valid_regions++;
+				int iregion = (int)(uniformRand() * (float)(valid_regions));
+				int nvalid = -1;
+				int ivalid = 0;
+				for (int i = 0; i < e->iboxes.n; i++) 
+				{
+					int is_set = extent4f_isSet(e->iboxes.p[i].c);
+					if (is_set) nvalid++;
+					if (is_set && nvalid == iregion) {
+						int i = iregion;
+						float x, y, xyz[3], s[3];
+						float exy[2], ixy[2];
+						int more = TRUE;
+						do {
+							x = uniformRand();
+							y = uniformRand();
+							//scale to image box
+							ixy[0] = x * (e->iboxes.p[i].c[2] - e->iboxes.p[i].c[0]) + e->iboxes.p[i].c[0];
+							ixy[1] = y * (e->iboxes.p[i].c[3] - e->iboxes.p[i].c[1]) + e->iboxes.p[i].c[1];
+							//scale to scene box
+							exy[0] = x * (e->eboxes.p[i].c[2] - e->eboxes.p[i].c[0]) + e->eboxes.p[i].c[0];
+							exy[1] = y * (e->eboxes.p[i].c[3] - e->eboxes.p[i].c[1]) + e->eboxes.p[i].c[1];
+
+							unsigned char* pixel = sample_image(tt, ixy[0], ixy[1]);
+							pixel2color3(s, pixel);
+							if (vecclose3f(s, e->emitterColor.p[i].c, e->colorMatchTolerance))
+								more = FALSE;
+						} while (more);
+						vecset3f(xyz, exy[0], exy[1], 0.0f);
+						//the rest is like point emitter
+						printf("iregion %d xy %f %f valid_regions %d", iregion, exy[0], exy[1], valid_regions);
+						veccopy3f(pp->position, xyz);
+						//HAnimPermuter method
+						pp->permutationIndex = -1; //on first draw do uniformRand()*permutations.n
+						break;
+					}
+				}
+			}
+		}
+	}
+
+}
+
+int emitter_loaded(struct X3D_Node* emitter) {
+	int loaded = FALSE;
+	switch (emitter->_nodeType) {
+	case NODE_MapEmitter:
+	{
+		struct X3D_MapEmitter* e = (struct X3D_MapEmitter*)emitter;
+		if (e->functionMap) {
+			textureTableIndexStruct_s* tt = getTableTableFromTextureNode(e->functionMap);
+			tt->no_gl = TRUE; //don't load in GL, and preserve texdata for processing
+			render_node(e->functionMap);
+			if (tt && tt->status >= TEX_READ) loaded = TRUE;
+			//printf("functionMap type %s loaded %d \n", stringNodeType(e->functionMap->_nodeType), loaded);
+		}
+	}
+	break;
+	default:
+		loaded = TRUE;
+		break;
+	}
+	return loaded;
+}
+void norm2image(int *ixy, int *isize, float *fxy) {
+	//convert from 0-1 floats to image pixel coords
+	ixy[0] = (int)(fxy[0] * (float)isize[0] + .5f);
+	ixy[1] = (int)(fxy[1] * (float)isize[1] + .5f);
+	ixy[0] = max(min(isize[0] - 1, ixy[0]),0);
+	ixy[1] = max(min(isize[1] - 1, ixy[1]),0);
+}
+void image2norm(float* fxy, int* ixy, int* isize) {
+	//convert from image pixel coords to 0-1 floats
+	fxy[0] = (float)ixy[0] / (float)isize[0];
+	fxy[1] = (float)ixy[1] / (float)isize[1];
+}
+void saveSnapshotBMP(char* pathname, char* buffer, int bytesPerPixel, int width, int height);
+void set_debug_quad(int which_debug_shader, int textureID);
+void render_debug_quad();
+void display_imagedata4(unsigned char* texdata, int width, int height, int imageIndex) {
+	//makes or updates a gl texture, and pops it up on the screen at end of frame render
+	//assumes 4 bytes per pixel
+	static textureTableIndexStruct_s tts;
+	static int once = 0;
+	tts.x = width;
+	tts.y = height;
+	tts.z = 1;
+	tts.texdata = texdata;
+	tts.channels = 4;
+	if (!once) {
+		FW_GL_GENTEXTURES(1, &tts.OpenGLTexture);
+		once = 1;
+	}
+	char namebuf[200];
+	if (0) {
+		//works but not needed if saving .bmp 
+		sprintf(namebuf, "C:\\tmp\\sinkmap%d.web3dit", imageIndex);
+		saveImage_web3dit(&tts, namebuf);
+	}
+#if !defined(FRONTEND_DOES_SNAPSHOTS) //Snapshot.c is compiled out when the frontend does snapshots
+	sprintf(namebuf, "C:\\tmp\\sinkmap%d.bmp", imageIndex);
+	saveSnapshotBMP(namebuf, tts.texdata, tts.channels, tts.x, tts.y);
+#endif
+
+	// popup image doesn't render here (but cubemap use does work)
+	//glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,tts.OpenGLTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tts.x, tts.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, tts.texdata);
+	set_debug_quad(1, tts.OpenGLTexture);
+	//render_debug_quad();
+}
+
+
+void apply_mapphysics(particle* pp, struct X3D_Node* physics, float dtime) {
+	struct X3D_MapPhysicsModel* px = (struct X3D_MapPhysicsModel*)physics;
+	//a = F/m;
+	//v += a*dt
+	if (px->enabled ) {
+		if (!px->classified) {
+			if (px->functionMap) {
+				//printf("functionMap type %s\n", stringNodeType(e->functionMap->_nodeType));
+				textureTableIndexStruct_s* tt = getTableTableFromTextureNode(px->functionMap);
+				tt->no_gl = TRUE;
+				render_node(px->functionMap);
+				
+				if (tt && tt->status >= TEX_READ) {
+				
+					if (px->sinkColor.n)
+					{
+						printf("start classifying physics..\n");
+						//make a 2D box around each sink color area, so we don't have to 
+						// search the whole image pixel by pixel on each frame
+						px->eboxes.p = malloc(px->sinkColor.n * sizeof(struct SFVec4f));
+						px->eboxes.n = px->sinkColor.n;
+						px->iboxes.p = malloc(px->sinkColor.n * sizeof(struct SFVec4f));
+						px->iboxes.n = px->sinkColor.n;
+						for (int i = 0; i < px->eboxes.n; i++) {
+							extent4f_clear(px->eboxes.p[i].c);
+							extent4f_clear(px->iboxes.p[i].c);
+						}
+						//for now assume one human-step-sized grid cell is .25m
+						int isteps[2];
+						isteps[0] = ((int)(px->gridSize.c[0] + .5f));
+						isteps[1] = ((int)(px->gridSize.c[1] + .5f));
+						for (int i = 0; i < isteps[0]; i++)
+							for (int j = 0; j < isteps[1]; j++) {
+								float x, y, s[3], exy[2], ixy[2];
+								//image sampling coords
+								x = (float)i / (float)px->gridSize.c[0];
+								y = (float)j / (float)px->gridSize.c[1];
+								ixy[0] = x;
+								ixy[1] = y;
+								//scene grid coords in meters
+								exy[0] = (float)i - px->gridSize.c[0] / 2.0f;
+								exy[1] = (float)j - px->gridSize.c[1] / 2.0f;
+								unsigned char* pixel = sample_image(tt, x, y);
+								pixel2color3(s, pixel);
+
+								for (int k = 0; k < px->sinkColor.n; k++) {
+									float* c = px->sinkColor.p[k].c;
+									int is_close = vecclose3f(s, c, px->colorMatchTolerance);
+									if (is_close) {
+										extent4f_union_vec2f(px->iboxes.p[k].c, ixy);
+										extent4f_union_vec2f(px->eboxes.p[k].c, exy);
+									}
+									//printf("k %d c %f %f %f s %f %f %f close %d\n", k, c[0], c[1], c[2], s[0], s[1], s[2], is_close);
+								}
+
+							}
+						printf("sink boxes\n");
+						for (int i = 0; i < px->eboxes.n; i++) {
+							extent4f_printf(px->eboxes.p[i].c);
+							extent4f_printf(px->iboxes.p[i].c);
+						}
+						// generate one sink map for each sink color area
+						int jsteps[2];
+						jsteps[0] = isteps[0] * 2;
+						jsteps[1] = isteps[1] * 2;
+						int sinkmapsize = jsteps[0] * jsteps[1] * 4;
+						px->_sinkmaps = malloc(sinkmapsize * (px->eboxes.n + 1)); //one for each sink, plus a population map at index 0
+						unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps;
+						unsigned char* popmap = &sinkmaps[0]; 
+						memset(popmap, 0, sinkmapsize);
+
+						for (int i = 0; i < px->iboxes.n; i++)
+						{
+							
+							int is_set = extent4f_isSet(px->iboxes.p[i].c);
+							if (is_set) {
+							
+								//generate_sink_map()
+								unsigned char* texdata = &sinkmaps[(i+1) * sinkmapsize]; 
+								memset(texdata, 0, jsteps[0] * jsteps[1] * 4);
+								//start sink map at center of ibox
+								int icenter[2];
+								float fcenter[2];
+								float* bbox = &px->iboxes.p[i].c[0];
+								fcenter[0] = ((bbox[0] + bbox[2]) / 2.0f);
+								fcenter[1] = ((bbox[1] + bbox[3]) / 2.0f);
+								norm2image(icenter, jsteps, fcenter);
+								pix pixel, diag;
+								pixel.int16[0] = 1; //1/255 is almost black, and we increase toward 255/255 white as the flooding progresses
+								set_image_pixel_color(texdata, jsteps[0], jsteps[1], pixel.bytes, icenter[0], icenter[1]);
+								//ideally a queue is used for breadth-first flood-filling
+								//2023 freewrl doesn't have a queue data structure
+								//will use 2 vectors, and alternate: current round, next round
+								//and use transparency to mark pixel 0=not done 1/255=queued 2/255=processed
+								struct ixy { int x, y, steps; };
+								struct Vector* current = newVector(struct ixy, 100);
+								struct Vector* next = newVector(struct ixy, 100);
+								struct Vector* tmp;
+								struct ixy p, q, nebor[8];
+								unsigned char done, steps, * funcp;
+								float color[3];
+								//neighboring pixel relative coordinates, we'll do 8 surrounding pixels.
+								// 5  6  7
+								// 3     4
+								// 0  1  2
+								for (int i = 0; i < 8; i++) {
+									nebor[i].x = nebor[i].y = 0;
+									nebor[i].steps = 2; //staying with ints, we'll set 2 for this, and 3 for diagonal
+								}
+								nebor[0].y = nebor[1].y = nebor[2].y = -1;
+								nebor[0].x = nebor[3].x = nebor[5].x = -1;
+								nebor[2].x = nebor[4].x = nebor[7].x = 1;
+								nebor[5].y = nebor[6].y = nebor[7].y = 1;
+								nebor[0].steps = nebor[2].steps = nebor[5].steps = nebor[7].steps = 3; //close to 2 * root(2)
+								p.x = icenter[0];
+								p.y = icenter[1];
+								p.steps = 1;
+								set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 1, p.x, p.y);
+								stack_push(struct ixy, current, p);
+								int more = TRUE;
+								steps = 0;
+								
+								while (more) {
+									////steps+=2;
+									//pixel[0] = pixel[1] = pixel[2] = steps + 2;
+									//diag[0] = diag[1] = diag[2] = steps + 3;
+									//steps += 2;
+									for (int i = 0; i < vectorSize(current); i++) {
+										p = vector_get(struct ixy, current, i);
+										done = get_image_pixel_transparency(texdata, jsteps[0], jsteps[1], p.x, p.y);
+										steps = p.steps;
+										if (done < 2) {
+											//mark as done and set the steps distance to sink
+											pixel.int16[0] = p.steps;
+											pixel.bytes[2] = 0;
+											set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 2, p.x, p.y);
+											set_image_pixel_color(texdata, jsteps[0], jsteps[1], pixel.bytes, p.x, p.y);
+											//queue any un-done neighbors for next loop
+											for (int j = 0; j < 8; j++) {
+												q.x = p.x + nebor[j].x;
+												q.y = p.y + nebor[j].y;
+												q.steps = p.steps + nebor[j].steps;
+												//skip if outside image
+												if (q.x < 0 || q.x >= jsteps[0] || q.y < 0 || q.y >= jsteps[1]) continue;
+
+												//skip if obstacle in functionMap
+												float xx, yy;
+												xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
+												yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
+												funcp = sample_image(tt, xx,yy);
+												pixel2color3(color, funcp);
+												int is_close = vecclose3f(color, px->obstacleColor.c, px->colorMatchTolerance);
+												if (is_close) continue;
+
+												//skip if its already queued in next (or should we replace if this one is fewer gross steps?)
+												done = get_image_pixel_transparency(texdata, jsteps[0], jsteps[1], q.x, q.y);
+												if (done == 2) continue;
+												if (done == 1) {
+													//its in the queue. if current q.steps is less than the one already in next, replace steps 
+													for (int k = 0; k < vectorSize(next); k++) {
+														struct ixy* qq = vector_get_ptr(struct ixy, next, k);
+														if (qq->x == q.x && qq->y == q.y) {
+															if (qq->steps > q.steps) {
+																qq->steps = q.steps;
+															}
+															break;
+														}
+													}
+													continue;
+												}
+
+												//queue it and flag it as queued 1
+												stack_push(struct ixy, next, q);
+												set_image_pixel_transparency(texdata, jsteps[0], jsteps[1], 1, q.x, q.y);
+
+											}
+										}
+									} //more in current queue to flood fill
+									//recycle current vector, and swap current and next vectors
+									vector_clear(current);
+									tmp = current;
+									current = next;
+									next = tmp;
+									more = vectorSize(current);
+								} //more to flood fill
+								if (0) {
+									//no longer works - now short ints.
+									//print flood map to screen as characters, with A==0
+									printf("flood map %d x steps %d y steps %d\n", i, jsteps[0], jsteps[1]);
+									print_image_channel(texdata, 0, jsteps[0], jsteps[1]);
+								}
+								if (0) {
+									//show image on screen and in C:/tmp .bmp of flood map
+									for (int jj = 0; jj < jsteps[1]; jj++)
+										for (int ii = 0; ii < jsteps[0]; ii++) {
+											//texdata[(jj * jsteps[0] + ii) * 4 + 0] = 127;
+											//texdata[(jj * jsteps[0] + ii) * 4 + 1] = 127;
+											//texdata[(jj * jsteps[0] + ii) * 4 + 2] = 0; //clear blue
+											texdata[(jj * jsteps[0] + ii) * 4 + 3] = 0xff;
+										}
+									display_imagedata4(texdata, jsteps[0], jsteps[1],i); //sinkmap i
+									//display_imagedata4(tt->texdata, tt->x, tt->y); //function map
+								}
+								
+							} //if box is_set
+							
+						} //for each box
+						px->classified = TRUE;
+						printf("..end classifying physics\n");
+					} //if sinkcolors
+					
+				} //if tt
+				
+			} //functionmap
+		} //classified
+		else {
+			//classified, use sink maps
+			// coordinate systems:
+			// a) scene units, the classification bboxes
+			// b) functionMap image pixels, computed from tt->x, tt->y given 0-1 image fraction coords
+			// c) sinkmap grid pixels isteps, ibboxes
+			// we've been assuming the gridSize is in m and we have one grid cell per meter
+			//  and scene grid centered on 0,0
+			// and we've been assuming the functionMap image covers the same area as the gridSize (but different resolution)
+			int isteps[2], jsteps[2];
+			isteps[0] = ((int)(px->gridSize.c[0] + .5f));
+			isteps[1] = ((int)(px->gridSize.c[1] + .5f));
+			jsteps[0] = isteps[0] * 2;
+			jsteps[1] = isteps[1] * 2;
+			int sinkmapsize = jsteps[0] * jsteps[1] * 4;
+			unsigned char* sinkmaps = (unsigned char*)px->_sinkmaps; //have all sink maps + pop map packed in one malloc
+
+			//first sink map is the population map showing where particles are, for particle collision avoidance
+			unsigned char* popmap = &sinkmaps[0]; 
+			//mapemitter assigns a destination (sink) at random to particle
+			unsigned char* sinkmap; 
+			pix * sinkcolor, * funccolor, sinkuchar;
+			float color[3];
+			struct ixy { int x, y; };
+			struct ixy p, q, nebor[8];
+			int debug = FALSE;
+			// we use the imageTexture functionmap below for checking for pauseZone
+			textureTableIndexStruct_s* tt = getTableTableFromTextureNode(px->functionMap);
+
+			//sinkmap first assigned here, now that we have the sink count
+			if (pp->sink == -1) {
+				pp->sink = (int)(uniformRand() * (float)px->sinkColor.n);
+				printf("pp.sink = %d\n", pp->sink);
+				if (pp->sink < 0 || pp->sink >= px->sinkColor.n) {
+					printf("bad sink number %d, should be 0-%d\n", pp->sink, px->sinkColor.n - 1);
+				}
+			}
+			sinkmap	= &sinkmaps[sinkmapsize * (pp->sink + 1)];
+			//pp.position is in scene/ground coords centered on 0,0
+			// we need grid coords of same size, but shifted wrt 0,0
+			// and rescaled to map coords
+			float xy[2];
+			//get map normalized coords (0-1)
+			xy[0] = (pp->position[0] + px->gridSize.c[0] * .5f) / px->gridSize.c[0];
+			xy[1] = (pp->position[1] + px->gridSize.c[1] * .5f) / px->gridSize.c[1];
+			//get sinkmap/popmap coords (0-imagasize)
+			p.x = (int)(xy[0] * jsteps[0] + .5);
+			p.y = (int)(xy[1] * jsteps[1] + .5); // pp->position[1] + px->gridSize.c[1] * .5f + .5f) * 2;
+			if(debug) printf("pp.position %f %f p %d %d\n", pp->position[0], pp->position[1], p.x, p.y);
+			if (p.x < 0 || p.x >= jsteps[0] || p.y < 0 || p.y >= jsteps[1]) {
+				//vecset3f(pp->position, 0.0f, 0.0f, 0.0f);
+				//vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+				printf("off the sink map\n");
+				return;
+			}
+
+			for (int i = 0; i < 8; i++) nebor[i].x = nebor[i].y = 0;
+			nebor[0].y = nebor[1].y = nebor[2].y = -1;
+			nebor[0].x = nebor[3].x = nebor[5].x = -1;
+			nebor[2].x = nebor[4].x = nebor[7].x = 1;
+			nebor[5].y = nebor[6].y = nebor[7].y = 1;
+			// ^   5 6 7
+			// y   3   4
+			// x>  0 1 2
+
+			//which way to go? 
+			//check if we are on the sink/destination, if so recycle.
+			sinkcolor = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], p.x, p.y);
+			if (sinkcolor->int16[0] < 3) { //}&& sinkcolor->int16[0] > 0) {
+				//end of life, recycle - clear from population map
+				//or emitter may have launched onto obstacle by mistake (sinkcolor == 0) so just retire early
+				set_image_pixel_channel(popmap, jsteps[0], jsteps[1],0, 0, p.x, p.y);
+				pp->age = pp->lifespan+1.0f;
+			}
+			else {
+				//check if we are on a wait area, will affect neighbor decision
+				float xx, yy;
+				funccolor = (pix*)sample_image(tt, xy[0], xy[1]);
+				pixel2color3(color, funccolor->bytes);
+				int on_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
+				//if (on_wait) printf("on_wait ");
+				
+				//check neighbors and rank by shortest distance
+				int nlist, ilist[8], dlist[8], iscore[8];
+				int ishortest = -1;
+				int dshortest = 1000000;
+				if (debug) print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				/*
+				static int iframes;
+				iframes++;
+				if (iframes == 10600) {
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 1, 0, 1,1);
+					//show image on screen and in C:/tmp .bmp of flood map
+					for (int jj = 0; jj < jsteps[1]; jj++)
+						for (int ii = 0; ii < jsteps[0]; ii++) {
+							//texdata[(jj * jsteps[0] + ii) * 4 + 0] = 127;
+							//texdata[(jj * jsteps[0] + ii) * 4 + 1] = 127;
+							//texdata[(jj * jsteps[0] + ii) * 4 + 2] = 0; //clear blue
+							popmap[(jj * jsteps[0] + ii) * 4 + 3] = 0xff;
+						}
+					display_imagedata4(popmap, jsteps[0], jsteps[1], 0); //sinkmap i
+					//display_imagedata4(tt->texdata, tt->x, tt->y); //function map
+					print_image_channel(popmap, 0, jsteps[0], jsteps[1]);
+				}
+				*/
+
+				//clear our last known location from popmap so we dont block ourself
+				set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0,0, pp->maplocation[0],pp->maplocation[1]);
+
+				for (int i = 0; i < 8; i++) {
+					dlist[i] = 2000000;
+					iscore[i] = 0;
+					q.x = p.x + nebor[i].x;
+					q.y = p.y + nebor[i].y;
+					//skip if outside image
+					if (q.x < 0 || q.x >= jsteps[0] || q.y < 0 || q.y >= jsteps[1]) continue;
+					iscore[i] = 1;
+					
+					pix *sinkval = (pix*)get_image_pixel_color(sinkmap, jsteps[0], jsteps[1], q.x, q.y);
+					//skip if obstacle
+					if (sinkval->int16[0] == 0) continue;
+					iscore[i] = 2;
+					//skip if we are already on waitzone/crosswalk
+					iscore[i] = 3;
+					//skip if someone already populating grid cell (avoid particle collision)
+					unsigned char populated = get_image_pixel_channel(popmap, jsteps[0], jsteps[1], 0, q.x, q.y);
+					//printf("nebor %d populated %d\n", i, populated);
+					if (populated)	continue;
+
+					iscore[i] = 4;
+					dlist[i] = sinkval->int16[0]; // uchar;
+					if (dlist[i] < dshortest) {
+						ishortest = i;
+						dshortest = dlist[i];
+						iscore[i] = 5;
+					}
+				}
+				if(0) if (debug || ishortest < 0) {
+					for (int m = 0; m < 8; m++) printf("iscore[%d]=%d,", m, iscore[m]);
+					printf("\n");
+				}
+				if (ishortest > -1) {
+					//move toward ishortest neighbor
+
+					q.x = p.x + nebor[ishortest].x;
+					q.y = p.y + nebor[ishortest].y;
+					int is_wait = 0;
+					if (!on_wait) {
+						//if not on crosswalk yet, and next step is on crosswalk, wait if function says to
+						xx = (float)q.x / (float)jsteps[0]; // px->gridSize.c[0];
+						yy = (float)q.y / (float)jsteps[1]; // px->gridSize.c[1];
+						funccolor = (pix*)sample_image(tt, xx, yy);
+						pixel2color3(color, funccolor->bytes);
+						if (px->pauseState) {
+							is_wait = vecclose3f(color, px->pauseColor.c, px->colorMatchTolerance);
+						}
+					}
+					if (is_wait) {
+						set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, p.x, p.y);
+						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+						pp->paused = TRUE; //for HANIM motion change
+					}
+					else {
+						float pxy[3], qxy[3], diff[3], dir[3];
+						pxy[0] = (float)p.x * .5f;
+						pxy[1] = (float)p.y * .5f;
+						pxy[2] = 0.0f;
+						qxy[0] = (float)q.x * .5f;
+						qxy[1] = (float)q.y * .5f;
+						qxy[2] = 0.0f;
+						vecdif3f(diff, qxy, pxy);
+						vecnormalize3f(dir, diff);
+
+						vecscale3f(pp->velocity, dir, pp->speed);
+						float flen = veclength3f(dir);
+						if (flen > 0.0f) {
+							vecscale3f(pp->direction, dir, 1.0f / flen);
+						}
+
+						//mark new location in popmap so others dont hit us
+						set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, q.x, q.y);
+						pp->maplocation[0] = q.x;
+						pp->maplocation[1] = q.y;
+						if (debug) printf("shortest %d velocity %f %f particle %p\n", ishortest, pp->velocity[0], pp->velocity[1], pp);
+						pp->paused = FALSE; //for HANIM motion change
+					}
+				}
+				else {
+					//wait / stand
+					if(debug) printf("waiting particle %p\n", pp);
+					set_image_pixel_channel(popmap, jsteps[0], jsteps[1], 255, 0, p.x, p.y);
+					//if (ishortest == -2) {
+						vecset3f(pp->velocity, 0.0f, 0.0f, 0.0f);
+						pp->paused = TRUE; //for HANIM motion change
+					//}
+				}
+				if(debug) getchar();
+			} //end of life
+		} //classified
+	} //enabled
+}
+// END HUMANOID PARTICLE SECTION <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
 void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp){
 	int j,k,ifloor, iceil, found;
 	float rgbaf[4], rgbac[4], rgba[4], fraclife;
 	found = FALSE;
 	fraclife = pp->age / pp->lifespan;
-	for(j=0;j<node->colorKey.n;j++){
+	for(j=0;j<node->colorKey.n-1;j++){ //reads key j+1
 		if(node->colorKey.p[j] <= fraclife && node->colorKey.p[j+1] > fraclife){
 			ifloor = j;
 			iceil = j+1;
@@ -1021,9 +1837,13 @@ void updateColorRamp(struct X3D_ParticleSystem *node, particle *pp, GLint cramp)
 		float spread, fraction;
 		struct SFColorRGBA * crgba = NULL;
 		struct SFColor *crgb = NULL;
-		switch(node->colorRamp->_nodeType){
-			case NODE_ColorRGBA: crgba = ((struct X3D_ColorRGBA *)node->colorRamp)->color.p; break;
-			case NODE_Color: crgb = ((struct X3D_Color *)node->colorRamp)->color.p; break;
+		struct X3D_Node* color_ramp = NULL;
+		if (node->colorRamp) color_ramp = node->colorRamp;
+		else if (node->color) color_ramp = node->color;
+		if (!color_ramp) return;
+		switch(color_ramp->_nodeType){
+			case NODE_ColorRGBA: crgba = ((struct X3D_ColorRGBA *)color_ramp)->color.p; break;
+			case NODE_Color: crgb = ((struct X3D_Color *)color_ramp)->color.p; break;
 			default:
 			break;
 		}
@@ -1051,6 +1871,7 @@ void updateTexCoordRamp(struct X3D_ParticleSystem *node, particle *pp, float *te
 	float fraclife, fracKey;
 
 	ifloor = 0; 
+	found = FALSE;
 	fraclife = pp->age / pp->lifespan;
 	fracKey = 1.0f / (float)(node->texCoordKey.n); 
 	//if(node->_geometryType != GEOM_LINE)
@@ -1083,10 +1904,545 @@ void updateTexCoordRamp(struct X3D_ParticleSystem *node, particle *pp, float *te
 void reallyDrawOnce();
 void clearDraw();
 GLfloat linepts [6] = {-.5f,0.f,0.f, .5f,0.f,0.f};
-ushort lineindices[2] = {0,1};
+int lineindices[2] = {0,1};
 int getImageChannelCountFromTTI(struct X3D_Node *appearanceNode );
 void update_effect_uniforms();
+void check_compile(struct X3D_Node* node){
+	COMPILE_IF_REQUIRED
+}
+void child_geom_particle_shadow(struct X3D_ParticleSystem* node) {
+	//child_geomParticle_shadow
+	PRINT_GL_ERROR_IF_ANY("child_shape depth start");
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+	shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
+	shader_requirements.effects = node->_shaderflags_effects;
+	shader_requirements.usershaders = node->_shaderflags_usershaders;
 
+	shader_requirements.depth = TRUE;
+	shader_requirements.base |= PARTICLE_SHADER;
+
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	sendMatriciesToShader(scap);  //send matrices
+	switch (node->_geometryType) {
+	case GEOM_LINE:
+	{
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
+		sendElementsToGPU(GL_LINES, 2, (int*)lineindices);
+	}
+	break;
+	case GEOM_POINT:
+	{
+		float point[3];
+		memset(point, 0, 3 * sizeof(float));
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
+		sendArraysToGPU(GL_POINTS, 0, 1);
+	}
+	break;
+	case GEOM_QUAD:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_SPRITE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_TRIANGLE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_GEOMETRY:
+		render_node(node->geometry);
+		break;
+	default:
+		break;
+	}
+	GLint ppos, pdir, cr, gtype, itrans;
+	int i;
+	ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+	pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
+	itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
+	cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
+	gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
+	glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
+	//loop over live particles, drawing each one
+	//float estart6[6], eout6[6];
+	//extent6f_copy(estart6, peek_group_extent());
+	Stack* _particles = node->_particles;
+	//apply static orientation and size to all particles
+	{
+		double matrix[16], * mat[4];
+		float fmat[16];
+		for (i = 0; i < 4; i++)
+			mat[i] = &matrix[i * 4];
+		matidentity4d(matrix);
+		if (1) {
+			double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
+			//apply particle size
+			for (i = 0; i < 2; i++)
+				mat[i][i] = node->particleSize.c[i];
+			//apply particle orientation (relative to direction 1 0 0)
+			for (i = 0; i < 3; i++)
+				axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
+		}
+		double2float(fmat, matrix, 16);
+		glUniformMatrix4fv(itrans, 1, TRUE, fmat);
+	}
+
+	for (int i = 0; i < vectorSize(_particles); i++) {
+		particle pp = vector_get(particle, _particles, i);
+		//update particle-specific uniforms
+		glUniform3fv(ppos, 1, pp.position);
+		//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
+		glUniform3fv(pdir, 1, pp.direction);
+		//draw
+		reallyDrawOnce();
+		//extent6f_translate3f(eout6, estart6, pp.position);
+		//union_group_extent(eout6);
+	}
+	clearDraw();
+	//cleanup after draw, like child_shape
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	finishedWithGlobalShader();
+}
+void render_geom_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
+	ttglobal tg = gglobal();
+
+	int i;
+	GLint ppos, pdir, cr, gtype;
+
+	//render_geom_particle(node);
+
+	//prepare to draw, like child_shape
+	//render appearance
+	//BORROWED FROM CHILD SHAPE >>>>>>>>>
+	//declare geom particle variables
+	int allowsTexcoordRamp = FALSE;
+	float* texcoord = NULL;
+	int haveColorRamp, haveTexcoordRamp;
+	//int colorSource, alphaSource, isLit,
+	int isUserShader;
+	s_shader_capabilities_t* scap;
+	shaderflagsstruct shader_requirements;
+	struct X3D_Node* tmpNG;
+
+	//unsigned int shader_requirements;
+	memset(&shader_requirements, 0, sizeof(shaderflagsstruct));
+
+	//prep_Appearance
+	RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
+
+	// enable the shader for this shape
+	//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
+
+	POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, node->geometry, tmpNG);
+
+	shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;
+	shader_requirements.effects = node->_shaderflags_effects;
+	shader_requirements.usershaders = node->_shaderflags_usershaders;
+	isUserShader = shader_requirements.usershaders ? TRUE : FALSE; // >= USER_DEFINED_SHADER_START ? TRUE : FALSE;
+	//if(!p->userShaderNode || !(shader_requirements >= USER_DEFINED_SHADER_START)){
+	if (!isUserShader) {
+		//for Luminance and Luminance-Alpha images, we have to tinker a bit in the Vertex shader
+		// New concept of operations Aug 26, 2016
+		// in the specs there are some things that can replace other things (but not the reverse)
+		// Texture can repace CPV, diffuse and 111
+		// CPV can replace diffuse and 111
+		// diffuse can replace 111
+		// Texture > CPV > Diffuse > (1,1,1)
+		// so there's a kind of order / sequence to it.
+		// There can be a flag at each step saying if you want to replace the prior value (otherwise modulate)
+		// Diffuse replacing or modulating (111) is the same thing, no flag needed
+		// Therefore we need at most 2 flags for color:
+		// TEXTURE_REPLACE_PRIOR and CPV_REPLACE_PRIOR.
+		// and other flag for alpha: ALPHA_REPLACE_PRIOR (same as ! WANT_TEXALPHA)
+		// if all those are false, then its full modulation.
+		// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
+		// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
+
+		int channels, modulation, scenefile_specversion;
+		//modulation:
+		//- for Castle-style full-modulation of texture x CPV x mat.diffuse
+		//     and texalpha x (1-mat.trans), set 2
+		//- for specs table 17-2 RGB Tex replaces CPV with modulation
+		//     of table 17-2 entries with mat.diffuse and (1-mat.trans) set 1
+		//- for specs table 17-3 as written and ignoring modulation sentences
+		//    so CPV replaces diffuse, texture replaces CPV and diffuse- set 0
+		// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
+		//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
+		//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
+		channels = getImageChannelCountFromTTI(node->appearance);
+		// specversion <= 330 use v3.3 table 17-3
+		// specversion >= 400 modulate everything
+		scenefile_specversion = X3D_PROTO(node->_executionContext)->__specversion;
+		// p->modulation; 0)scenefile specversion 1)v3.3- 2) v4.0+ (dug9 Mar 28, 2020)
+		switch (fwl_get_modulation()) {
+		case 0:
+			//allows mixing modulations depending on which inline/proto/scenefile the shape was defined in
+			modulation = scenefile_specversion >= 400 ? TRUE : FALSE;
+			break;
+		case 1:
+			modulation = FALSE; break;
+		case 2:
+			modulation = TRUE; break;
+		default:
+			modulation = FALSE;
+		}
+		if (modulation == TRUE) {
+			shader_requirements.base |= MODULATE_TEXTURE; //web3d most browsers default: texture replaces prior by default
+		}
+		if (!channels || (channels == 1 || channels == 3))
+			shader_requirements.base |= MODULATE_ALPHA;  //A = (1-TM)
+		if (channels && (channels == 1 || channels == 2))
+			shader_requirements.base |= MODULATE_COLOR;  //ODrgb = IT x ICrgb
+
+
+		//getShaderFlags() are from non-leaf-node shader influencers:
+		//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
+		// - as such they may be different for the same shape node DEF/USEd in different branches of the scenegraph
+		// - so they are ORd here before selecting a shader permutation
+		shader_requirements.base |= getShaderFlags().base;
+		shader_requirements.effects |= getShaderFlags().effects;
+		//if(shader_requirements & FOG_APPEARANCE_SHADER)
+		//	printf("fog in child_shape\n");
+
+		//ParticleSystem flag
+		shader_requirements.base |= PARTICLE_SHADER;
+		if (node->colorRamp || node->color)
+			shader_requirements.base |= HAVE_UNLIT_COLOR;
+	}
+	//printf("child_shape shader_requirements base %d effects %d user %d\n",shader_requirements.base,shader_requirements.effects,shader_requirements.usershaders);
+	scap = getMyShaders(shader_requirements);
+	enableGlobalShader(scap);
+	//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
+
+	//see if we have to set up a TextureCoordinateGenerator type here
+	if (tmpNG && tmpNG->_intern && tmpNG->_intern->itype == 2) {
+		struct X3D_PolyRep* tmppr = (struct X3D_PolyRep*)tmpNG->_intern;
+		if (tmppr->tcoordtype == NODE_TextureCoordinateGenerator) {
+			getAppearanceProperties()->texCoordGeneratorType = tmppr->texgentype;
+			//ConsoleMessage("shape, matprop val %d, geom val %d",getAppearanceProperties()->texCoordGeneratorType, node->geometry->_intern->texgentype);
+		}
+	}
+	//userDefined = (whichOne >= USER_DEFINED_SHADER_START) ? TRUE : FALSE;
+	//if (p->userShaderNode != NULL && shader_requirements >= USER_DEFINED_SHADER_START) {
+#ifdef ALLOW_USERSHADERS
+	if (isUserShader && p->userShaderNode) {
+		//we come in here right after a COMPILE pass in APPEARANCE which renders the shader, which sets p->userShaderNode
+		//if nothing changed with appearance -no compile pass- we don't come in here again
+		//ConsoleMessage ("have a shader of type %s",stringNodeType(p->userShaderNode->_nodeType));
+		switch (p->userShaderNode->_nodeType) {
+		case NODE_ComposedShader:
+			if (X3D_COMPOSEDSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_COMPOSEDSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+			break;
+		case NODE_ProgramShader:
+			if (X3D_PROGRAMSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_PROGRAMSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+
+			break;
+		case NODE_PackagedShader:
+			if (X3D_PACKAGEDSHADER(p->userShaderNode)->isValid) {
+				if (!X3D_PACKAGEDSHADER(p->userShaderNode)->_initialized) {
+					sendInitialFieldsToShader(p->userShaderNode);
+				}
+			}
+
+			break;
+		}
+	}
+#endif //ALLOW_USERSHADERS
+	//update effect field uniforms
+	if (shader_requirements.effects) {
+		update_effect_uniforms();
+	}
+
+	//<<<<< BORROWED FROM CHILD SHAPE
+
+
+	//send materials, textures, matrices to shader
+	clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+	clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+	clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
+
+	textureTransform_start();
+	// maybe too much? resend_textureprojector_matrix();
+	setupShaderB();
+	//send vertex buffer to shader
+	allowsTexcoordRamp = FALSE;
+	texcoord = NULL;
+	switch (node->_geometryType) {
+	case GEOM_LINE:
+	{
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)linepts);
+		sendElementsToGPU(GL_LINES, 2, (int*)lineindices);
+		texcoord = (float*)node->_ltex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_POINT:
+	{
+		float point[3];
+		memset(point, 0, 3 * sizeof(float));
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)point);
+		sendArraysToGPU(GL_POINTS, 0, 1);
+	}
+	break;
+	case GEOM_QUAD:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+		texcoord = (float*)node->_ttex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_SPRITE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+	}
+	break;
+	case GEOM_TRIANGLE:
+	{
+		//textureCoord_send(&mtf);
+		FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (GLfloat*)node->_tris);
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, twotrisnorms);
+		sendArraysToGPU(GL_TRIANGLES, 0, 6);
+		texcoord = (float*)node->_ttex;
+		allowsTexcoordRamp = TRUE;
+	}
+	break;
+	case GEOM_GEOMETRY:
+		render_node(node->geometry);
+		break;
+	default:
+		break;
+	}
+
+	ppos = GET_UNIFORM(scap->myShaderProgram, "particlePosition");
+	pdir = GET_UNIFORM(scap->myShaderProgram, "particleDirection");
+	cr = GET_UNIFORM(scap->myShaderProgram, "fw_UnlitColor");
+	gtype = GET_UNIFORM(scap->myShaderProgram, "fw_ParticleGeomType");
+	int itrans = GET_UNIFORM(scap->myShaderProgram, "particleTransform");
+	glUniform1i(gtype, node->_geometryType); //for SPRITE = 4, screen alignment
+	//loop over live particles, drawing each one
+	haveColorRamp = node->colorRamp || node->color ? TRUE : FALSE;
+	haveColorRamp = haveColorRamp && cr > -1;
+	haveTexcoordRamp = node->texCoordRamp || node->texCoord ? TRUE : FALSE;
+	haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord;
+	if (haveTexcoordRamp) {
+		//glUniform1i(scap->nTexMatrix,0);
+		glUniform1i(scap->nTexCoordChannels, 1);
+		glUniform1i(scap->flipuv, 0);
+		//glUniform1i(scap->textureCount,1);
+	}
+	float estart6[6], eout6[6];
+	//extent6f_copy(estart6, peek_group_extent());
+	extent6f_clear(estart6);
+	//apply static orientation and size to all particles
+	{
+		double matrix[16], * mat[4];
+		float fmat[16];
+		for (i = 0; i < 4; i++)
+			mat[i] = &matrix[i * 4];
+		matidentity4d(matrix);
+		if (1) {
+			double* rot[4], * rot2[4], matyaw[16], matpitch[16], matrot[16];
+			//apply particle size
+			for (i = 0; i < 2; i++)
+				mat[i][i] = node->particleSize.c[i];
+			//apply particle orientation (relative to direction 1 0 0)
+			for (i = 0; i < 3; i++)
+				axisangle_rotate3d(mat[i], mat[i], node->particleOrientation.c);
+		}
+		double2float(fmat, matrix, 16);
+		glUniformMatrix4fv(itrans, 1, TRUE, fmat);
+	}
+
+	for (i = 0; i < vectorSize(_particles); i++) {
+		particle pp = vector_get(particle, _particles, i);
+		//update particle-specific uniforms
+		glUniform3fv(ppos, 1, pp.position);
+		glUniform3fv(pdir, 1, pp.direction);
+
+		//printf("(%f %f %f)", pp.direction[0], pp.direction[1], pp.direction[2]);
+		if (haveColorRamp)
+			updateColorRamp(node, &pp, cr);
+		if (haveTexcoordRamp)
+			updateTexCoordRamp(node, &pp, texcoord);
+		if (node->_geometryType == GEOM_LINE) {
+			float lpts[6], vel[3];
+			vecnormalize3f(vel, pp.velocity);
+			vecscale3f(&lpts[3], vel, .5f * node->particleSize.c[1]);
+			vecscale3f(&lpts[0], vel, -.5f * node->particleSize.c[1]);
+			FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, (float*)lpts);
+		}
+		//draw
+		reallyDrawOnce();
+		//extent6f_translate3f(eout6, estart6, pp.position);
+		//union_group_extent(eout6);
+		//printf("pp.pos %f %f %f\n", pp.position[0], pp.position[1], pp.position[2]);
+		extent6f_union_vec3f(estart6, pp.position);
+	}
+	memcpy(node->_extent, estart6, 6 * sizeof(float));
+	clearDraw();
+	//cleanup after draw, like child_shape
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+	textureTransform_end();
+
+	//BORROWED FROM CHILD_SHAPE >>>>>>
+	//fin_Appearance
+	if (node->appearance) {
+		struct X3D_Appearance* tmpA;
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance*, node->appearance, tmpA);
+		if (tmpA->effects.n)
+			fin_sibAffectors(X3D_NODE(tmpA), &tmpA->effects);
+	}
+	// any shader turned on? if so, turn it off
+
+	//ConsoleMessage("turning shader off");
+	finishedWithGlobalShader();
+#ifdef HAVE_P
+	p->material_twoSided = NULL;
+	p->material_oneSided = NULL;
+	p->userShaderNode = NULL;
+#endif
+	tg->RenderFuncs.shapenode = NULL;
+
+	// load the identity matrix for textures. This is necessary, as some nodes have TextureTransforms
+	//	and some don't. So, if we have a TextureTransform, loadIdentity
+
+#ifdef HAVE_P
+	if (p->this_textureTransform) {
+		p->this_textureTransform = NULL;
+#endif //HAVE_P
+		FW_GL_MATRIX_MODE(GL_TEXTURE);
+		FW_GL_LOAD_IDENTITY();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+#ifdef HAVE_P
+	}
+#endif
+	// LineSet, PointSets, set the width back to the original.
+	{
+		float gl_linewidth = tg->Mainloop.gl_linewidth;
+		glLineWidth(gl_linewidth);
+#ifdef HAVE_P
+		p->appearanceProperties.pointSize = gl_linewidth;
+#endif
+	}
+
+	// did the lack of an Appearance or Material node turn lighting off?
+	LIGHTING_ON;
+
+	// turn off face culling
+	DISABLE_CULL_FACE;
+
+	//<<<<< BORROWED FROM CHILD_SHAPE
+
+}
+void render_hanim_particle(struct X3D_ParticleSystem* node, Stack* _particles) {
+	double mat[16], xyz[3];
+	for (int i = 0; i < vectorSize(_particles); i++) {
+		particle *pp = vector_get_ptr(particle, _particles, i);
+		//update particle-specific uniforms
+		//glUniform3fv(ppos, 1, pp.position);
+		//glUniform3fv(pdir, 1, pp.direction);
+		//convert ppos,pdir to matrix and push on transform stack
+		//matrixIdentity4d(mat);
+		//mattranslate4d(mat, float2double(xyz, pp.position, 3));
+		if (1) {
+			FW_GL_PUSH_MATRIX(); //POPPED in textureTransform_end
+			//FW_GL_LOAD_IDENTITY();
+			FW_GL_TRANSLATE_F(pp->position[0], pp->position[1], pp->position[2]);
+			FW_GL_ROTATE_RADIANS(1.570796, 1, 0, 0);
+			//euler2axixAngle
+			float yaw = atan2(pp->direction[1], pp->direction[0]) + 1.570796;
+			float xydist = sqrt(pp->direction[1] * pp->direction[1] + pp->direction[0] * pp->direction[0]);
+			float tilt = atan(pp->direction[2] / xydist);
+			FW_GL_ROTATE_RADIANS(tilt, 1, 0, 0);
+			FW_GL_ROTATE_RADIANS(yaw, 0, 1, 0);
+		}
+		//assume first motion is walk, second is stand
+		struct X3D_HAnimHumanoid* HH = (struct X3D_HAnimHumanoid*)node->geometry;
+		if (HH->_nodeType == NODE_HAnimPermuter) {
+			struct X3D_HAnimPermuter* HP = (struct X3D_HAnimPermuter*)HH;
+			if (pp->permutationIndex == -1)
+				pp->permutationIndex = uniformRand() * HP->permutations.n;
+			HP->index = pp->permutationIndex;
+			render_node(X3D_NODE(HP));
+			HH = (struct X3D_HAnimHumanoid*)HP->humanoid;
+		}
+		struct X3D_HAnimMotion* HM[2];
+		for (int j = 0; j < 2; j++) {
+			HM[j] = (struct X3D_HAnimMotion*)HH->motions.p[j];
+			HM[j]->transitionStart = pp->transitionStart[j];
+			if(pp->_startTime[j] > 0.0)
+				HM[j]->_startTime = pp->_startTime[j];
+			if (HH->_lastMotionsEnabled.n == 0) {
+				HH->_lastMotionsEnabled.p = malloc(2 * sizeof(int));
+				HH->_lastMotionsEnabled.n = 2;
+			}
+			HH->_lastMotionsEnabled.p[j] = pp->lastMotionsEnabled[j];
+		}
+		if (pp->paused) {
+			//ME->p[0] = FALSE;
+			//ME->p[1] = TRUE;
+			HH->motionsEnabled.p[0] = TRUE;
+			HH->motionsEnabled.p[1] = FALSE;
+		}
+		else {
+			//ME->p[0] = TRUE;
+			//ME->p[1] = FALSE;
+			HH->motionsEnabled.p[0] = FALSE;
+			HH->motionsEnabled.p[1] = TRUE;
+		}
+		if (0) {
+			struct X3D_HAnimMotion* HM0 = (struct X3D_HAnimMotion*)HH->motions.p[0];
+			struct X3D_HAnimMotion* HM1 = (struct X3D_HAnimMotion*)HH->motions.p[1];
+			printf("HH %p HM0 %p HM1 %p wt %f %f enabled %d %d\n", HH, HM0, HM1, HM0->transitionWeight, HM1->transitionWeight, HH->motionsEnabled.p[0], HH->motionsEnabled.p[1]);
+		}
+		child_HAnimHumanoid(HH);
+		//save HM parameters for this particle
+		for (int j = 0; j < 2; j++) {
+			pp->transitionStart[j] = HM[j]->transitionStart;
+			pp->lastMotionsEnabled[j] = HH->_lastMotionsEnabled.p[j] ;
+			pp->_startTime[j] = HM[j]->_startTime;
+		}
+
+		if(1)
+		FW_GL_POP_MATRIX();
+		//draw
+		//reallyDrawOnce();
+		//extent6f_union_vec3f(estart6, pp.position);
+	}
+
+}
 void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	// 
 	// ParticleSystem 
@@ -1099,33 +2455,49 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 	//
 	//s_shader_capabilities_t *caps;
 	// static int once = 0;
+   	ttglobal tg = gglobal();
+
 	COMPILE_IF_REQUIRED
+	//check_compile(node);
+
+	/* initialization. This will get overwritten if there is a texture in an Appearance
+	   node in this shape (see child_Appearance) */
+	tg->RenderFuncs.last_texture_type = NOTEXTURE;
+	tg->RenderFuncs.shapenode = node;
+
+	if (renderstate()->render_depth) {
+		if (node->castShadow) {
+			child_geom_particle_shadow(node);
+			PRINT_GL_ERROR_IF_ANY("child_shape depth end");
+		}
+		return;
+	}
+
+
+	prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
+
+	/* copy the material stuff in preparation for copying all to the shader */
+	initialize_front_and_back_material_params();
+
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 	if(node->enabled){
-	if(node->isActive){
+	if(TRUE){ //node->isActive){
+		//declare particle variables
 		int i,j,k,maxparticles;
 		double ttime;
 		float dtime;
-		//int colorSource, alphaSource, isLit, 
-		int isUserShader; 
-		s_shader_capabilities_t *scap;
-		shaderflagsstruct shader_requirements;
-		Stack *_particles;
-		int allowsTexcoordRamp = FALSE;
-		float *texcoord = NULL;
-		GLint ppos, cr, gtype;
-		int haveColorRamp,haveTexcoordRamp;
+		Stack* _particles;
 
-		struct X3D_Node *tmpNG;
-		ttglobal tg = gglobal();
 
+		//initialize time-dependen node variables
 		ttime = TickTime();
 		dtime = (float)(ttime - node->_lasttime); //increment to particle age
 
 		//if(!once)
 		//	printf("child particlesystem \n");
 
-
+		//UPDATE PARTICLES
 		//RETIRE remove deceased/retired particles (by packing vector)
 		_particles = node->_particles;
 		maxparticles = min(node->maxParticles,10000);
@@ -1162,6 +2534,10 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 						apply_windphysics(&pp,node->physics.p[k],dtime); break;
 					case NODE_ForcePhysicsModel:
 						apply_forcephysics(&pp,node->physics.p[k],dtime); break;
+					case NODE_MapPhysicsModel:
+						apply_mapphysics(&pp, node->physics.p[k], dtime); break;
+					case NODE_ResistancePhysicsModel:
+						apply_resistancephysics(&pp, node->physics.p[k], dtime); break;
 					default:
 						break;
 				}
@@ -1185,7 +2561,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 
 		//CREATE via emitters (implied dtime = 0, so no physics on first frame)
 		_particles->n = j;
-		if(node->createParticles && _particles->n < maxparticles){
+		if(node->createParticles && _particles->n < maxparticles && node->emitter && emitter_loaded(node->emitter)){
 			//create new particles to reach maxparticles limit
 			int n_per_frame, n_needed, n_this_frame;
 			float particles_per_second, particles_per_frame;
@@ -1206,10 +2582,11 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			j = _particles->n;
 			for(i=0;i<n_this_frame;i++,j++){
 				particle pp;
+				memset(&pp,0,sizeof(particle)); 
+				vecset3f(pp.origin, 0.0f, 0.0f, 0.0f);//for bounded physics
 				pp.age = 0.0f;
-				memset(pp.origin,0,sizeof(float)*3); //for bounded physics
 				pp.lifespan = node->particleLifetime * (1.0f + uniformRandCentered()*node->lifetimeVariation);
-				memcpy(pp.size,node->particleSize.c,2*sizeof(float));
+				veccopy2f(pp.size,node->particleSize.c);
 				//emit particles
 				switch(node->emitter->_nodeType){
 					case NODE_ConeEmitter:		apply_ConeEmitter(&pp,node->emitter); break;
@@ -1220,6 +2597,7 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 					case NODE_PolylineEmitter:	apply_PolylineEmitter(&pp,node->emitter); break;
 					case NODE_SurfaceEmitter:	apply_SurfaceEmitter(&pp,node->emitter); break;
 					case NODE_VolumeEmitter:	apply_VolumeEmitter(&pp,node->emitter); break;
+					case NODE_MapEmitter:		apply_MapEmitter(&pp, node->emitter); break;
 					default:
 						break;
 				}
@@ -1228,307 +2606,20 @@ void child_ParticleSystem(struct X3D_ParticleSystem *node){
 			}
 			_particles->n = j;
 		}
-
-		//prepare to draw, like child_shape
-		//render appearance
-		//BORROWED FROM CHILD SHAPE >>>>>>>>>
-
-		//unsigned int shader_requirements;
-		memset(&shader_requirements,0,sizeof(shaderflagsstruct));
-
-		//prep_Appearance
-		RENDER_MATERIAL_SUBNODES(node->appearance); //child_Appearance
-
-
-#ifdef HAVE_P
-		if (p->material_oneSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_oneSided->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_oneSided->_verifiedColor.p, 3*sizeof(float));
-
-		} else if (p->material_twoSided != NULL) {
-			memcpy (&p->appearanceProperties.fw_FrontMaterial, p->material_twoSided->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-			memcpy (&p->appearanceProperties.fw_BackMaterial, p->material_twoSided->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-			/* copy the emissive colour over for lines and points */
-			memcpy(p->appearanceProperties.emissionColour,p->material_twoSided->_verifiedFrontColor.p, 3*sizeof(float));
-		} else {
-			/* no materials selected.... */
+		if (node->_geometryType < GEOM_HANIM) {
+			render_geom_particle(node, _particles);
 		}
-#endif
-
-		/* enable the shader for this shape */
-		//ConsoleMessage("turning shader on %x",node->_shaderTableEntry);
-
-		POSSIBLE_PROTO_EXPANSION(struct X3D_Node *, node->geometry,tmpNG);
-
-		shader_requirements.base = node->_shaderflags_base; //_shaderTableEntry;  
-		shader_requirements.effects = node->_shaderflags_effects;
-		shader_requirements.usershaders = node->_shaderflags_usershaders;
-		isUserShader = shader_requirements.usershaders ? TRUE : FALSE; // >= USER_DEFINED_SHADER_START ? TRUE : FALSE;
-		//if(!p->userShaderNode || !(shader_requirements >= USER_DEFINED_SHADER_START)){
-		if(!isUserShader){
-			//for Luminance and Luminance-Alpha images, we have to tinker a bit in the Vertex shader
-			// New concept of operations Aug 26, 2016
-			// in the specs there are some things that can replace other things (but not the reverse)
-			// Texture can repace CPV, diffuse and 111
-			// CPV can replace diffuse and 111
-			// diffuse can replace 111
-			// Texture > CPV > Diffuse > (1,1,1)
-			// so there's a kind of order / sequence to it.
-			// There can be a flag at each step saying if you want to replace the prior value (otherwise modulate)
-			// Diffuse replacing or modulating (111) is the same thing, no flag needed
-			// Therefore we need at most 2 flags for color:
-			// TEXTURE_REPLACE_PRIOR and CPV_REPLACE_PRIOR.
-			// and other flag for alpha: ALPHA_REPLACE_PRIOR (same as ! WANT_TEXALPHA)
-			// if all those are false, then its full modulation.
-			// our WANT_LUMINANCE is really == ! TEXTURE_REPLACE_PRIOR
-			// we are missing a CPV_REPLACE_PRIOR, or more precisely this is a default burned into the shader
-
-			int channels;
-			//modulation:
-			//- for Castle-style full-modulation of texture x CPV x mat.diffuse
-			//     and texalpha x (1-mat.trans), set 2
-			//- for specs table 17-2 RGB Tex replaces CPV with modulation 
-			//     of table 17-2 entries with mat.diffuse and (1-mat.trans) set 1
-			//- for specs table 17-3 as written and ignoring modulation sentences
-			//    so CPV replaces diffuse, texture replaces CPV and diffuse- set 0
-			// testing: KelpForest SharkLefty.x3d has CPV, ImageTexture RGB, and mat.diffuse
-			//    29C.wrl has mat.transparency=1 and LumAlpha image, modulate=0 shows sphere, 1,2 inivisble
-			//    test all combinations of: modulation {0,1,2} x shadingStyle {gouraud,phong}: 0 looks bright texture only, 1 texture and diffuse, 2 T X C X D
-			int modulation = 1; //freewrl default 1 (dug9 Aug 27, 2016 interpretation of Lighting specs)
-			channels = getImageChannelCountFromTTI(node->appearance);
-
-			if(modulation == 0)
-				shader_requirements.base |= MAT_FIRST; //strict use of table 17-3, CPV can replace mat.diffuse, so texture > cpv > diffuse > 111
-
-			if(shader_requirements.base & COLOUR_MATERIAL_SHADER){
-				//printf("has a color node\n");
-				//lets turn it off, and see if we get texture
-				//shader_requirements &= ~(COLOUR_MATERIAL_SHADER);
-				if(modulation == 0) 
-					shader_requirements.base |= CPV_REPLACE_PRIOR;
-			}
-
-			if(channels && (channels == 3 || channels == 4) && modulation < 2)
-				shader_requirements.base |= TEXTURE_REPLACE_PRIOR;
-			//if the image has a real alpha, we may want to turn off alpha modulation, 
-			// see comment about modulate in Compositing_Shaders.c
-			if(channels && (channels == 2 || channels == 4) && modulation == 0)
-				shader_requirements.base |= TEXALPHA_REPLACE_PRIOR;
-
-			//getShaderFlags() are from non-leaf-node shader influencers: 
-			//   fog, local_lights, clipplane, Effect/EffectPart (for CastlePlugs) ...
-			// - as such they may be different for the same shape node DEF/USEd in different branches of the scenegraph
-			// - so they are ORd here before selecting a shader permutation
-			shader_requirements.base |= getShaderFlags().base; 
-			shader_requirements.effects |= getShaderFlags().effects;
-			//if(shader_requirements & FOG_APPEARANCE_SHADER)
-			//	printf("fog in child_shape\n");
-
-			//ParticleSystem flag
-			shader_requirements.base |= PARTICLE_SHADER;
-			if(node->colorRamp)
-				shader_requirements.base |= HAVE_UNLIT_COLOR;
-		}
-		//printf("child_shape shader_requirements base %d effects %d user %d\n",shader_requirements.base,shader_requirements.effects,shader_requirements.usershaders);
-		scap = getMyShaders(shader_requirements);
-		enableGlobalShader(scap);
-		//enableGlobalShader (getMyShader(shader_requirements)); //node->_shaderTableEntry));
-
-		//see if we have to set up a TextureCoordinateGenerator type here
-		if (tmpNG && tmpNG->_intern) {
-			if (tmpNG->_intern->tcoordtype == NODE_TextureCoordinateGenerator) {
-				getAppearanceProperties()->texCoordGeneratorType = tmpNG->_intern->texgentype;
-				//ConsoleMessage("shape, matprop val %d, geom val %d",getAppearanceProperties()->texCoordGeneratorType, node->geometry->_intern->texgentype);
-			}
-		}
-		//userDefined = (whichOne >= USER_DEFINED_SHADER_START) ? TRUE : FALSE;
-		//if (p->userShaderNode != NULL && shader_requirements >= USER_DEFINED_SHADER_START) {
-		#ifdef ALLOW_USERSHADERS
-		if(isUserShader && p->userShaderNode){
-			//we come in here right after a COMPILE pass in APPEARANCE which renders the shader, which sets p->userShaderNode
-			//if nothing changed with appearance -no compile pass- we don't come in here again
-			//ConsoleMessage ("have a shader of type %s",stringNodeType(p->userShaderNode->_nodeType));
-			switch (p->userShaderNode->_nodeType) {
-				case NODE_ComposedShader:
-					if (X3D_COMPOSEDSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_COMPOSEDSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-					break;
-				case NODE_ProgramShader:
-					if (X3D_PROGRAMSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_PROGRAMSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-
-					break;
-				case NODE_PackagedShader:
-					if (X3D_PACKAGEDSHADER(p->userShaderNode)->isValid) {
-						if (!X3D_PACKAGEDSHADER(p->userShaderNode)->_initialized) {
-							sendInitialFieldsToShader(p->userShaderNode);
-						}
-					}
-
-					break;
-			}
-		}
-		#endif //ALLOW_USERSHADERS
-		//update effect field uniforms
-		if(shader_requirements.effects){
-			update_effect_uniforms();
+		if (node->_geometryType == GEOM_HANIM) {
+			render_hanim_particle(node, _particles);
 		}
 
-		//<<<<< BORROWED FROM CHILD SHAPE
-
-
-		//send materials, textures, matrices to shader
-		textureTransform_start();
-		setupShaderB();
-		//send vertex buffer to shader
-		allowsTexcoordRamp = FALSE;
-		texcoord = NULL;
-		switch(node->_geometryType){
-			case GEOM_LINE: 
-			{
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)linepts);
-				sendElementsToGPU(GL_LINES,2,(ushort *)lineindices);
-				texcoord = (float*)node->_ltex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_POINT: 
-			{
-				float point[3];
-				memset(point,0,3*sizeof(float));
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)point);
-        		sendArraysToGPU (GL_POINTS, 0, 1);
-			}
-			break;
-			case GEOM_QUAD: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-				texcoord = (float*)node->_ttex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_SPRITE: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-			}
-			break;
-			case GEOM_TRIANGLE: 
-			{
-				//textureCoord_send(&mtf);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(GLfloat *)node->_tris);
-				FW_GL_NORMAL_POINTER (GL_FLOAT,0,twotrisnorms);
-				sendArraysToGPU (GL_TRIANGLES, 0, 6);
-				texcoord = (float*)node->_ttex;
-				allowsTexcoordRamp = TRUE;
-			}
-			break;
-			case GEOM_GEOMETRY: 
-				render_node(node->geometry);
-			break;
-			default:
-				break;
-		}
-
-		ppos = GET_UNIFORM(scap->myShaderProgram,"particlePosition");
-		cr = GET_UNIFORM(scap->myShaderProgram,"fw_UnlitColor");
-		gtype = GET_UNIFORM(scap->myShaderProgram,"fw_ParticleGeomType");
-		glUniform1i(gtype,node->_geometryType); //for SPRITE = 4, screen alignment
-		//loop over live particles, drawing each one
-		haveColorRamp = node->colorRamp ? TRUE : FALSE;
-		haveColorRamp = haveColorRamp && cr > -1;
-		haveTexcoordRamp = node->texCoordRamp ? TRUE : FALSE;
-		haveTexcoordRamp = haveTexcoordRamp && allowsTexcoordRamp && texcoord; 
-
-		for(i=0;i<vectorSize(_particles);i++){
-			particle pp = vector_get(particle,_particles,i);
-			//update particle-specific uniforms
-			glUniform3fv(ppos,1,pp.position);
-			if(haveColorRamp)
-				updateColorRamp(node,&pp,cr);
-			if(haveTexcoordRamp)
-				updateTexCoordRamp(node,&pp,texcoord);
-			if(node->_geometryType == GEOM_LINE){
-				float lpts[6], vel[3];
-				vecnormalize3f(vel,pp.velocity);
-				vecscale3f(&lpts[3],vel,.5f*node->particleSize.c[1]);
-				vecscale3f(&lpts[0],vel,-.5f*node->particleSize.c[1]);
-				FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,(float *)lpts);
-			}
-			//draw
-			reallyDrawOnce();
-		}
-		clearDraw();
-		//cleanup after draw, like child_shape
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
-		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
-		textureTransform_end();
-
-		//BORROWED FROM CHILD_SHAPE >>>>>>
-		//fin_Appearance
-		if(node->appearance){
-			struct X3D_Appearance *tmpA;
-			POSSIBLE_PROTO_EXPANSION(struct X3D_Appearance *,node->appearance,tmpA);
-			if(tmpA->effects.n)
-				fin_sibAffectors(X3D_NODE(tmpA),&tmpA->effects);
-		}
-		/* any shader turned on? if so, turn it off */
-
-		//ConsoleMessage("turning shader off");
-		finishedWithGlobalShader();
-#ifdef HAVE_P
-		p->material_twoSided = NULL;
-		p->material_oneSided = NULL;
-		p->userShaderNode = NULL;
-#endif
-		tg->RenderFuncs.shapenode = NULL;
-    
-		/* load the identity matrix for textures. This is necessary, as some nodes have TextureTransforms
-			and some don't. So, if we have a TextureTransform, loadIdentity */
-    
-#ifdef HAVE_P
-		if (p->this_textureTransform) {
-			p->this_textureTransform = NULL;
-#endif //HAVE_P
-			FW_GL_MATRIX_MODE(GL_TEXTURE);
-			FW_GL_LOAD_IDENTITY();
-			FW_GL_MATRIX_MODE(GL_MODELVIEW);
-#ifdef HAVE_P
-		}
-#endif    
-		/* LineSet, PointSets, set the width back to the original. */
-		{
-			float gl_linewidth = tg->Mainloop.gl_linewidth;
-			glLineWidth(gl_linewidth);
-#ifdef HAVE_P
-			p->appearanceProperties.pointSize = gl_linewidth;
-#endif
-		}
-
-		/* did the lack of an Appearance or Material node turn lighting off? */
-		LIGHTING_ON;
-
-		/* turn off face culling */
-		DISABLE_CULL_FACE;
-
-		//<<<<< BORROWED FROM CHILD_SHAPE
-
+		
 		node->_lasttime = ttime;
 	} //isActive
 	} //enabled
 	} //VF_Blend
 	// once = 1;
+	fin_BBox((struct X3D_Node*)node, (struct BBoxFields*)&node->bboxCenter, FALSE);
+
 }
+

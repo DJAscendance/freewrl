@@ -64,12 +64,12 @@ our %defaultContainerType = (
 	CADAssembly		=>["children"],
 	CADPart			=>["children"],
 
-	TextureProjectorPerspective =>["children"],
+	TextureProjector =>["children"],
 	TextureProjectorParallel =>["children"],
+	TextureProjectorPoint =>["children"],
 
 	Anchor 			=>["children"],
 	Appearance 		=>["appearance"],
-	AudioClip 		=>["source"],
 	FloatMultiply           =>["children"],
 	Background 		=>["children"],
 	Billboard 		=>["children"],
@@ -84,6 +84,10 @@ our %defaultContainerType = (
 	FogCoordinate 		=>["fogCoord"],
 	CoordinateDeformer 	=>["children"],
 	CoordinateInterpolator 	=>["children"],
+	VectorInterpolator 	=>["children"],
+	CoordinateMorpher 	=>["children"],
+	NormalMorpher 		=>["children"],
+
 	CoordinateInterpolator2D 	=>["children"],
 	Cylinder 		=>["geometry"],
 	CylinderSensor 		=>["children"],
@@ -107,14 +111,21 @@ our %defaultContainerType = (
 	GeoTransform		=>["children"],
 	GeoViewpoint 		=>["children"],
 	GeoConvert		=>["children"],
-	Group 			=>["children"],
-	ViewpointGroup		=>["children"],
+	Group 			=>["children","skin"],
+	ViewpointGroup		=>["children","viewpoints"],
 	HAnimDisplacer		=>["displacers"],
-	HAnimHumanoid		=>["children"],
-	HAnimJoint		=>["joints"],
+	HAnimHumanoid		=>["children","humanoids"],
+	HAnimPermuter		=>["children"],
+	HAnimJoint		=>["joints"], #,"skeleton" in compile_HAnimHumanoid, if .skeleton is null and joints.n, then find name='humanoid_root' and put in skeleton
 	HAnimSegment		=>["segments"],
-	HAnimSite		=>["sites"],
-	ImageTexture 		=>["texture"],
+	HAnimSite		=>["sites","viewpoints"],
+	HAnimMotion		=>["motions"],
+	HAnimMotionPlay		=>["motions"],
+	HAnimMotionInterpolator	=>["motions"],
+	HAnimMotionData		=>["data","motions"],
+	HAnimMotionDataFile	=>["data","motions"],
+	HAnimMotionClip		=>["data","motions"],
+	ImageTexture 		=>["texture","diffuseTexture","emissiveTexture","normalTexture","ambientTexture"],
 	ImageCubeMapTexture 	=>["texture"],
 	GeneratedCubeMapTexture	=>["texture"],
 	ComposedCubeMapTexture	=>["texture"],
@@ -129,9 +140,11 @@ our %defaultContainerType = (
 	LineProperties		=>["lineProperties"],
 	LineSensor 		=>["children"],
 	LoadSensor		=>["children"],
-	LOD 			=>["children"],
-	Material 		=>["material"],
-	TwoSidedMaterial	=>["material"],
+	LOD 			=>["children","skin"],
+	Material 		=>["material","backMaterial"],
+	PhysicalMaterial 	=>["material","backMaterial"],
+	TwoSidedMaterial 	=>["material"],
+	UnlitMaterial		=>["material","backMaterial"],
 	MultiTexture		=>["texture"],
 	MultiTextureCoordinate  =>["texCoord"],
 	MultiTextureTransform	=>["textureTransform"],
@@ -142,41 +155,47 @@ our %defaultContainerType = (
 	OrientationInterpolator	=>["children"],
 	PickableGroup 		=>["children"],
 	PixelTexture 		=>["texture"],
+	GeneratedTexture 	=>["texture"],
+	BufferTexture 		=>["texture"],
 	PlaneSensor 		=>["children"],
+	MultiTouchSensor 	=>["children"],
 	PointSensor 		=>["children"],
 	PointLight 		=>["children"],
 	PointSet 		=>["geometry"],
+	PointProperties		=>["pointProperties"],
 	PositionInterpolator 	=>["children"],
 	PositionInterpolator2D 	=>["children"],
 	ProximitySensor 	=>["children"],
 	ScalarInterpolator 	=>["children"],
 	Scene 			=>["children"],
 	Script 			=>["children"],
-	Shape 			=>["children","shape"],
-	Sound 			=>["children"],
+	Shape 			=>["children","shape","skin"],
 	Sphere 			=>["geometry"],
 	SphereSensor 		=>["children"],
 	SpotLight 		=>["children"],
+	EnvironmentLight	=>["children"],
 	StaticGroup		=>["children"],
 	StringSensor		=>["children"],
-	Switch 			=>["children"],
+	Switch 			=>["children","skin"],
 	Teapot 			=>["geometry"],
+	Pyramid			=>["geometry"],
 	Text 			=>["geometry"],
 	TextureBackground 	=>["children"],
 	TextureCoordinate 	=>["texCoord"],
 	TextureCoordinateGenerator  =>["texCoord"],
 	TextureTransform 	=>["textureTransform"],
+	TextureTransformGenerator =>["textureTransform"],
 	TextureProperties	=>["textureProperties"],
 	TimeSensor 		=>["children"],
 	TouchSensor 		=>["children"],
-	Transform 		=>["children"],
+	Transform 		=>["children","skin"],
 	TransformSensor		=>["children"],
 	TriangleFanSet 		=>["geometry"],
 	TriangleSet 		=>["geometry"],
 	TriangleStripSet 	=>["geometry"],
 	TrimmedSurface 		=>["children"],
-	Viewpoint 		=>["children"],
-	OrthoViewpoint 		=>["children"],
+	Viewpoint 		=>["children","viewpoints"],
+	OrthoViewpoint 		=>["children","viewpoints"],
 	VisibilitySensor 	=>["children"],
 	WorldInfo 		=>["children"],
 
@@ -243,9 +262,12 @@ our %defaultContainerType = (
 	PolylineEmitter		=>["emitter"],
 	SurfaceEmitter		=>["emitter"],
 	VolumeEmitter		=>["emitter"],
+        MapEmitter              =>["emitter"],
 	WindPhysicsModel	=>["physics"],
 	BoundedPhysicsModel	=>["physics"],
 	ForcePhysicsModel	=>["physics"],
+	ResistancePhysicsModel	=>["physics"],
+        MapPhysicsModel         =>["physics"],
 	ParticleSystem		=>["shape"],
 
 	
@@ -344,6 +366,56 @@ our %defaultContainerType = (
 	TrackingSensor		=>["children"],
 	Effect			=>["children"],
 	EffectPart		=>["parts"],
+
+	AcousticProperties	=>["acousticProperties"],
+
+
+	Analyser			=>["children"],
+	AudioClip 			=>["source","children"],
+	AudioBuffer			=>["buffer"],
+	BufferAudioSource		=>["children"],
+	AudioDestination		=>["children"],
+	BiquadFilter		=>["children"],
+	ChannelMerger		=>["children"],
+	ChannelSelector		=>["selectors","children"],
+	ChannelSplitter		=>["children"],
+	Convolver			=>["children"],
+	Delay				=>["children"],
+	DynamicsCompressor	=>["children"],
+	Gain				=>["children"],
+	ListenerPointSource	=>["children"],
+	ListenerPoint     	=>["children"],
+	MicrophoneSource		=>["children"],
+	OscillatorSource		=>["children"],
+	PeriodicWave		=>["periodicWave"],
+	Sound 			=>["children"],
+	SpatialSound		=>["children"],
+	StreamAudioDestination	=>["children"],
+	StreamAudioSource		=>["children"],
+	WaveShaper			=>["children"],
+
+
+	GeoSRF			=>["geoSRF"],
+	GeoEllipsoid		=>["ellipsoid"],
+	GeoSystemParameters	=>["systemParameters"],
+	BufferGeometry 		=>["geometry"],
+	Tile			=>["children"],
+
+	MIDIPortSource			=>["children"],
+	MIDIFileSource 			=>["children"],
+	MIDIPortDestination		=>["children"],
+	MIDIPrintDestination		=>["children"],
+	MIDIFileDestination		=>["children"],
+	MIDIOut				=>["children"],
+	MIDIIn				=>["children"],
+	MIDIOut				=>["children"],
+	MIDIProgram			=>["children"],
+	MIDIDelay			=>["children"],
+	MIDIConverterIn			=>["children"],
+	MIDIToneSplitter		=>["children"],
+	MIDIToneMerger			=>["children"],
+	MIDIAudioSynth			=>["children"],
+
 );
 
 
@@ -372,6 +444,7 @@ our %RendC = map {($_=>1)} qw/
 	Sphere
 	IndexedFaceSet
 	Teapot
+	Pyramid
 	Extrusion
 	ElevationGrid
 	Arc2D
@@ -397,12 +470,17 @@ our %RendC = map {($_=>1)} qw/
 	Text
 	LineProperties
 	FillProperties
+	PointProperties
 	Material
+	UnlitMaterial
+	PhysicalMaterial
 	TwoSidedMaterial
 	ProgramShader
 	PackagedShader
 	ComposedShader
 	PixelTexture
+        GeneratedTexture
+	BufferTexture
 	ImageTexture
 	ProjectiveTexture
 	MultiTexture
@@ -411,13 +489,19 @@ our %RendC = map {($_=>1)} qw/
 	ComposedCubeMapTexture
 	GeneratedCubeMapTexture
 	ImageCubeMapTexture
-	Sound
-	AudioClip
 	DirectionalLight
 	SpotLight
 	PointLight
+	EnvironmentLight
 	HAnimHumanoid
+	HAnimPermuter
 	HAnimJoint
+	HAnimMotion
+	HAnimMotionInterpolator
+	HAnimMotionPlay
+	HAnimMotionData
+	HAnimMotionDataFile
+	HAnimMotionClip
 	QuadSet
 	NurbsCurve
 	NurbsPatchSurface
@@ -430,6 +514,57 @@ our %RendC = map {($_=>1)} qw/
 	GeoProximitySensor
 	ProximitySensor
 	
+	AcousticProperties
+
+	Analyser
+      AudioClip
+	AudioBuffer
+	AudioDestination
+	BiquadFilter
+	BufferAudioSource
+	ChannelMerger
+	ChannelSelector
+	ChannelSplitter
+	StreamAudioSource
+	Convolver
+	Delay
+	DynamicsCompressor
+	Gain
+	ListenerPointSource
+	ListenerPoint
+	MicrophoneSource
+	OscillatorSource
+	PeriodicWave
+      Sound
+	SpatialSound
+	StreamAudioDestination
+      StreamAudioSource
+	WaveShaper
+
+
+	GeoSRF
+	MultiTouchSensor
+	BufferGeometry
+	Viewpoint
+	OrthoViewpoint
+	GeoViewpoint
+
+	MIDIPortSource
+	MIDIFileSource
+	MIDIPortDestination
+	MIDIFileDestination
+	MIDIPrintDestination
+
+	MIDIOut
+	MIDIIn
+	MIDIProgram
+        MIDIDelay
+	MIDIConverterOut
+	MIDIConverterIn
+	MIDIToneSplitter
+	MIDIToneMerger
+	MIDIAudioSynth
+
 /;
 
 #######################################################################
@@ -481,14 +616,16 @@ our %PrepC = map {($_=>1)} qw/
 	PointLight
 	SpotLight
 	DirectionalLight
+	EnvironmentLight
 	GeoLocation
 	GeoPlanet
 	GeoViewpoint
 	GeoTransform
 	CADAssembly
 	CADPart
-	TextureProjectorPerspective 
+	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -497,6 +634,8 @@ our %PrepC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape
 	EspduTransform
+	Tile
+
 /;
 
 #######################################################################
@@ -518,8 +657,9 @@ our %FinC = map {($_=>1)} qw/
 	HAnimJoint
 	GeoTransform
 	CADPart
-	TextureProjectorPerspective 
+	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Viewport
 	LayoutGroup
 	ScreenGroup
@@ -528,6 +668,8 @@ our %FinC = map {($_=>1)} qw/
 	CollidableOffset
 	CollidableShape	
 	EspduTransform
+
+
 /;
 
 #######################################################################
@@ -543,6 +685,7 @@ our %FinC = map {($_=>1)} qw/
 
 our %ChildC = map {($_=>1)} qw/
 	HAnimHumanoid
+	HAnimPermuter
 	HAnimJoint
 	HAnimSegment
 	HAnimSite
@@ -569,8 +712,9 @@ our %ChildC = map {($_=>1)} qw/
 	Appearance
 	Shape
 	Viewport
-	TextureProjectorPerspective
+	TextureProjector
 	TextureProjectorParallel 
+      TextureProjectorPoint
 	LayoutGroup
 	ScreenGroup
 	LayerSet
@@ -587,6 +731,8 @@ our %ChildC = map {($_=>1)} qw/
 	TransmitterPdu
 	SignalPdu
 	DISEntityManager
+	Tile
+
 /;
 
 
@@ -601,8 +747,9 @@ our %CompileC = map {($_=>1)} qw/
 	ImageCubeMapTexture
 	GeneratedCubeMapTexture
 	Transform
-	TextureProjectorPerspective 
+	TextureProjector 
 	TextureProjectorParallel
+      TextureProjectorPoint
 	Group
 	Proto
 	Inline
@@ -610,7 +757,11 @@ our %CompileC = map {($_=>1)} qw/
 	CADPart
 	ViewpointGroup
 	Material
+	UnlitMaterial
+	PhysicalMaterial
 	TwoSidedMaterial
+	LineProperties
+	PointProperties
 	IndexedLineSet
 	LineSet
 	PointSet
@@ -627,6 +778,7 @@ our %CompileC = map {($_=>1)} qw/
 	Cylinder
 	Sphere
 	Teapot
+	Pyramid
 	GeoLocation
 	GeoPlanet
 	GeoCoordinate
@@ -694,6 +846,7 @@ our %CompileC = map {($_=>1)} qw/
 	SpotLight
 	PointLight
 	DirectionalLight
+	EnvironmentLight
 	NurbsCurve
 	NurbsPatchSurface
 	NurbsSwungSurface
@@ -712,12 +865,26 @@ our %CompileC = map {($_=>1)} qw/
 	HAnimJoint
 	HAnimSite
 	HAnimHumanoid
+	HAnimPermuter
+	HAnimMotion
+	HAnimMotionInterpolator
+	HAnimMotionPlay
+	HAnimMotionData
+	HAnimMotionDataFile
+	HAnimMotionClip
 	EspduTransform
 	DISEntityManager
 	ReceiverPdu
 	SignalPdu
 	TransmitterPdu
+
+	AcousticProperties
 	
+	GeoSRF
+	BufferGeometry
+	Tile
+
+	MIDIFileSource
 /;
 
 
@@ -734,6 +901,7 @@ our %ProximityC = map {($_=>1)} qw/
 	LOD
 	Billboard
 	GeoProximitySensor
+	Tile
 /;
 
 #######################################################################
@@ -790,6 +958,7 @@ our %OtherC = map {($_=>1)} qw/
 
 our %CollisionC = map {($_=>1)} qw/
 	Disk2D
+        ArcClose2D
 	Rectangle2D
 	TriangleSet2D
 	Sphere
@@ -797,6 +966,7 @@ our %CollisionC = map {($_=>1)} qw/
 	Cone
 	Cylinder
 	Teapot
+	Pyramid
 	ElevationGrid
 	IndexedFaceSet
 	IndexedQuadSet
@@ -815,6 +985,7 @@ our %CollisionC = map {($_=>1)} qw/
 	NurbsSwungSurface
 	NurbsSweptSurface	
 	NurbsTrimmedSurface	
+	BufferGeometry
 /;
 
 #######################################################################
@@ -893,7 +1064,12 @@ our %RendRayC = map {($_=>1)} qw/
 	Sphere
 	Cylinder
 	Cone
+        Disk2D
+        Rectangle2D
+        ArcClose2D
+        TriangleSet2D
 	Teapot
+	Pyramid
 	GeoElevationGrid
 	ElevationGrid
 	Text
@@ -911,6 +1087,7 @@ our %RendRayC = map {($_=>1)} qw/
 	NurbsSwungSurface
 	NurbsSweptSurface	
 	NurbsTrimmedSurface
+	BufferGeometry
 /;
 
 
@@ -975,7 +1152,7 @@ our %ComponentC = map {($_=>1)} qw/
 	Geometry3D
 	Geospatial
 	Grouping
-	H-Anim
+	HAnim
 	Interpolation
 	KeyDeviceSensor
 	Layering
@@ -987,7 +1164,7 @@ our %ComponentC = map {($_=>1)} qw/
 	ParticleSystems
 	Picking
 	PointDeviceSensor
-	ProjectiveTextureMapping
+	TextureProjection
 	Shaders
 	Rendering
 	RigidBodyPhysics
@@ -999,8 +1176,10 @@ our %ComponentC = map {($_=>1)} qw/
 	Texturing3D
 	Time
 	VolumeRendering
+        MIDI
 /;
 
+#ProjectiveTextureMapping
 
 #######################################################################
 #
@@ -1059,6 +1238,7 @@ our %GEOSpatialKeywordC = map {($_=>1)} qw/
 	GD
 	UTM
 	3TM
+	WM
 	WGS84
 	R
 	A
@@ -1223,6 +1403,7 @@ our %MultiTextureModeC = map {($_=>1)} qw/
 /;
 
 our %TextureCoordGenModeC = map {($_=>1)} qw/
+      REGULAR
 	SPHERE-REFLECT-LOCAL
 	SPHERE-REFLECT
 	SPHERE-LOCAL
@@ -1230,6 +1411,7 @@ our %TextureCoordGenModeC = map {($_=>1)} qw/
 	CAMERASPACENORMAL
 	CAMERASPACEPOSITION
 	CAMERASPACEREFLECTION
+	CAMERASPACEREFLECTIONVECTOR
 	COORD-EYE
 	COORD
 	NOISE-EYE
@@ -1289,6 +1471,7 @@ our %X3DSpecialC = map {($_=>1)} qw/
 	ProtoInterface
 	ProtoInstance
 	ProtoBody
+        ProtoInclude
 	ROUTE
 	IS
 	connect

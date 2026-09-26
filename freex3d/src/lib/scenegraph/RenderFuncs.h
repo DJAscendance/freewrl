@@ -52,25 +52,16 @@ void render_node(struct X3D_Node *node);
 
 struct X3D_Anchor *AnchorsAnchor();
 void setAnchorsAnchor(struct X3D_Anchor* anchor);
-
-void clearLightTable();
-int nextlight(void);
 void projectorTable_clear();
 
-void setLightState(GLint light, int status);
-void setLightType(GLint light, int type);
-//JAS void saveLightState2(int *ls);
-//JAS void restoreLightState2(int ls);
-void setLightChangedFlag(GLint light);
-void fwglLightfv (int light, int pname, GLfloat *params);
-void fwglLightf (int light, int pname, GLfloat param);
-void initializeLightTables(void);
-void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, float *pointer, int, char*, int);
+void sendAttribToGPU(int myType, int mySize, int  xtype, int normalized, int stride, void *pointer, int, char*, int);
 void sendArraysToGPU (int mode, int first, int count);
 void sendBindBufferToGPU (GLenum target, GLuint buffer,char *, int);
-void sendElementsToGPU (int mode, int count, unsigned short *indices);
+void sendElementsToGPU0 (int mode, int count, int type, void *indices);
+void saveElementsForGPU0(int mode, int count, int type, void* indices);
+void saveArraysForGPU(int mode, int first, int count);
+void reallyDrawOnce();
 void render_hier(struct X3D_Node *p, int rwhat);
-void sendLightInfo (s_shader_capabilities_t *me);
 void restoreGlobalShader();
 
 
@@ -84,6 +75,8 @@ int currentviewportvisible(Stack *vpstack);
 typedef struct usehit {
 	struct X3D_Node *node;
 	double mvm[16];
+	double extra[16];
+	int ivalue;
 	void *userdata;
 } usehit;
 void usehit_add(struct X3D_Node *node, double *modelviewmatrix);
@@ -95,5 +88,45 @@ void usehitB_add2(struct X3D_Node *node, double *modelviewmatrix, void *userdata
 usehit * usehitB_next(struct X3D_Node *node, usehit* lasthit);
 Stack *getUseHitBStack();
 void usehitB_clear();
-bool setupShaderB();
+int setupShaderB();
+//we 'render' bounding boxes, so each geom does setExtent / union of extents on render_ pass
+void push_group_extent_default();
+void pop_group_extent();
+void push_group_extent_default();
+float * peek_group_extent();
+void union_group_extent(float *e6);
+struct BBoxFields {
+	struct SFVec3f bboxCenter;
+	struct SFVec3f bboxSize;
+	int visible;
+	int bboxDisplay;
+
+};
+void prep_BBox(struct BBoxFields *bfields);
+void fin_BBox(struct X3D_Node *node, struct BBoxFields *bfields, int transtype);
+//transform-type grouping nodes need to convert children's bounding box into parent coordinate system _extent
+void push_transform_local(double *mat);
+void push_transform_local_identity();
+void pop_transform_local();
+double * peek_transform_local();
+void reset_transform_local(double *mat);
+void multiply_transform_local(double *mat);
+struct X3D_Node* get_executionContext();
+void push_executionContext(struct X3D_Node* broto);
+void pop_executionContext();
+void clearDraw();
+void push_globalRenderFlags();
+void pop_globalRenderFlags();
+void render_hier2(struct X3D_Node* g, int rwhat);
+void rwhat_printf(int rwhat);
+void sendElementsToGPU(int mode, int count, int *indices);
+/* Component_Lighting.c */
+void lightTable_clear();
+int make_or_get_depth_buffer(int index, struct X3D_Node* node);
+double* matrix_lookAtfd(float* eye3, float* center3, float* up3, double* matrix);
+void set_debug_quad(int which_debug_shader, int textureID);
+void set_debug_quad_near_farplane(float nearplane, float farplane);
+/* Component_HAnim.c */
+void child_HAnimHumanoid(struct X3D_HAnimHumanoid *node);
+
 #endif /* __FREEWRL_SCENEGRAPH_RENDERFUNCS_H__ */

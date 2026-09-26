@@ -36,6 +36,8 @@ X3D Volume Rendering Component
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../opengl/Frustum.h"
+#include "Component_Grouping.h"
 #include "../opengl/OpenGL_Utils.h"
 #include "../opengl/Textures.h"
 #include "../scenegraph/Component_Shape.h"
@@ -163,6 +165,7 @@ gradients:
 surfaceNormals:
 	CartoonVolumeStyle
 	EdgeEnhacementVolumeStyle
+	BoundaryEnhancementVolumeStyle
 	ShadedVolumeStyle
 	SilhouetteEnhancementVolumeStyle
 	ToneMappedVolumeStyle
@@ -236,7 +239,7 @@ float boxvert [24] = {
 -.5f,-.5f,-.5f, .5f,-.5f,-.5f, -.5f,.5f,-.5f, .5f,.5f,-.5f, //far z
 };
 //ccw tris
-ushort boxtriindccw [48] = {
+int boxtriindccw [48] = {
 0, 1, 3, -1,  //near z
 3, 2, 0, -1,
 1, 5, 7, -1, //right
@@ -250,7 +253,7 @@ ushort boxtriindccw [48] = {
 4, 5, 1, -1, //bottom y
 1, 0, 4, -1,
 };
-ushort boxtriindcw [48] = {
+int boxtriindcw [48] = {
 0, 3, 1, -1,  //near z
 3, 0, 2, -1,
 1, 7, 5, -1, //right
@@ -310,7 +313,6 @@ void popnset_framebuffer();
 void __gluMultMatricesd(const GLDOUBLE a[16], const GLDOUBLE b[16],	GLDOUBLE r[16]);
 int __gluInvertMatrixd(const GLDOUBLE m[16], GLDOUBLE invOut[16]);
 ivec4 get_current_viewport();
-textureTableIndexStruct_s *getTableTableFromTextureNode(struct X3D_Node *textureNode);
 
 unsigned int prep_volumestyle(struct X3D_Node *vstyle, unsigned int volflags){
 	struct X3D_OpacityMapVolumeStyle *style0 = (struct X3D_OpacityMapVolumeStyle*)vstyle;
@@ -371,12 +373,42 @@ unsigned int prep_volumestyle(struct X3D_Node *vstyle, unsigned int volflags){
 	}
 	return volflags;
 }
+void applysurfaceNormalTexture(struct X3D_Node* surfaceNormals, GLint myProg) {
+	GLuint gradtex;
+	int havetexture = 0;
+	if (surfaceNormals) {
+		//load texture
+		struct X3D_Node* tmpN;
+		textureTableIndexStruct_s* tti;
+		ttglobal tg = gglobal();
+		POSSIBLE_PROTO_EXPANSION(struct X3D_Node*, surfaceNormals, tmpN);
+		tg->RenderFuncs.texturenode = (void*)tmpN;
+
+		//problem: I don't want it sending image dimensions to my volume shader,
+		// which could confuse the voxel sampler
+		//render_node(tmpN); //render_node(node->texture); 
+		loadTextureNode(tmpN, NULL);
+		tti = getTableTableFromTextureNode(tmpN);
+		if (tti && tti->status >= TEX_LOADED) {
+			glActiveTexture(GL_TEXTURE0 + 3);
+			glBindTexture(GL_TEXTURE_2D, tti->OpenGLTexture);
+			GLuint tu3 = GET_UNIFORM(myProg, "fw_Texture_unit3");
+			glUniform1i(tu3, 3);
+			havetexture = 1; //signal its a |gradient| magnitude
+			if (tti->channels == 3) havetexture = 3; //signal its an xyz gradient
+		}
+	}
+	gradtex = GET_UNIFORM(myProg, "fw_gradTexture");
+	glUniform1i(gradtex, havetexture);
+
+}
 void render_volume_data(struct X3D_Node *renderStyle, struct X3D_Node *voxels, struct X3D_VolumeData *node);
 struct X3D_Material *get_material_oneSided();
 struct X3D_TwoSidedMaterial *get_material_twoSided();
 void pushnset_viewport(float *vpFraction);
 void popnset_viewport();
 int haveFrameBufferObject();
+void initialize_front_and_back_material_params();
 void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 	struct X3D_OpacityMapVolumeStyle *style0 = (struct X3D_OpacityMapVolumeStyle*)vstyle;
 	if(style0->enabled){
@@ -491,6 +523,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					//SFFloat     [in,out] boundaryOpacity  0.9     [0,1]
 					//SFFloat     [in,out] opacityFactor    2       [0,?)
 					//SFFloat     [in,out] retainedOpacity  0.2     [0,1]
+					//SFNode      [in,out] surfaceNormals   NULL    [X3DTexture3DNode]
 					GLint ibebound, iberetain, ibefactor;
 					ibebound = GET_UNIFORM(myProg,"fw_boundaryOpacity");
 					glUniform1f(ibebound,style->boundaryOpacity);
@@ -498,6 +531,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1f(iberetain,style->retainedOpacity);
 					ibefactor = GET_UNIFORM(myProg,"fw_opacityFactor");
 					glUniform1f(ibefactor,style->opacityFactor);
+					applysurfaceNormalTexture(style->surfaceNormals,myProg);
 				}
 				break;
 			case NODE_CartoonVolumeStyle:
@@ -515,6 +549,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform4fv(itoonortho,1,style->orthogonalColor.c);
 					itoonparallel = GET_UNIFORM(myProg,"fw_paraColor");
 					glUniform4fv(itoonparallel,1,style->parallelColor.c);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
 
 				}
 				break;
@@ -545,6 +580,7 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					igradientThreshold = GET_UNIFORM(myProg,"fw_cosGradientThreshold");
 					glUniform1f(igradientThreshold,cosf(style->gradientThreshold));
 					//printf("edge uniforms color %d gradthresh %d\n",iedgeColor,igradientThreshold);
+					applysurfaceNormalTexture(style->surfaceNormals,myProg);
 				}
 				break;
 			case NODE_ProjectionVolumeStyle:
@@ -584,54 +620,52 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					//SFString []       phaseFunction  "Henyey-Greenstein" ["Henyey-Greenstein","NONE",...]
 					//MATERIAL
 					if(style->material){
-						struct fw_MaterialParameters defaultMaterials = {
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Emission */
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Ambient */
-									{0.8f, 0.8f, 0.8f, 1.0f}, /* Diffuse */
-									{0.0f, 0.0f, 0.0f, 1.0f}, /* Specular */
-									10.0f};                   /* Shininess */
 
 						struct X3D_Material *matone;
 						struct X3D_TwoSidedMaterial *mattwo;
 						struct fw_MaterialParameters *fw_FrontMaterial;
 						struct fw_MaterialParameters *fw_BackMaterial;
-						GLint myMaterialAmbient;
 						GLint myMaterialDiffuse;
+						GLint myMaterialEmissive;
 						GLint myMaterialSpecular;
+						GLint myMaterialAmbient;
 						GLint myMaterialShininess;
-						GLint myMaterialEmission;
+						GLint myMaterialOcclusion;
+						GLint myMaterialNormalScale;
+						GLint myMaterialTransparency;
 
-						GLint myMaterialBackAmbient;
 						GLint myMaterialBackDiffuse;
+						GLint myMaterialBackEmissive;
 						GLint myMaterialBackSpecular;
 						GLint myMaterialBackShininess;
-						GLint myMaterialBackEmission;
+						GLint myMaterialBackOcclusion;
+						GLint myMaterialBackNormalScale;
+						GLint myMaterialBackAmbient;
+						GLint myMaterialBackTransparency;
 						struct matpropstruct *myap = getAppearanceProperties();
 
-						memcpy (&myap->fw_FrontMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-						memcpy (&myap->fw_BackMaterial, &defaultMaterials, sizeof (struct fw_MaterialParameters));
-
+						void initialize_front_and_back_material_params();
 						RENDER_MATERIAL_SUBNODES(style->material);
 						//struct matpropstruct matprop;
 						//s_shader_capabilities_t mysp;
 						//sendFogToShader(mysp); 
-						matone = get_material_oneSided();
-						mattwo = get_material_twoSided();
-						//sendMaterialsToShader(mysp);
-						if (matone != NULL) {
-							memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
+						//matone = get_material_oneSided();
+						//mattwo = get_material_twoSided();
+						////sendMaterialsToShader(mysp);
+						//if (matone != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, matone->_verifiedColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,matone->_verifiedColor.p, 3*sizeof(float));
 
-						} else if (mattwo != NULL) {
-							memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
-							memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
-							/* copy the emissive colour over for lines and points */
-							memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
-						} else {
-							/* no materials selected.... */
-						}
+						//} else if (mattwo != NULL) {
+						//	memcpy (&myap->fw_FrontMaterial, mattwo->_verifiedFrontColor.p, sizeof (struct fw_MaterialParameters));
+						//	memcpy (&myap->fw_BackMaterial, mattwo->_verifiedBackColor.p, sizeof (struct fw_MaterialParameters));
+						//	/* copy the emissive colour over for lines and points */
+						//	//memcpy(&myap->emissionColour,mattwo->_verifiedFrontColor.p, 3*sizeof(float));
+						//} else {
+						//	/* no materials selected.... */
+						//}
 
 
 
@@ -645,31 +679,43 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 						/* eventually do this with code blocks in glsl */
 
 
-						myMaterialEmission = GET_UNIFORM(myProg,"fw_FrontMaterial.emission");
 						myMaterialDiffuse = GET_UNIFORM(myProg,"fw_FrontMaterial.diffuse");
-						myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
-						myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+						myMaterialEmissive = GET_UNIFORM(myProg,"fw_FrontMaterial.emissive");
 						myMaterialSpecular = GET_UNIFORM(myProg,"fw_FrontMaterial.specular");
+						myMaterialAmbient = GET_UNIFORM(myProg,"fw_FrontMaterial.ambient");
+						myMaterialShininess = GET_UNIFORM(myProg,"fw_FrontMaterial.shininess");
+						myMaterialOcclusion = GET_UNIFORM(myProg, "fw_FrontMaterial.occlusion");
+						myMaterialNormalScale = GET_UNIFORM(myProg, "fw_FrontMaterial.normalScale");
+						myMaterialTransparency = GET_UNIFORM(myProg,"fw_FrontMaterial.transparency");
 
-						myMaterialBackEmission = GET_UNIFORM(myProg,"fw_BackMaterial.emission");
 						myMaterialBackDiffuse = GET_UNIFORM(myProg,"fw_BackMaterial.diffuse");
-						myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
-						myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+						myMaterialBackEmissive = GET_UNIFORM(myProg,"fw_BackMaterial.emissive");
 						myMaterialBackSpecular = GET_UNIFORM(myProg,"fw_BackMaterial.specular");
+						myMaterialBackAmbient = GET_UNIFORM(myProg,"fw_BackMaterial.ambient");
+						myMaterialBackShininess = GET_UNIFORM(myProg,"fw_BackMaterial.shininess");
+						myMaterialBackOcclusion = GET_UNIFORM(myProg, "fw_BackMaterial.occlusion");
+						myMaterialBackNormalScale = GET_UNIFORM(myProg, "fw_BackMaterial.normalScale");
+						myMaterialBackTransparency = GET_UNIFORM(myProg,"fw_BackMaterial.transparency");
 
 
 						profile_start("sendvec");
-						GLUNIFORM4FV(myMaterialAmbient,1,fw_FrontMaterial->ambient);
-						GLUNIFORM4FV(myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
-						GLUNIFORM4FV(myMaterialSpecular,1,fw_FrontMaterial->specular);
-						GLUNIFORM4FV(myMaterialEmission,1,fw_FrontMaterial->emission);
+						GLUNIFORM3FV(myMaterialDiffuse,1,fw_FrontMaterial->diffuse);
+						GLUNIFORM3FV(myMaterialEmissive,1,fw_FrontMaterial->emissive);
+						GLUNIFORM3FV(myMaterialSpecular,1,fw_FrontMaterial->specular);
+						GLUNIFORM1F(myMaterialAmbient,fw_FrontMaterial->ambient);
 						GLUNIFORM1F(myMaterialShininess,fw_FrontMaterial->shininess);
+						GLUNIFORM1F(myMaterialOcclusion, fw_FrontMaterial->occlusion);
+						GLUNIFORM1F(myMaterialNormalScale, fw_FrontMaterial->normalScale);
+						GLUNIFORM1F(myMaterialTransparency,fw_FrontMaterial->transparency);
 
-						GLUNIFORM4FV(myMaterialBackAmbient,1,fw_BackMaterial->ambient);
-						GLUNIFORM4FV(myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
-						GLUNIFORM4FV(myMaterialBackSpecular,1,fw_BackMaterial->specular);
-						GLUNIFORM4FV(myMaterialBackEmission,1,fw_BackMaterial->emission);
+						GLUNIFORM3FV(myMaterialBackDiffuse,1,fw_BackMaterial->diffuse);
+						GLUNIFORM3FV(myMaterialBackSpecular,1,fw_BackMaterial->specular);
+						GLUNIFORM3FV(myMaterialBackEmissive,1,fw_BackMaterial->emissive);
+						GLUNIFORM1F(myMaterialBackAmbient,fw_BackMaterial->ambient);
 						GLUNIFORM1F(myMaterialBackShininess,fw_BackMaterial->shininess);
+						GLUNIFORM1F(myMaterialBackOcclusion, fw_BackMaterial->occlusion);
+						GLUNIFORM1F(myMaterialBackNormalScale, fw_BackMaterial->normalScale);
+						GLUNIFORM1F(myMaterialBackTransparency,fw_BackMaterial->transparency);
 						profile_end("sendvec");
 
 
@@ -694,6 +740,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1i(ilite,style->lighting);
 					ishadow = GET_UNIFORM(myProg,"fw_shadows");
 					glUniform1i(ishadow,style->shadows);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			case NODE_SilhouetteEnhancementVolumeStyle:
@@ -710,6 +758,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform1f(isilretain,style->silhouetteRetainedOpacity);
 					isilsharp = GET_UNIFORM(myProg,"fw_Sharpness");
 					glUniform1f(isilsharp,style->silhouetteSharpness);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			case NODE_ToneMappedVolumeStyle:
@@ -725,6 +775,8 @@ void render_volumestyle(struct X3D_Node *vstyle, GLint myProg){
 					glUniform4fv(icool,1,style->coolColor.c);
 					iwarm = GET_UNIFORM(myProg,"fw_warmColor");
 					glUniform4fv(iwarm,1,style->warmColor.c);
+					applysurfaceNormalTexture(style->surfaceNormals, myProg);
+
 				}
 				break;
 			default:
@@ -1253,6 +1305,7 @@ void render_SEGMENTED_volume_data(s_shader_capabilities_t *caps, struct X3D_Node
 float *getTransformedClipPlanes();
 int getClipPlaneCount();
 void sendFogToShader(s_shader_capabilities_t *me);
+void sendLightInfo2(s_shader_capabilities_t* me);
 void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node **renderStyle, int nstyle, struct X3D_Node *voxels, struct X3D_VolumeData *node ) {
 	static int once = 0;
 	int myProg;
@@ -1373,7 +1426,7 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	//if(haveShaderStyle){
 		//send lights
 		if (caps->haveLightInShader) {
-			sendLightInfo(caps);
+			sendLightInfo2(caps);
 			sendFogToShader(caps);
 		}
 	//}
@@ -1391,7 +1444,9 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	dim = GET_UNIFORM(myProg,"fw_dimensions");
 	dimensions = node->dimensions.c;
 	GLUNIFORM3F(dim,dimensions[0],dimensions[1],dimensions[2]);
-
+	float center[3];
+	bbox2extent6f(vecset3f(center,0.0f,0.0f,0.0f),dimensions,node->_extent);
+	extent6f_union_extent6f(peek_group_extent(),node->_extent);
 	if(!once) ConsoleMessage("dim %d vp %d \n",dim,vp );
 
 	//3.2 draw with shader
@@ -1409,7 +1464,8 @@ void render_GENERIC_volume_data(s_shader_capabilities_t *caps, struct X3D_Node *
 	//assuming our triangles are defined CCW (normal)
 	//setting front-face to GL_CW should ensure only the far/back triangles are rendered
 	glFrontFace(GL_CW); 
-	glDrawArrays(GL_TRIANGLES,0,36);
+	if(peek_group_visible())
+		glDrawArrays(GL_TRIANGLES,0,36);
 	glDisable(GL_CULL_FACE);
 	if(voxels){
 		tg->RenderFuncs.textureStackTop = 0;
@@ -1436,6 +1492,8 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 	if (renderstate()->render_blend == (node->_renderFlags & VF_Blend)) {
 		int itexture = 1; //voxels=0,segmentIDs=1
 
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		//int nstyles = 0;
@@ -1447,6 +1505,9 @@ void child_SegmentedVolumeData(struct X3D_SegmentedVolumeData *node){
 		render_SEGMENTED_volume_data(caps,node->segmentIdentifiers,itexture,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 
@@ -1472,6 +1533,8 @@ void render_ISO_volume_data(s_shader_capabilities_t *caps,struct X3D_IsoSurfaceV
 	glUniform1fv(ivals,node->surfaceValues.n,node->surfaceValues.p); 
 	invals = GET_UNIFORM(myProg,"fw_nVals");
 	glUniform1i(invals,node->surfaceValues.n);
+	applysurfaceNormalTexture(node->gradients, myProg);
+
 	if(node->renderStyle.n){
 		int i;
 		// OLDCODE GLint istyles;
@@ -1507,6 +1570,8 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 		s_shader_capabilities_t *caps;
 		int MODE;
 
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		if(!once)
 			printf("child segmentedvolumedata \n");
 		voldataflags = SHADERFLAGS_VOLUME_DATA_ISO;
@@ -1517,9 +1582,14 @@ void child_IsoSurfaceVolumeData(struct X3D_IsoSurfaceVolumeData *node){
 			voldataflags |= SHADERFLAGS_VOLUME_DATA_ISO_MODE3;
 		caps = getVolumeProgram(node->renderStyle.p,node->renderStyle.n, voldataflags);
 		//get and set ISO-specific uniforms
+
+
 		render_ISO_volume_data(caps,node);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,node->renderStyle.p,node->renderStyle.n,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 }
@@ -1536,9 +1606,15 @@ void child_VolumeData(struct X3D_VolumeData *node){
 		if(!once)
 			printf("child volumedata \n");
 		if(node->renderStyle) nstyles = 1;
+
+		prep_BBox((struct BBoxFields*)&node->bboxCenter);
+
 		caps = getVolumeProgram(&node->renderStyle,nstyles, SHADERFLAGS_VOLUME_DATA_BASIC);
 		//render generic volume 
 		render_GENERIC_volume_data(caps,&node->renderStyle,nstyles,node->voxels,(struct X3D_VolumeData*)node );
+
+		fin_BBox((struct X3D_Node*)node,(struct BBoxFields*)&node->bboxCenter,FALSE);
+
 		once = 1;
 	} //if VF_Blend
 

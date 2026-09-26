@@ -46,40 +46,19 @@
 #include "LinearAlgebra.h"
 #include "Tess.h"
 
-
-/* Polyrep rendering, node has a color field, which is an RGB field (not RGBA) and transparency is changing */
-static void recalculateColorField(struct X3D_PolyRep *r) {
-	int n;
-	struct SFColorRGBA *newcolors;
-	float *op, *np;
-
-	/* first, make sure we do not do this over and over... */
-	r->transparency = getAppearanceProperties()->transparency;
-
-	newcolors = MALLOC (struct SFColorRGBA *, sizeof (struct SFColorRGBA)*r->ntri*3);
-	op = r->color;
-	np = (float *)newcolors;
-
-	for (n=0; n<r->ntri*3; n++) {
-		*np = *op; np++; op++;  		/* R */
-		*np = *op; np++; op++;  		/* G */
-		*np = *op; np++; op++;  		/* B */
-		*np = getAppearanceProperties()->transparency; np++; op++;	/* A */
+void * compile_poly_if_required(void* node, void* coord, void* fogCoord, void* color, void* normal, void* texCoord) {
+//#define COMPILE_POLY_IF_REQUIRED(a,b,c,d,e)
+//if(!compile_poly_if_required(node,a,b,c,d,e))return;
+	struct X3D_Node* nd = X3D_NODE(node);
+	if(!nd->_intern || nd->_change != ((struct X3D_PolyRep *)(nd->_intern))->irep_change) { \
+		compileNode ((void *)compile_polyrep,node,coord,fogCoord,color,normal,texCoord);
 	}
-	FREE_IF_NZ(r->color);
-	r->color = (float *)newcolors;
-
-	/* VBOs need this re-bound */
-
-	if (r->VBO_buffers[COLOR_VBO] == 0) glGenBuffers(1,&r->VBO_buffers[COLOR_VBO]);
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,r->VBO_buffers[COLOR_VBO]);
-	glBufferData(GL_ARRAY_BUFFER,r->ntri*sizeof(struct SFColorRGBA)*3,r->color, GL_STATIC_DRAW);
-	FREE_IF_NZ(r->color);
+	return nd->_intern;
 }
 
 /* How many faces are in this IndexedFaceSet?			*/
 
-int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex) {
+int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex, struct facepar *faceok) {
 	/* lets see how many faces we have */
 	int pointctr=0;
 	int max_points_per_face = 0;
@@ -89,15 +68,19 @@ int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex) {
 
 	if (coordIndex == NULL) return 0;
 	if (coordIndex->n == 0) return 0;
-
+	faceok[faces].start = 0;
 	for(i=0; i<cin; i++) {
 
 		if((coordIndex->p[i] == -1) || (i==cin-1)) {
+			faceok[faces].end = i-1;
+
 			if(coordIndex->p[i] != -1) {
+				faceok[faces].end = i;
 				pointctr++;
 			}
 
 			faces++;
+			faceok[faces].start = i+1;
 			if (pointctr > max_points_per_face)
 				max_points_per_face = pointctr;
 			if (pointctr < min_points_per_face)
@@ -128,7 +111,7 @@ int count_IFS_faces(int cin, struct Multi_Int32 *coordIndex) {
 
 int IFS_face_normals (
 	struct SFVec3f *facenormals, //struct point_XYZ *facenormals,
-	int *faceok,
+	struct facepar *faceok,
 	int *pointfaces,
 	int faces,
 	int npoints,
@@ -146,6 +129,7 @@ int IFS_face_normals (
 	float a[3]; float b[3];
 
 	int retval = FALSE;
+	int new_way = TRUE;
 
 	float this_vl;
 	//struct point_XYZ thisfaceNorms;
@@ -154,7 +138,8 @@ int IFS_face_normals (
 
 	/*  Assume each face is ok for now*/
 	for(i=0; i<faces; i++) {
-		faceok[i] = TRUE;
+		faceok[i].OK = TRUE;
+		//printf("face %d start %d end %d\n",i,faceok[i].start,faceok[i].end);
 	}
 
 	/*  calculate normals for each face*/
@@ -168,49 +153,31 @@ int IFS_face_normals (
 		//facenormals[i].z = 1.0;
 		vecset3f(facenormals[i].c,0.0f, 0.0f, 1.0f);
 
-
-		if (tmp_a >= cin-2) {
-			printf ("last face in Indexed Geometry has not enough vertexes\n");
-			faceok[i] = FALSE;
-		} else {
-			/* does this face have at least 3 vertexes? */
-			if ((coordIndex->p[tmp_a] == -1) ||
-			    (coordIndex->p[tmp_a+1] == -1) ||
-			    (coordIndex->p[tmp_a+2] == -1)) {
-				printf ("IndexedFaceNormals: have a face with two or less vertexes\n");
-				faceok[i] = FALSE;
-
-				if (coordIndex->p[tmp_a] != -1) tmp_a++;
-			} else {
-				/* check to see that the coordIndex does not point to a
-				   point that is outside the range of our point array */
-				checkpoint = tmp_a;
-				while (checkpoint < cin) {
-					if (coordIndex->p[checkpoint] == -1) {
-						checkpoint = cin; /*  stop the scan*/
-					} else {
-						/* printf ("verifying %d for face %d\n",coordIndex->p[checkpoint],i); */
-						if ((coordIndex->p[checkpoint] < 0) ||
-						    (coordIndex->p[checkpoint] >= npoints)) {
-							printf ("Indexed Geometry face %d has a point out of range,",i);
-							printf (" point is %d, should be between 0 and %d\n",
-								coordIndex->p[checkpoint],npoints-1);
-							faceok[i] = FALSE;
-						}
-						checkpoint++;
-					}
+		if((faceok[i].end - faceok[i].start + 1) < 3) {
+			printf ("IndexedFaceNormals: have a face with two or less vertexes\n");
+			faceok[i].OK = FALSE;
+		}
+		if(faceok[i].OK){
+			/* check to see that the coordIndex does not point to a
+				point that is outside the range of our point array */
+			for(int k=faceok[i].start;k<=faceok[i].end;k++){
+				checkpoint = coordIndex->p[k];
+				if (checkpoint < 0 || checkpoint >= npoints) {
+					printf ("Indexed Geometry face %d has a point out of range,",i);
+					printf (" point is %d, should be between 0 and %d\n", checkpoint,npoints-1);
+					faceok[i].OK = FALSE;
 				}
 			}
 		}
-
 		/* face has passed checks so far... */
-		if (faceok[i]) {
+		if (faceok[i].OK) {
 			/* printf ("face %d ok\n",i); */
 			/* check for degenerate triangles -- we go through all triangles in a face to see which
 			   triangle has the largest vector length */
-
 			this_face_finished = FALSE;
+			tmp_a = faceok[i].start;
 			pt_1 = tmp_a;
+			//printf("face %d first index pt_1 %d\n",i,pt_1);
 			if (ccw) {
 				/* printf ("IFS face normals CCW\n"); */
 				pt_2 = tmp_a+1; pt_3 = tmp_a+2;
@@ -221,6 +188,8 @@ int IFS_face_normals (
 
 			do {
 				float fnorm[3], fnormlen, delta[3];
+				//printf("do pt1 %d pt2 %d pt3 %d\n",pt_1,pt_2,pt_3);
+
 				/* first three coords give us the normal */
 				c1 = &(points[coordIndex->p[pt_1]]);
 				c2 = &(points[coordIndex->p[pt_2]]);
@@ -235,14 +204,14 @@ int IFS_face_normals (
 				vecdif3f(a,c2->c,c1->c);
 				vecdif3f(b,c3->c,c1->c);
 
-				/* printf ("a0 %f a1 %f a2 %f b0 %f b1 %f b2 %f\n", a[0],a[1],a[2],b[0],b[1],b[2]); */
+				//printf ("a0 %f a1 %f a2 %f b0 %f b1 %f b2 %f\n", a[0],a[1],a[2],b[0],b[1],b[2]);
 
 				//thisfaceNorms.x = a[1]*b[2] - b[1]*a[2];
 				//thisfaceNorms.y = -(a[0]*b[2] - b[0]*a[2]);
 				//thisfaceNorms.z = a[0]*b[1] - b[0]*a[1];
 				veccross3f(fnorm,a,b);
 				/* printf ("vector length is %f\n",calc_vector_length (thisfaceNorms));  */
-
+				//printf("axb=%f %f %f\n",fnorm[0],fnorm[1],fnorm[2]);
 				/* is this vector length greater than a previous one? */
 				//if (calc_vector_length(thisfaceNorms) > this_vl) {
 				fnormlen= veclength3f(fnorm);
@@ -282,14 +251,12 @@ int IFS_face_normals (
 				/* skip forward to the next couple of points - if possible */
 				/* printf ("looking at %d, cin is %d\n",tmp_a, cin); */
 				tmp_a ++;
-				if ((tmp_a >= cin-2) || (coordIndex->p[tmp_a+2] == -1)) {
-					this_face_finished = TRUE;  tmp_a +=2;
-				}
+				this_face_finished = tmp_a + 2 > faceok[i].end;
 			} while (!this_face_finished);
 
 			if (APPROX(this_vl,0.0)) {
 				/* printf ("face %d is degenerate\n",i); */
-				faceok[i] = 0;
+				faceok[i].OK = FALSE;
 			} else {
 				/* printf ("face %d is ok\n",i); */
 				//normalize_vector(&facenormals[i]);
@@ -300,40 +267,26 @@ int IFS_face_normals (
 				c1->c[0],c1->c[1],c1->c[2],
 				c2->c[0],c2->c[1],c2->c[2],
 				c3->c[0],c3->c[1],c3->c[2]);
-			printf ("normal %f %f %f\n\n",facenormals[i].x,
-				facenormals[i].y,facenormals[i].z);
-		
 			*/
+			//printf ("face %3d normal %5.2f %5.2f %5.2f\n",i,facenormals[i].c[0],facenormals[i].c[1],facenormals[i].c[2]);
+		
 			}
 			
 
 		}
 
-		/* skip forward to next ifs - we have the normal - but check for bad Points!*/
-		if (i<faces-1) {
-			if (tmp_a <= 0) {
-				/* this is an error in the input file; lets try and continue */
-				tmp_a = 1;
-			} 
-
-			if (tmp_a > 0) {
-				while (((coordIndex->p[tmp_a-1]) != -1) && (tmp_a < cin-2)) {
-					/* printf ("skipping past %d for face %d\n",coordIndex->p[tmp_a-1],i);*/
-					tmp_a++;
-				}
-			}
-		}
-		/* printf ("for face %d, vec len is %f\n",i,this_vl); */
+		// printf ("for face %d, vec len is %f\n",i,this_vl);
 	}
 
 
 	/* do we have any valid faces??? */
 	for(i=0; i<faces; i++) {
-		if (faceok[i] == TRUE) {
+		if (faceok[i].OK == TRUE) {
 			retval = TRUE;
 		}
 	}
-	if (!retval) return retval; /* nope, lets just drop out of here */
+	if (!retval) 
+		return retval; /* nope, lets just drop out of here */
 	
 
 	/* now, go through each face, and make a point-face list
@@ -341,21 +294,33 @@ int IFS_face_normals (
 	   it belong to that point */
 	/* printf ("\nnow generating point-face list\n");   */
 	for (i=0; i<npoints; i++) { pointfaces[i*POINT_FACES]=0; }
+	if(new_way){
+	for(i=0;i<faces;i++){
+		if(faceok[i].OK)
+		for(int j=faceok[i].start;j<=faceok[i].end;j++){
+			tmp_a = coordIndex->p[j];
+			//printf ("pointfaces, coord %d coordIndex %d face %d\n",j,tmp_a,i); 
+			tmp_a *= POINT_FACES;
+			add_to_face (tmp_a,i,pointfaces);
+		}
+	}
+	}else{ //new way
 	facectr=0;
 	for(i=0; i<cin; i++) {
 		tmp_a=coordIndex->p[i];
-		/* printf ("pointfaces, coord %d coordIndex %d face %d\n",i,tmp_a,facectr); */
 		if (tmp_a == -1) {
 			facectr++;
 		} else {
-			if (faceok[facectr]) {
+			if (faceok[facectr].OK) {
+				//printf ("pointfaces, coord %d coordIndex %d face %d\n",i,tmp_a,facectr); 
 				tmp_a*=POINT_FACES;
 				add_to_face (tmp_a,facectr,pointfaces);
 			} else {
-			/* 	printf ("skipping add_to_face for invalid face %d\n",facectr);*/
+			// 	printf ("skipping add_to_face for invalid face %d\n",facectr);
 			}
 		}
 	}
+	} //new way
 
 	/*
 	 printf ("\ncheck \n");
@@ -456,7 +421,8 @@ void IFS_check_normal (
 	/* printf ("normal was %f %f %f\n\n",facenormals[this_face].x,*/
 	/* 	facenormals[this_face].y,facenormals[this_face].z);*/
 
-
+	//PROBLEM IF THE FIRST TRIANGLE OF A FACE IS DEGENERATE, THEN 
+	// WE GET A DEGENERATE NORMAL / NO NORMAL
 	/* first three coords give us the normal */
 	c1 = &(points[coordIndex->p[base+tg->Tess.global_IFS_Coords[0]]]);
 	if (ccw) {
@@ -486,7 +452,7 @@ void IFS_check_normal (
 
 	//if (APPROX(calc_vector_length (facenormals[this_face]),0.0)) {
 	if (APPROX(fnormlen,0.0f)) {
-		/* printf ("warning: Tesselated surface has invalid normal - if this is an IndexedFaceSet, check coordinates of ALL faces\n");*/
+		//printf ("warning: Tesselated surface has invalid normal - if this is an IndexedFaceSet, check coordinates of ALL faces\n");
 	} else {
 
 		//normalize_vector(&facenormals[this_face]);
@@ -496,10 +462,9 @@ void IFS_check_normal (
 		/* 	c1->c[0],c1->c[1],c1->c[2],*/
 		/* 	c2->c[0],c2->c[1],c2->c[2],*/
 		/* 	c3->c[0],c3->c[1],c3->c[2]);*/
-		/* printf ("normal %f %f %f\n\n",facenormals[this_face].x,*/
+		//printf ("face %3d normal %5.2f %5.2f %5.2f\n",this_face,facenormals[this_face].c[0],facenormals[this_face].c[1],facenormals[this_face].c[2]);
 		/* 	facenormals[this_face].y,facenormals[this_face].z);*/
 	}
-
 }
 
 
@@ -796,25 +761,26 @@ void do_glNormal3fv(struct SFVec3f *dest, GLfloat *param) {
  ********************************************************************/
 #define DESIRE(whichOne,zzz) ((whichOne & zzz)==zzz)
 
-void render_polyrep(void *node) {
+
+void render_polyrep(void* node) {
 	//struct X3D_Virt *virt;
-	struct X3D_Node *renderedNodePtr;
-	struct X3D_PolyRep *pr;
+	struct X3D_Node* renderedNodePtr;
+	struct X3D_PolyRep* pr;
 	int hasc;
 
 
 	ttglobal tg = gglobal();
-	
+
 	renderedNodePtr = X3D_NODE(node);
 	//virt = virtTable[renderedNodePtr->_nodeType];
-	pr = renderedNodePtr->_intern;
-    
-	#ifdef TEXVERBOSE
-	printf ("\nrender_polyrep, _nodeType %s\n",stringNodeType(renderedNodePtr->_nodeType)); 
-	printf ("ntri %d\n",pr->ntri);
-	#endif
+	pr = (struct X3D_PolyRep*) renderedNodePtr->_intern;
 
-	if (pr->ntri==0) {
+#ifdef TEXVERBOSE
+	printf("\nrender_polyrep, _nodeType %s\n", stringNodeType(renderedNodePtr->_nodeType));
+	printf("ntri %d\n", pr->ntri);
+#endif
+
+	if (pr->ntri == 0) {
 		/* no triangles */
 		return;
 	}
@@ -823,110 +789,122 @@ void render_polyrep(void *node) {
 	if ((pr->VBO_buffers[VERTEX_VBO]) == 0) return;
 
 	if (!pr->streamed) {
-		printf ("render_polyrep, not streamed, returning\n");
+		printf("render_polyrep, not streamed, returning\n");
 		return;
 	}
-    
+
 	/* save these values for streaming the texture coordinates later */
 	tg->Textures.global_tcin = pr->tcindex;
-	tg->Textures.global_tcin_count = pr->ntri*3;
+	tg->Textures.global_tcin_count = pr->ntri * 3;
 	tg->Textures.global_tcin_lastParent = node;
 
 	/* we take the geometry here, and push it up the stream. */
-	if(0){
+	if (0) {
 		static int count = 0;
-		if(count < 3)
-			{extent6f_printf(renderedNodePtr->_extent);printf(" r_p\n");}
+		if (count < 30000)
+		{
+			extent6f_printf(renderedNodePtr->_extent); printf(" r_p\n");
+		}
 		count++;
 	}
-    if(1)     setExtent( renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
-                renderedNodePtr->EXTENT_MIN_Y, renderedNodePtr->EXTENT_MAX_Z, renderedNodePtr->EXTENT_MIN_Z,
-                renderedNodePtr);
+	if (1)     setExtent(renderedNodePtr->EXTENT_MAX_X, renderedNodePtr->EXTENT_MIN_X, renderedNodePtr->EXTENT_MAX_Y,
+		renderedNodePtr->EXTENT_MIN_Y, renderedNodePtr->EXTENT_MAX_Z, renderedNodePtr->EXTENT_MIN_Z,
+		renderedNodePtr);
 
 	/*  clockwise or not?*/
-	if (!pr->ccw) { 
+	if (!pr->ccw) {
 		//FW_GL_FRONTFACE(GL_CW);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 	}
 	//http://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/lighting.html#t-Litcolourandalpha
 	//if lit, use colors if colornode and (intensity or no texture)
- 	hasc = ((pr->VBO_buffers[COLOR_VBO]!=0) || pr->color) && (tg->RenderFuncs.last_texture_type!=TEXTURE_NO_ALPHA);
+	hasc = ((pr->VBO_buffers[COLOR_VBO] != 0) || pr->color);
 
- 	/* Do we have any colours? Are textures, if present, not RGB? */
- 	if(hasc){
- 		if (!pr->isRGBAcolorNode) 
- 			if (!APPROX(pr->transparency,getAppearanceProperties()->transparency)) {
- 				recalculateColorField(pr);
- 			}
- 		
- 		LIGHTING_ON
-    }
+	/* Do we have any colours? Are textures, if present, not RGB? */
+	if (hasc) {
+		LIGHTING_ON
+	}
 
 	/*  status bar, text do not have normals*/
-	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
-	if (pr->VBO_buffers[NORMAL_VBO]!=0 ) { 
+	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+	if (pr->VBO_buffers[NORMAL_VBO] != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[NORMAL_VBO]);
-		FW_GL_NORMAL_POINTER(GL_FLOAT,0,0);
-		if(DESIRE(getShaderFlags().base,SHADINGSTYLE_FLAT) ) {
-			if(pr->last_normal_type != 1) 
-				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->flat_normal,GL_STATIC_DRAW); /* OpenGL-ES */
+		FW_GL_NORMAL_POINTER(GL_FLOAT, 0, 0);
+		if (DESIRE(getShaderFlags().base, SHADINGSTYLE_FLAT)) {
+			if (pr->last_normal_type != 1)
+				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * pr->ntri * 3, pr->flat_normal, GL_STATIC_DRAW); /* OpenGL-ES */
 			pr->last_normal_type = 1;
-		}else {
-			if(pr->last_normal_type != 0)
-				glBufferData(GL_ARRAY_BUFFER,sizeof (GLfloat)*3*pr->ntri*3,pr->normal,GL_STATIC_DRAW); /* OpenGL-ES */
+		}
+		else {
+			if (pr->last_normal_type != 0)
+				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * pr->ntri * 3, pr->normal, GL_STATIC_DRAW); /* OpenGL-ES */
 			pr->last_normal_type = 0;
 		}
-    }
+	}
 
-	if (pr->VBO_buffers[FOG_VBO]!=0) {
+	if (pr->VBO_buffers[FOG_VBO] != 0) {
 		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[FOG_VBO]);
-		FW_GL_FOG_POINTER(GL_FLOAT,0,0);
-    } 
+		FW_GL_FOG_POINTER(GL_FLOAT, 0, 0);
+	}
 
 	/* colours? */
 	if (hasc) {
-		
-		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[COLOR_VBO]);
-		FW_GL_COLOR_POINTER(4,GL_FLOAT,0,0);
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[COLOR_VBO]);
+		FW_GL_COLOR_POINTER(4, GL_FLOAT, 0, 0);
 	}
 
-        
+
 	/*  textures?*/
 	if (pr->VBO_buffers[TEXTURE_VBO0] != 0) {
 		int k;
-		struct textureVertexInfo mtf[4] = {{NULL,2,GL_FLOAT,0, NULL,NULL},  
-			{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL}};  
-		for(k=0;k<max(1,pr->ntcoord);k++){
+		struct textureVertexInfo mtf[4] = { {NULL,2,GL_FLOAT,0, NULL,NULL},
+			{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL},{NULL,2,GL_FLOAT,0, NULL,NULL} };
+		for (k = 0; k < max(1, pr->ntcoord); k++) {
 			//FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,pr->VBO_buffers[TEXTURE_VBO0+k]);
-			mtf[k].VBO = pr->VBO_buffers[TEXTURE_VBO0+k];
+			mtf[k].VBO = pr->VBO_buffers[TEXTURE_VBO0 + k];
 			mtf[k].TC_size = pr->ntexdim[k];
-			if(k > 0) mtf[k-1].next = &mtf[k];
+			if (k > 0) mtf[k - 1].next = &mtf[k];
 		}
 		textureCoord_send(mtf);
-	} else {
-        ConsoleMessage("skipping tds of textures");
+	}
+	else {
+		ConsoleMessage("skipping tds of textures");
+	}
+	//humanoid skinning
+	if (pr->VBO_buffers[CINDEX_VBO] != 0) {
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 0");
+		//in child_humanoid before drawing skin we push the humanoid.coords 
+		// and in here if we set the joint index VBO and joint matrix UBO
+		//printf("SKINNING ");
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[CINDEX_VBO]);
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 1");
+		FW_GL_CINDEX_POINTER(GL_INT, 0, 0);
+		//PRINT_GL_ERROR_IF_ANY("BIND CINDEX 2");
+
 	}
 
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, pr->VBO_buffers[VERTEX_VBO]);
-	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER,pr->VBO_buffers[INDEX_VBO]);
-	FW_GL_VERTEX_POINTER(3,GL_FLOAT,0,0);
+	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, pr->VBO_buffers[INDEX_VBO]);
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, 0, 0);
 
-	if(DESIRE(getShaderFlags().base,SHADINGSTYLE_WIRE)){
+	if (DESIRE(getShaderFlags().base, SHADINGSTYLE_WIRE)) {
 		//wireframe triangles
-		if(pr->last_index_type != 1)
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3*2,pr->wire_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		if (pr->last_index_type != 1)
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * pr->ntri * 3 * 2, pr->wire_indices, GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 1;
 		//if (setupShader())
-		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_SHORT, NULL);
-		sendElementsToGPU(GL_LINES,pr->ntri*3*2,NULL);
-	}else{
+		//	glDrawElements(GL_LINES, pr->ntri*3*2, GL_UNSIGNED_INT, NULL);
+		sendElementsToGPU(GL_LINES, pr->ntri * 3 * 2, NULL);
+	}
+	else {
 		//surface triangles 
 		//glDrawArrays(GL_TRIANGLES,,,) doesn't use indices - its glDrawElements that does
 		//if(pr->last_index_type != 0)
-		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLushort)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
+		//	glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof (GLuint)*pr->ntri*3,pr->tri_indices,GL_STATIC_DRAW); /* OpenGL-ES */
 		pr->last_index_type = 0;
-		sendArraysToGPU(GL_TRIANGLES,0,pr->ntri*3);
+		sendArraysToGPU(GL_TRIANGLES, 0, pr->ntri * 3);
 	}
 
 	/* turn VBOs off for now */
@@ -937,41 +915,41 @@ void render_polyrep(void *node) {
 
 
 
-PRINT_GL_ERROR_IF_ANY("");
+	PRINT_GL_ERROR_IF_ANY("");
 
 	if (!pr->ccw) {
 		//FW_GL_FRONTFACE(GL_CCW);
 		glCullFace(GL_BACK); //restore to default
-		glDisable(GL_CULL_FACE); 
+		glDisable(GL_CULL_FACE);
 	}
 
-	#ifdef TEXVERBOSE
+#ifdef TEXVERBOSE
 	{
 		int i;
-		int *cin;
-		float *cod;
-		float *tcod;
+		int* cin;
+		float* cod;
+		float* tcod;
 		tcod = pr->GeneratedTexCoords;
 		cod = pr->actualCoord;
 		cin = pr->cindex;
-		printf ("\n\nrender_polyrep:\n");
-		for (i=0; i<pr->ntri*3; i++) {
-			printf ("i %d cindex %d vertex %f %f %f",i,cin[i],
-				cod[cin[i]*3+0],
-				cod[cin[i]*3+1],
-				cod[cin[i]*3+2]);
+		printf("\n\nrender_polyrep:\n");
+		for (i = 0; i < pr->ntri * 3; i++) {
+			printf("i %d cindex %d vertex %f %f %f", i, cin[i],
+				cod[cin[i] * 3 + 0],
+				cod[cin[i] * 3 + 1],
+				cod[cin[i] * 3 + 2]);
 
 			if (tcod != 0) {
-			printf (" tex %f %f",
-				tcod[cin[i]*2+0],
-				tcod[cin[i]*2+1]);
+				printf(" tex %f %f",
+					tcod[cin[i] * 2 + 0],
+					tcod[cin[i] * 2 + 1]);
 			}
-			printf ("\n");
+			printf("\n");
 		}
 	}
-	#endif
+#endif
 
-PRINT_GL_ERROR_IF_ANY("");
+	PRINT_GL_ERROR_IF_ANY("");
 
 
 }
@@ -1038,9 +1016,9 @@ void render_ray_polyrep_A(void *node) {
 		return;
 	}
 
-	polyRep = genericNodePtr->_intern;
-
-	/*	
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
+	if (!polyRep->ntri || !polyRep->actualCoord) return;
+	/*
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
 		genericNodePtr->_change, polyRep->_change, polyRep->ntri);
 	*/
@@ -1177,7 +1155,7 @@ void render_ray_polyrep_B(void *node) {
 		return;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1357,7 +1335,7 @@ int intersect_polyrep(struct X3D_Node *node, float *p1, float *p2, float *neares
 		return 0;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1560,7 +1538,7 @@ int intersect_polyrep2(struct X3D_Node *node, float *p1, float *p2, Stack *inter
 		return 0;
 	}
 
-	polyRep = genericNodePtr->_intern;
+	polyRep = (struct X3D_PolyRep*) genericNodePtr->_intern;
 
 	/*	
 	printf("render_ray_polyrep %d '%s' (%d %d): %d\n",node,stringNodeType(genericNodePtr->_nodeType),
@@ -1750,9 +1728,11 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 		int i;
 
-		node->_intern = MALLOC(struct X3D_PolyRep *, sizeof(struct X3D_PolyRep));
+		node->_intern = MALLOC(struct X3D_GeomRep *, sizeof(struct X3D_PolyRep));
 		memset(node->_intern,0,sizeof(struct X3D_PolyRep));
-		polyrep = node->_intern;
+		polyrep = (struct X3D_PolyRep*) node->_intern;
+		polyrep->itype = 2; //0 points 1 lines 2 mesh
+		polyrep->mode = 4; //4 TRIANGLES 5 TRIANGLE_STRIP 6 TRIANGLE_FAN
 		polyrep->ntri = -1;
 		//polyrep->cindex = 0; polyrep->actualCoord = 0; polyrep->colindex = 0; polyrep->color = 0;
 		//polyrep->norindex = 0; polyrep->normal = 0; polyrep->flat_normal = 0; polyrep->GeneratedTexCoords = 0;
@@ -1782,7 +1762,8 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 	}
 
-	polyrep = node->_intern;
+	polyrep = (struct X3D_PolyRep*) node->_intern;
+	polyrep->coordinate_node = coord; //for testing if skinning elsewhere
 
 	/* Android, for instance, needs the VBO_buffers re-created. Check to see if this is the case here */
 	if (polyrep->VBO_buffers[VERTEX_VBO] == 0) {
@@ -1806,7 +1787,7 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 	FREE_IF_NZ(polyrep->tcindex);
 
 
-	/* make the node by calling the correct method */
+	/* make the node by calling the correct method see GenPolyRep.c > make_genericfaceset */
 	virt->mkpolyrep(node);
 
 	/* now, put the generic internal structure into OpenGL arrays for faster rendering */
@@ -1821,35 +1802,81 @@ void compile_polyrep(void *innode, void *coord, void *fogCoord, void *color, voi
 
 }
 
-void delete_polyrep(struct X3D_Node *node){
+void delete_geomrep(struct X3D_Node *node){
 	// see if node has _intern, if so it's live scenery
 	// delete opengl buffers used by polyrep
 	// delete internal malloced items in polyrep
 	// delete polyrep
 	// null node's _intern field
-	struct X3D_PolyRep *pr;
 	if(!node) return;
-	pr = node->_intern;
-	if(pr){
-		// ? apr 2015 I think the node->_intern = polyrep will only be populated 
-		// in the case of live scenery, not in ProtoDeclares, so if we are in here, 
-		// we should have live scenery, and that means gl buffers were assigned
-		glDeleteBuffers(VBO_COUNT,pr->VBO_buffers);
+	if (!node->_intern) return;
+	// 0 PointRep 1 LineRep 2 PolyRep 3 MeshRep 4 TextureRep 5 LightRep
+	switch(node->_intern->itype){
+	case 0: //points
+		{
+			if (node->_nodeType != NODE_PointSet && node->_nodeType != NODE_Polypoint2D) {
+				printf("attempting to delete PointRep for nodetype %s\n", stringNodeType(node->_nodeType));
+				break;
+			}
+			delete_PointRep(node->_intern);
+			node->_intern = NULL;
+		}
+		break;
+	case 1: //lines
+		{
+			struct X3D_LineRep* lr;
+			lr = (struct X3D_LineRep*)node->_intern;
+			//not implemented yet
+		}
+		break;
+	case 2: //mesh
+		{
+			struct X3D_PolyRep* pr;
+			pr = (struct X3D_PolyRep*)node->_intern;
+			// ? apr 2015 I think the node->_intern = polyrep will only be populated 
+			// in the case of live scenery, not in ProtoDeclares, so if we are in here, 
+			// we should have live scenery, and that means gl buffers were assigned
+			glDeleteBuffers(VBO_COUNT, pr->VBO_buffers);
 
-		/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
-		FREE_IF_NZ(pr->cindex);   /* triples (per triangle) */
-		FREE_IF_NZ(pr->colindex);   /* triples (per triangle) */
-		FREE_IF_NZ(pr->norindex);
-		FREE_IF_NZ(pr->tcindex); /* triples or null */
-		FREE_IF_NZ(pr->tri_indices);
-		FREE_IF_NZ(pr->wire_indices);
-		FREE_IF_NZ(pr->actualCoord); /* triples (per point) */
-		FREE_IF_NZ(pr->actualFog); /* float (per point) */
-		FREE_IF_NZ(pr->color); /* triples or null */
-		FREE_IF_NZ(pr->normal); /* triples or null */
-		FREE_IF_NZ(pr->flat_normal);
-		FREE_IF_NZ(pr->GeneratedTexCoords[0]);	/* triples (per triangle) of texture coords if there is no texCoord node */
-		FREE_IF_NZ(pr);
+			/* indicies for arrays. OpenGL ES 2.0 - unsigned short for the DrawArrays call */
+			FREE_IF_NZ(pr->cindex);   /* triples (per triangle) */
+			FREE_IF_NZ(pr->colindex);   /* triples (per triangle) */
+			FREE_IF_NZ(pr->norindex);
+			FREE_IF_NZ(pr->tcindex); /* triples or null */
+			FREE_IF_NZ(pr->tri_indices);
+			FREE_IF_NZ(pr->wire_indices);
+			FREE_IF_NZ(pr->actualCoord); /* triples (per point) */
+			FREE_IF_NZ(pr->actualFog); /* float (per point) */
+			FREE_IF_NZ(pr->color); /* triples or null */
+			FREE_IF_NZ(pr->normal); /* triples or null */
+			FREE_IF_NZ(pr->flat_normal);
+			FREE_IF_NZ(pr->GeneratedTexCoords[0]);	/* triples (per triangle) of texture coords if there is no texCoord node */
+			FREE_IF_NZ(pr);
+			node->_intern = NULL;
+		}
+		break;
+	case 3: //MeshRep for gltf_loader.c
+		{
+			if (node->_nodeType != NODE_BufferGeometry) {
+				printf("attempting to delete MeshRep for nodetype %s\n", stringNodeType(node->_nodeType));
+				break;
+			}
+			delete_MeshRep(node->_intern);
+			node->_intern = NULL;
+
+		}
+		break;
+	case 5: //LightRep
+		{
+			delete_LightRep(node->_intern);
+			node->_intern = NULL;
+	}
+	case 9: //HanimRep
+	{
+		delete_HanimRep(node->_intern);
 		node->_intern = NULL;
+	}
+	default:
+		break;
 	}
 };

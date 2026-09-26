@@ -159,14 +159,6 @@ void sendMaterialsToShader(s_shader_capabilities_t *me);
 void
 BackEndClearBuffer(int);
 
-void
-BackEndLightsOff(void);
-
-#ifdef DEBUGGING_CODE
-void drawBBOX(struct X3D_Node *node);
-#endif //DEBUGGING_CODE
-
-
 void fw_glMatrixMode(GLint mode);
 void fw_glLoadIdentity(void);
 void fw_glPushMatrix(void);
@@ -182,6 +174,7 @@ void fw_glScaled (GLDOUBLE a, GLDOUBLE b, GLDOUBLE c);
 void fw_glScalef (float a, float b, float c);
 void fw_glGetDoublev (int ty, GLDOUBLE *mat);
 void fw_glSetDoublev (int ty, GLDOUBLE *mat);
+void fw_glGetInteger( int ty, int *params);
 
 /* OpenGL-ES specifics for Materials and Vertices */
 void fw_iphone_enableClientState(GLenum aaa);
@@ -228,5 +221,7 @@ void fw_gluPerspectiveTexture(GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GL
 void fw_gluPerspectiveTextureLookAt(GLDOUBLE ex, GLDOUBLE ey, GLDOUBLE ez, 
 				  GLDOUBLE cx, GLDOUBLE cy, GLDOUBLE cz, 
                   GLDOUBLE ux,GLDOUBLE uy,GLDOUBLE uz);
+
+void fw_gluPerspective_2(GLDOUBLE xcenter, GLDOUBLE fovy, GLDOUBLE aspect, GLDOUBLE zNear, GLDOUBLE zFar);
 
 #endif /* __FREEWRL_OPENGL_UTILS_H__ */

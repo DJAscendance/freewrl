@@ -1370,7 +1370,7 @@ static JSBool getSFNodeField(JSContext *cx, JSHandleObject hobj, JSHandleId hiid
 			X3D_MF_TO_JS(cx, obj, offsetPointer_deref (void *, node, *(fieldOffsetsPtr+1)), *(fieldOffsetsPtr+2), vp, 
 				(char *)FIELDNAMES[*(fieldOffsetsPtr+0)]);
 			break;
-		default: printf ("unhandled type FIELDTYPE_ %d in getSFNodeField\n", *(fieldOffsetsPtr+2)) ;
+		default: printf ("unhandled type FIELDTYPE_ %d in _getSFNodeField\n", *(fieldOffsetsPtr+2)) ;
 		return JS_FALSE;
 	}
 

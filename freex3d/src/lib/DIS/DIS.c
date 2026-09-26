@@ -1639,6 +1639,7 @@ int pdu2dis [] = {
   type_SetRecordReliablePdu,
   0,
   type_CollisionElasticPdu,
+  type_EntityStateUpdatePdu,
 };
 int pduToDis(int pdu){
   return pdu2dis[pdu];

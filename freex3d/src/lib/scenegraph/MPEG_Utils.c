@@ -222,7 +222,16 @@ int movie_load_from_file(char *fname, void **opaque);
 double movie_get_duration(void *opaque);
 unsigned char *movie_get_frame_by_fraction(void *opaque, float fraction, int *width, int *height, int *nchan);
 unsigned char * movie_get_audio_PCM_buffer(void *opaque,int *freq, int *channels, int *size, int *bits);
-#include "sounds.h"
+
+#ifdef HAVE_OPENAL
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
+#ifdef HAVE_ALUT
+#include <AL/alut.h>
+#endif //HAVE_ALUT
+#endif //HAVE_OPENAL
+
 //BufferData * alutBufferDataConstruct (ALvoid *data, size_t length, ALint numChannels,
 //                          ALint bitsPerSample, ALfloat sampleFrequency);
 
@@ -308,6 +317,9 @@ bool movie_load(resource_item_t *res){
 				//and that's what audio drivers on computers normally take
 				//and same with the APIs that wrap the hardware drivers ie openAL API
 				printf("audio freq %d channels %d size %d bits per channel %d\n",freq,channels,size,bits);
+#ifdef HAVE_LIBSOUND
+				node->__sourceNumber = libsound_createBusFromPCM(pcmbuf, bits, channels, size, freq);
+#else //HAVE_LIBSOUND
 				#ifdef HAVE_OPENAL
 				// http://open-activewrl.sourceforge.net/data/OpenAL_PGuide.pdf
 				// page 6
@@ -372,6 +384,7 @@ bool movie_load(resource_item_t *res){
 					}
 				}
 				#endif //HAVE_OPENAL
+#endif //HAVE_LIBSOUND
 			}
 		} 
 

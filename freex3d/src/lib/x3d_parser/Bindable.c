@@ -35,6 +35,7 @@ Bindable nodes - Background, TextureBackground, Fog, NavigationInfo, Viewpoint, 
 
 #include "../vrml_parser/Structs.h"
 #include "../main/headers.h"
+#include "../opengl/Textures.h"
 #include "../vrml_parser/CParseGeneral.h"
 #include "../scenegraph/Vector.h"
 #include "../vrml_parser/CFieldDecls.h"
@@ -280,6 +281,14 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 			viewer->oktypes[VIEWER_DIST] = TRUE;
 			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_DIST);
 		}
+		if (strcmp(typeptr, "PAN") == 0) {
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_PAN);
+		}
+		if (strcmp(typeptr, "ZOOM") == 0) {
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
+			if (i == 0) fwl_set_viewer_type0(viewer, VIEWER_ZOOM);
+		}
 
 		if (strcmp(typeptr, "ANY") == 0) {
 			viewer->oktypes[VIEWER_EXAMINE] = TRUE;
@@ -291,6 +300,8 @@ void set_naviinfo(struct X3D_NavigationInfo *node) {
 			viewer->oktypes[VIEWER_SPHERICAL] = TRUE;
 			viewer->oktypes[VIEWER_TURNTABLE] = TRUE;
 			viewer->oktypes[VIEWER_DIST] = TRUE;
+			viewer->oktypes[VIEWER_PAN] = TRUE;
+			viewer->oktypes[VIEWER_ZOOM] = TRUE;
 			if (i==0) fwl_set_viewer_type0(viewer, VIEWER_WALK); /*  just choose one */
 		}
 	}
@@ -338,12 +349,15 @@ int layerFromBindable(struct X3D_Node *node){
 	}
 	return layerId;
 }
-
+static int reachable_new_way = 0;
+int is_reachable_new_way() {
+	return reachable_new_way;
+}
 /* send a set_bind event from an event to this Bindable node */
 void send_bind_to(struct X3D_Node *node, int value) {
 	int layerId;
 	ttglobal tg = gglobal();
-	/* printf ("\n%lf: send_bind_to, nodetype %s node %u value %d\n",TickTime(),stringNodeType(node->_nodeType),node,value);  */
+	//printf ("\n%lf: send_bind_to, nodetype %s node %p value %d\n",TickTime(),stringNodeType(node->_nodeType),node,value);  
 
 	layerId = layerFromBindable(node);
 	switch (node->_nodeType) {
@@ -364,35 +378,36 @@ void send_bind_to(struct X3D_Node *node, int value) {
 	case NODE_OrthoViewpoint: {
 		struct X3D_OrthoViewpoint *ovp = (struct X3D_OrthoViewpoint *) node;
 		ovp->set_bind = value;
-		setMenuStatusVP(ovp->description->strptr);
+		//ovp->set_bind = ovp->_reachablethispass ? value : 0;
+		setMenuStatusVP (ovp->description->strptr);
 		bind_node (node, getBindableStacksByLayer(tg,ovp->_layerId)->viewpoint);
-		if (value==1) {
-			bind_OrthoViewpoint (ovp);
+		if (value == 1) { //ovp->set_bind > 0) {
+			bind_OrthoViewpoint(ovp);
 		}
 		break;
 		}
 
-	case NODE_Viewpoint:  {
-		struct X3D_Viewpoint* vp = (struct X3D_Viewpoint *) node;
+	case NODE_Viewpoint: {
+		struct X3D_Viewpoint* vp = (struct X3D_Viewpoint*)node;
 		vp->set_bind = value;
 		setMenuStatusVP (vp->description->strptr);
-		bind_node (node, getBindableStacksByLayer(tg,vp->_layerId)->viewpoint);
-		if (value==1) {
-			bind_Viewpoint (vp);
+		bind_node(node, getBindableStacksByLayer(tg, vp->_layerId)->viewpoint);
+		if (value == 1) {
+			bind_Viewpoint(vp);
 		}
 		break;
-		}
+	}
 
-	case NODE_GeoViewpoint:  {
-		struct X3D_GeoViewpoint *gvp = (struct X3D_GeoViewpoint *) node;
+	case NODE_GeoViewpoint: {
+		struct X3D_GeoViewpoint* gvp = (struct X3D_GeoViewpoint*)node;
 		gvp->set_bind = value;
-		setMenuStatusVP (gvp->description->strptr);
-		bind_node (node, getBindableStacksByLayer(tg,gvp->_layerId)->viewpoint);
-		if (value==1) {
-			bind_GeoViewpoint (gvp);
+		setMenuStatusVP(gvp->description->strptr);
+		bind_node(node, getBindableStacksByLayer(tg, gvp->_layerId)->viewpoint);
+		if (value == 1) {
+			bind_GeoViewpoint(gvp);
 		}
 		break;
-		}
+	}
 
 
 	case NODE_Fog:  {
@@ -794,7 +809,7 @@ static void moveBackgroundCentre () {
 	}
 }
 
-static void recalculateBackgroundVectors(struct X3D_Background *node) {
+static void recalculateBackgroundVectors_old(struct X3D_Background *node) {
 	struct SFColor *c1,*c2;
 	int hdiv;			/* number of horizontal strips allowed */
 	int h,v;
@@ -848,21 +863,21 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	}
 
 	/* do we have NO background triangles? (ie, maybe all textures??) */
-	if ((skyColCt == 0) & (gndColCt == 0)) {
-        	if (node->_nodeType == NODE_Background) {
+	if ((skyColCt == 0) && (gndColCt == 0)) {
+		if (node->_nodeType == NODE_Background) {
 			MARK_NODE_COMPILED
-                	/* do we have an old background to destroy? */
-                	FREE_IF_NZ (node->__points.p);
-                	FREE_IF_NZ (node->__colours.p);
-                	node->__quadcount = 0;
-        	} else {
-                	tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+			/* do we have an old background to destroy? */
+			FREE_IF_NZ (node->__points.p);
+			FREE_IF_NZ (node->__colours.p);
+			node->__quadcount = 0;
+		} else {
+			tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
 
-                	/* do we have an old background to destroy? */
-                	FREE_IF_NZ (tbnode->__points.p);
-                	FREE_IF_NZ (tbnode->__colours.p);
-                	tbnode->__quadcount = 0;
-        	}
+			/* do we have an old background to destroy? */
+			FREE_IF_NZ (tbnode->__points.p);
+			FREE_IF_NZ (tbnode->__colours.p);
+			tbnode->__quadcount = 0;
+		}
 		return;
 	}
 
@@ -889,7 +904,6 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 	/* now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. */
 	newPoints = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
 	newColors = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
-
 
 	if(skyColCt == 1) {
 		c1 = &skyCol[0];
@@ -1068,13 +1082,473 @@ static void recalculateBackgroundVectors(struct X3D_Background *node) {
 		//node->__combined = X3D_NODE(combinedBuffer);
 	}
 }
+static void recalculateBackgroundVectors(struct X3D_Background *node) {
+	float *c1,*c2;
+	int hdiv, vdiv;			/* number of horizontal strips allowed */
+	int h,v;
+	double va1, va2, ha1, ha2;	/* JS - vert and horiz angles 	*/
+	int estq;
+	int actq;
+	struct Multi_Float *skyangle, *groundangle;
+	struct Multi_Color *skycolor, *groundcolor, *colours;
+	struct Multi_Vec3f *points;
+	int *quadcount;
+
+	/* filled in if this is a TextureBackground node */
+	struct X3D_TextureBackground *tbnode;
+
+	// generic structures between nodes used for taking individual pointers from node defns 
+	struct SFColor *skyCol; int skyColCt;
+	struct SFColor *gndCol; int gndColCt;
+	float  *skyAng; int skyAngCt;
+	float  *gndAng; int gndAngCt;
+	float *newPoints; float *newColors;
+	double outsideRadius, insideRadius;
+
+	/* initialization */
+	tbnode = NULL;
+	hdiv = 20;
+	vdiv = 20;
+
+	// We draw spheres, one for the sky, one for the ground - outsideRadius and insideRadius
+	//outsideRadius =  DEFAULT_FARPLANE* 0.750;
+	//insideRadius = DEFAULT_FARPLANE * 0.50;
+
+	/* lets try these values - we will scale when we draw this */
+	outsideRadius = 1.001;// 1.0;
+	insideRadius = 1.0005; // 0.5;
+
+	// handle Background and TextureBackgrounds here
+	if (node->_nodeType == NODE_Background) {
+		skycolor = &node->skyColor;
+		skyangle = &node->skyAngle;
+		groundcolor = &node->groundColor;
+		groundangle = &node->groundAngle;
+		colours = &node->__colours;
+		points = &node->__points;
+		quadcount = &node->__quadcount;
+	} else {
+		tbnode = (struct X3D_TextureBackground *) node;
+		skycolor = &tbnode->skyColor;
+		skyangle = &tbnode->skyAngle;
+		groundcolor = &tbnode->groundColor;
+		groundangle = &tbnode->groundAngle;
+		colours = (struct Multi_Color*)&tbnode->__colours;
+		points = &tbnode->__points;
+		quadcount = &tbnode->__quadcount;
+	}
+
+	// do we have NO background triangles? (ie, maybe all textures??)
+	if ((skycolor->n == 0) && (groundcolor->n == 0)) {
+		FREE_IF_NZ (points->p);
+		FREE_IF_NZ (colours->p);
+		*quadcount = 0;
+		if (node->_nodeType == NODE_Background) {
+			MARK_NODE_COMPILED
+		} else {
+			tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+		}
+		return;
+	}
+
+	if(skycolor->n && skycolor->n != skyangle->n +1){
+		ConsoleMessage("warning Background: skyColor.n %d should have one more entry than skyAngle.n %d\n",skycolor->n,skyangle->n);
+	}
+	if(groundcolor->n && groundcolor->n != groundangle->n +1){
+		ConsoleMessage("warning Background: groundColor.n %d should have one more entry than groundAngle.n %d\n",groundcolor->n,groundangle->n);
+	}
+
+
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/enveffects.html#Backgrounds
+	// we stick to this pretty close, except:
+	//- one groundColor is a special case meaning nadir to horizone single color (vs specs: discard/no mention special case)
+
+	// calculate how many quads are required
+	estq=0;actq=0;
+	int s_vdiv = max(skyangle->n,2);
+	if(skyangle->n > 0){
+		if(skyangle->p[skyangle->n-1]< 1.57) s_vdiv += 1; //M_PI/2.0
+		if(skyangle->p[skyangle->n-1]< M_PI) s_vdiv += 1;
+	}
+	int g_vdiv = groundangle->n > 0 ? groundangle->n : 0;
+	g_vdiv = groundcolor->n == 1 ? 1 : g_vdiv; //exception to web3d rules
+	vdiv = s_vdiv + g_vdiv;
+	estq = hdiv * vdiv; // both sky and ground share one (point,color) array
+
+	// now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. 
+	newPoints = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
+	newColors = MALLOC (GLfloat *, sizeof (GLfloat) * estq * 3 * 6);
+	
+	float *g_angle = MALLOC (float *, sizeof (float) * (g_vdiv+1));
+	float *s_angle = MALLOC (float *, sizeof (float) * (s_vdiv+1));
+	struct SFColor * g_color = MALLOC(struct SFColor*,sizeof(struct SFColor)*(g_vdiv+1) );
+	struct SFColor * s_color = MALLOC(struct SFColor*,sizeof(struct SFColor)*(s_vdiv+1) );
+
+	g_angle[0] = 0.0f;
+	if(g_vdiv)
+	for(int i=0;i<g_vdiv+1;i++){
+		if(i==0) g_angle[i] = 0.0f;
+		else {
+			if(groundcolor->n == 1) g_angle[i] = M_PI/2.0f;
+			 else g_angle[i] = min(groundangle->p[i-1],M_PI/2.0f);
+		}
+		if(groundcolor->n==1) veccopy3f(g_color[i].c,groundcolor->p[0].c);
+		else veccopy3f(g_color[i].c,groundcolor->p[i].c);
+		//printf("g_angle[%d] %f g_color %f %f %f\n",i, g_angle[i], g_color[i].c[0], g_color[i].c[1], g_color[i].c[2]);
+	}
+	s_angle[0] = 0.0f;
+	float lastcolor[3];
+	veccopy3f(lastcolor,skycolor->p[skycolor->n-1].c);
+	for(int i=0;i<s_vdiv+1;i++){
+		if(i==0) s_angle[i] = 0.0f;
+		else if(i-1<skyangle->n)
+			s_angle[i] = skyangle->p[i-1];
+		else if(i==s_vdiv) s_angle[i] = M_PI;
+		else s_angle[i] = M_PI/2.0;
+		veccopy3f(s_color[i].c,lastcolor);
+		if(i < skycolor->n ){
+			veccopy3f(s_color[i].c,skycolor->p[i].c);
+		}
+		//printf("s_angle[%d] %f s_color %f %f %f\n",i,s_angle[i], s_color[i].c[0], s_color[i].c[1], s_color[i].c[2]);
+
+	}
+
+	//sky
+	int count = 0;
+	for(int i=0; i < s_vdiv; i++) {
+		va1 = s_angle[i];
+		va2 = s_angle[i+1];
+		c1 = s_color[i].c;
+		c2 = s_color[i+1].c;
+
+		for(h=0; h<hdiv; h++) {
+			ha1 = h * PI*2 / hdiv;
+			ha2 = (h+1) * PI*2 / hdiv;
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2) * sin(ha2)); //1
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors,newPoints, &actq,c2,outsideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors,newPoints, &actq,c1,outsideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1) * sin(ha1)); //3
+			count += 6;
+		}
+	}
+	//printf("skycount %d hdiv %d vdiv %d\n",count,hdiv,s_vdiv);
+	//ground
+	count = 0;
+	for(int i=0; i<g_vdiv; i++) {
+		va1 = M_PI - g_angle[i];
+		va2 = M_PI - g_angle[i+1]; 
+		c1 = g_color[i].c;
+		c2 = g_color[i+1].c;
+		for(h=0; h<hdiv; h++) {
+			ha1 = h * PI*2 / hdiv;
+			ha2 = (h+1) * PI*2 / hdiv;
+
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1)*sin(ha1)); //0
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha2), cos(va1), sin(va1)*sin(ha2)); //1
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2)*sin(ha2)); //2
+			saveBGVert(newColors,newPoints,&actq,c1,insideRadius, sin(va1)*cos(ha1), cos(va1), sin(va1)*sin(ha1)); //0
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha2), cos(va2), sin(va2)*sin(ha2)); //2
+			saveBGVert(newColors,newPoints,&actq,c2,insideRadius, sin(va2)*cos(ha1), cos(va2), sin(va2)*sin(ha1)); //3
+			count +=6;
+		}
+	}
+	//printf("groundcount %d hdiv %d vdiv %d\n",count,hdiv,g_vdiv);
+
+	/* We have guessed at the quad count; lets make sure
+	 * we record what we have. */
+	if (actq > (estq*6)) {
+		printf ("Background quadcount error, %d > %d\n",
+				actq,estq);
+		actq = 0;
+	}
+
+	/* save changes */
+	/* if we are doing shaders, we write the vertex and color info to a VBO, else we keep pointers in the node */
+	if (node->_nodeType == NODE_Background) {
+
+		MARK_NODE_COMPILED
+
+		/* do we have an old background to destroy? */
+		FREE_IF_NZ (node->__points.p);
+		FREE_IF_NZ (node->__colours.p);
+		node->__quadcount = actq;
+	} else {
+		tbnode->_ichange = tbnode->_change; /* mimic MARK_NODE_COMPILED */
+		/* do we have an old background to destroy? */
+		FREE_IF_NZ (tbnode->__points.p);
+		FREE_IF_NZ (tbnode->__colours.p);
+		tbnode->__quadcount = actq;
+
+	}
+
+
+	{
+		struct MyVertex *combinedBuffer = MALLOC(struct MyVertex *, sizeof (struct MyVertex) * actq * 2);
+		int i;
+		float *npp = newPoints;
+		float *ncp = newColors;
+
+
+		if (node->_nodeType == NODE_Background) {
+			if (node->__VBO == 0) glGenBuffers(1,(unsigned int*) &node->__VBO);
+		} else {
+			if (tbnode->__VBO == 0) glGenBuffers(1,(unsigned int*) &tbnode->__VBO);
+		}
+
+		/* stream both the vertex and colours together (could have done this above, but
+		   maybe can redo this if we go 100% material shaders */
+
+		/* NOTE - we use SFColorRGBA - and set the Alpha to 1 so that we can use the
+		   shader with other nodes with Color fields */
+
+		for (i=0; i<actq; i++) {
+			combinedBuffer[i].vert.c[0] = *npp; npp++;
+			combinedBuffer[i].vert.c[1] = *npp; npp++;
+			combinedBuffer[i].vert.c[2] = *npp; npp++;
+			combinedBuffer[i].col.c[0] = *ncp; ncp++;
+			combinedBuffer[i].col.c[1] = *ncp; ncp++;
+			combinedBuffer[i].col.c[2] = *ncp; ncp++;
+			combinedBuffer[i].col.c[3] = 1.0f;
+		}
+		FREE_IF_NZ(newPoints);
+		FREE_IF_NZ(newColors);
+
+		/* send this data along ... */
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,node->__VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof (struct MyVertex)*actq, combinedBuffer, GL_STATIC_DRAW);
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER,0);
+
+		/* and, we can free it */
+		FREE_IF_NZ(combinedBuffer);
+		//node->__combined = X3D_NODE(combinedBuffer);
+	}
+}
+static void recalculateTextureBackgroundVectors(struct X3D_TextureBackground* node) {
+	float* c1, * c2;
+	int hdiv, vdiv;			/* number of horizontal strips allowed */
+	int h, v;
+	double va1, va2, ha1, ha2;	/* JS - vert and horiz angles 	*/
+	int estq;
+	int actq;
+	struct Multi_Float* skyangle, * groundangle;
+	struct Multi_Color* skycolor, * groundcolor, * colours;
+	struct Multi_Vec3f* points;
+	int* quadcount;
+
+	/* filled in if this is a TextureBackground node */
+
+	// generic structures between nodes used for taking individual pointers from node defns 
+	struct SFColor* skyCol; int skyColCt;
+	struct SFColor* gndCol; int gndColCt;
+	float* skyAng; int skyAngCt;
+	float* gndAng; int gndAngCt;
+	float* newPoints; float* newColors;
+	double outsideRadius, insideRadius;
+
+	/* initialization */
+	hdiv = 20;
+	vdiv = 20;
+
+	// We draw spheres, one for the sky, one for the ground - outsideRadius and insideRadius
+	//outsideRadius =  DEFAULT_FARPLANE* 0.750;
+	//insideRadius = DEFAULT_FARPLANE * 0.50;
+
+	/* lets try these values - we will scale when we draw this */
+	outsideRadius = 1.001;// 1.0;
+	insideRadius = 1.0005; // 0.5;
+
+	// handle Background and TextureBackgrounds here
+	
+		skycolor = &node->skyColor;
+		skyangle = &node->skyAngle;
+		groundcolor = &node->groundColor;
+		groundangle = &node->groundAngle;
+		colours = (struct Multi_Color*)&node->__colours;
+		points = &node->__points;
+		quadcount = &node->__quadcount;
+
+
+	// do we have NO background triangles? (ie, maybe all textures??)
+	if ((skycolor->n == 0) && (groundcolor->n == 0)) {
+		FREE_IF_NZ(points->p);
+		FREE_IF_NZ(colours->p);
+		*quadcount = 0;
+		MARK_NODE_COMPILED
+		return;
+	}
+
+	if (skycolor->n && skycolor->n != skyangle->n + 1) {
+		ConsoleMessage("warning TextureBackground: skyColor.n %d should have one more entry than skyAngle.n %d\n", skycolor->n, skyangle->n);
+	}
+	if (groundcolor->n && groundcolor->n != groundangle->n + 1) {
+		ConsoleMessage("warning TextureBackground: groundColor.n %d should have one more entry than groundAngle.n %d\n", groundcolor->n, groundangle->n);
+	}
+
+
+	// https://www.web3d.org/documents/specifications/19775-1/V3.3/Part01/components/enveffects.html#Backgrounds
+	// we stick to this pretty close, except:
+	//- one groundColor is a special case meaning nadir to horizone single color (vs specs: discard/no mention special case)
+
+	// calculate how many quads are required
+	estq = 0; actq = 0;
+	int s_vdiv = max(skyangle->n, 2);
+	if (skyangle->n > 0) {
+		if (skyangle->p[skyangle->n - 1] < 1.57) s_vdiv += 1; //M_PI/2.0
+		if (skyangle->p[skyangle->n - 1] < M_PI) s_vdiv += 1;
+	}
+	int g_vdiv = groundangle->n > 0 ? groundangle->n : 0;
+	g_vdiv = groundcolor->n == 1 ? 1 : g_vdiv; //exception to web3d rules
+	vdiv = s_vdiv + g_vdiv;
+	estq = hdiv * vdiv; // both sky and ground share one (point,color) array
+
+	// now, MALLOC space for new arrays  - 3 points per vertex, 6 per quad. 
+	newPoints = MALLOC(GLfloat*, sizeof(GLfloat) * estq * 3 * 6);
+	newColors = MALLOC(GLfloat*, sizeof(GLfloat) * estq * 3 * 6);
+
+	float* g_angle = MALLOC(float*, sizeof(float) * (g_vdiv + 1));
+	float* s_angle = MALLOC(float*, sizeof(float) * (s_vdiv + 1));
+	struct SFColor* g_color = MALLOC(struct SFColor*, sizeof(struct SFColor) * (g_vdiv + 1));
+	struct SFColor* s_color = MALLOC(struct SFColor*, sizeof(struct SFColor) * (s_vdiv + 1));
+
+	g_angle[0] = 0.0f;
+	if (g_vdiv)
+		for (int i = 0; i < g_vdiv + 1; i++) {
+			if (i == 0) g_angle[i] = 0.0f;
+			else {
+				if (groundcolor->n == 1) g_angle[i] = M_PI / 2.0f;
+				else g_angle[i] = min(groundangle->p[i - 1], M_PI / 2.0f);
+			}
+			if (groundcolor->n == 1) veccopy3f(g_color[i].c, groundcolor->p[0].c);
+			else veccopy3f(g_color[i].c, groundcolor->p[i].c);
+			//printf("g_angle[%d] %f g_color %f %f %f\n",i, g_angle[i], g_color[i].c[0], g_color[i].c[1], g_color[i].c[2]);
+		}
+	s_angle[0] = 0.0f;
+	float lastcolor[3];
+	veccopy3f(lastcolor, skycolor->p[skycolor->n - 1].c);
+	for (int i = 0; i < s_vdiv + 1; i++) {
+		if (i == 0) s_angle[i] = 0.0f;
+		else if (i - 1 < skyangle->n)
+			s_angle[i] = skyangle->p[i - 1];
+		else if (i == s_vdiv) s_angle[i] = M_PI;
+		else s_angle[i] = M_PI / 2.0;
+		veccopy3f(s_color[i].c, lastcolor);
+		if (i < skycolor->n) {
+			veccopy3f(s_color[i].c, skycolor->p[i].c);
+		}
+		//printf("s_angle[%d] %f s_color %f %f %f\n",i,s_angle[i], s_color[i].c[0], s_color[i].c[1], s_color[i].c[2]);
+
+	}
+
+	//sky
+	int count = 0;
+	for (int i = 0; i < s_vdiv; i++) {
+		va1 = s_angle[i];
+		va2 = s_angle[i + 1];
+		c1 = s_color[i].c;
+		c2 = s_color[i + 1].c;
+
+		for (h = 0; h < hdiv; h++) {
+			ha1 = h * PI * 2 / hdiv;
+			ha2 = (h + 1) * PI * 2 / hdiv;
+			saveBGVert(newColors, newPoints, &actq, c2, outsideRadius, sin(va2) * cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors, newPoints, &actq, c2, outsideRadius, sin(va2) * cos(ha2), cos(va2), sin(va2) * sin(ha2)); //1
+			saveBGVert(newColors, newPoints, &actq, c1, outsideRadius, sin(va1) * cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors, newPoints, &actq, c2, outsideRadius, sin(va2) * cos(ha1), cos(va2), sin(va2) * sin(ha1)); //0
+			saveBGVert(newColors, newPoints, &actq, c1, outsideRadius, sin(va1) * cos(ha2), cos(va1), sin(va1) * sin(ha2)); //2
+			saveBGVert(newColors, newPoints, &actq, c1, outsideRadius, sin(va1) * cos(ha1), cos(va1), sin(va1) * sin(ha1)); //3
+			count += 6;
+		}
+	}
+	//printf("skycount %d hdiv %d vdiv %d\n",count,hdiv,s_vdiv);
+	//ground
+	count = 0;
+	for (int i = 0; i < g_vdiv; i++) {
+		va1 = M_PI - g_angle[i];
+		va2 = M_PI - g_angle[i + 1];
+		c1 = g_color[i].c;
+		c2 = g_color[i + 1].c;
+		for (h = 0; h < hdiv; h++) {
+			ha1 = h * PI * 2 / hdiv;
+			ha2 = (h + 1) * PI * 2 / hdiv;
+
+			saveBGVert(newColors, newPoints, &actq, c1, insideRadius, sin(va1) * cos(ha1), cos(va1), sin(va1) * sin(ha1)); //0
+			saveBGVert(newColors, newPoints, &actq, c1, insideRadius, sin(va1) * cos(ha2), cos(va1), sin(va1) * sin(ha2)); //1
+			saveBGVert(newColors, newPoints, &actq, c2, insideRadius, sin(va2) * cos(ha2), cos(va2), sin(va2) * sin(ha2)); //2
+			saveBGVert(newColors, newPoints, &actq, c1, insideRadius, sin(va1) * cos(ha1), cos(va1), sin(va1) * sin(ha1)); //0
+			saveBGVert(newColors, newPoints, &actq, c2, insideRadius, sin(va2) * cos(ha2), cos(va2), sin(va2) * sin(ha2)); //2
+			saveBGVert(newColors, newPoints, &actq, c2, insideRadius, sin(va2) * cos(ha1), cos(va2), sin(va2) * sin(ha1)); //3
+			count += 6;
+		}
+	}
+	//printf("groundcount %d hdiv %d vdiv %d\n",count,hdiv,g_vdiv);
+
+	/* We have guessed at the quad count; lets make sure
+	 * we record what we have. */
+	if (actq > (estq * 6)) {
+		printf("Background quadcount error, %d > %d\n",
+			actq, estq);
+		actq = 0;
+	}
+
+	/* save changes */
+	/* if we are doing shaders, we write the vertex and color info to a VBO, else we keep pointers in the node */
+		MARK_NODE_COMPILED
+			/* do we have an old background to destroy? */
+		FREE_IF_NZ(node->__points.p);
+		FREE_IF_NZ(node->__colours.p);
+		node->__quadcount = actq;
+
+
+
+
+	{
+		struct MyVertex* combinedBuffer = MALLOC(struct MyVertex*, sizeof(struct MyVertex) * actq * 2);
+		int i;
+		float* npp = newPoints;
+		float* ncp = newColors;
+
+
+			if (node->__VBO == 0) glGenBuffers(1, (unsigned int*)&node->__VBO);
+
+		/* stream both the vertex and colours together (could have done this above, but
+		   maybe can redo this if we go 100% material shaders */
+
+		   /* NOTE - we use SFColorRGBA - and set the Alpha to 1 so that we can use the
+			  shader with other nodes with Color fields */
+
+		for (i = 0; i < actq; i++) {
+			combinedBuffer[i].vert.c[0] = *npp; npp++;
+			combinedBuffer[i].vert.c[1] = *npp; npp++;
+			combinedBuffer[i].vert.c[2] = *npp; npp++;
+			combinedBuffer[i].col.c[0] = *ncp; ncp++;
+			combinedBuffer[i].col.c[1] = *ncp; ncp++;
+			combinedBuffer[i].col.c[2] = *ncp; ncp++;
+			combinedBuffer[i].col.c[3] = 1.0f;
+		}
+		FREE_IF_NZ(newPoints);
+		FREE_IF_NZ(newColors);
+
+		/* send this data along ... */
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(struct MyVertex) * actq, combinedBuffer, GL_STATIC_DRAW);
+
+		FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
+
+		/* and, we can free it */
+		FREE_IF_NZ(combinedBuffer);
+		//node->__combined = X3D_NODE(combinedBuffer);
+	}
+}
 void reallyDraw();
 void render_Background(struct X3D_Background *node){
 	if (renderstate()->render_blend) return;
 	if(!node->isBound) return;
 	{
 		//we need the model matrix - between root node and background - to capture any scene authored background tilts
-		double viewi[16], mat[16];
+		double viewi[16], mat[16], bmat[16];
 		bindablestack *bstack;
 		ttglobal tg = gglobal();
 
@@ -1082,7 +1556,9 @@ void render_Background(struct X3D_Background *node){
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
 		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		matmultiplyAFFINE(bmat, mat, viewi);
+		matrixAFFINE2RotationMatrix(bstack->backgroundmatrix, bmat);
 	}
 
 }
@@ -1091,7 +1567,7 @@ void render_TextureBackground(struct X3D_TextureBackground *node){
 	if(!node->isBound) return;
 	{
 		//we need the model matrix - between root node and background - to capture any scene authored background tilts
-		double viewi[16], mat[16];
+		double viewi[16], mat[16], bmat[16];
 		bindablestack *bstack;
 		ttglobal tg = gglobal();
 
@@ -1099,7 +1575,9 @@ void render_TextureBackground(struct X3D_TextureBackground *node){
 		matinverseAFFINE(viewi,bstack->viewmatrix);
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX,mat);
 		//matmultiplyAFFINE(bstack->backgroundmatrix,viewi,mat);
-		matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		//matmultiplyAFFINE(bstack->backgroundmatrix,mat,viewi);
+		matmultiplyAFFINE(bmat, mat, viewi);
+		matrixAFFINE2RotationMatrix(bstack->backgroundmatrix, bmat);
 	}
 }
 void render_Background_OLD (struct X3D_Background *node) {
@@ -1139,6 +1617,7 @@ void render_Background_OLD (struct X3D_Background *node) {
 	//if(0) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
 	glDisable(GL_DEPTH_TEST);
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
+	initialize_front_and_back_material_params();
 	LIGHTING_OFF
 
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1170,7 +1649,7 @@ void render_Background_OLD (struct X3D_Background *node) {
         	FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
 
 		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
-
+		initialize_front_and_back_material_params();
 
 		loadBackgroundTextures(node);
 
@@ -1318,7 +1797,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	*/
 	didPerspective = FALSE;
 	
-	if(0){
+	if(1){
 		//we need to scale because somewhere else we set up a perspective transformation that 
 		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
 		//and the perspective transforms our z's into gl's 0 to 1 range for depth
@@ -1336,6 +1815,7 @@ void render_prepped_Background(struct X3D_Background *node){
 	}
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
+	initialize_front_and_back_material_params();
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 	LIGHTING_OFF
 
@@ -1344,6 +1824,9 @@ void render_prepped_Background(struct X3D_Background *node){
 	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 	FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
 	FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei) sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
+	clear_textureUnit_used(); //appearance.texture material.textureXXX, PTMs.texture all need TEXTURE0+ XXX, where xxx starts from 0
+	clear_material_samplers(); //PTM and material.textureXXX share frag shader sampler2D textureUnit[16] array
+	clear_materialparameters_per_draw_counts(); //especially diffuse texture counts which both appearance and material share
 
 	if(setupShaderB()){
 		sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
@@ -1375,6 +1858,12 @@ void render_prepped_Background(struct X3D_Background *node){
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 	if(didPerspective){
+		if(1) {
+			FW_GL_MATRIX_MODE(GL_PROJECTION);
+		FW_GL_POP_MATRIX();
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		}
+		else
 		fw_depth_slice_pop();
 	}
 		
@@ -1475,21 +1964,23 @@ void render_TextureBackground_OLD (struct X3D_TextureBackground *node) {
 void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 	double bgscale;
 	int didPerspective;
-	X3D_Viewer *viewer = Viewer();
 	ttglobal tg = gglobal();
+	X3D_Viewer* viewer = Viewer();
 
-	/* is fog enabled? if so, disable it right now */
-	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glDisable(GL_FOG);
+	if (vectorSize(getActiveBindableStacks(tg)->fog) > 0) glDisable(GL_FOG);
 
 	/* Cannot start_list() because of moving center, so we do our own list later */
-	if(0){
+
+	if (0) {
+		//this ignors tilts and yaws (but with respect to what? bound viewpoint?)
 		moveBackgroundCentre();
-	}else if(1){
+	}
+	else if (1) {
 		//March 2018 - this re-allows scene-file authored tilts to the background like other browsers
 		// <Transform> <Background> </Transform> - tilts captured in render_Background
 		// which we broke a few months ago
 		double pp[3], mvmat[16], mvinv[16];
-		bindablestack *bstack;
+		bindablestack* bstack;
 		ttglobal tg = gglobal();
 		bstack = getActiveBindableStacks(tg);
 		FW_GL_MATRIX_MODE(GL_MODELVIEW);
@@ -1497,77 +1988,115 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 		FW_GL_TRANSFORM_D(bstack->backgroundmatrix); //see (new) render_Background
 		//we now need to cancel/undo the translation part 
 		// by moving the background back to where the vp is at 0,0,0
+		// see also:
+		// double * matrixAFFINE2RotationMatrix(double* rotmat, double *fullmat);
+		// which I made from this code, but didn't have time to try here.
 		FW_GL_GETDOUBLEV(GL_MODELVIEW_MATRIX, mvmat);
-		matinverseAFFINE(mvinv,mvmat);
-		vecsetd(pp,0.0,0.0,0.0);
-		transformAFFINEd(pp,pp,mvinv);
-		FW_GL_TRANSLATE_D(pp[0],pp[1],pp[2]);
-		if(1){ 
-			//cancel/undo scale part, so that our background mesh stays at diameter 1.0
-			double sx,sy,sz, q[3],p[3],d[3];
+		matinverseAFFINE(mvinv, mvmat);
+		vecsetd(pp, 0.0, 0.0, 0.0);
+		transformAFFINEd(pp, pp, mvinv);
+		FW_GL_TRANSLATE_D(pp[0], pp[1], pp[2]);
+		if (1) {
+			//cancel/undo scale part, so that our background mesh stays at radius 1.0
+			double sx, sy, sz, q[3], p[3], d[3];
 			/* Get scale */
-			vecsetd(p,0.0,0.0,0.0);
-			transformAFFINEd(p,p,mvmat);
-			vecsetd(q,1.0,0.0,0.0);
-			transformAFFINEd(q,q,mvmat);
-			sx = 1.0/veclengthd(vecdifd(d,q,p));
-			vecsetd(q,0.0,1.0,0.0);
-			transformAFFINEd(q,q,mvmat);
-			sy = 1.0/veclengthd(vecdifd(d,q,p));
-			vecsetd(q,0.0,0.0,1.0);
-			transformAFFINEd(q,q,mvmat);
-			sz = 1.0/veclengthd(vecdifd(d,q,p));
+			vecsetd(p, 0.0, 0.0, 0.0);
+			transformAFFINEd(p, p, mvmat);
+			vecsetd(q, 1.0, 0.0, 0.0);
+			transformAFFINEd(q, q, mvmat);
+			sx = 1.0 / veclengthd(vecdifd(d, q, p));
+			vecsetd(q, 0.0, 1.0, 0.0);
+			transformAFFINEd(q, q, mvmat);
+			sy = 1.0 / veclengthd(vecdifd(d, q, p));
+			vecsetd(q, 0.0, 0.0, 1.0);
+			transformAFFINEd(q, q, mvmat);
+			sz = 1.0 / veclengthd(vecdifd(d, q, p));
 			/* Undo the scale effects */
-			FW_GL_SCALE_D(sx,sy,sz);
+			FW_GL_SCALE_D(sx, sy, sz);
+		}
+	}
+	else if (0) {
+		//instead of transforming back to viewpoint, can we just replace transform top-of-stack with identity?
+		//benefit: good for diagnosing background problems: near/far plane vs offset
+		//problem: then the horizon (or orientation with texture background)- doesn't change with a tilt (or yaw) 
+		FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		FW_GL_PUSH_MATRIX();
+		FW_GL_LOAD_IDENTITY();
+		if (1) {
+			//this adds vertical tilt but not horizontal yaw
+			double matA2BVVA[16], matBVVA2A[16];
+			avatar2BoundViewpointVerticalAvatar(matA2BVVA, matBVVA2A);
+			fw_glSetDoublev(GL_MODELVIEW_MATRIX, matBVVA2A);
 		}
 	}
 
-
-	if  NODE_NEEDS_COMPILING
-		/* recalculateBackgroundVectors will determine exact node type */
-		recalculateBackgroundVectors((struct X3D_Background *)node);	
-
-	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
-	   all geometry fits within the spheres */
-	//FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
-	didPerspective = FALSE;
-
-	if(0){
-		bgscale = 1.0;
-		if( viewer->nearPlane > bgscale) bgscale = viewer->nearPlane;
-		FW_GL_SCALE_D (bgscale, bgscale, bgscale);
-	}else{
-		//alternately we can replace the perspective transform, or scale the depth range
-		GLclampd znear, zfar;
-		fw_depth_slice_push(.1,100); //SEEMS TO WORK remember to pop
-		didPerspective = TRUE;
+	if (NODE_NEEDS_COMPILING) {
+		recalculateTextureBackgroundVectors(node);
 	}
 
-	glDisable(GL_DEPTH_TEST);
+	/* we have a sphere (maybe one and a half, as the sky and ground are different) so scale it up so that
+	   all geometry fits within the spheres
+		dug9 Sept 2014: background could in theory be a tiny box or sphere that wraps around the avatar, if
+		you can draw it first on each frame _and_ turn off 'depth' when you draw it.
+		dug9 Jan 2018: turned off scaling of background geom, and toggled depth test)
+			- due to problems with float coordinate rounding when doing a geoSpatial scene
+			- (with GC geocentric) coords at rootnode when using geoViewpoint
+			- still problem with geo-horizon leveling of background (for near-ground)
+	*/
+	didPerspective = FALSE;
 
+	if (1) {
+		//we need to scale because somewhere else we set up a perspective transformation that 
+		//may have a big number for a nearPlane (ie with geo scenes stretching depth range)
+		//and the perspective transforms our z's into gl's 0 to 1 range for depth
+		//if(1) FW_GL_SCALE_D (viewer->backgroundPlane, viewer->backgroundPlane, viewer->backgroundPlane);
+		bgscale = 1.0;
+		//if( viewer->nearPlane >= bgscale*.5) 
+		bgscale = viewer->nearPlane + (viewer->farPlane - viewer->nearPlane) * .3;
+		//printf("near %lf far %lf bgscale %lf\n",viewer->nearPlane,viewer->farPlane,bgscale);
+		FW_GL_SCALE_D(bgscale, bgscale, bgscale);
+	}
+	else {
+		//alternately we can replace the perspective transform, or scale the depth range
+		GLclampd znear, zfar;
+		fw_depth_slice_push(.1, 100); //SEEMS TO WORK remember to pop
+		didPerspective = TRUE;
+	}
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
 	enableGlobalShader(getMyShader(COLOUR_MATERIAL_SHADER));
 
+	LIGHTING_OFF
+
+		FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, node->__VBO);
-	//FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+	FW_GL_VERTEX_POINTER(3, GL_FLOAT, (GLsizei)sizeof(struct MyVertex), (GLfloat*)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+	FW_GL_COLOR_POINTER(4, GL_FLOAT, (GLsizei)sizeof(struct MyVertex), (GLfloat*)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-	#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-	FW_GL_VERTEX_POINTER(3, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-	FW_GL_COLOR_POINTER(4, GL_FLOAT, sizeof(struct MyVertex), (GLfloat *)BUFFER_OFFSET(sizeof(struct SFVec3f)));   //The starting point of Colours, 12 bytes away
 
-	sendArraysToGPU (GL_TRIANGLES, 0, node->__quadcount);
-	reallyDraw();
+	if (setupShaderB()) {
+		sendArraysToGPU(GL_TRIANGLES, 0, node->__quadcount);
+		reallyDraw();
+	}
 	FW_GL_BINDBUFFER(GL_ARRAY_BUFFER, 0);
 	FW_GL_BINDBUFFER(GL_ELEMENT_ARRAY_BUFFER, 0);
 	finishedWithGlobalShader();
 
 	/* now, for the textures, if they exist */
-	if ((node->backTexture !=0) ||
-			(node->frontTexture !=0) ||
-			(node->leftTexture !=0) ||
-			(node->rightTexture !=0) ||
-			(node->topTexture !=0) ||
-			(node->bottomTexture !=0)) {
+	/* now, for the textures, if they exist */
+	if ((node->backTexture != 0) ||
+		(node->frontTexture != 0) ||
+		(node->leftTexture != 0) ||
+		(node->rightTexture != 0) ||
+		(node->topTexture != 0) ||
+		(node->bottomTexture != 0)) {
 
+        glEnable(GL_TEXTURE_2D);
+
+        FW_GL_VERTEX_POINTER (3,GL_FLOAT,0,BackgroundVert);
+        FW_GL_NORMAL_POINTER (GL_FLOAT,0,Backnorms);
+        FW_GL_TEXCOORD_POINTER (2,GL_FLOAT,0,boxtex,0);
 
 		enableGlobalShader(getMyShader(ONE_TEX_APPEARANCE_SHADER));
 
@@ -1576,15 +2105,22 @@ void render_prepped_TextureBackground(struct X3D_TextureBackground *node) {
 		finishedWithGlobalShader();
 
 	}
+	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
-	if(didPerspective){
-		fw_depth_slice_pop();
+	if (didPerspective) {
+		if (1) {
+			FW_GL_MATRIX_MODE(GL_PROJECTION);
+			FW_GL_POP_MATRIX();
+			FW_GL_MATRIX_MODE(GL_MODELVIEW);
+		}
+		else
+			fw_depth_slice_pop();
 	}
 
-	/* pushes are done in moveBackgroundCentre */
 	FW_GL_POP_MATRIX();
 
-	if (vectorSize(getActiveBindableStacks(tg)->fog) >0) glEnable (GL_FOG);
+	/* is fog enabled? if so, disable it right now */
+	if (vectorSize(getActiveBindableStacks(tg)->fog) > 0) glEnable(GL_FOG);
 }
 
 void render_bound_background(){

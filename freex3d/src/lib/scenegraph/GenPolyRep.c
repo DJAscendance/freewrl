@@ -124,7 +124,7 @@ int checkX3DElevationGridFields (struct X3D_ElevationGrid *this_, float **points
 	float *height = ((this_->height).p);
 	int ntri = (nx && nz ? 2 * (nx-1) * (nz-1) : 0);
 	int nh = ((this_->height).n);
-	struct X3D_PolyRep *rep = this_->_intern;
+	struct X3D_PolyRep *rep = (struct X3D_PolyRep*) this_->_intern;
 
 	float *newpoints;
 	float newPoint[3];
@@ -639,8 +639,14 @@ static void checkTriangleSetFields (struct X3D_TriangleSet *node) {
 }
 
 
-
+/// THIS IS THE GOOD OLD ONE THAT NEEDS GLU TESS COMBINER FIX
 void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
+/* takes a variety of geometry nodes, with various subnodes for coordinates, normals, colors,
+   and for faces does delaunay triangulation with the result
+   being index[] arrays with 3 consecutive indexes per final triangle
+   (stream_polyrap will later convert the indexes into expanded coordinate arrays with
+   shared vertexes duplicated)
+*/
 	int cin;
 	int cpv = TRUE;
 	int npv;
@@ -667,7 +673,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
     
 	struct SFVec3f *points = NULL;
 	float *fogdepths = NULL;
-	struct X3D_PolyRep *rep_ = node->_intern;
+	struct X3D_PolyRep *rep_ = (struct X3D_PolyRep*) node->_intern;
 
 	struct Multi_Int32 *orig_coordIndex = NULL;
 	struct Multi_Int32 *orig_texCoordIndex = NULL;
@@ -679,14 +685,14 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	GLuint *colindex;		/* Color Index		*/
 	GLuint *tcindex=0;		/* Tex Coord Index	*/
 	GLuint *norindex;               /* Normals Index        */
-
+	
 	int normalArraySize = INT_ID_UNDEFINED;	/* bounds checking on normals generated */
 
 	int faces=0;
 	int convex=TRUE;
 	//struct point_XYZ *facenormals; /*  normals for each face*/
 	struct SFVec3f *facenormals;
-	int	*faceok = NULL;	/*  is this face ok? (ie, not degenerate triangles, etc)*/
+	struct facepar	*faceok = NULL;	/*  is this face ok? (ie, not degenerate triangles, etc)*/
 	int	*pointfaces = NULL;
 
 	GLDOUBLE tess_v[3];             /*param.to FW_GLU_TESS_VERTEX()*/
@@ -1036,25 +1042,27 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	}
 
 	/* count the faces in this polyrep and allocate memory. */
-	faces = count_IFS_faces (cin,orig_coordIndex);
+	faceok = MALLOC(struct facepar *, sizeof(struct facepar)*(cin/2+1));
+	faces = count_IFS_faces (cin,orig_coordIndex,faceok);
 	#ifdef VERBOSE
 	printf ("faces %d, cin %d npoints %d\n",faces,cin,npoints);
 	#endif
 
 	if (faces == 0) {
 		rep_->ntri = 0;
+		FREE_IF_NZ(faceok);
 		return;
 	}
 
 	/* are there any coordinates? */
 	if (npoints <= 0) {
 		rep_->ntri = 0;
+		FREE_IF_NZ(faceok);
 		return;
 	}
 
 	//facenormals = MALLOC(struct point_XYZ *, sizeof(struct point_XYZ)*faces); // sizeof(*facenormals)
 	facenormals = MALLOC(struct SFVec3f *, sizeof(struct SFVec3f)*faces); // sizeof(*facenormals)
-	faceok = MALLOC(int *, sizeof(int)*faces);
 	pointfaces = MALLOC(int *, sizeof(int)*npoints*POINT_FACES); /* save max x points */ //sizeof(*pointfaces)
 
 	/* generate the face-normals table, so for each face, we know the normal
@@ -1069,6 +1077,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	}
 
 	/* wander through to see how much memory needs allocating for triangles */
+	/*
 	for(i=0; i<cin; i++) {
 		if((orig_coordIndex->p[i]) == -1) {
 			ntri += nvert-2;
@@ -1078,11 +1087,19 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		}
 	}
 	if(nvert>2) {ntri += nvert-2;}
+	*/
+	//https://en.wikipedia.org/wiki/Delaunay_triangulation
+	//if there are b vertices on the convex hull, then any triangulation of the points has at most 2n - 2 - b triangles, plus one exterior face
+	for(i=0;i<faces;i++){
+		nvert = faceok[i].end - faceok[i].start +1;
+		ntri += 2*nvert-2-nvert;
+		//printf("face %d nvert %d start %d end %d\n",i,nvert,faceok[i].start,faceok[i].end);
+	}
 
 
-	#ifdef VERBOSE
-	printf ("vert %d ntri %d\n",nvert,ntri);
-	#endif
+	//#ifdef VERBOSE
+	//printf ("vert %d ntri %d\n",nvert,ntri);
+	//#endif
 
 	/* Tesselation MAY use more triangles; lets estimate how many more */
 	if(!convex) { ntri =ntri*2; }
@@ -1093,7 +1110,7 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
     FREE_IF_NZ(rep_->cindex);
     FREE_IF_NZ(rep_->colindex);
     FREE_IF_NZ(rep_->norindex);
-    
+	FREE_IF_NZ(rep_->oindex);
 	cindex = rep_->cindex = MALLOC(GLuint *, sizeof(*(rep_->cindex))*3*(ntri));
 	colindex = rep_->colindex = MALLOC(GLuint *, sizeof(*(rep_->colindex))*3*(ntri));
 	norindex = rep_->norindex = MALLOC(GLuint *,sizeof(*(rep_->norindex))*3*ntri);
@@ -1131,19 +1148,19 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 		tess_contour_start = 0;
 		
 
-		if (!faceok[this_face]) {
-			#ifdef VERBOSE
-			printf ("in generate of faces, face %d is invalid, skipping...\n",this_face);
-			#endif
+		if (faceok[this_face].OK) {
+		//	#ifdef VERBOSE
+		//	printf ("in generate of faces, face %d is invalid, skipping...\n",this_face);
+		//	#endif
 
-			/* skip past the seperator, except if we are t the end */
+		//	/* skip past the seperator, except if we are t the end */
 
-			/*  skip to either end or the next -1*/
-			while ((this_coord < cin) && ((orig_coordIndex->p[this_coord]) != -1)) this_coord++;
+		//	/*  skip to either end or the next -1*/
+		//	while ((this_coord < cin) && ((orig_coordIndex->p[this_coord]) != -1)) this_coord++;
 
-			/*  skip past the -1*/
-			if ((this_coord < (cin-1)) && ((orig_coordIndex->p[this_coord]) == -1)) this_coord++;
-		} else {
+		//	/*  skip past the -1*/
+		//	if ((this_coord < (cin-1)) && ((orig_coordIndex->p[this_coord]) == -1)) this_coord++;
+		//} else {
 
 			#ifdef VERBOSE
 			printf ("working on face %d coord %d total coords %d coordIndex %d\n",
@@ -1161,6 +1178,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 			/* If we have concave, tesselate! */
 			// July 2016 dug9 changed Tess.c combiner callback so it works for Text
 			// but did not fix combiner scenarios here, wich were not working right when face edges intersect (which specs say don't worry about)
+			this_coord = faceok[this_face].start;
+
 			if (!convex) {
 				//register_Polyrep_combiner(); //default, Component_Text resets to this after compiling its text
 				//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
@@ -1238,7 +1257,9 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 
 				verify_global_IFS_Coords(cin);
 
-				IFS_check_normal (facenormals,this_face,points, this_coord, orig_coordIndex, ccw);
+				// NOT SURE WHY WE WERE DOING THIS, we already have face normals I think, using 
+				// a more sophisticated method to avoid degenterate first 3 points.
+				//IFS_check_normal (facenormals,this_face,points, this_coord, orig_coordIndex, ccw);
 			}
 
 
@@ -1247,23 +1268,54 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 				/* Triangle Coordinate */
 				cindex [vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
 
-				/* printf ("vertex  %d  gic %d cindex %d\n",vert_ind,global_IFS_Coords[i],cindex[vert_ind]); */
+				// printf ("vertex  %d  gic %d cindex %d\n",vert_ind, tg->Tess.global_IFS_Coords[i],cindex[vert_ind]);
 
 				/* Vertex Normal */
 				if(nnormals) {
+					int iwant,ihavei,ihaven;
 					if (norin) {
 						/* we have a NormalIndex */
 						if (npv) {
-							norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
+							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
+							ihavei = min(iwant, orig_normalIndex->n-1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+							iwant = orig_normalIndex->p[ihavei];
+							ihaven = min(nnormals-1,iwant);
+							if(ihaven < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normals have %d want %d \n",ihaven,iwant);
+								once++;
+							}
+							norindex[vert_ind] = ihaven;
+							// norindex[vert_ind] = orig_normalIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]];
 							/*  printf ("norm1, index %d\n",norindex[vert_ind]);*/
 						} else {
-							norindex[vert_ind] = orig_normalIndex->p[this_face];
+							iwant = this_face;
+							ihavei = min(iwant, orig_normalIndex->n-1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+							norindex[vert_ind] = ihavei; //orig_normalIndex->p[this_face];
 							/*  printf ("norm2, index %d\n",norindex[vert_ind]);*/
 						}
 					} else {
 						/* no normalIndex  - use the coordIndex */
 						if (npv) {
-							norindex[vert_ind] = (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
+							iwant = this_coord+tg->Tess.global_IFS_Coords[i];
+							ihavei = min(iwant, norin); // min(iwant, orig_normalIndex->n - 1);
+							if(ihavei < iwant) {
+								static int once = 0;
+								if(!once) ConsoleMessage("not enough normal indexes have %d want %d \n",ihavei,iwant);
+								once ++;
+							}
+
+							norindex[vert_ind] = ihavei; // (orig_coordIndex->p[this_coord+tg->Tess.global_IFS_Coords[i]]);
 							/* printf ("norm3, index %d\n",norindex[vert_ind]); */
 						} else {
 							norindex[vert_ind] = this_face;
@@ -1369,6 +1421,8 @@ void make_genericfaceset(struct X3D_IndexedFaceSet *node) {
 	FREE_IF_NZ (pointfaces);
 }
 
+
+
 #undef VERBOSE
 
 /********************************************************************************************/
@@ -1405,7 +1459,7 @@ void compute_spy_spz(struct point_XYZ *spy, struct point_XYZ *spz, struct SFVec3
 	double alpha,gamma;	/* angles for the rotation	*/
 	int spi;
 	float spylen;
-	struct point_XYZ spp1 = {0.0, 0.0, 0.0};
+	struct point_XYZ spp1 = {.x=0.0, .y=0.0, .z=0.0};
 
 
 	/* need to find the rotation from SCP[spi].y to (0 1 0)*/
@@ -1565,7 +1619,7 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 	struct SFVec2f *curve =node->crossSection.p;	/* vector of 2D curve points	*/
 	struct SFRotation *orientation=node->orientation.p;/*vector of SCP rotations*/
 
-	struct X3D_PolyRep *rep_=node->_intern;/*internal rep, we want to fill*/
+	struct X3D_PolyRep *rep_= (struct X3D_PolyRep*) node->_intern;/*internal rep, we want to fill*/
 
 	/* the next variables will point at members of *rep		*/
 	GLuint   *cindex;				/* field containing indices into
@@ -1653,7 +1707,6 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 /*FIXME:
   to prevent a crash with script generated data
 */
-
 	if (nspi < 1) return;
 
 	/* is there anything to this Extrusion??? */
@@ -1675,25 +1728,11 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 			/* assume that it is not duplicated */
 			increment = 1;
-
-			for (temp_indx=0; temp_indx<currentlocn; temp_indx++) {
-				if ((APPROX(crossSection[currentlocn].c[0],crossSection[temp_indx].c[0])) &&
-				    (APPROX(crossSection[currentlocn].c[1],crossSection[temp_indx].c[1]))) {
-					/* maybe we have a closed curve, so points SHOULD be the same */
-					if ((temp_indx != 0) && (tmp1 != (nsec-1))) {
-						/* printf ("... breaking; increment = 0\n");*/
-						increment = 0;
-						break;
-					} else {
-						/* printf ("... we are tubular\n");*/
-						tubular = TRUE;
-					}
-				}
-			}
 			/* increment the crossSection index, unless it was duplicated */
 			currentlocn += increment;
 		}
-
+		if(vecapprox3f(crossSection[0].c,crossSection[nsec-1].c,.001f))
+			tubular = TRUE;
 		#ifdef VERBOSE
 			printf ("we had nsec %d coords, but now we have %d\n",nsec,currentlocn);
 		#endif
@@ -2491,18 +2530,25 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 		GLDOUBLE tess_v[3];
 		int endpoint;
 		ttglobal tg = gglobal();
-
-		tess_vs=MALLOC(int *, sizeof(*(tess_vs)) * (nsec - 3 - ncolinear_at_end) * 3);
-
+		int max_combiner = 30;
+		tess_vs=MALLOC(int *, sizeof(*(tess_vs)) * (nsec - 3 - ncolinear_at_end + max_combiner) * 3);
+		int last_vertex = 2*nsec + (nspi-1)*nsec;
 		/* if not tubular, we need one more triangle */
 		if (tubular) endpoint = nsec-1-ncolinear_at_end;
 		else endpoint = nsec-ncolinear_at_end;
-
+		polyrep_combiner_data cbdata;
+		set_tess_callbacks(1);
+		cbdata.coords = rep_->actualCoord; // p->FW_rep_->actualCoord;
+		cbdata.counter = &last_vertex; //&tg->Tess.global_IFS_Coord_count;
+		cbdata.ria = tess_vs;
+		cbdata.riaindex = &x;
 
 		if (beginCap) {
 			tg->Tess.global_IFS_Coord_count = 0;
+			gluTessNormal(tg->Tess.text_tessobj,0.0,1.0,0.0);
+
 			//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
-			gluTessBeginPolygon( tg->Tess.global_tessobj, NULL); //&cbdata );
+			gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
 			gluTessBeginContour( tg->Tess.global_tessobj );
 
 			for(x=0+ncolinear_at_begin; x<endpoint; x++) {
@@ -2539,7 +2585,9 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 		if (endCap) {
 			tg->Tess.global_IFS_Coord_count = 0;
 			//FW_GLU_BEGIN_POLYGON(tg->Tess.global_tessobj);
-			gluTessBeginPolygon( tg->Tess.global_tessobj, NULL); //&cbdata ); //cbdata is for combiner
+			gluTessNormal(tg->Tess.text_tessobj,0.0,1.0,0.0);
+
+			gluTessBeginPolygon( tg->Tess.global_tessobj, &cbdata );
 			gluTessBeginContour( tg->Tess.global_tessobj );
 
 			for(x=0+ncolinear_at_begin; x<endpoint; x++) {
@@ -2566,6 +2614,8 @@ void make_Extrusion(struct X3D_Extrusion *node) {
 
 			this_face++;
 		}
+		//tg->Tess.last_slot = NULL;
+		set_tess_callbacks(0);
 
 		/* get rid of MALLOCd memory  for tess */
 		FREE_IF_NZ (tess_vs);

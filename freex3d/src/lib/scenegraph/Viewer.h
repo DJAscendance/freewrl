@@ -49,6 +49,8 @@ int fwl_setNavMode(char *mode);
 #define VIEWER_STEREO_SIDEBYSIDE 2
 #define VIEWER_STEREO_ANAGLYPH 3
 #define VIEWER_STEREO_UPDOWN 4
+#define VIEWER_STEREO_CARDBOARD 5
+#define VIEWER_STEREO_QUADRANT 6
 
 
 #define X_AXIS 0
@@ -157,7 +159,11 @@ typedef struct viewer_fly {
 	double lasttime;
 } X3D_Viewer_Fly;
 
-
+typedef struct viewer_pan {
+	float pin_point_plane[3];
+	double pin_point_planed[3];
+	double down_pos[3];
+} X3D_Viewer_Pan;
 
 typedef struct viewer {
 	struct point_XYZ currentPosInModel;
@@ -179,6 +185,8 @@ typedef struct viewer {
 	int updown; /*=1 if 2 viewport method*/
 	int updownB; //for contenttype_stereo_updown
 	int shutterGlasses;
+	int cardboard;
+	int quadrant;
 	int haveQuadbuffer;
 	int anaglyph; /* = 1 if analglyph is turned on */
 	int anaglyphB; //for contenttype_stereo_anaglyph
@@ -192,13 +200,13 @@ typedef struct viewer {
 	
 	int iprog[2]; /*anaglyph R=0,GBACM per side */
 	unsigned int buffer;
-	int oktypes[18];		/* boolean for types being acceptable. */
+	int oktypes[32];		/* boolean for types being acceptable. */
 	X3D_Viewer_Walk walk;
 	X3D_Viewer_Examine examine;
 	X3D_Viewer_Fly fly;
 	X3D_Viewer_Spherical ypz;
 	X3D_Viewer_InPlane inplane;
-
+	X3D_Viewer_Pan pan;
 	struct point_XYZ VPvelocity;
 
 	int SLERPing2;
@@ -235,7 +243,6 @@ typedef struct viewer {
 
 	/* are we normal, or rotated? (makes sense only for mobile devices) */
 	int screenOrientation;
-
 	double nearPlane;
 	double farPlane;
 	double xcenter;
