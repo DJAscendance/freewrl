@@ -5,10 +5,17 @@ X_ITE, e.g.  tools/visual-test/compare.sh regression/route_dotted.wrl
 
 route_dotted.wrl       classic VRML "ROUTE a.b TO c.d" (6.7 parser regression, all platforms)
 route_malformed.wrl    bad ROUTE statements are reported, not a crash (same parser path)
+proto_replace.wrl      PROTO declarations of a replaced world are freed once (macOS QA invalid free, all platforms)
 hanim_skin.x3d         HAnim skinning, static joint rotation (CPU skinning on macOS)
 hanim_anim.x3d         HAnim skinning driven by an interpolator
 lineproperties.x3d     LineProperties widths and a dashed line type
 cubemap_generated.x3d  GeneratedCubeMapTexture (framebuffer + cube map render)
 shadows_*.x3d          light shadows TRUE: directional and spot (2D depth map), point (cube depth map)
 texture_formats.wrl    JPEG, PNG and GIF ImageTexture
+texture_formats_stb.wrl  BMP, TGA, PSD, PPM and HDR ImageTexture (the rest of stb_image, the macOS decoder)
+texture_unsupported_mac.wrl  TIFF and WebP: expected to fail to load on macOS (no decoder), without a crash
+text_fonts.wrl         Text in every FontStyle family/style (fonts read from the font directory)
+gzip_route.wrl         route_dotted.wrl, gzip-compressed (gzip -n -9) but still named .wrl, as many
+                       real-world worlds are; pass: same as route_dotted.wrl (ROUTE_OK)
+gzip_proto.wrl         proto_replace.wrl, gzip-compressed; PROTO worlds read through the gunzip path
 x3d_meta.x3d           X3D <meta> tags in <head> (6.7 parser crash, all platforms)

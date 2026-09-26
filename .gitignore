@@ -57,3 +57,8 @@ freex3d/src/sound/internal_version.c
 #macOS
 .DS_Store
 visual-test-out/
+#macOS packaging and test output
+macos-package-out/
+macos-deps-out/
+visual-test-out/
+__pycache__/

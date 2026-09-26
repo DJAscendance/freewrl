@@ -1,0 +1,28 @@
+#VRML V2.0 utf8
+# PROTO declarations, freed when this world is replaced.
+# Load this world, then replace it (Load button, or File > Open) with another world, e.g.
+# texture_formats.wrl, and back, several times.
+# Pass: no crash, and in an AddressSanitizer build no heap-use-after-free or bad free in
+# startOfLoopNodeUpdates. Before the fix a replaced world's PROTO declarations stayed in the
+# node table after being freed, and the render loop read (and sometimes freed) them again.
+# The world shows a red box, a green box and a blue box.
+PROTO ColorBox [ field SFColor color 1 1 1 field SFVec3f at 0 0 0 ] {
+	Transform { translation IS at children Shape {
+		appearance Appearance { material Material { diffuseColor IS color } }
+		geometry Box { size 1.2 1.2 1.2 } } }
+}
+PROTO Pair [ field SFVec3f at 0 0 0 ] {
+	PROTO Inner [ field SFColor color 1 1 1 field SFVec3f at 0 0 0 ] {
+		Transform { translation IS at children Shape {
+			appearance Appearance { material Material { diffuseColor IS color } }
+			geometry Box { size 1.2 1.2 1.2 } } }
+	}
+	Transform { translation IS at children [
+		Inner { color 0 1 0 at 0 0 0 }
+		Inner { color 0 0 1 at 2 0 0 } ] }
+}
+PROTO Unused [ field SFFloat x 0 ] { Group { } }
+Viewpoint { position 0 0 8 description "front" }
+NavigationInfo { headlight TRUE }
+ColorBox { color 1 0 0 at -2 0 0 }
+Pair { at 0 0 0 }

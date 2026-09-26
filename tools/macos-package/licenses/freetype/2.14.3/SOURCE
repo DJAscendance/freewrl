@@ -1,0 +1,5 @@
+docs/FTL.TXT from freetype-2.14.3.tar.xz, the source archive of Homebrew formula freetype 2.14.3:
+https://downloads.sourceforge.net/project/freetype/freetype2/2.14.3/freetype-2.14.3.tar.xz
+sha256 36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f (formula checksum, and the
+source checksum in the installed keg's sbom.spdx.json). The archive's LICENSE.TXT is identical to the
+keg's; include/freetype/freetype.h says 2.14.3. Copied unchanged.

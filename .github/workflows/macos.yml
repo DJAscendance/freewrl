@@ -1,0 +1,160 @@
+name: macOS Apple Silicon CI
+# Supported: macOS 14 Sonoma and newer on Apple Silicon. Everything here targets
+# MACOSX_DEPLOYMENT_TARGET=14.0 and runs on GitHub's arm64 macOS 14 and 15 runners.
+#  build:    FreeType, ODE and freealut from their pinned source archives into an empty prefix,
+#            Release and Debug builds, the standalone package (ad-hoc signed), verify.py
+#  runtime:  the same package on macOS 14 and 15: smoke fixtures, world-replacement cycles,
+#            texture stress. One FreeWRL at a time on each runner.
+#  asan:     Debug + AddressSanitizer: world replacement with PROTO worlds (the two fixed PROTO
+#            lifetime defects must not come back) and the texture fixtures
+# No secrets are used; signing with a Developer ID and notarization happen outside CI.
+on:
+  push:
+    branches: [develop, 'macos/**', 'ci/macos-**']
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      texture_runs:
+        description: texture_formats.wrl runs per runtime runner
+        default: '50'
+      reload_cycles:
+        description: world-replacement cycles (3 minutes each) per runtime runner
+        default: '3'
+permissions:
+  contents: read
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  MACOS_MIN: '14.0'
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: environment
+        run: sw_vers; xcodebuild -version; uname -m
+      - name: dependencies from source (empty prefix)
+        run: |
+          test ! -e "$RUNNER_TEMP/deps"
+          tools/macos-deps/build.sh -t "$MACOS_MIN" -p "$RUNNER_TEMP/deps" -c "$RUNNER_TEMP/deps-src"
+          cat "$RUNNER_TEMP/deps/share/freewrl-deps/packages.tsv"
+      - name: Release build and package
+        run: |
+          tools/macos-package/package.sh -t "$MACOS_MIN" -D "$RUNNER_TEMP/deps" -z -o "$RUNNER_TEMP/pkg" > package.log 2>&1 || { tail -60 package.log; exit 1; }
+          grep -E "embedded|licenses:|Mach-O files|PASS|FAIL|ERROR" package.log
+          cp package.log "$RUNNER_TEMP/pkg/"
+      - name: package checks
+        run: |
+          APP=$RUNNER_TEMP/pkg/FreeWRL.app
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' $APP/Contents/Info.plist)" = "$MACOS_MIN"
+          test "$(lipo -archs $APP/Contents/MacOS/FreeWRL)" = arm64
+          for f in $APP/Contents/MacOS/FreeWRL $APP/Contents/Frameworks/*.dylib; do
+            m=$(vtool -show-build "$f" | awk '/minos/{print $2}'); echo "$(basename $f): minos $m"
+            test "$m" = "$MACOS_MIN"
+          done
+          test "$(ls $APP/Contents/Frameworks | wc -l | tr -d ' ')" = 3
+          test ! -e $APP/Contents/PlugIns
+          python3 tools/macos-package/verify.py --source-root "$GITHUB_WORKSPACE" --macos "$MACOS_MIN" "$APP"
+          # negative control: the unpackaged build links the prefix and must fail the gate
+          if python3 tools/macos-package/verify.py --macos "$MACOS_MIN" "$RUNNER_TEMP/pkg/DerivedData/Build/Products/Release/FreeWRL.app" > negative.txt; then
+            cat negative.txt; echo "verify.py passed an unpackaged build"; exit 1
+          fi
+          tail -3 negative.txt
+      - name: Debug build
+        run: |
+          xcodebuild -project OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj -scheme FreeWRL -configuration Debug \
+            ARCHS=arm64 CODE_SIGN_IDENTITY=- FW_DEPS="$RUNNER_TEMP/deps" -derivedDataPath "$RUNNER_TEMP/dd-debug" \
+            build > debug.log 2>&1 || { tail -40 debug.log; exit 1; }
+          E=$RUNNER_TEMP/dd-debug/Build/Products/Debug/FreeWRL.app/Contents/MacOS/FreeWRL
+          vtool -show-build "$E" | grep -q "minos $MACOS_MIN"
+      - name: keep the dependency prefix for the ASan job
+        run: tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/deps.tgz" deps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            ${{ runner.temp }}/pkg/FreeWRL-macos-arm64.zip
+            ${{ runner.temp }}/pkg/FreeWRL-macos-arm64.zip.sha256
+            ${{ runner.temp }}/pkg/package.log
+      - uses: actions/upload-artifact@v4
+        with: {name: deps, path: "${{ runner.temp }}/deps.tgz"}
+
+  runtime:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: package, path: pkg}
+      - name: unpack
+        run: |
+          sw_vers; uname -m; sudo DevToolsSecurity -enable || true
+          (cd pkg && shasum -a 256 -c FreeWRL-macos-arm64.zip.sha256)
+          ditto -x -k pkg/FreeWRL-macos-arm64.zip "$RUNNER_TEMP/app"
+          /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$RUNNER_TEMP/app/FreeWRL.app/Contents/Info.plist"
+      - name: smoke fixtures
+        run: |
+          OUT=$RUNNER_TEMP/out; mkdir -p $OUT
+          set -o pipefail
+          tools/macos-ci/smoke.sh "$RUNNER_TEMP/app/FreeWRL.app" $OUT | tee $OUT/smoke.txt
+      - name: world-replacement cycles and texture stress
+        if: always()
+        env:
+          IN_CYC: ${{ github.event.inputs.reload_cycles || '3' }}
+          IN_TEX: ${{ github.event.inputs.texture_runs || '50' }}
+        run: |
+          case "$IN_CYC$IN_TEX" in *[!0-9]*) echo "inputs must be numbers"; exit 1 ;; esac
+          OUT=$RUNNER_TEMP/out
+          set -o pipefail
+          CYC=$IN_CYC TEX=$IN_TEX tools/macos-ci/suite.sh "$RUNNER_TEMP/app/FreeWRL.app" $OUT release | tee $OUT/results.txt
+      - name: summary
+        if: always()
+        run: |
+          OUT=$RUNNER_TEMP/out
+          { echo "### package on ${{ matrix.os }} ($(sw_vers -productVersion), $(uname -m))"; echo '```'
+            grep -hm1 GL_RENDERER $OUT/*.err $OUT/*.out 2>/dev/null | head -1
+            cat $OUT/smoke.txt; grep '^GATE' $OUT/results.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
+      - name: collect crash reports
+        if: always()
+        run: mkdir -p $RUNNER_TEMP/out/crash; cp ~/Library/Logs/DiagnosticReports/FreeWRL* $RUNNER_TEMP/out/crash/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: "runtime-${{ matrix.os }}", path: "${{ runner.temp }}/out"}
+
+  asan:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: deps, path: depsart}
+      - name: build (Debug, AddressSanitizer)
+        run: |
+          sw_vers; sudo DevToolsSecurity -enable || true
+          tar -C "$RUNNER_TEMP" -xzf depsart/deps.tgz
+          xcodebuild -project OSX_gui/FreeWRL-Desktop/FreeWRL.xcodeproj -scheme FreeWRL -configuration Debug \
+            ARCHS=arm64 CODE_SIGN_IDENTITY=- FW_DEPS="$RUNNER_TEMP/deps" -derivedDataPath "$RUNNER_TEMP/dd" \
+            -enableAddressSanitizer YES GCC_OPTIMIZATION_LEVEL=1 'OTHER_CFLAGS=$(inherited) -fsanitize-recover=address' \
+            build > build.log 2>&1 || { tail -40 build.log; exit 1; }
+      - name: PROTO regression and texture lifetime under ASan
+        run: |
+          OUT=$RUNNER_TEMP/out; mkdir -p $OUT
+          set -o pipefail
+          CYC=3 CSEC=300 TEX=5 TSTB=2 TSEC=60 tools/macos-ci/suite.sh "$RUNNER_TEMP/dd/Build/Products/Debug/FreeWRL.app" $OUT asan | tee $OUT/results.txt
+      - name: summary
+        if: always()
+        run: |
+          OUT=$RUNNER_TEMP/out
+          { echo "### ASan ($(sw_vers -productVersion))"; echo '```'; cat $OUT/results.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: asan, path: "${{ runner.temp }}/out"}

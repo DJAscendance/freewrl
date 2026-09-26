@@ -1,0 +1,24 @@
+#VRML V2.0 utf8
+# Text in each FontStyle family and style. Pass: six lines of text in serif,
+# sans and typewriter faces, plain, bold and italic, and no "no font library or
+# directory found" message in the log. Bitstream Vera has no serif italic, so
+# SERIF BOLDITALIC is drawn in Vera Serif Bold. X_ITE uses other fonts, so it
+# scores below the harness threshold by design. Only VeraMono is
+# compiled into FreeWRL; every other face is read from the font directory
+# (Contents/Resources/fonts in the Mac app), so this also shows that the
+# directory was found.
+Viewpoint { position 0 0 14 description "text" }
+Background { skyColor 0.1 0.1 0.2 }
+DEF M Appearance { material Material { diffuseColor 1 1 0.4 } }
+Transform { translation -6 4 0 children Shape { appearance USE M
+	geometry Text { string "SERIF plain" fontStyle FontStyle { family "SERIF" size 1.2 } } } }
+Transform { translation -6 2.4 0 children Shape { appearance USE M
+	geometry Text { string "SERIF bold italic" fontStyle FontStyle { family "SERIF" style "BOLDITALIC" size 1.2 } } } }
+Transform { translation -6 0.8 0 children Shape { appearance USE M
+	geometry Text { string "SANS bold" fontStyle FontStyle { family "SANS" style "BOLD" size 1.2 } } } }
+Transform { translation -6 -0.8 0 children Shape { appearance USE M
+	geometry Text { string "SANS italic" fontStyle FontStyle { family "SANS" style "ITALIC" size 1.2 } } } }
+Transform { translation -6 -2.4 0 children Shape { appearance USE M
+	geometry Text { string "TYPEWRITER plain" fontStyle FontStyle { family "TYPEWRITER" size 1.2 } } } }
+Transform { translation -6 -4 0 children Shape { appearance USE M
+	geometry Text { string "TYPEWRITER bold" fontStyle FontStyle { family "TYPEWRITER" style "BOLD" size 1.2 } } } }
