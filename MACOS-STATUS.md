@@ -151,9 +151,9 @@ Branch `macos/standalone-packaging` from `develop` @ `22257dc57`. `tools/macos-p
 | ✅ | Ad-hoc signing | inside out: 20 dylibs, 18 loaders, then the app; `codesign --verify --deep --strict` passes |
 | ✅ | Hardened runtime | with a Developer ID signature and **no entitlements**: all of the above pass. No JIT or writable-executable memory (Duktape interprets; no `mprotect`/`MAP_JIT` in FreeWRL's source or in ode, freetype, freealut, Imlib2 and its loaders), no `DYLD_` variables, no libraries signed by others. Ad-hoc + hardened runtime cannot start: library validation rejects the ad-hoc dylibs ("different Team IDs") |
 | ✅ | Developer ID | local test candidate signed `Developer ID Application` (team `PV35EC2TRY`), timestamped |
-| ✅ | Notarization | `notarytool submit` (App Store Connect API key): Accepted, 0 issues in the log (submission `c1c6a8b6-9bc6-4d78-a1c5-c83cfa8989bd`); ticket stapled, `stapler validate` passes; `spctl`: accepted, `source=Notarized Developer ID`. A copy with a quarantine attribute, launched with `open`, ran from an App Translocation path, rendered `text_fonts.wrl` and mapped only the bundle's libraries and fonts; quit by Apple Event cleanly. Local QA only: not published |
+| ✅ | Notarization | `package.sh --notarize` (App Store Connect API key from the environment): closeout candidate built from `59f7cf50f`, submission `100b0466-c079-40bb-92af-8d0a31b60b2a` Accepted, 0 issues; stapled, `stapler validate` passes, `spctl`: accepted, `source=Notarized Developer ID`; zip SHA-256 `863e1920cf6bf6a181e48b399b0954bfa7ab8d5dd88845a193a80df3c8f0e662`. Earlier, by hand: submission `c1c6a8b6-9bc6-4d78-a1c5-c83cfa8989bd` Accepted, 0 issues in the log; ticket stapled, `stapler validate` passes; `spctl`: accepted, `source=Notarized Developer ID`. A copy with a quarantine attribute, launched with `open`, ran from an App Translocation path, rendered `text_fonts.wrl` and mapped only the bundle's libraries and fonts; quit by Apple Event cleanly. Local QA only: not published |
 | ✅ | Visual harness, packaged (Developer ID, launched with `open`) | tests/1 0.9948, 16 0.9194, `texture_formats` 0.9665, `route_dotted` 0.9985, `hanim_skin` 0.9920, Cybertown 002 0.9659: all PASS, same scores as the Homebrew-linked build. `text_fonts` 0.6603: X_ITE draws other fonts (and FreeWRL's sRGB output lightens the background), not a defect |
-| 🟡 | Licenses | `Contents/Resources/ThirdPartyLicenses/` holds each package's own license files plus `MANIFEST.tsv`. Gap: Homebrew's freetype keg has `LICENSE.TXT`, which points to `docs/FTL.TXT`, but not FTL.TXT itself |
+| ✅ | Licenses | `Contents/Resources/ThirdPartyLicenses/`: each package's license files, `MANIFEST.tsv` (binary → package, version) and `LICENSES.tsv` (license file → package, version, source), checked by `verify.py` (30 files, 20 packages). FreeType `FTL.TXT` comes unchanged from the formula's 2.14.3 source archive (`tools/macos-package/licenses/freetype/2.14.3/SOURCE`). LGPL libraries: [THIRD-PARTY.md](tools/macos-package/THIRD-PARTY.md). Distribution materials included; not a legal review |
 
 ### Embedded libraries
 
@@ -163,7 +163,7 @@ Branch `macos/standalone-packaging` from `develop` @ `22257dc57`. `tools/macos-p
 | libccd.2 | libccd | 2.1_1 | BSD-3-Clause | share/doc/ccd/BSD-LICENSE |
 | libalut.0 | freealut | 1.1.0 | LGPL-2.0-only | COPYING |
 | libImlib2.1 + 18 loaders | imlib2 | 1.12.7 | Imlib2 | COPYING, COPYING-PLAIN |
-| libfreetype.6 | freetype | 2.14.3 | FTL | LICENSE.TXT (FTL.TXT missing) |
+| libfreetype.6 | freetype | 2.14.3 | FTL | LICENSE.TXT, FTL.TXT (from the source archive) |
 | libpng16.16 | libpng | 1.6.58 | libpng-2.0 | LICENSE |
 | libX11.6, libX11-xcb.1 | libx11 | 1.8.13 | MIT | COPYING |
 | libXext.6 | libxext | 1.3.7 | MIT | COPYING |
@@ -175,7 +175,7 @@ Branch `macos/standalone-packaging` from `develop` @ `22257dc57`. `tools/macos-p
 | libtiff.6 | libtiff | 4.7.2 | libtiff | LICENSE.md |
 | libwebp.7, libsharpyuv.0 | webp | 1.6.0 | BSD-3-Clause | COPYING |
 | libzstd.1 | zstd | 1.5.7_1 | BSD-3-Clause OR GPL-2.0-only | LICENSE, COPYING |
-| liblzma.5 | xz | 5.8.4 | 0BSD (liblzma, per COPYING) | COPYING |
+| liblzma.5 | xz | 5.8.4 | 0BSD (liblzma, per COPYING) | COPYING, COPYING.0BSD, COPYING.GPLv2/GPLv3/LGPLv2.1 |
 
 Compiled into FreeWRL: Duktape 2.0.0 (MIT, license text from `duktape.c`), libtess (SGI Free Software License B, from `tess.c`). FreeWRL itself: `freex3d/COPYING`, `COPYING.LESSER`. Apple system libraries and frameworks (OpenGL, OpenAL, libcurl, libxml2, libz, Cocoa) are not copied. The X11 libraries come in only because Homebrew's Imlib2 is built with X11 support; FreeWRL calls no X11 function.
 
@@ -184,11 +184,17 @@ Runtime links removed: ffmpeg's five libraries and the 11 dylibs only they neede
 ### Release blockers
 
 1. macOS 27.0 minimum unless the libraries are rebuilt for an older target.
-2. FreeType `FTL.TXT` (from the 2.14.3 source) in `ThirdPartyLicenses/freetype`.
-3. A decision on redistribution notices for the LGPL libraries (freealut; ode is dual-licensed).
-4. Notarization is not part of `package.sh` yet (done by hand with `notarytool`/`stapler`).
-5. The early clean exit above.
-6. Independent QA on a Mac that has never had Homebrew.
+2. The early clean exit above.
+3. Independent QA on a Mac that has never had Homebrew, of the closeout candidate
+   (branch `macos/standalone-packaging-closeout`). Its runtime smoke tests
+   (tests 1, 8, 10, 16, 50, image formats, fonts, ROUTE, HAnim, Cybertown 002
+   with Homebrew and the source tree unreadable) were not repeated after the
+   license and notarization changes, which touch only packaging scripts and
+   `Resources/ThirdPartyLicenses/`; the previous candidate passed them.
+4. Whether the LGPL distribution materials suffice ([THIRD-PARTY.md](tools/macos-package/THIRD-PARTY.md)
+   records what is shipped) is a decision for the maintainer, not a measured result.
+
+Closed: FreeType `FTL.TXT` is in the bundle; notarization is `package.sh --notarize`.
 
 ## Fixed on this branch (upstream bugs, all platforms)
 
@@ -209,5 +215,5 @@ Runtime links removed: ffmpeg's five libraries and the 11 dylibs only they neede
 - [ ] Directional light shadows outside the shadow map (upstream)
 - [x] Bundle dylibs, sign (Developer ID + hardened runtime test candidate); see [Standalone packaging](#standalone-packaging)
 - [ ] Rebuild the embedded libraries for an older macOS (they require 27.0)
-- [x] Notarize the local QA candidate (by hand; not yet in `package.sh`)
+- [x] Notarize the local QA candidate (`package.sh --notarize`)
 - [ ] Port `MPEG_Utils_ffmpeg.c` to ffmpeg 5+ (MovieTexture)
