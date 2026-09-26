@@ -46,9 +46,15 @@ X3D Sound Component
 #undef HAVE_OPENAL
 #endif //HAVE_LIBSOUND
 #ifdef HAVE_OPENAL
+#ifdef __APPLE__
+/* Apple's OpenAL.framework, which the macOS app links (it has no alext.h; nothing from it is used) */
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <AL/alext.h>
+#endif
 #ifdef HAVE_ALUT
 #include <AL/alut.h>
 #endif //HAVE_ALUT
