@@ -17,9 +17,9 @@ and mobile platform targets.
   browser hosted on SourceForge: <https://sourceforge.net/projects/freewrl/>.
   FreeWRL was written by its original authors and contributors, who retain
   their copyrights.
-- **This repository.** This GitHub repository is Ryan Bundy's
-  (DJAscendance) fork and development mirror of that project. It is not the
-  official upstream.
+- **This repository.** This GitHub repository is the Ascendance Open Worlds
+  modernization fork of FreeWRL, maintained by Ryan Bundy (DJAscendance). It
+  is not the official upstream.
 - **Current modernization.** The fork is restoring modern platform support,
   starting with native Apple Silicon macOS support for the FreeWRL 6.7 code
   line.
@@ -138,7 +138,7 @@ The numbered worlds in `freewrl/tests/` are described in
 
 ## GitHub mirror and fork
 
-- <https://github.com/DJAscendance/freewrl>
+- <https://github.com/Ascendance3D/freewrl>
 - Pull requests here are how fork changes are reviewed before they are
   offered upstream.
 

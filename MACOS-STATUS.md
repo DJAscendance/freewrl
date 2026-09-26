@@ -1,6 +1,6 @@
 # FreeWRL on macOS (Apple Silicon): develop port status
 
-Fork: https://github.com/DJAscendance/freewrl, branch `macos-arm64-develop-port` (local candidate, not pushed).
+Fork: https://github.com/Ascendance3D/freewrl, branch `macos-arm64-develop-port` (local candidate, not pushed).
 Base: upstream SourceForge `develop` @ `b3254b11e` (2024-04-20, "Version 6.7", FreeWRL 6.7.0).
 Reference: branch `macos-arm64` ([PR #1](https://github.com/DJAscendance/freewrl/pull/1)), the Mac port of upstream `master` @ `e99ab4a00`.
 Tested on: MacBook Pro M1 (Retina, backing scale 2), macOS 27.0, Xcode 27.0, Homebrew. Last updated 2026-09-25.
